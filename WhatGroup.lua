@@ -172,21 +172,19 @@ function WhatGroup:ShowNotification()
     local info = WhatGroup.pendingInfo
     if not info then return end
 
-    local header    = colorize("[WhatGroup]", "FFD700")
-    local title     = colorize(info.title, "FFFFFF")
-    local inst      = colorize(info.fullName ~= "" and info.fullName or "Unknown", "71d5ff")
-    local typeStr   = info.shortName ~= "" and info.shortName or GetGroupTypeLabel(info)
-    local leader    = colorize(info.leaderName, "FFFF00")
+    local gold = "FFD700"
+    local header    = colorize("[WhatGroup]", gold)
     local clickLink = colorize(link("WhatGroup:show", "[Click here to view details]"), "00FF7F")
 
     print(header .. " You have joined a group!")
-    print("  - Group: "    .. title)
-    print("  - Instance: " .. inst)
-    print("  - Type: "     .. typeStr)
-    print("  - Leader: "   .. leader)
+    print("  - " .. colorize("Group:", gold) .. " " .. info.title)
+    print("  - " .. colorize("Instance:", gold) .. " " .. (info.fullName ~= "" and info.fullName or "Unknown"))
+    local typeStr = info.shortName ~= "" and info.shortName or GetGroupTypeLabel(info)
+    print("  - " .. colorize("Type:", gold) .. " " .. typeStr)
+    print("  - " .. colorize("Leader:", gold) .. " " .. info.leaderName)
     local playStyle = GetPlaystyleLabel(info)
     if playStyle ~= "" then
-        print("  - Playstyle: " .. playStyle)
+        print("  - " .. colorize("Playstyle:", gold) .. " " .. playStyle)
     end
     print("  - " .. clickLink)
 end

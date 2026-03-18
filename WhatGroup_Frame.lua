@@ -65,7 +65,7 @@ local function MakeLabel(parent, anchor, yOffset, labelText, valueText)
     local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     label:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, yOffset)
     label:SetWidth(LABEL_WIDTH)
-    label:SetText("|cffAAAAAA" .. labelText .. "|r")
+    label:SetText("|cffFFD700" .. labelText .. "|r")
     label:SetJustifyH("LEFT")
     label:SetWordWrap(false)
 
@@ -96,11 +96,29 @@ local lblLead,  valLead    = MakeLabel(content, lblType,    yGap,   "Leader:",  
 
 local PLAYSTYLE_LABELS = { [1] = "Casual", [2] = "Moderate", [3] = "Serious" }
 
+-- Value color resolvers: each field can define a function(info) → hex color or nil (plain).
+-- Return nil or "" to leave text uncolored.
+local VALUE_COLORS = {
+    group     = function(info) return nil end,
+    instance  = function(info) return nil end,
+    type      = function(info) return nil end,
+    leader    = function(info) return nil end,
+    playstyle = function(info) return nil end,
+}
+
+local function ColorizeValue(text, resolver, info)
+    local hex = resolver and resolver(info)
+    if hex and hex ~= "" then
+        return "|cff" .. hex .. text .. "|r"
+    end
+    return text
+end
+
 local lblStyle, valStyle   = MakeLabel(content, lblLead,    yGap,   "Playstyle:", "—")
 
 local lblPort = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 lblPort:SetPoint("TOPLEFT", lblStyle, "BOTTOMLEFT", 0, yGap)
-lblPort:SetText("|cffAAAAAATeleport:|r")
+lblPort:SetText("|cffFFD700Teleport:|r")
 lblPort:SetJustifyH("LEFT")
 lblPort:SetWidth(LABEL_WIDTH)
 lblPort:SetWordWrap(false)
@@ -164,17 +182,14 @@ end
 -- Determine group type label (mirrors WhatGroup.lua helper)
 -- ============================================================
 local function GetGroupTypeLabel(info)
-    if info.isMythicPlus       then return "|cff00CCFF" .. "Mythic+|r"
-    elseif info.isCurrentRaid  then return "|cffFF6600" .. "Raid (Current)|r"
-    elseif info.isHeroicRaid   then return "|cffFF9900" .. "Heroic Raid|r"
-    elseif info.categoryID == 2 then return "|cffFF4444" .. "PvP|r"
-    elseif info.categoryID == 1 then return "|cff88FF88" .. "Dungeon|r"
-    elseif info.maxNumPlayers and info.maxNumPlayers >= 10 then
-        return "|cffFF6600" .. "Raid|r"
-    elseif info.maxNumPlayers and info.maxNumPlayers > 0 then
-        return "|cff88FF88" .. "Dungeon|r"
-    else
-        return "|cffCCCCCC" .. "Group|r"
+    if info.isMythicPlus       then return "Mythic+"
+    elseif info.isCurrentRaid  then return "Raid (Current)"
+    elseif info.isHeroicRaid   then return "Heroic Raid"
+    elseif info.categoryID == 2 then return "PvP"
+    elseif info.categoryID == 1 then return "Dungeon"
+    elseif info.maxNumPlayers and info.maxNumPlayers >= 10 then return "Raid"
+    elseif info.maxNumPlayers and info.maxNumPlayers > 0   then return "Dungeon"
+    else return "Group"
     end
 end
 
@@ -193,18 +208,18 @@ local function PopulateFields()
         return
     end
 
-    fields.group:SetText("|cffFFFFFF" .. info.title .. "|r")
+    fields.group:SetText(ColorizeValue(info.title, VALUE_COLORS.group, info))
 
     local instText = info.fullName ~= "" and info.fullName or "Unknown"
-    fields.instance:SetText("|cff71d5ff" .. instText .. "|r")
+    fields.instance:SetText(ColorizeValue(instText, VALUE_COLORS.instance, info))
 
     local typeStr = info.shortName ~= "" and info.shortName or GetGroupTypeLabel(info)
-    fields.type:SetText(typeStr)
+    fields.type:SetText(ColorizeValue(typeStr, VALUE_COLORS.type, info))
 
-    fields.leader:SetText("|cffFFFF00" .. info.leaderName .. "|r")
+    fields.leader:SetText(ColorizeValue(info.leaderName, VALUE_COLORS.leader, info))
 
     local playStyle = PLAYSTYLE_LABELS[info.playstyle] or ""
-    fields.playstyle:SetText(playStyle ~= "" and playStyle or "|cff888888—|r")
+    fields.playstyle:SetText(playStyle ~= "" and ColorizeValue(playStyle, VALUE_COLORS.playstyle, info) or "|cff888888—|r")
 
     ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, info)
 end
