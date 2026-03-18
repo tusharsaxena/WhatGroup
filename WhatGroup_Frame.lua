@@ -2,7 +2,7 @@
 -- Custom popup dialog frame for displaying group details
 
 local FRAME_WIDTH  = 420
-local FRAME_HEIGHT = 220
+local FRAME_HEIGHT = 260
 
 -- ============================================================
 -- Frame creation
@@ -93,8 +93,13 @@ local lblGroup, valGroup   = MakeLabel(content, topAnchor,  0,      "Group:",   
 local lblInst,  valInst    = MakeLabel(content, lblGroup,   yGap,   "Instance:", "—")
 local lblType,  valType    = MakeLabel(content, lblInst,    yGap,   "Type:",     "—")
 local lblLead,  valLead    = MakeLabel(content, lblType,    yGap,   "Leader:",   "—")
+
+local PLAYSTYLE_LABELS = { [1] = "Casual", [2] = "Moderate", [3] = "Serious" }
+
+local lblStyle, valStyle   = MakeLabel(content, lblLead,    yGap,   "Playstyle:", "—")
+
 local lblPort = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-lblPort:SetPoint("TOPLEFT", lblLead, "BOTTOMLEFT", 0, yGap)
+lblPort:SetPoint("TOPLEFT", lblStyle, "BOTTOMLEFT", 0, yGap)
 lblPort:SetText("|cffAAAAAATeleport:|r")
 lblPort:SetJustifyH("LEFT")
 lblPort:SetWidth(LABEL_WIDTH)
@@ -108,12 +113,13 @@ teleportBtn:Hide()
 local teleportIcon = teleportBtn:CreateTexture(nil, "ARTWORK")
 teleportIcon:SetAllPoints(teleportBtn)
 
-content:SetHeight(math.abs(yGap) * 5 + 24)
+content:SetHeight(math.abs(yGap) * 6 + 24)
 
 fields.group       = valGroup
 fields.instance    = valInst
 fields.type        = valType
 fields.leader      = valLead
+fields.playstyle   = valStyle
 fields.teleportBtn  = teleportBtn
 fields.teleportIcon = teleportIcon
 
@@ -182,6 +188,7 @@ local function PopulateFields()
         fields.instance:SetText("|cff888888No data|r")
         fields.type:SetText("|cff888888No data|r")
         fields.leader:SetText("|cff888888No data|r")
+        fields.playstyle:SetText("|cff888888—|r")
         fields.teleportBtn:Hide()
         return
     end
@@ -191,9 +198,13 @@ local function PopulateFields()
     local instText = info.fullName ~= "" and info.fullName or "Unknown"
     fields.instance:SetText("|cff71d5ff" .. instText .. "|r")
 
-    fields.type:SetText(GetGroupTypeLabel(info))
+    local typeStr = info.shortName ~= "" and info.shortName or GetGroupTypeLabel(info)
+    fields.type:SetText(typeStr)
 
     fields.leader:SetText("|cffFFFF00" .. info.leaderName .. "|r")
+
+    local playStyle = PLAYSTYLE_LABELS[info.playstyle] or ""
+    fields.playstyle:SetText(playStyle ~= "" and playStyle or "|cff888888—|r")
 
     ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, info)
 end

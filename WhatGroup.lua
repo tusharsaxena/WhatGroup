@@ -82,6 +82,7 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
         leaderName  = info.leaderName or "Unknown",
         numMembers  = info.numMembers or 0,
         voiceChat   = info.voiceChat or "",
+        playstyle   = info.playstyle or 0,
         age         = info.age or 0,
         activityIDs = info.activityIDs or (info.activityID and {info.activityID}) or {},
         activityID  = nil,
@@ -114,6 +115,7 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
             captured.isCurrentRaid      = actInfo.isCurrentRaidActivity or false
             captured.isHeroicRaid       = actInfo.isHeroicRaidActivity or false
             captured.categoryID         = actInfo.categoryID or 0
+            captured.shortName          = actInfo.shortName or ""
         end
     end
 
@@ -158,6 +160,11 @@ local function GetGroupTypeLabel(info)
     end
 end
 
+local PLAYSTYLE_LABELS = { [1] = "Casual", [2] = "Moderate", [3] = "Serious" }
+local function GetPlaystyleLabel(info)
+    return PLAYSTYLE_LABELS[info.playstyle] or ""
+end
+
 -- ============================================================
 -- Chat Notification
 -- ============================================================
@@ -168,7 +175,7 @@ function WhatGroup:ShowNotification()
     local header    = colorize("[WhatGroup]", "FFD700")
     local title     = colorize(info.title, "FFFFFF")
     local inst      = colorize(info.fullName ~= "" and info.fullName or "Unknown", "71d5ff")
-    local typeStr   = GetGroupTypeLabel(info)
+    local typeStr   = info.shortName ~= "" and info.shortName or GetGroupTypeLabel(info)
     local leader    = colorize(info.leaderName, "FFFF00")
     local clickLink = colorize(link("WhatGroup:show", "[Click here to view details]"), "00FF7F")
 
@@ -177,6 +184,10 @@ function WhatGroup:ShowNotification()
     print("  - Instance: " .. inst)
     print("  - Type: "     .. typeStr)
     print("  - Leader: "   .. leader)
+    local playStyle = GetPlaystyleLabel(info)
+    if playStyle ~= "" then
+        print("  - Playstyle: " .. playStyle)
+    end
     print("  - " .. clickLink)
 end
 
@@ -295,6 +306,8 @@ SlashCmdList["WHATGROUP"] = function(msg)
             isHeroicRaid  = false,
             categoryID    = 1,
             mapID         = nil,
+            playstyle     = 2,   -- "Moderate"
+            shortName     = "Mythic+",
         }
         WhatGroup:ShowNotification()
         WhatGroup:ShowFrame()
