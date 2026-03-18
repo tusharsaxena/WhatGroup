@@ -1,0 +1,8 @@
+## Interface: 120001
+## Title: WhatGroup
+## Notes: Notifies you of group details after joining via Premade Group Finder
+## Author: Tushar
+## Version: 1.0.0
+
+WhatGroup.lua
+WhatGroup_Frame.lua
