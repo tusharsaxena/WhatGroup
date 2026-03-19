@@ -1,8 +1,9 @@
 ## Interface: 120001
-## Title: WhatGroup
+## Title: Ka0s WhatGroup
 ## Notes: Notifies you of group details after joining via Premade Group Finder
-## Author: Tushar
+## Author: add1kted2ka0s
 ## Version: 1.0.0
+## iconTexture: 134149
 
 WhatGroup.lua
 WhatGroup_Frame.lua

@@ -1,4 +1,4 @@
-TODO - Add logo image
+![alt text](https://media.forgecdn.net/attachments/1588/403/whatgroup-logo-png.png)
 
 # Ka0s WhatGroup
 
@@ -17,20 +17,11 @@ A World of Warcraft addon that notifies you of group details after joining via t
 
 ***Popup Dialog***
 
-TODO - Add popup image
+![Popup Dialog](https://media.forgecdn.net/attachments/1588/404/dialog-png.png)
 
 ***Chat Message***
 
-TODO - Add chat image
-
-## Installation
-
-1. Download or clone this repository
-2. Copy the `WhatGroup` folder into your WoW addons directory:
-   ```
-   World of Warcraft\_retail_\Interface\AddOns\WhatGroup\
-   ```
-3. Restart WoW or reload your UI (`/reload`)
+![Chat Message](https://media.forgecdn.net/attachments/1588/405/chat-png.png)
 
 ## Slash Commands
 
