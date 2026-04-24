@@ -39,12 +39,14 @@ A World of Warcraft addon that notifies you of group details after joining via t
 2. When the group leader accepts your application, the capture is associated with that application ID.
 3. When you accept the invite and join the group, a chat notification is printed and the info dialog pops up automatically.
 
-## Compatibility
+## Bug Reports
 
-- Retail WoW (Interface version 120001+)
+Please report any issues in the [Issues](https://github.com/tusharsaxena/WhatGroup/issues) tab, not as a comment!
 
 ## Version History
 
-**v1.0.0**
+**1.1.0**
+- TOC version bump
 
-*   Initial Release … yay!
+**1.0.0**
+- Initial Release … yay!
