@@ -31,11 +31,14 @@ A World of Warcraft addon that notifies you of group details after joining via t
 
 | Command          |Description                            |
 | ---------------- |-------------------------------------- |
-| <code>/wg</code> or <code>/wg show</code> |Re-open the last group info dialog     |
+| <code>/wg</code> or <code>/wg help</code> |Show command help                      |
+| <code>/wg show</code> |Re-open the last group info dialog     |
 | <code>/wg test</code> |Preview the dialog with fake test data |
+| <code>/wg config</code> |Open the Ka0s WhatGroup Settings panel |
 | <code>/wg debug</code> |Toggle debug logging to chat           |
-| <code>/wg help</code> |Show command help                      |
 | <code>/whatgroup &lt;cmd&gt;</code> |Alias — same commands as <code>/wg</code> |
+
+All chat output from the addon is prefixed with a cyan `[WG]` tag for easy identification.
 
 ## How It Works
 
