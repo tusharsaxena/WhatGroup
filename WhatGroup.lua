@@ -218,6 +218,48 @@ end
 frame:RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
 
 -- ============================================================
+-- Settings panel registration (ESC > Options > AddOns)
+-- Ensures the addon appears as "Ka0s WhatGroup" in the in-game
+-- Settings UI sidebar. Idempotent: skips if already registered.
+-- ============================================================
+function WhatGroup:RegisterSettingsPanel()
+    if WhatGroup._settingsRegistered or not Settings or not Settings.RegisterAddOnCategory then
+        return
+    end
+
+    local displayName = "Ka0s WhatGroup"
+    local panel = CreateFrame("Frame", "WhatGroupSettingsPanel", UIParent)
+    panel.name = displayName
+
+    local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText("|cffFFD700Ka0s WhatGroup|r")
+
+    local body = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    body:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -12)
+    body:SetPoint("RIGHT", panel, "RIGHT", -16, 0)
+    body:SetJustifyH("LEFT")
+    body:SetJustifyV("TOP")
+    body:SetSpacing(4)
+    body:SetText(table.concat({
+        "Notifies you of group details after joining via Premade Group Finder.",
+        " ",
+        "Slash commands:",
+        "  |cffFFFF00/wg|r          — show last group info dialog",
+        "  |cffFFFF00/wg test|r     — preview the dialog with fake data",
+        "  |cffFFFF00/wg debug|r    — toggle debug logging",
+        "  |cffFFFF00/wg help|r     — list commands",
+        " ",
+        "No saved settings — state is session-only and clears on group leave.",
+    }, "\n"))
+
+    local category = Settings.RegisterCanvasLayoutCategory(panel, displayName)
+    category.ID = displayName
+    Settings.RegisterAddOnCategory(category)
+    WhatGroup._settingsRegistered = true
+end
+
+-- ============================================================
 -- Events
 -- ============================================================
 frame:RegisterEvent("ADDON_LOADED")
@@ -228,6 +270,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         local addonName = ...
         if addonName == "WhatGroup" then
             wasInGroup = IsInGroup()
+            WhatGroup:RegisterSettingsPanel()
         end
 
     elseif event == "GROUP_ROSTER_UPDATE" then
