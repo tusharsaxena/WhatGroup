@@ -10,9 +10,11 @@ local pendingApplications = {}   -- [appID] -> capturedInfo, set when "applied" 
 
 WhatGroup.debug = false   -- toggled per-session with /wg debug; never saved to SVs
 
+local CHAT_PREFIX = "|cff00FFFF[WG]|r"
+
 local function dbg(...)
     if WhatGroup.debug then
-        print("|cffFF8C00[WhatGroup DBG]|r", ...)
+        print(CHAT_PREFIX, "|cffFF8C00[DBG]|r", ...)
     end
 end
 
@@ -173,20 +175,19 @@ function WhatGroup:ShowNotification()
     if not info then return end
 
     local gold = "FFD700"
-    local header    = colorize("[WhatGroup]", gold)
     local clickLink = colorize(link("WhatGroup:show", "[Click here to view details]"), "00FF7F")
 
-    print(header .. " You have joined a group!")
-    print("  - " .. colorize("Group:", gold) .. " " .. info.title)
-    print("  - " .. colorize("Instance:", gold) .. " " .. (info.fullName ~= "" and info.fullName or "Unknown"))
+    print(CHAT_PREFIX .. " You have joined a group!")
+    print(CHAT_PREFIX .. "   - " .. colorize("Group:", gold) .. " " .. info.title)
+    print(CHAT_PREFIX .. "   - " .. colorize("Instance:", gold) .. " " .. (info.fullName ~= "" and info.fullName or "Unknown"))
     local typeStr = info.shortName ~= "" and info.shortName or GetGroupTypeLabel(info)
-    print("  - " .. colorize("Type:", gold) .. " " .. typeStr)
-    print("  - " .. colorize("Leader:", gold) .. " " .. info.leaderName)
+    print(CHAT_PREFIX .. "   - " .. colorize("Type:", gold) .. " " .. typeStr)
+    print(CHAT_PREFIX .. "   - " .. colorize("Leader:", gold) .. " " .. info.leaderName)
     local playStyle = GetPlaystyleLabel(info)
     if playStyle ~= "" then
-        print("  - " .. colorize("Playstyle:", gold) .. " " .. playStyle)
+        print(CHAT_PREFIX .. "   - " .. colorize("Playstyle:", gold) .. " " .. playStyle)
     end
-    print("  - " .. clickLink)
+    print(CHAT_PREFIX .. "   - " .. clickLink)
 end
 
 -- ============================================================
@@ -244,9 +245,11 @@ function WhatGroup:RegisterSettingsPanel()
     body:SetText(table.concat({
         "Notifies you of group details after joining via Premade Group Finder.",
         " ",
-        "Slash commands:",
-        "  |cffFFFF00/wg|r          — show last group info dialog",
+        "Slash commands (|cffFFFF00/whatgroup|r is an alias of |cffFFFF00/wg|r):",
+        "  |cffFFFF00/wg|r          — show help",
+        "  |cffFFFF00/wg show|r     — show last group info dialog",
         "  |cffFFFF00/wg test|r     — preview the dialog with fake data",
+        "  |cffFFFF00/wg config|r   — open this Settings panel",
         "  |cffFFFF00/wg debug|r    — toggle debug logging",
         "  |cffFFFF00/wg help|r     — list commands",
         " ",
@@ -254,8 +257,8 @@ function WhatGroup:RegisterSettingsPanel()
     }, "\n"))
 
     local category = Settings.RegisterCanvasLayoutCategory(panel, displayName)
-    category.ID = displayName
     Settings.RegisterAddOnCategory(category)
+    WhatGroup._settingsCategory = category
     WhatGroup._settingsRegistered = true
 end
 
@@ -326,6 +329,16 @@ end)
 SLASH_WHATGROUP1 = "/wg"
 SLASH_WHATGROUP2 = "/whatgroup"
 
+local function PrintHelp()
+    print(CHAT_PREFIX .. " |cffFFFFFFCommands (|r|cffFFFF00/whatgroup|r|cffFFFFFF is an alias of |r|cffFFFF00/wg|r|cffFFFFFF):|r")
+    print(CHAT_PREFIX .. "   |cffFFFF00/wg|r          |cffFFFFFF— show this help|r")
+    print(CHAT_PREFIX .. "   |cffFFFF00/wg show|r     |cffFFFFFF— show last group info dialog|r")
+    print(CHAT_PREFIX .. "   |cffFFFF00/wg test|r     |cffFFFFFF— show dialog with fake test data|r")
+    print(CHAT_PREFIX .. "   |cffFFFF00/wg config|r   |cffFFFFFF— open the Settings panel|r")
+    print(CHAT_PREFIX .. "   |cffFFFF00/wg debug|r    |cffFFFFFF— toggle debug logging|r")
+    print(CHAT_PREFIX .. "   |cffFFFF00/wg help|r     |cffFFFFFF— show this help|r")
+end
+
 SlashCmdList["WHATGROUP"] = function(msg)
     local cmd = msg and msg:lower():match("^%s*(%S*)") or ""
 
@@ -355,21 +368,25 @@ SlashCmdList["WHATGROUP"] = function(msg)
 
     elseif cmd == "debug" then
         WhatGroup.debug = not WhatGroup.debug
-        print("|cffFFD700[WhatGroup]|r Debug mode: " .. (WhatGroup.debug and "|cff00FF00ON|r" or "|cffFF4444OFF|r"))
+        print(CHAT_PREFIX .. " Debug mode: " .. (WhatGroup.debug and "|cff00FF00ON|r" or "|cffFF4444OFF|r"))
 
-    elseif cmd == "show" or cmd == "" then
+    elseif cmd == "config" then
+        local category = WhatGroup._settingsCategory
+        if Settings and Settings.OpenToCategory and category then
+            Settings.OpenToCategory(category:GetID())
+        else
+            print(CHAT_PREFIX .. " Settings panel is not available.")
+        end
+
+    elseif cmd == "show" then
         if WhatGroup.pendingInfo then
             WhatGroup:ShowFrame()
         else
-            print("|cffFFD700[WhatGroup]|r No group info available. Use |cffFFFF00/wg test|r to preview.")
+            print(CHAT_PREFIX .. " No group info available. Use |cffFFFF00/wg test|r to preview.")
         end
 
     else
-        print("|cffFFD700[WhatGroup]|r Commands:")
-        print("  |cffFFFF00/wg|r          — show last group info dialog")
-        print("  |cffFFFF00/wg test|r     — show dialog with fake test data")
-        print("  |cffFFFF00/wg debug|r    — toggle debug logging")
-        print("  |cffFFFF00/wg help|r     — show this help")
+        PrintHelp()
     end
 end
 
