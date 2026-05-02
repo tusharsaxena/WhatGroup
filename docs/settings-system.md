@@ -169,13 +169,25 @@ Both pages share the same header layout (gold title + tinted divider) and the sa
 
 Defaults button → `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreDefaults()`. `/wg reset` shows the same popup, so both paths share one OnAccept body.
 
-`WhatGroup._parentSettingsCategory` and `WhatGroup._settingsCategory` (the General subcategory) are the two handles. `/wg config` opens the **subcategory**:
+`WhatGroup._parentSettingsCategory` and `WhatGroup._settingsCategory` (the General subcategory) are the two handles. `/wg config` opens the **parent** and unfolds the sidebar tree by reaching into the same path the expand-arrow click handler uses:
 
 ```lua
-Settings.OpenToCategory(self._settingsCategory:GetID())
+Settings.OpenToCategory(self._parentSettingsCategory:GetID())
+
+pcall(function()
+    if not SettingsPanel then return end
+    local list = SettingsPanel.GetCategoryList
+        and SettingsPanel:GetCategoryList()
+        or SettingsPanel.CategoryList
+    if not (list and list.GetCategoryEntry) then return end
+    local entry = list:GetCategoryEntry(self._parentSettingsCategory)
+    if entry and entry.SetExpanded then
+        entry:SetExpanded(true)
+    end
+end)
 ```
 
-The integer `GetID()` is auto-assigned by the API. Don't overwrite `category.ID` with a string — it breaks the lookup.
+The integer `GetID()` is auto-assigned by the API. Don't overwrite `category.ID` with a string — it breaks the lookup. The expansion traversal targets the **CategoryEntry widget** (the visible row), not the category model — that's the object whose `SetExpanded` actually drives the tree redraw. The whole call is `pcall`-wrapped because `CategoryList` / `GetCategoryEntry` / `CategoryEntry:SetExpanded` are private Blizzard internals; if a future patch refactors any of them, the panel still opens, just without the auto-unfold. The slash command also refuses to open during `InCombatLockdown()`.
 
 ## Persisted shape — `WhatGroupDB`
 

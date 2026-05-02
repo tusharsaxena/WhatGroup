@@ -42,7 +42,7 @@ Settings.OpenToCategory(self._settingsCategory)            -- WRONG (object, not
 
 `category:GetID()` returns the auto-assigned integer ID. **Do not overwrite `category.ID` with a string.** Doing so silently breaks the lookup and `OpenToCategory` becomes a no-op.
 
-WhatGroup's `/wg config` calls `Settings.OpenToCategory(self._settingsCategory:GetID())` against the **subcategory** so the user lands on the populated General page rather than the empty parent.
+WhatGroup's `/wg config` calls `Settings.OpenToCategory(self._parentSettingsCategory:GetID())` against the **parent** and then reaches into `SettingsPanel:GetCategoryList():GetCategoryEntry(parent):SetExpanded(true)` — the path the expand-arrow click handler itself uses — so the subcategory tree comes up unfolded. That whole traversal is wrapped in `pcall` because `CategoryList` / `GetCategoryEntry` / the `CategoryEntry:SetExpanded` shape are private Blizzard internals that can shift between patches; if any link goes missing the panel still opens, just without auto-unfold. The slash command also refuses to open during `InCombatLockdown()` — the Settings UI uses secure templates and opening it mid-combat can taint other addons' secure handlers.
 
 ## Lazy AceGUI panel build
 

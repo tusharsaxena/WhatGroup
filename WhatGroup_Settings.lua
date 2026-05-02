@@ -898,11 +898,13 @@ end
 --
 -- Called from WhatGroup:OnEnable. Idempotent.
 --
--- WoW 12.0 hides a parent category's own widgets when the parent has
--- subcategories. So the parent panel is intentionally a thin landing
--- page; every actual setting lives in the General subcategory.
--- WhatGroup._settingsCategory is set to the **subcategory** so /wg
--- config opens directly to the settings, not to the empty parent.
+-- The parent canvas is the addon-landing page (logo + TOC notes +
+-- slash list); every actual setting lives in the General subcategory.
+-- WhatGroup._parentSettingsCategory is the handle `/wg config` opens
+-- against (also pcall-poking SettingsPanel.CategoryList's CategoryEntry
+-- so the General subcategory shows unfolded in the sidebar tree);
+-- WhatGroup._settingsCategory keeps the General-sub handle around for
+-- any future "open straight to General" caller.
 
 function Settings.Register()
     if WhatGroup._settingsRegistered or not _G.Settings

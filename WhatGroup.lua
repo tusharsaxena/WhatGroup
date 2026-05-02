@@ -578,12 +578,34 @@ end
 function runTest(self) self:RunTest() end
 
 function runConfig(self)
-    local category = self._settingsCategory
-    if Settings and Settings.OpenToCategory and category then
-        Settings.OpenToCategory(category:GetID())
-    else
-        p("Settings panel is not available.")
+    -- Settings UI uses secure templates protected during combat;
+    -- opening it mid-combat can taint. Refuse and print a hint.
+    if InCombatLockdown() then
+        return p("Cannot open the settings panel during combat. Try again after combat ends.")
     end
+
+    local parent = self._parentSettingsCategory
+    if not (Settings and Settings.OpenToCategory and parent) then
+        return p("Settings panel is not available.")
+    end
+    Settings.OpenToCategory(parent:GetID())
+
+    -- Unfold the parent in the sidebar tree so every subcategory is
+    -- one click away. Reaches into SettingsPanel.CategoryList →
+    -- CategoryEntry — private Blizzard internals — so wrap in pcall:
+    -- if a future patch refactors the tree, the panel still opens
+    -- and we just lose the auto-unfold instead of throwing.
+    pcall(function()
+        if not SettingsPanel then return end
+        local list = SettingsPanel.GetCategoryList
+            and SettingsPanel:GetCategoryList()
+            or SettingsPanel.CategoryList
+        if not (list and list.GetCategoryEntry) then return end
+        local entry = list:GetCategoryEntry(parent)
+        if entry and entry.SetExpanded then
+            entry:SetExpanded(true)
+        end
+    end)
 end
 
 function runDebug(self)

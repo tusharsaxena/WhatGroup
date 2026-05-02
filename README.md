@@ -32,7 +32,7 @@ Every chat line is prefixed with a cyan `[WG]` banner. Every option is configura
 | `/wg` or `/wg help` | Print the help index |
 | `/wg show` | Re-open the last group info popup (only while you're still in that group) |
 | `/wg test` | Preview the chat notification + popup with synthetic data — also available as a **Test** button in the Settings panel |
-| `/wg config` | Open the Settings panel on the **General** page |
+| `/wg config` | Open the Settings panel on the addon's landing page, with the subcategory tree unfolded |
 | `/wg list` | Print every setting and its current value |
 | `/wg get <path>` | Print one setting's current value |
 | `/wg set <path> <value>` | Update a setting. Bools accept `true / false / on / off / 1 / 0 / yes / no / toggle`; numbers clamp to the option's min/max |
@@ -42,12 +42,12 @@ Every chat line is prefixed with a cyan `[WG]` banner. Every option is configura
 
 ### Settings panel
 
-Settings live under **Ka0s WhatGroup → General** in the Blizzard Settings panel, in a two-column layout with a **Notify** sub-section further down. The page header carries a **Defaults** button on the right that resets every setting after a confirm prompt — same code path as `/wg reset`.
+`/wg config` opens the Blizzard Settings panel on **Ka0s WhatGroup**'s landing page (logo, addon notes, slash-command list) with the subcategory tree unfolded so **General** is one click away in the sidebar.
+
+The **General** subcategory holds every setting in a two-column layout with a **Notify** sub-section further down. The page header carries a **Defaults** button on the right that resets every setting after a confirm prompt — same code path as `/wg reset`.
 
 *   **General** — master enable, popup auto-show on group join, chat notification on/off, debug log, and a **Test** button that runs the full notify + popup flow against synthetic data.
 *   **Notify** — notification delay (0–10s) plus per-line gates for the chat notification: Instance, Type, Leader, Playstyle, the "Click here" link, and the dungeon teleport spell line. Each toggle controls **chat output only** — the popup always shows every field.
-
-`/wg config` opens directly to this page.
 
 ## How It Works
 
@@ -74,7 +74,7 @@ Capture state is session-only and clears when you leave the group; only your set
 | Chat notification is missing fields | The per-line `notify.show*` toggles are independent. The popup always shows every field; the toggles only affect chat output. |
 | `/wg show` says "No group info available" | The captured info clears when you leave the group, so `/wg show` only works while you're still in that group. Use `/wg test` if you just want to preview the popup. |
 | Teleport button is grayed out for a dungeon I'm in | Either the spell isn't learned on the current character, or the activity has no teleport mapping. The popup always renders the row; the button is disabled when the spell isn't castable. |
-| Settings panel opens to an empty page | `/wg config` lands on the populated **General** page. The parent "Ka0s WhatGroup" sidebar entry is intentionally a thin description page — click **General** in the sidebar. |
+| Settings panel opens but I can't find the toggles | `/wg config` lands on the addon's landing page (logo + slash list) with the subcategory tree unfolded — click **General** in the sidebar to reach the toggles. |
 
 ## Issues and feature requests
 
