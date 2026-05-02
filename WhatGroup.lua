@@ -14,15 +14,41 @@
 -- The plain `_G.WhatGroup` table that the legacy file populated is
 -- promoted to an AceAddon, preserving every prior field. Downstream
 -- files (Settings, Frame) read `_G.WhatGroup` and see the mixed-in
--- version with RegisterChatCommand / RegisterEvent / SecureHook /
--- RawHook / db / etc.
+-- version with RegisterChatCommand / RegisterEvent / db / etc. Hooks
+-- are direct `hooksecurefunc` post-hooks installed at file-load
+-- (below) — not AceHook. AceHook adds a per-invocation closure that
+-- taints Blizzard's secure-execute chain at GameMenu Logout time.
 
 local existing = _G.WhatGroup or {}
 local WhatGroup = LibStub("AceAddon-3.0"):NewAddon(
     existing, "WhatGroup",
-    "AceConsole-3.0", "AceEvent-3.0", "AceHook-3.0")
+    "AceConsole-3.0", "AceEvent-3.0")
 _G.WhatGroup = WhatGroup
 WhatGroup.VERSION = "1.1.0"
+
+-- Direct `hooksecurefunc` post-hooks installed at file-load (NOT in
+-- OnEnable). Hooks live at the top of the file; the addon table is
+-- the only persistent reference; no closures captured from event
+-- handlers. Installing these in OnEnable (PLAYER_LOGIN) was tainting
+-- Blizzard's GameMenu callbacks — the closures Blizzard builds for
+-- Logout/Settings/Macros buttons were inheriting our addon's
+-- load-time taint and rejecting their secure-execute calls with
+-- ADDON_ACTION_FORBIDDEN. File-load hook registration runs before
+-- GameMenu's InitButtons builds those closures, so they remain
+-- taint-free.
+hooksecurefunc(C_LFGList, "ApplyToGroup", function(searchResultID, ...)
+    if WhatGroup.OnApplyToGroup then
+        WhatGroup:OnApplyToGroup(searchResultID, ...)
+    end
+end)
+
+hooksecurefunc("SetItemRef", function(linkArg, text, button, ...)
+    if type(linkArg) ~= "string" then return end
+    if not linkArg:match("^WhatGroup:") then return end
+    if WhatGroup.OnSetItemRef then
+        WhatGroup:OnSetItemRef(linkArg, text, button, ...)
+    end
+end)
 
 local CHAT_PREFIX = "|cff00FFFF[WG]|r"
 
@@ -30,6 +56,7 @@ local CHAT_PREFIX = "|cff00FFFF[WG]|r"
 local captureQueue        = {}   -- FIFO: captures awaiting their appID assignment
 local pendingApplications = {}   -- [appID] -> capturedInfo (set when "applied" fires)
 local wasInGroup          = false
+local notifiedFor         = nil  -- pendingInfo identity that already fired notify+popup
 
 local function dbg(...)
     if WhatGroup.debug then
@@ -53,27 +80,133 @@ WhatGroup._dbg   = dbg
 -- mapID is captured into pendingInfo.mapID from
 -- C_LFGList.GetActivityInfoTable's mapID field; activityIDs rotate per
 -- season and aren't reliable lookup keys.
+--
+-- Values are either a single spellID (number) or a list of candidates
+-- (table). When multiple Path-of spells have been issued for the same
+-- dungeon over the years (e.g. an original spell + a later refresh),
+-- list both — `GetTeleportSpell` picks whichever the player actually
+-- knows via IsSpellKnown.
+--
+-- Primary source for spell IDs and names:
+--   https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities
+--
+-- Each entry below cites the wiki spell page in its trailing comment so
+-- the validation chain is auditable. Entries without a learnable
+-- Path-of spell on the wiki (Eye of Azshara, Maw of Souls, The Arcway,
+-- Vault of the Wardens, Cathedral of Eternal Night) are absent.
+--
+-- Refresh recipe (new season / patch): see
+-- docs/common-tasks.md → "Add a dungeon teleport spell mapping".
 WhatGroup.TeleportSpells = {
-    -- TWW Season 3 dungeons
-    [2660] = 445417,  -- Ara-Kara, City of Echoes
-    [2649] = 445444,  -- Priory of the Sacred Flame
-    [2662] = 445414,  -- The Dawnbreaker
-    [2773] = 1216786, -- Operation: Floodgate
-    [2830] = 1237215, -- Eco-Dome Al'dani
-    [2441] = 367416,  -- Tazavesh: Streets of Wonder + So'leah's Gambit (shared map)
-    [2287] = 354465,  -- Halls of Atonement
-    -- TWW (other)
-    [2669] = 445416,  -- City of Threads
-    [2661] = 445440,  -- Cinderbrew Meadery
-    [2651] = 445441,  -- Darkflame Cleft
-    [2648] = 445443,  -- The Rookery
-    [2652] = 445269,  -- The Stonevault
-    -- Midnight Season 1 dungeons
-    [2811] = 1254572, -- Magisters' Terrace
-    [2874] = 1254559, -- Maisara Caverns
-    [2915] = 1254563, -- Nexus-Point Xenas
-    [2805] = 1254400, -- Windrunner Spire
-    [2526] = 393273,  -- Algeth'ar Academy
+
+    -- ===== Cataclysm =====
+    [643]  = 424142,              -- Throne of the Tides                — Path of the Tidehunter
+    [657]  = 410080,              -- The Vortex Pinnacle                — Path of Wind's Domain
+    [658]  = 1254555,             -- Pit of Saron                       — Path of Unyielding Blight
+    [670]  = 445424,              -- Grim Batol                         — Path of the Twilight Fortress
+
+    -- ===== Mists of Pandaria =====
+    [959]  = 131206,              -- Shado-Pan Monastery                — Path of the Shado-Pan
+    [960]  = 131204,              -- Temple of the Jade Serpent         — Path of the Jade Serpent
+    [961]  = 131205,              -- Stormstout Brewery                 — Path of the Stout Brew
+    [962]  = 131225,              -- Gate of the Setting Sun            — Path of the Setting Sun
+    [994]  = 131222,              -- Mogu'shan Palace                   — Path of the Mogu King
+    [1001] = 131229,              -- Scarlet Monastery                  — Path of the Scarlet Mitre
+    [1004] = 131231,              -- Scarlet Halls                      — Path of the Scarlet Blade
+    [1007] = 131232,              -- Scholomance                        — Path of the Necromancer
+    [1011] = 131228,              -- Siege of Niuzao Temple             — Path of the Black Ox
+
+    -- ===== Warlords of Draenor =====
+    [1175] = 159895,              -- Bloodmaul Slag Mines               — Path of the Bloodmaul
+    [1176] = 159899,              -- Shadowmoon Burial Grounds          — Path of the Crescent Moon
+    [1182] = 159897,              -- Auchindoun                         — Path of the Vigilant
+    [1195] = 159896,              -- Iron Docks                         — Path of the Iron Prow
+    [1208] = 159900,              -- Grimrail Depot                     — Path of the Dark Rail
+    [1209] = { 159898, 1254557 }, -- Skyreach                           — Path of the Skies / Path of the Crowning Pinnacle
+    [1279] = 159901,              -- The Everbloom                      — Path of the Verdant
+    [1358] = 159902,              -- Upper Blackrock Spire              — Path of the Burning Mountain
+
+    -- ===== Legion =====
+    [1458] = 410078,              -- Neltharion's Lair                  — Path of the Earth-Warder
+    [1466] = 424163,              -- Darkheart Thicket                  — Path of the Nightmare Lord
+    [1477] = 393764,              -- Halls of Valor                     — Path of Proven Worth
+    [1501] = 424153,              -- Black Rook Hold                    — Path of Ancient Horrors
+    [1571] = 393766,              -- Court of Stars                     — Path of the Grand Magistrix
+    [1651] = 373262,              -- Return to Karazhan                 — Path of the Fallen Guardian
+    [1753] = 1254551,             -- Seat of the Triumvirate            — Path of Dark Dereliction
+
+    -- ===== Battle for Azeroth =====
+    [1594] = 467553,              -- The MOTHERLODE!!                   — Path of the Azerite Refinery
+    [1754] = 410071,              -- Freehold                           — Path of the Freebooter
+    [1763] = 424187,              -- Atal'Dazar                         — Path of the Golden Tomb
+    [1822] = 445418,              -- Siege of Boralus                   — Path of the Besieged Harbor
+    [1841] = 410074,              -- The Underrot                       — Path of Festering Rot
+    [1862] = 424167,              -- Waycrest Manor                     — Path of Heart's Bane
+    [2097] = 373274,              -- Operation: Mechagon                — Path of the Scrappy Prince     (legacy mega-dungeon ID; the M+ split versions Workshop and Junkyard appear to share this mapID, but verify in-game if a player reports the icon missing)
+
+    -- ===== Shadowlands =====
+    [2284] = 354469,              -- Sanguine Depths                    — Path of the Stone Warden
+    [2285] = 354466,              -- Spires of Ascension                — Path of the Ascendant
+    [2286] = 354462,              -- The Necrotic Wake                  — Path of the Courageous
+    [2287] = 354465,              -- Halls of Atonement                 — Path of the Sinful Soul
+    [2289] = 354463,              -- Plaguefall                         — Path of the Plagued
+    [2290] = 354464,              -- Mists of Tirna Scithe              — Path of the Misty Forest
+    [2291] = 354468,              -- De Other Side                      — Path of the Scheming Loa
+    [2293] = 354467,              -- Theater of Pain                    — Path of the Undefeated
+    [2296] = 373190,              -- Castle Nathria (raid)              — Path of the Sire
+    [2441] = 367416,              -- Tazavesh: Streets / So'leah's      — Path of the Streetwise Merchant
+    [2450] = 373191,              -- Sanctum of Domination (raid)       — Path of the Tormented Soul
+    [2481] = 373192,              -- Sepulcher of the First Ones (raid) — Path of the First Ones
+
+    -- ===== Dragonflight =====
+    -- mapIDs for Brackenhide Hollow, Dawn of the Infinite, and the
+    -- raids below are best-effort — verify in-game with `/wg debug`
+    -- or `/run print(select(8, GetInstanceInfo()))` when on-site.
+    [2080] = 393267,              -- Brackenhide Hollow                 — Path of the Rotting Woods       (verify mapID in-game)
+    [2451] = 393283,              -- Halls of Infusion                  — Path of the Titanic Reservoir
+    [2515] = 393279,              -- The Azure Vault                    — Path of Arcane Secrets
+    [2516] = 393262,              -- The Nokhud Offensive               — Path of the Windswept Plains
+    [2519] = 393276,              -- Neltharus                          — Path of the Obsidian Hoard
+    [2521] = 393256,              -- Ruby Life Pools                    — Path of the Clutch Defender
+    [2522] = 432254,              -- Vault of the Incarnates (raid)     — Path of the Primal Prison       (verify mapID in-game)
+    [2526] = 393222,              -- Uldaman: Legacy of Tyr             — Path of the Watcher's Legacy
+    [2549] = 432258,              -- Amirdrassil, the Dream's Hope (raid) — Path of the Scorching Dream  (verify mapID in-game)
+    [2569] = 432257,              -- Aberrus, the Shadowed Crucible (raid) — Path of the Bitter Legacy   (verify mapID in-game)
+    [2579] = 424197,              -- Dawn of the Infinite               — Path of Twisted Time            (verify mapID in-game)
+
+    -- ===== The War Within =====
+    -- Liberation of Undermine and Manaforge Omega mapIDs are best-effort
+    -- — verify in-game when the addon sees them in the wild.
+    [2648] = 445443,              -- The Rookery                        — Path of the Fallen Stormriders
+    [2649] = 445444,              -- Priory of the Sacred Flame         — Path of the Light's Reverence
+    [2651] = 445441,              -- Darkflame Cleft                    — Path of the Warding Candles
+    [2652] = 445269,              -- The Stonevault                     — Path of the Corrupted Foundry
+    [2660] = 445417,              -- Ara-Kara, City of Echoes           — Path of the Ruined City
+    [2661] = 445440,              -- Cinderbrew Meadery                 — Path of the Flaming Brewery
+    [2662] = 445414,              -- The Dawnbreaker                    — Path of the Arathi Flagship
+    [2669] = 445416,              -- City of Threads                    — Path of Nerubian Ascension
+    [2769] = 1226482,             -- Liberation of Undermine (raid)     — Path of the Full House          (verify mapID in-game)
+    [2773] = 1216786,             -- Operation: Floodgate               — Path of the Circuit Breaker
+    [2810] = 1239155,             -- Manaforge Omega (raid)             — Path of the All-Devouring       (verify mapID in-game)
+    [2830] = 1237215,             -- Eco-Dome Al'dani                   — Path of the Eco-Dome
+
+    -- ===== Midnight =====
+    [2805] = 1254400,             -- Windrunner Spire                   — Path of the Windrunners
+    [2811] = 1254572,             -- Magisters' Terrace                 — Path of Devoted Magistry
+    [2874] = 1254559,             -- Maisara Caverns                    — Path of Maisara Caverns
+    [2915] = 1254563,             -- Nexus-Point Xenas                  — Path of Nexus-Point Xenas
+
+    -- =====================================================================
+    -- Pending in-game mapID verification (spell ID is wiki-confirmed,
+    -- mapID is unknown / unverified):
+    --
+    --   Algeth'ar Academy — 393273 — Path of the Draconic Diploma
+    --     Older addon data assumed mapID 2526 for AA, but recent
+    --     verification places 2526 at Uldaman: Legacy of Tyr (above).
+    --     AA's actual mapID needs in-game confirmation. Run
+    --       /run print(select(8, GetInstanceInfo()))
+    --     inside the dungeon, or apply to an AA group with /wg debug
+    --     on and read the `mapID=…` line from the log.
 }
 
 local function colorize(text, hex)
@@ -108,25 +241,19 @@ function WhatGroup:OnInitialize()
 end
 
 function WhatGroup:OnEnable()
+    -- OnEnable is intentionally minimal. Hooks are installed at
+    -- file-load (top of this file). Settings panel registration is
+    -- deferred to first `/wg config`. StaticPopup registration is
+    -- deferred to first reset. All three of those used to live in
+    -- OnEnable / file-load and were tainting Blizzard's GameMenu
+    -- callbacks (Logout etc. fired ADDON_ACTION_FORBIDDEN). The
+    -- common cause: addon-author writes that touch protected/secure
+    -- surfaces (SettingsPanel categories, StaticPopupDialogs, AceHook
+    -- closures) during the boot window leak taint into the closures
+    -- Blizzard's GameMenu builds for its buttons.
     self:RegisterEvent("GROUP_ROSTER_UPDATE")
     self:RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
-
-    -- SecureHook observes ApplyToGroup AFTER the original runs. We only
-    -- need to read GetSearchResultInfo for the same searchResultID, so
-    -- before/after doesn't matter for correctness.
-    self:SecureHook(C_LFGList, "ApplyToGroup", "OnApplyToGroup")
-
-    -- SetItemRef must intercept (return early) on our custom link, so
-    -- RawHook is required — SecureHook can't short-circuit the original.
-    self:RawHook("SetItemRef", "OnSetItemRef", true)
-
     wasInGroup = IsInGroup()
-
-    -- Settings panel registration is deferred via the Settings module
-    -- so we don't need to know its internals here.
-    if self.Settings and self.Settings.Register then
-        self.Settings.Register()
-    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -135,11 +262,10 @@ end
 
 function WhatGroup:CaptureGroupInfo(searchResultID)
     local info = C_LFGList.GetSearchResultInfo(searchResultID)
-    dbg("GetSearchResultInfo returned:", info ~= nil)
-    if self.debug and info then
-        for k, v in pairs(info) do dbg("  info." .. tostring(k), "=", tostring(v)) end
+    if not info then
+        dbg("CaptureGroupInfo: GetSearchResultInfo returned nil for id=" .. tostring(searchResultID))
+        return
     end
-    if not info then return end
 
     local captured = {
         title             = info.name or info.title or "Unknown",
@@ -183,45 +309,42 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
             captured.categoryID     = actInfo.categoryID or 0
             captured.shortName      = actInfo.shortName or ""
             captured.mapID          = actInfo.mapID
-            dbg("activity table OK:",
-                "mapID=" .. tostring(actInfo.mapID),
-                "fullName=" .. tostring(actInfo.fullName),
-                "isMythicPlus=" .. tostring(actInfo.isMythicPlusActivity))
-        else
-            dbg("GetActivityInfoTable returned nil for activityID",
-                tostring(firstActivityID),
-                "→ mapID/fullName/isMythicPlus stay at defaults")
         end
-    else
-        dbg("info.activityIDs is empty — no activity-derived fields captured")
     end
 
-    dbg("CaptureGroupInfo result:",
-        "title=" .. tostring(captured.title),
-        "activityID=" .. tostring(captured.activityID),
-        "mapID=" .. tostring(captured.mapID),
-        "isMythicPlus=" .. tostring(captured.isMythicPlus),
-        "generalPlaystyle=" .. tostring(captured.generalPlaystyle),
-        "playstyleString='" .. tostring(captured.playstyleString) .. "'")
+    dbg("Capture: title=" .. tostring(captured.title)
+        .. " activityID=" .. tostring(captured.activityID)
+        .. " mapID=" .. tostring(captured.mapID))
 
     return captured
+end
+
+-- Resolve a TeleportSpells value (number OR list) to a single spellID.
+-- For lists, prefer the first one the player has learned via
+-- IsSpellKnown; if none are known (player never learned the spell),
+-- return the first list entry so the popup at least shows the icon
+-- desaturated rather than hiding.
+local function pickKnownSpell(value)
+    if type(value) == "number" then return value end
+    if type(value) == "table" then
+        if IsSpellKnown then
+            for _, sid in ipairs(value) do
+                if IsSpellKnown(sid) then return sid end
+            end
+        end
+        return value[1]
+    end
 end
 
 function WhatGroup:GetTeleportSpell(activityID, mapID)
     -- mapID first: TeleportSpells is keyed by mapID. activityID lookup is
     -- a back-compat fallback; the table no longer carries activityID rows.
     if mapID and self.TeleportSpells[mapID] then
-        dbg("GetTeleportSpell HIT mapID=" .. tostring(mapID)
-            .. " spellID=" .. tostring(self.TeleportSpells[mapID]))
-        return self.TeleportSpells[mapID]
+        return pickKnownSpell(self.TeleportSpells[mapID])
     end
     if activityID and self.TeleportSpells[activityID] then
-        dbg("GetTeleportSpell HIT activityID=" .. tostring(activityID)
-            .. " spellID=" .. tostring(self.TeleportSpells[activityID]))
-        return self.TeleportSpells[activityID]
+        return pickKnownSpell(self.TeleportSpells[activityID])
     end
-    dbg("GetTeleportSpell MISS — activityID=" .. tostring(activityID)
-        .. ", mapID=" .. tostring(mapID))
     return nil
 end
 
@@ -267,11 +390,10 @@ end
 
 function WhatGroup:ShowNotification()
     local info = self.pendingInfo
-    dbg("ShowNotification: pendingInfo="
-        .. (info and ("title=" .. tostring(info.title)
-                      .. " mapID=" .. tostring(info.mapID))
-                  or "NIL — no chat output"))
-    if not info then return end
+    if not info then
+        dbg("ShowNotification skip: pendingInfo is nil")
+        return
+    end
     local n = self.db and self.db.profile and self.db.profile.notify
     if not n or not n.enabled then return end
 
@@ -325,78 +447,95 @@ function WhatGroup:OnApplyToGroup(searchResultID, ...)
     if not (self.db and self.db.profile and self.db.profile.enabled) then
         return
     end
-    dbg("ApplyToGroup hook fired, searchResultID:", tostring(searchResultID))
+    dbg("ApplyToGroup id=" .. tostring(searchResultID))
     local captured = self:CaptureGroupInfo(searchResultID)
     if captured then
         table.insert(captureQueue, captured)
     end
 end
 
+-- Called from the file-load `hooksecurefunc("SetItemRef", ...)` post-hook
+-- whenever the link prefix matches "WhatGroup:". Blizzard's default
+-- SetItemRef has already run by this point and no-op'd on our prefix;
+-- this just opens the popup (or prints a hint if pendingInfo is gone).
 function WhatGroup:OnSetItemRef(linkArg, text, button, ...)
-    if linkArg and linkArg:match("^WhatGroup:") then
-        dbg("OnSetItemRef WhatGroup link clicked, pendingInfo="
-            .. (self.pendingInfo
-                and ("title=" .. tostring(self.pendingInfo.title)
-                     .. " mapID=" .. tostring(self.pendingInfo.mapID))
-                or "NIL"))
-        -- pendingInfo is session-only (cleared on group-leave or
-        -- /reload). A click on a stale chat link from a previous
-        -- session would otherwise open an empty "No data" popup; print
-        -- a one-line hint instead.
-        if not self.pendingInfo then
-            p("Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview.")
-            return
-        end
-        self:ShowFrame()
+    dbg("ChatLink hasPending=" .. tostring(self.pendingInfo ~= nil))
+    -- pendingInfo is session-only (cleared on group-leave or /reload).
+    -- A click on a stale chat link from a previous session would
+    -- otherwise open an empty "No data" popup; print a one-line hint.
+    if not self.pendingInfo then
+        p("Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview.")
         return
     end
-    return self.hooks.SetItemRef(linkArg, text, button, ...)
+    self:ShowFrame()
 end
 
 -- ---------------------------------------------------------------------------
 -- Events
 -- ---------------------------------------------------------------------------
 
+-- Schedule notify+popup IF: we're in a group, pendingInfo is set, and
+-- we haven't already fired for this pendingInfo.
+--
+-- Called from BOTH GROUP_ROSTER_UPDATE (covers the case where pendingInfo
+-- was already set when the in-group transition arrived) AND from the
+-- inviteaccepted handler (covers the retail case where GROUP_ROSTER_UPDATE
+-- fires BEFORE inviteaccepted, missing the wasInGroup-based transition
+-- because pendingInfo wasn't set yet at that moment).
+--
+-- `notifiedFor` is the identity of the pendingInfo we already fired for;
+-- it gets cleared when pendingInfo is replaced or wiped. This is what
+-- prevents double-firing when both event paths catch the same join.
+function WhatGroup:_TryFireJoinNotify(reason)
+    if not self.pendingInfo then
+        -- Only log "no pendingInfo" from the inviteaccepted path —
+        -- ROSTER transitions hit this constantly and just clutter chat.
+        if reason == "inviteaccepted" then
+            dbg("Notify(" .. reason .. ") skip: no pendingInfo")
+        end
+        return
+    end
+    if notifiedFor == self.pendingInfo then return end
+    if not IsInGroup() then return end
+
+    notifiedFor = self.pendingInfo
+    local delay = (self.db and self.db.profile and self.db.profile.notify
+                   and self.db.profile.notify.delay) or 1.5
+    local autoShow = not (self.db and self.db.profile and self.db.profile.frame
+                          and self.db.profile.frame.autoShow == false)
+    dbg("Notify(" .. reason .. ") scheduling in " .. tostring(delay) .. "s")
+    C_Timer.After(delay, function()
+        self:ShowNotification()
+        if autoShow then self:ShowFrame() end
+    end)
+end
+
 function WhatGroup:GROUP_ROSTER_UPDATE()
     local inGroup = IsInGroup()
-    dbg("GROUP_ROSTER_UPDATE inGroup:", tostring(inGroup),
-        "wasInGroup:", tostring(wasInGroup),
-        "hasPending:", tostring(self.pendingInfo ~= nil))
+    -- Suppress the no-op tick log: this event fires on every roster
+    -- change (talents, specs, auras on some patches) and floods chat.
+    -- Only log on a transition or when there's pendingInfo to clear.
+    if inGroup ~= wasInGroup or (not inGroup and self.pendingInfo) then
+        dbg("ROSTER inGroup=" .. tostring(inGroup)
+            .. " wasInGroup=" .. tostring(wasInGroup)
+            .. " hasPending=" .. tostring(self.pendingInfo ~= nil))
+    end
 
-    if inGroup and not wasInGroup and self.pendingInfo then
-        local delay = (self.db and self.db.profile and self.db.profile.notify
-                       and self.db.profile.notify.delay) or 1.5
-        local autoShow = not (self.db and self.db.profile and self.db.profile.frame
-                              and self.db.profile.frame.autoShow == false)
-        local pendingAtSchedule = self.pendingInfo
-        dbg("GROUP_ROSTER_UPDATE: scheduling notify in " .. tostring(delay) .. "s",
-            "pendingInfo at schedule: title=" .. tostring(pendingAtSchedule.title)
-            .. " mapID=" .. tostring(pendingAtSchedule.mapID))
-        C_Timer.After(delay, function()
-            dbg("notify timer fired",
-                "pendingInfo still set? " .. tostring(self.pendingInfo ~= nil)
-                .. " same identity? " .. tostring(self.pendingInfo == pendingAtSchedule))
-            self:ShowNotification()
-            if autoShow then self:ShowFrame() end
-        end)
+    if inGroup and not wasInGroup then
+        self:_TryFireJoinNotify("ROSTER transition")
     end
     wasInGroup = inGroup
 
     if not inGroup then
-        if self.pendingInfo then
-            dbg("GROUP_ROSTER_UPDATE inGroup=false → clearing pendingInfo (was: title="
-                .. tostring(self.pendingInfo.title)
-                .. " mapID=" .. tostring(self.pendingInfo.mapID) .. ")")
-        end
         self.pendingInfo = nil
+        notifiedFor      = nil
         wipe(captureQueue)
         wipe(pendingApplications)
     end
 end
 
 function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
-    dbg("LFG_LIST_APPLICATION_STATUS_UPDATED appID:", tostring(appID),
-        "status:", tostring(newStatus))
+    dbg("LFG_STATUS appID=" .. tostring(appID) .. " status=" .. tostring(newStatus))
     if newStatus == "applied" then
         local capture = table.remove(captureQueue, 1)
         if capture then
@@ -424,18 +563,24 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
             final = queued
         end
         self.pendingInfo = final
+        notifiedFor      = nil  -- new pendingInfo identity → eligible to fire again
 
-        dbg("inviteaccepted resolved:",
-            "fresh=" .. (fresh and ("mapID=" .. tostring(fresh.mapID))
-                                or "nil"),
-            "queued=" .. (queued and ("mapID=" .. tostring(queued.mapID))
-                                or "nil"),
-            "pendingInfo=" .. (final and ("mapID=" .. tostring(final.mapID)
-                                          .. " title=" .. tostring(final.title))
-                                     or "NIL"))
+        dbg("inviteaccepted: pendingInfo="
+            .. (final and ("title=" .. tostring(final.title)
+                           .. " mapID=" .. tostring(final.mapID))
+                      or "NIL"))
 
         wipe(captureQueue)
         wipe(pendingApplications)
+
+        -- Retail timing: GROUP_ROSTER_UPDATE often fires BEFORE this
+        -- "inviteaccepted" status, so the wasInGroup transition has
+        -- already passed by the time pendingInfo lands. Try firing now
+        -- as a fallback — _TryFireJoinNotify gates on IsInGroup() and
+        -- the notifiedFor flag, so if ROSTER_UPDATE already fired it
+        -- this is a no-op, and if ROSTER_UPDATE missed because
+        -- pendingInfo was nil this catches up.
+        self:_TryFireJoinNotify("inviteaccepted")
     end
 end
 
@@ -630,7 +775,10 @@ function runReset(self)
     end
     -- Route through the same popup the Defaults button uses so both
     -- code paths share one OnAccept body (defined in WhatGroup_Settings.lua).
-    if StaticPopup_Show then
+    -- EnsureResetPopup lazily registers the dialog on first use; writing
+    -- to StaticPopupDialogs at file-load taints GameMenu callbacks.
+    if StaticPopup_Show and self.Settings and self.Settings.EnsureResetPopup then
+        self.Settings.EnsureResetPopup()
         StaticPopup_Show("WHATGROUP_RESET_ALL")
     else
         H.RestoreDefaults()
@@ -686,6 +834,18 @@ function runConfig(self)
     -- opening it mid-combat can taint. Refuse and print a hint.
     if InCombatLockdown() then
         return p("Cannot open the settings panel during combat. Try again after combat ends.")
+    end
+
+    -- Lazy Settings registration: we deliberately don't register at
+    -- PLAYER_LOGIN because direct calls to
+    -- `_G.Settings.RegisterCanvasLayoutCategory` /
+    -- `_G.Settings.RegisterAddOnCategory` from non-secure addon code
+    -- at boot taint Blizzard's GameMenu callbacks (Logout etc. fail
+    -- with ADDON_ACTION_FORBIDDEN). Registering on first /wg config
+    -- means the addon adds nothing to Blizzard's settings/menu
+    -- surface during the boot sequence.
+    if self.Settings and self.Settings.Register then
+        self.Settings.Register()
     end
 
     local parent = self._parentSettingsCategory

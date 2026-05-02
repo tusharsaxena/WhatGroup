@@ -36,7 +36,7 @@ None of these are persisted — capture state is recomputed from live LFG events
 Player clicks Apply
         │
         ▼
-SecureHook on C_LFGList.ApplyToGroup ───► OnApplyToGroup(searchResultID)
+hooksecurefunc on C_LFGList.ApplyToGroup ─► OnApplyToGroup(searchResultID)
                                           ├─ db.profile.enabled gate (early-return if false)
                                           ├─ CaptureGroupInfo(searchResultID)
                                           │    ├─ C_LFGList.GetSearchResultInfo
@@ -105,7 +105,7 @@ self.pendingInfo = final
 
 `wasInGroup` is seeded in `OnEnable` from `IsInGroup()` (so reloading mid-group doesn't re-trigger) and updated on every `GROUP_ROSTER_UPDATE`. The notify branch fires only when `inGroup ∧ ¬wasInGroup ∧ pendingInfo`.
 
-## Why `RawHook` on `SetItemRef`
+## Why `hooksecurefunc` on `SetItemRef`
 
 The notification's last line is a clickable green hyperlink:
 
@@ -117,32 +117,36 @@ The notification's last line is a clickable green hyperlink:
 
 1. Detect clicks on links whose `linkData` starts with `WhatGroup:`.
 2. Open the popup (`WhatGroup:ShowFrame()`).
-3. **Short-circuit the original** so WoW doesn't try to interpret the link as an item / spell / etc. (it would error or open an unrelated tooltip).
 
-`SecureHook` runs after the original and can't suppress it. `RawHook` replaces the original (with `self.hooks.SetItemRef(...)` reaching the real one) and lets us return early on our prefix:
+We *don't* need to suppress the original — Blizzard's `SetItemRef` walks an `if/elseif` chain on `linkType` and silently returns for unknown prefixes, so when our `WhatGroup:show` link is clicked the default already does nothing useful. A secure post-hook is enough:
+
+```lua
+hooksecurefunc("SetItemRef", function(linkArg, text, button, ...)
+    if not (linkArg and linkArg:match("^WhatGroup:")) then return end
+    WhatGroup:OnSetItemRef(linkArg, text, button, ...)
+end)
+```
 
 ```lua
 function WhatGroup:OnSetItemRef(linkArg, text, button, ...)
-    if linkArg and linkArg:match("^WhatGroup:") then
-        if not self.pendingInfo then
-            -- Stale link from a previous session — the chat scrollback
-            -- survives /reload but pendingInfo doesn't. Print a hint
-            -- instead of opening a "No data" popup.
-            p("Group info no longer available — captures clear on group-leave or /reload. Use /wg test to preview.")
-            return
-        end
-        self:ShowFrame()
+    if not self.pendingInfo then
+        -- Stale link from a previous session — the chat scrollback
+        -- survives /reload but pendingInfo doesn't. Print a hint
+        -- instead of opening a "No data" popup.
+        p("Group info no longer available — captures clear on group-leave or /reload. Use /wg test to preview.")
         return
     end
-    return self.hooks.SetItemRef(linkArg, text, button, ...)
+    self:ShowFrame()
 end
 ```
 
 The `pendingInfo == nil` guard sits ahead of `ShowFrame` because `pendingInfo` is session-only — it's wiped on group-leave (in `GROUP_ROSTER_UPDATE`) and absent after a `/reload`, but the chat link itself persists in scrollback. Without the guard, clicking a link from a previous session opens an empty popup with `No data` in every value field, which reads as broken rather than "your previous capture has expired."
 
-The third arg `true` to `RawHook("SetItemRef", "OnSetItemRef", true)` enables secure post-hooking semantics for the case where Blizzard re-tags `SetItemRef` as protected in a future patch.
+### Why not `RawHook`
 
-See [wow-quirks.md](./wow-quirks.md#hook-discipline) for the rules on when to use `SecureHook` vs `RawHook` more generally.
+An earlier version used `AceHook:RawHook("SetItemRef", "OnSetItemRef", true)` to short-circuit on our prefix. That works visually but replaces the global `SetItemRef` with a non-secure wrapper. The replacement leaves a taint trace that surfaces much later — when the player presses the GameMenu's **Logout** button, Blizzard's secure-execute chain (which calls `Logout()` from `Blizzard_GameMenu/Shared/GameMenuFrame.lua:69` inside a wrapper named `callback()`) detects the taint and fires `ADDON_ACTION_FORBIDDEN ... 'callback()'` attributed to WhatGroup. Switching to `hooksecurefunc` (which leaves the global function in place and just chains a callback after) eliminates the taint with no visible behavioural change.
+
+See [wow-quirks.md](./wow-quirks.md#hook-discipline) for the rules on when each hook type is appropriate.
 
 ## Captured info
 
@@ -176,14 +180,18 @@ The activity-derived fields are only populated when `C_LFGList.GetActivityInfoTa
 
 ## Teleport spell lookup
 
-`WhatGroup.TeleportSpells` is a flat table keyed by `mapID` (the dungeon's instance map ID — stable across seasons) mapping to the dungeon's teleport `spellID`. `WhatGroup:GetTeleportSpell(activityID, mapID)` checks `mapID` first, then falls back to `activityID` for backwards compatibility — but the table no longer carries activityID-keyed rows, so the fallback is effectively a nop. activityID was abandoned as a key because Blizzard rotates activity IDs every season.
+`WhatGroup.TeleportSpells` is a flat table keyed by `mapID` (the dungeon's instance map ID — stable across seasons), organized into per-expansion sections. Values are either a single `spellID` (number) or a list `{spellID1, spellID2}` for dungeons whose teleport has been re-issued under a new spell ID over time. `WhatGroup:GetTeleportSpell(activityID, mapID)` checks `mapID` first, then falls back to `activityID` for backwards compatibility — but the table no longer carries activityID-keyed rows, so the fallback is effectively a nop. activityID was abandoned as a key because Blizzard rotates activity IDs every season.
+
+**Primary source for spell IDs and names** is the Warcraft Wiki's [`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities). Every "Path of …" spell page lists the canonical spell ID and destination in its infobox; the table's trailing comments cite the wiki spell name so any future audit can re-validate by browsing the category.
+
+When a row's value is a list, the lookup walks it and returns the first `IsSpellKnown` hit; if the player knows none of them, it falls back to the first entry so the popup at least renders the icon (desaturated). This gives "old characters keep working with the spell they originally learned, new characters use the most recent" behavior automatically.
+
+For the recipe to add a row (or sweep the table for a new season), see [common-tasks.md → Add a dungeon teleport spell mapping](./common-tasks.md#add-a-dungeon-teleport-spell-mapping).
 
 The lookup is consumed by:
 
 - `ShowNotification` — only emits the Teleport line if `spellID` is non-nil and `notify.showTeleport` is on; the line includes `IsSpellKnown(spellID)` as a `(not learned)` tag when false.
 - `ConfigureTeleportButton` (popup) — desaturates the icon and sets `EnableMouse(false)` when `IsSpellKnown` is false; the button is hidden entirely when `spellID` is nil. The button is a `SecureActionButtonTemplate` parented to UIParent with `type="macro"` + `macrotext="/cast <SpellName>"` — `CastSpellByID` from a non-secure click hits `ADDON_ACTION_FORBIDDEN` in retail. See [frame.md → Teleport button](./frame.md#teleport-button).
-
-Adding a teleport mapping is one row in the table — see [common-tasks.md](./common-tasks.md#add-a-dungeon-teleport-spell-mapping).
 
 ## Test path
 

@@ -10,7 +10,7 @@ User-facing reference: [README.md](./README.md). Design overview + invariants: [
 
 ## Hard rules
 
-- **Observation-only.** WhatGroup never mutates LFG state, never auto-applies, never blocks the join flow. The single `RawHook` on `SetItemRef` short-circuits ONLY on the `WhatGroup:` link prefix and chains through `self.hooks.SetItemRef(...)` for every other link. The `SecureHook` on `C_LFGList.ApplyToGroup` is read-only.
+- **Observation-only, direct `hooksecurefunc` only.** WhatGroup never mutates LFG state, never auto-applies, never blocks the join flow. Both hooks are direct Blizzard `hooksecurefunc` calls (one on `C_LFGList.ApplyToGroup`, one on `SetItemRef` filtered to `WhatGroup:` link clicks). **No AceHook usage** — AceHook's `SecureHook` / `RawHook` wrappers leave a per-invocation closure around the callback, and that closure taints Blizzard's secure-execute chain. The taint surfaces later as `ADDON_ACTION_FORBIDDEN ... 'callback()'` at `Blizzard_GameMenu/Shared/GameMenuFrame.lua:69` when the player clicks Logout. AceHook-3.0 has been removed from the addon's NewAddon mixin list and from `libs/` for this reason.
 - **Schema-first.** Adding a setting = one row in `Settings.Schema` (`WhatGroup_Settings.lua`). The panel widget, `/wg list/get/set`, AceDB defaults, and `/wg reset` all follow automatically. Don't reach into `db.profile` directly from new code; go through `Settings.Helpers.Get` / `Settings.Helpers.Set` so the panel refreshers stay in sync.
 - **Slash-first.** Adding a command = one row in the `COMMANDS` table (`WhatGroup.lua`). Help output iterates the table.
 - **Cyan `[WG]` chat prefix on all addon output.** Every `print(...)` in `WhatGroup.lua` goes through `CHAT_PREFIX = "\|cff00FFFF[WG]\|r"`. Debug lines additionally tag `[DBG]` in orange. No raw `print(...)` without the prefix.
@@ -47,7 +47,7 @@ Topic-specific detail lives in `docs/`. Read on demand — these are not auto-lo
 |-------|------|--------------|
 | Per-file responsibility map | [docs/file-index.md](./docs/file-index.md) | "Which file owns X?" |
 | Scope boundaries (in / out / resolved decisions) | [docs/scope.md](./docs/scope.md) | Evaluating a feature request; deciding whether a behaviour is in scope. |
-| LFG capture pipeline + queue mechanics + `RawHook` on `SetItemRef` | [docs/capture-pipeline.md](./docs/capture-pipeline.md) | Touching event handling, capture flow, the `wasInGroup` join trigger, or chat-link hyperlinks. |
+| LFG capture pipeline + queue mechanics + `hooksecurefunc` on `SetItemRef` | [docs/capture-pipeline.md](./docs/capture-pipeline.md) | Touching event handling, capture flow, the `wasInGroup` join trigger, or chat-link hyperlinks. |
 | Settings schema, panel renderer, helpers, db.profile shape | [docs/settings-system.md](./docs/settings-system.md) | Adding a setting, changing the panel layout, building schema-driven CLIs. |
 | `/wg` slash UX + `COMMANDS` table | [docs/slash-dispatch.md](./docs/slash-dispatch.md) | Adding or modifying a slash command. |
 | Popup dialog (`WhatGroupFrame`) | [docs/frame.md](./docs/frame.md) | Touching the popup layout, value colours, or teleport button. |

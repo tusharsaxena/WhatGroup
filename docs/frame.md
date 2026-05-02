@@ -2,6 +2,12 @@
 
 The popup dialog that displays captured group info. Lives in `WhatGroup_Frame.lua` as a single global Frame named `WhatGroupFrame`.
 
+## Lazy creation
+
+**Nothing in `WhatGroup_Frame.lua` runs at file-load.** All frame creation — the popup, the Close button, the SecureActionButtonTemplate teleport button, the `UISpecialFrames` entry — is wrapped in a `buildFrame()` function that fires on the first `WhatGroup:ShowFrame()` call only. The reason is taint: creating these things at PLAYER_LOGIN was leaving a residue that surfaced as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked the GameMenu's Logout button. Specifically, adding `"WhatGroupFrame"` to `UISpecialFrames` and creating a `SecureActionButtonTemplate` button before Blizzard's `GameMenuFrame:InitButtons()` first ran caused GameMenu's button-callback closures to inherit the addon's load-time taint — by the time the player clicked Logout, those closures' invocation of `Logout()` was rejected by the secure system and attributed to WhatGroup. Deferring all frame creation to first show fixes this: GameMenu's `InitButtons` runs in a clean context during the boot sequence, the closures it builds for Logout / Settings / Macros / etc. are taint-free, and any taint we generate later is contained to a session where the player has actually used the addon.
+
+The pattern is borrowed from a similar reference addon that demonstrates the same lazy approach for its group-reminder popup; see [wow-quirks.md → Lazy popup + secure button creation](./wow-quirks.md#lazy-popup--secure-button-creation) for the full background.
+
 ## Shape
 
 | Property | Value |
@@ -75,18 +81,11 @@ Edge cases:
 
 ## Teleport button
 
-`teleportBtn` is a `SecureActionButtonTemplate` Button (globally named `WhatGroupFrameTeleportButton`) registered for `AnyUp` / `AnyDown` clicks. The secure template is mandatory: `CastSpellByID` from a non-secure `OnClick` handler fires `ADDON_ACTION_FORBIDDEN` in retail. The macro-attribute approach below routes the click through Blizzard's secure action handler, which is the only legal cast path from addon code.
+`teleportBtn` is an anonymous `SecureActionButtonTemplate` Button registered for `AnyUp` / `AnyDown` clicks. The secure template is mandatory: `CastSpellByID` from a non-secure `OnClick` handler fires `ADDON_ACTION_FORBIDDEN` in retail. The macro-attribute approach below routes the click through Blizzard's secure action handler, which is the only legal cast path from addon code.
 
-The button is parented to **`UIParent`**, not to the popup. Retail's secure-frame system rejects anchoring a protected frame to any non-secure region — including FontStrings, sibling frames, and even the protected frame's own non-secure parent. UIParent is the only universally allowed anchor for a protected frame, so the button lives there.
+**The button is parented directly to `f` (the popup), not to `UIParent`.** Earlier iterations parented it to UIParent and synced its screen position from a non-secure proxy frame inside the popup; that pattern leaked taint into Blizzard's secure-execute chain, surfacing as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked Logout in the GameMenu. Parenting directly to `f` means the button rides on the parent-child relationship: `f:Show()` shows the button, `f:Hide()` hides it, dragging the popup moves the button with it. No `syncTeleportButton`, no `PLAYER_REGEN_ENABLED` handler, no deferred Hide, no proxy frame.
 
-A non-secure proxy Frame (`teleportSlot`) sits inside the popup, anchored to the `Teleport:` label, marking where the icon should appear visually. `syncTeleportButton()` mirrors the secure button's screen position to `teleportSlot:GetCenter()` whenever the layout changes:
-
-- inline at the end of `ShowFrame()` (after `f:Show()`)
-- one frame later via `C_Timer.After(0, ...)` — covers the race where `teleportSlot:GetCenter()` returns nil because the layout pass hasn't run yet
-- on the popup's drag-stop (re-anchor as the popup moves)
-- on `PLAYER_REGEN_ENABLED` — `SetPoint` on a protected frame is blocked during combat, so a `ShowFrame` triggered mid-combat retries on combat exit
-
-`syncTeleportButton` also handles visibility: it `Show`s the secure button when the popup is visible AND `ConfigureTeleportButton` set the `type="macro"` attribute, and `Hide`s it otherwise. `f:HookScript("OnHide", ...)` hides the secure button when the popup closes (it lives on UIParent, so it doesn't auto-hide with `f`).
+**Anchor uses the implicit-parent `SetPoint` form** (`SetPoint("LEFT", 92, -68)` — 3 args, no explicit `relativeTo`). Retail's secure-frame system rejects any `SetPoint` call on a protected frame that names a non-secure region as the anchor target — even when that region is the protected frame's own parent. The 3-arg form lets the engine resolve the parent transitively after the protection check has already passed, so anchoring against `f` works at file-load. The offset places the button at the Teleport row, right of the `Teleport:` label: x = content_inset(14) + LABEL_WIDTH(72) + gap(6) = 92 from f's LEFT; y = -68 from f's LEFT-mid (`f.center.y`) lands on row 6 of the 6-row label stack. See [wow-quirks.md → Secure buttons can't have an explicit non-secure anchor target](./wow-quirks.md#secure-buttons-cant-have-an-explicit-non-secure-anchor-target).
 
 `ConfigureTeleportButton(btn, icon, info)`:
 
@@ -97,9 +96,9 @@ A non-secure proxy Frame (`teleportSlot`) sits inside the popup, anchored to the
    - **known + named**: full alpha, `EnableMouse(true)`, `type="macro"` and `macrotext="/cast <SpellName>"` so a click runs the cast through the secure handler. `OnEnter` shows `GameTooltip:SetSpellByID(spellID)`.
    - **not known / unnamed**: 50% alpha, desaturated icon, `EnableMouse(false)`, secure attributes cleared.
 
-`SetAttribute` calls are safe in or out of combat — only `SetPoint` is gated by combat lockdown, which is why position sync is what's deferred to `PLAYER_REGEN_ENABLED`, not attribute config.
+The function ends with `btn:Show()` — straightforward, because the button is `f`'s child, so `f:Hide()` automatically hides it when the popup closes; we don't need the deferred-Hide cleanup that earlier UIParent-parented iterations required.
 
-The label `Teleport:` is built directly inline (not via `MakeLabel`) because it anchors to a proxy Frame rather than a FontString, and `teleportSlot`'s `LEFT` is attached at `LABEL_WIDTH + 6` from `lblPort`.
+The label `Teleport:` is built directly inline (not via `MakeLabel`) because its value side is the button rather than a FontString, attached at `LABEL_WIDTH + 6` from the label.
 
 ## Public API
 

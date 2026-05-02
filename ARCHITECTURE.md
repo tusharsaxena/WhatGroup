@@ -6,7 +6,7 @@ Orient-yourself map for **Ka0s WhatGroup**. This file is the high-level index; t
 
 WhatGroup observes the Premade Group Finder (LFG) flow. It captures the group details visible on the search-result tile when the player applies, holds them across the application → invite → accept → join sequence, and resurfaces them once the player is actually in the group as a chat notification + popup dialog. The popup carries a teleport button for known dungeon teleport spells.
 
-The addon is observation-only. It never modifies LFG state, never auto-applies, and never blocks the join flow — every hook is either a `SecureHook` (read-only) or a `RawHook` that short-circuits only on its own custom hyperlink.
+The addon is observation-only. It never modifies LFG state, never auto-applies, and never blocks the join flow — both hooks are direct `hooksecurefunc` post-hooks (one on `C_LFGList.ApplyToGroup` for capture, one on `SetItemRef` filtered to `WhatGroup:` link clicks). No AceHook wrappers — those leave per-invocation closures that taint Blizzard's secure-execute chain on Logout.
 
 ## Subsystems at a glance
 
@@ -29,7 +29,7 @@ LFG events ─▶ capture pipeline ─▶ pendingInfo
 |-----------|----------|------|
 | Per-file responsibility map | `WhatGroup.toc`, `WhatGroup.lua`, `WhatGroup_Settings.lua`, `WhatGroup_Frame.lua` | [docs/file-index.md](./docs/file-index.md) |
 | Boundary decisions (in / out of scope, resolved choices) | — | [docs/scope.md](./docs/scope.md) |
-| LFG capture pipeline + queue mechanics + RawHook on `SetItemRef` | `WhatGroup.lua` | [docs/capture-pipeline.md](./docs/capture-pipeline.md) |
+| LFG capture pipeline + queue mechanics + `hooksecurefunc` on `SetItemRef` | `WhatGroup.lua` | [docs/capture-pipeline.md](./docs/capture-pipeline.md) |
 | Settings schema, panel renderer, helpers, db.profile shape | `WhatGroup_Settings.lua` | [docs/settings-system.md](./docs/settings-system.md) |
 | `/wg` slash UX + `COMMANDS` table | `WhatGroup.lua` | [docs/slash-dispatch.md](./docs/slash-dispatch.md) |
 | Popup dialog (`WhatGroupFrame`) | `WhatGroup_Frame.lua` | [docs/frame.md](./docs/frame.md) |
@@ -38,7 +38,7 @@ LFG events ─▶ capture pipeline ─▶ pendingInfo
 
 ## Invariants worth not breaking
 
-- **Observation-only.** WhatGroup never mutates LFG state, never auto-applies, never blocks the join flow. `SecureHook` on `C_LFGList.ApplyToGroup` is read-only. The single `RawHook` on `SetItemRef` short-circuits ONLY on the `WhatGroup:` link prefix and chains through `self.hooks.SetItemRef(...)` for every other link.
+- **Observation-only, direct hooksecurefunc only.** WhatGroup never mutates LFG state, never auto-applies, never blocks the join flow. Both hooks are direct `hooksecurefunc` post-hooks: one on `C_LFGList.ApplyToGroup` (for capture) and one on `SetItemRef` filtered to `WhatGroup:` link clicks. No AceHook `SecureHook` / `RawHook` — AceHook adds a per-invocation bookkeeping closure around the callback, and that closure taints the secure-execute chain that Blizzard runs when the player clicks the GameMenu's Logout button (surfacing as `ADDON_ACTION_FORBIDDEN ... 'callback()'`). Direct `hooksecurefunc` has no closure on our side, no taint.
 - **Schema-first.** Adding a setting = one row in `Settings.Schema`. The panel widget, `/wg list/get/set`, AceDB defaults, and `/wg reset` all follow automatically. Don't reach into `db.profile` directly from new code; go through `Helpers.Get` / `Helpers.Set` so the panel refreshers and `/wg list/get/set` stay in sync.
 - **Slash-first.** Adding a command = one row in `COMMANDS`. Help output iterates the table.
 - **Single AceDB profile.** `AceDB:New("WhatGroupDB", defaults, true)` — the third arg `true` shares one `Default` profile across every character on the account. WhatGroup is account-wide by design.
@@ -61,7 +61,6 @@ All vendored under `libs/` and copied verbatim from Ka0s KickCD:
 - `AceEvent-3.0`
 - `AceConsole-3.0`
 - `AceDB-3.0`
-- `AceHook-3.0`
 - `AceGUI-3.0` (loaded last via its `.xml`)
 
 WoW retail APIs the addon depends on: `C_LFGList.ApplyToGroup` / `GetSearchResultInfo` / `GetActivityInfoTable`, `C_Spell.GetSpellTexture` / `GetSpellLink`, `C_Timer.After`, `IsInGroup`, `IsSpellKnown`, `CastSpellByID`, `SetItemRef`. Settings API: `Settings.RegisterCanvasLayoutCategory`, `Settings.RegisterCanvasLayoutSubcategory`, `Settings.RegisterAddOnCategory`, `Settings.OpenToCategory`. Frame chrome: `BackdropTemplate`, `UISpecialFrames`.
@@ -70,15 +69,15 @@ WoW retail APIs the addon depends on: `C_LFGList.ApplyToGroup` / `GetSearchResul
 
 `WhatGroup.toc` is the source of truth. Order is dependency, not alphabetical:
 
-1. **libs/** — `LibStub` → `CallbackHandler-1.0` → `AceAddon-3.0` → `AceEvent-3.0` → `AceConsole-3.0` → `AceDB-3.0` → `AceHook-3.0` → `AceGUI-3.0` (last; loaded via its `.xml` because that pulls in `widgets/`).
-2. **`WhatGroup.lua`** — calls `AceAddon:NewAddon(existing, "WhatGroup", "AceConsole-3.0", "AceEvent-3.0", "AceHook-3.0")`, assigns `_G.WhatGroup`, defines `OnInitialize` / `OnEnable` / capture handlers / slash dispatch / teleport spell table. Module-locals `captureQueue`, `pendingApplications`, `wasInGroup` initialise to empty / `false`.
+1. **libs/** — `LibStub` → `CallbackHandler-1.0` → `AceAddon-3.0` → `AceEvent-3.0` → `AceConsole-3.0` → `AceDB-3.0` → `AceGUI-3.0` (last; loaded via its `.xml` because that pulls in `widgets/`).
+2. **`WhatGroup.lua`** — calls `AceAddon:NewAddon(existing, "WhatGroup", "AceConsole-3.0", "AceEvent-3.0")`, assigns `_G.WhatGroup`, defines `OnInitialize` / `OnEnable` / capture handlers / slash dispatch / teleport spell table. Module-locals `captureQueue`, `pendingApplications`, `wasInGroup` initialise to empty / `false`.
 3. **`WhatGroup_Settings.lua`** — picks up the addon via `LibStub("AceAddon-3.0"):GetAddon("WhatGroup")`, stamps `WhatGroup.Settings = { Schema, Helpers, _refreshers, _panels, BuildDefaults, Register }`. `Helpers` covers schema access (`Get` / `Set` / `FindSchema` / `ValidateSchema`), reset surfaces (`RestoreDefaults` / `RefreshAll`), and the panel-rendering surface (`CreatePanel` / `PatchAlwaysShowScrollbar` / `Section` / `RenderField` / `InlineButton` / `RenderSchema` / `BuildMainContent`). Schema rows are appended via `add{}` calls in source order. Defines `StaticPopupDialogs["WHATGROUP_RESET_ALL"]` for the shared reset-confirmation flow.
 4. **`WhatGroup_Frame.lua`** — creates the global `WhatGroupFrame`, attaches the `WhatGroup:ShowFrame()` method. Registered with `UISpecialFrames` for ESC-to-close (Close button + ESC handle the hide path; no programmatic Hide method is exposed).
 
 Lifecycle:
 
 - **`OnInitialize`** (fires on `ADDON_LOADED` for `"WhatGroup"`, after every TOC line has executed): `defaults = Settings.BuildDefaults()` → `db = AceDB:New("WhatGroupDB", defaults, true)` → seed `WhatGroup.debug` from `db.profile.debug` → register `/wg` and `/whatgroup` chat commands.
-- **`OnEnable`**: register `GROUP_ROSTER_UPDATE` and `LFG_LIST_APPLICATION_STATUS_UPDATED` events, install `SecureHook` on `C_LFGList.ApplyToGroup`, install `RawHook` on `SetItemRef`, snapshot `wasInGroup = IsInGroup()`, call `Settings.Register()`.
+- **`OnEnable`**: register `GROUP_ROSTER_UPDATE` and `LFG_LIST_APPLICATION_STATUS_UPDATED` events, install a direct `hooksecurefunc` post-hook on `C_LFGList.ApplyToGroup`, install a `hooksecurefunc` post-hook on `SetItemRef` (filtered to `WhatGroup:` links), snapshot `wasInGroup = IsInGroup()`. **Settings registration is intentionally NOT done here** — it's deferred until first `/wg config` invocation. Calling `Settings.RegisterAddOnCategory` / `Settings.RegisterCanvasLayoutCategory` from non-secure addon code at PLAYER_LOGIN taints Blizzard's GameMenu callbacks; lazy registration means the addon adds nothing to Blizzard's settings/menu surface during the boot sequence.
 
 `Settings.Register()` defers the AceGUI body build to the General subcategory's first `OnShow`. See [docs/settings-system.md](./docs/settings-system.md#lazy-panel-build).
 

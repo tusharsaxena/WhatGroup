@@ -322,19 +322,32 @@ end
 -- Single OnAccept body so the Defaults button (panel) and `/wg reset`
 -- (slash) share one code path; no chance of the two diverging if a new
 -- side effect lands later.
-StaticPopupDialogs = StaticPopupDialogs or {}
-StaticPopupDialogs["WHATGROUP_RESET_ALL"] = {
-    text         = "Reset every WhatGroup setting to its default? The active profile is the only one affected.",
-    button1      = YES or "Yes",
-    button2      = NO  or "No",
-    timeout      = 0,
-    whileDead    = true,
-    hideOnEscape = true,
-    OnAccept     = function()
-        Helpers.RestoreDefaults()
-        pout("all settings reset to defaults")
-    end,
-}
+--
+-- Registration is **lazy**: writing to `_G.StaticPopupDialogs` at
+-- file-load was tainting Blizzard's GameMenu callbacks (every click on
+-- Logout / Settings / Macros fired ADDON_ACTION_FORBIDDEN). The
+-- StaticPopup table is read by Blizzard during GameMenu's button-init
+-- closures, and any addon-author write to it before those closures are
+-- built leaks taint into them. Deferring registration until the user
+-- actually invokes a reset means the table is untouched during the
+-- boot sequence.
+function Settings.EnsureResetPopup()
+    if Settings._resetPopupRegistered then return end
+    Settings._resetPopupRegistered = true
+    StaticPopupDialogs = StaticPopupDialogs or {}
+    StaticPopupDialogs["WHATGROUP_RESET_ALL"] = {
+        text         = "Reset every WhatGroup setting to its default? The active profile is the only one affected.",
+        button1      = YES or "Yes",
+        button2      = NO  or "No",
+        timeout      = 0,
+        whileDead    = true,
+        hideOnEscape = true,
+        OnAccept     = function()
+            Helpers.RestoreDefaults()
+            pout("all settings reset to defaults")
+        end,
+    }
+end
 
 -- ---------------------------------------------------------------------------
 -- Layout constants
@@ -924,12 +937,21 @@ function Settings.Register()
     -- Defer body render until first OnShow: AceGUI's ScrollFrame lays
     -- children out against the parent's current width, which is zero at
     -- PLAYER_LOGIN, and there's no point building widgets for a panel
-    -- the user may never open.
-    local mainRendered = false
+    -- the user may never open. We also wrap the actual build in
+    -- C_Timer.After(0, …) so OnShow returns immediately — Blizzard's
+    -- GameMenu / Logout flows can dispatch our OnShow inside a secure
+    -- execute chain, and creating AceGUI frames synchronously inside
+    -- that chain trips ADDON_ACTION_FORBIDDEN. Running the build on the
+    -- next frame moves it out of the protected context entirely.
+    local mainRendered, mainScheduled = false, false
     mainCtx.panel:SetScript("OnShow", function()
-        if mainRendered then return end
-        mainRendered = true
-        Helpers.BuildMainContent(mainCtx)
+        if mainRendered or mainScheduled then return end
+        mainScheduled = true
+        C_Timer.After(0, function()
+            if mainRendered then return end
+            mainRendered = true
+            Helpers.BuildMainContent(mainCtx)
+        end)
     end)
 
     local parentCategory = _G.Settings.RegisterCanvasLayoutCategory(
@@ -945,25 +967,33 @@ function Settings.Register()
 
     if generalCtx.panel.defaultsBtn then
         generalCtx.panel.defaultsBtn:SetCallback("OnClick", function()
+            Settings.EnsureResetPopup()
             StaticPopup_Show("WHATGROUP_RESET_ALL")
         end)
     end
 
-    local generalRendered = false
+    -- Same deferral as the main panel — keep the synchronous OnShow body
+    -- a no-op so it can't ever do work inside Blizzard's secure-execute
+    -- chains. The build runs on the next frame in a clean context.
+    local generalRendered, generalScheduled = false, false
     generalCtx.panel:SetScript("OnShow", function()
-        if generalRendered then return end
-        generalRendered = true
-        Helpers.RenderSchema(generalCtx, {
-            ["General"] = function(ctxRef)
-                Helpers.InlineButton(ctxRef, {
-                    text    = "Test",
-                    tooltip = "Inject synthetic group info and run the full notification + popup flow. Useful for previewing changes to the chat-output toggles without joining a real group.",
-                    onClick = function()
-                        if WhatGroup.RunTest then WhatGroup:RunTest() end
-                    end,
-                })
-            end,
-        })
+        if generalRendered or generalScheduled then return end
+        generalScheduled = true
+        C_Timer.After(0, function()
+            if generalRendered then return end
+            generalRendered = true
+            Helpers.RenderSchema(generalCtx, {
+                ["General"] = function(ctxRef)
+                    Helpers.InlineButton(ctxRef, {
+                        text    = "Test",
+                        tooltip = "Inject synthetic group info and run the full notification + popup flow. Useful for previewing changes to the chat-output toggles without joining a real group.",
+                        onClick = function()
+                            if WhatGroup.RunTest then WhatGroup:RunTest() end
+                        end,
+                    })
+                end,
+            })
+        end)
     end)
 
     local generalSub = _G.Settings.RegisterCanvasLayoutSubcategory(

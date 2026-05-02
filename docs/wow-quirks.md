@@ -6,15 +6,14 @@ The Blizzard-side gotchas WhatGroup specifically depends on, and the conventions
 
 | Target | Hook type | Why |
 |---|---|---|
-| `C_LFGList.ApplyToGroup` | `SecureHook` | Observation only. We need the `searchResultID` so we can call `C_LFGList.GetSearchResultInfo` for the same ID. We never want to suppress the original. |
-| `SetItemRef` | `RawHook` (with `true` for the third arg) | Short-circuit required. Our custom `WhatGroup:show` chat link must NOT fall through to Blizzard's `SetItemRef`, or it errors / opens an unrelated tooltip. `SecureHook` runs *after* the original and can't intercept; `RawHook` replaces it and lets us return early on our prefix. The third arg `true` enables secure post-hooking semantics in case Blizzard re-tags `SetItemRef` as protected. |
+| `C_LFGList.ApplyToGroup` | direct `hooksecurefunc` (no AceHook) | Observation only. We need the `searchResultID` so we can call `C_LFGList.GetSearchResultInfo` for the same ID. AceHook's `SecureHook` would also work *behaviourally*, but its per-invocation bookkeeping closure leaves a taint trace that the GameMenu's Logout-button secure chain detects later, firing `ADDON_ACTION_FORBIDDEN ... 'callback()'` attributed to the addon. Direct `hooksecurefunc` registers the callback inside Blizzard's secure post-hook list with no addon-side wrapper, so no taint. |
+| `SetItemRef` | `hooksecurefunc` (post-hook, filtered to our prefix) | Blizzard's default `SetItemRef` walks an `if/elseif` chain on `linkType` and silently returns for unknown prefixes — our `WhatGroup:show` link falls through with no error and no tooltip — so a post-hook is enough; we don't need to suppress the original. We previously used `RawHook` here, but `RawHook` replaces the global function with a non-secure wrapper, which leaves a taint trace that the GameMenu's Logout-button secure chain detects later, firing `ADDON_ACTION_FORBIDDEN ... 'callback()'`. `hooksecurefunc` doesn't replace the global, so no taint. |
 
 The rule:
 
-- **`SecureHook` something whose original you want to keep running.** Examples: capturing data from a Blizzard call, reacting to a player action, telemetry.
-- **`RawHook` something whose original you sometimes want to suppress.** Examples: intercepting custom chat links, replacing tooltips on a specific link prefix, conditionally blocking a UI action you own.
+- **`SecureHook` / `hooksecurefunc` something whose original you want to keep running.** Examples: capturing data from a Blizzard call, reacting to a player action, telemetry, post-handling custom chat links whose prefix Blizzard's default no-ops on.
+- **`RawHook` only when the original genuinely has visible side-effects you must suppress.** Replacing a global function with a non-secure wrapper leaves a taint trace that can surface much later in unrelated secure chains (the canonical symptom: `ADDON_ACTION_FORBIDDEN ... 'callback()'` on the GameMenu's Logout button after the player has touched the addon during the session). For most "intercept on a custom prefix" cases, `hooksecurefunc` is enough — Blizzard's default usually returns silently for unknown link types.
 - **Never `SecureHook` something you wanted to suppress** — the original already ran by the time your hook fires.
-- **Never `RawHook` something you only observe** — `RawHook` is heavier and you have to remember to call `self.hooks.<original>` to chain through.
 
 ## Settings API parent vs. subcategory
 
@@ -79,7 +78,7 @@ rest = rest or ""              -- preserve case in everything else
 
 See [slash-dispatch.md](./slash-dispatch.md#case-preserving-parse).
 
-## `RawHook` short-circuit pattern
+## `RawHook` short-circuit pattern (and why we avoid it for `SetItemRef`)
 
 When you `RawHook` something to short-circuit on a prefix, the chain-through call goes through `self.hooks`:
 
@@ -94,6 +93,8 @@ end
 ```
 
 `self.hooks.<originalName>` is AceHook's stash of the pre-hook function. Forgetting to chain through means every other addon's chat links stop working — a very obvious regression in chat scrollback. Always chain through on the fall-through branch.
+
+**WhatGroup no longer uses this pattern for `SetItemRef`.** `RawHook` replaces the global function with a non-secure wrapper, and that replacement leaves a taint trace that the GameMenu's Logout-button secure-execute chain detects later, firing `ADDON_ACTION_FORBIDDEN ... 'callback()'` attributed to the addon. Because Blizzard's default `SetItemRef` no-ops on unknown link types (it walks an `if/elseif` chain on `linkType` and falls through), a `hooksecurefunc` post-hook gives the same user-visible behaviour without the global-function takeover. The pattern above is documented here for reference — only reach for `RawHook` when the original genuinely has a side-effect you must suppress and a benign prefix isn't possible.
 
 ## AceDB `true` for shared profile
 
@@ -141,9 +142,30 @@ secureBtn:SetPoint("BOTTOMRIGHT", 0, 0)
 secureBtn:SetAllPoints()
 ```
 
-Workaround for "I need the secure button positioned relative to a non-secure FontString / sibling that I don't control": parent the secure button directly to `UIParent` and mirror its screen position from a non-secure helper via `region:GetCenter()` + `SetPoint("CENTER", UIParent, "BOTTOMLEFT", cx, cy)`, re-syncing on the popup's drag-stop, on `PLAYER_REGEN_ENABLED`, and on first show.
+**Workaround for popup-style usage**: parent the secure button **directly to the popup frame** (the same Frame that owns the row labels), and use the implicit-parent `SetPoint("LEFT", xOff, yOff)` form to position it. The protection check passes; visibility rides on the parent-child relationship (the popup's `Show()` / `Hide()` automatically propagate to the button); dragging the popup moves the button with it. No proxy frame, no UIParent parent, no screen-position sync, no combat handler.
 
-WhatGroup uses this pattern for the popup's teleport icon — see `WhatGroup_Frame.lua` (`teleportSlot` non-secure proxy + `teleportBtn` UIParent-parented secure button + `syncTeleportButton`) and [frame.md → Teleport button](./frame.md#teleport-button).
+## Lazy popup, secure button, and Settings registration
+
+**Anything you do at PLAYER_LOGIN that touches Blizzard's secure surface taints Blizzard's GameMenu callbacks.** That taint surfaces as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicks the GameMenu's Logout button — even on a fresh `/reload` with no addon use. The protected operation that fails is `Logout()`, but the error is attributed to whichever addon left the taint trace. The mechanism: Blizzard's `GameMenuFrame:InitButtons()` builds the Logout / Settings / Macros button-callback closures during boot. If any addon-driven mutation of secure state has happened before that runs, the closures inherit the addon's taint and refuse to invoke `Logout()` (or any other protected button action) when the user clicks them.
+
+In WhatGroup's case, three boot-time operations were demonstrated to taint:
+
+1. **Creating a `SecureActionButtonTemplate` Button** (the popup's teleport icon).
+2. **`tinsert(UISpecialFrames, "WhatGroupFrame")`** — adding a frame name to UISpecialFrames so ESC closes it.
+3. **`Settings.RegisterCanvasLayoutCategory(panel, name)` + `Settings.RegisterAddOnCategory(category)`** — registering with the modern Settings API.
+
+The fix is the same pattern for all three: **defer everything to actual user demand**.
+
+- `WhatGroup_Frame.lua`'s entire setup (popup creation, secure button creation, `UISpecialFrames` registration) is wrapped in a `buildFrame()` function that's called only on the first `WhatGroup:ShowFrame()` call.
+- `Settings.Register()` is called only from `runConfig` (the `/wg config` slash handler) on first invocation. The addon doesn't appear in the Settings → AddOns list until the user has run `/wg config` once per session — minor UX trade-off for a clean GameMenu.
+
+At PLAYER_LOGIN the addon now adds nothing to Blizzard's secure surface, GameMenu's `InitButtons` runs in a clean context during boot, and Logout works correctly. Any taint the addon does generate later (on first popup show, or first `/wg config`) is contained to a session where the player has actively used the addon — and even then, GameMenu's button closures were already built with the clean context they captured at boot.
+
+See `WhatGroup_Frame.lua`'s `buildFrame()`, `WhatGroup_Settings.lua`'s `Settings.Register()`, and `WhatGroup.lua`'s `runConfig()`.
+
+WhatGroup uses this pattern for the popup's teleport icon — see `WhatGroup_Frame.lua` and [frame.md → Teleport button](./frame.md#teleport-button).
+
+> **Earlier iterations got this wrong.** A previous attempt parented the secure button to `UIParent` and synced its screen position from a non-secure proxy frame (`teleportSlot`) via a `syncTeleportButton` function, plus a `PLAYER_REGEN_ENABLED` retry, plus a deferred-Hide on the popup's `OnHide`. That pattern *worked* in the sense that the icon appeared in the right place — but the addon-driven `Show()` / `Hide()` / `SetPoint(... UIParent ...)` calls on a `SecureActionButtonTemplate` parented to `UIParent` accumulated taint that surfaced later as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked the GameMenu's Logout button (the Logout closure's `callback()` runs inside Blizzard's secure-execute chain at `Blizzard_GameMenu/Shared/GameMenuFrame.lua:69`, which detects the addon's prior taint of the secure system and refuses to run `Logout()`). Parenting to the popup frame directly eliminates all of those non-secure operations on the protected button — the only non-secure interaction left is `SetAttribute` calls in `ConfigureTeleportButton`, which is the standard pattern Blizzard expects.
 
 Side note: `CastSpellByID` is also protected in retail (it fires `ADDON_ACTION_FORBIDDEN` from a non-secure `OnClick`). The macro-attribute path on a `SecureActionButtonTemplate` is the legal cast route from addon code — set `type="macro"` and `macrotext="/cast <SpellName>"`, and the click runs through Blizzard's secure action handler.
 

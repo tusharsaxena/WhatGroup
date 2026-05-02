@@ -129,17 +129,23 @@ local ROW_VSPACER           = 8
 
 AceGUI widgets must render against a non-zero panel width. `Settings.RegisterCanvasLayoutSubcategory` parents the panel into the Settings UI, but the panel doesn't get a width until Blizzard sizes it on first show.
 
-So both pages defer their body build to `OnShow`:
+So both pages defer their body build to `OnShow`, and the OnShow body itself wraps the actual build in `C_Timer.After(0, …)` so it runs on the next frame in a clean execution context:
 
 ```lua
-local rendered = false
+local rendered, scheduled = false, false
 ctx.panel:SetScript("OnShow", function()
-    if rendered then return end
-    rendered = true
-    -- parent: Helpers.BuildMainContent(ctx)
-    -- general: Helpers.RenderSchema(ctx, { ["General"] = ... })
+    if rendered or scheduled then return end
+    scheduled = true
+    C_Timer.After(0, function()
+        if rendered then return end
+        rendered = true
+        -- parent: Helpers.BuildMainContent(ctx)
+        -- general: Helpers.RenderSchema(ctx, { ["General"] = ... })
+    end)
 end)
 ```
+
+The `C_Timer.After(0, …)` deferral matters because Blizzard's GameMenu / Logout flows can dispatch our OnShow inside a secure-execute chain (e.g. when the Logout button's callback iterates registered Settings categories). Creating AceGUI frames synchronously inside that protected chain trips `ADDON_ACTION_FORBIDDEN ... 'callback()'`. Returning from OnShow immediately and running the build one frame later moves the frame creation out of the protected context.
 
 `ensureScroll` (called by every render path) hooks the AceGUI ScrollFrame's `OnSizeChanged` and forwards the size into AceGUI:
 
@@ -158,7 +164,11 @@ See [wow-quirks.md](./wow-quirks.md#lazy-acegui-panel-build) for the broader rul
 
 ## `Settings.Register()`
 
-Idempotent (`WhatGroup._settingsRegistered` guard). Validates the schema first (chat-prints typos, non-fatal), then registers two categories:
+Idempotent (`WhatGroup._settingsRegistered` guard). Validates the schema first (chat-prints typos, non-fatal), then registers two categories.
+
+**Called lazily** — only from `runConfig` (the `/wg config` slash handler) on first invocation. NOT called from `OnEnable`. Calling `_G.Settings.RegisterCanvasLayoutCategory` / `_G.Settings.RegisterAddOnCategory` from non-secure addon code at PLAYER_LOGIN taints Blizzard's GameMenu callbacks (Logout etc. fail with `ADDON_ACTION_FORBIDDEN`). Lazy registration means the addon adds nothing to Blizzard's settings/menu surface during the boot sequence. Trade-off: WhatGroup doesn't appear in the Settings → AddOns list until `/wg config` has been run once per session.
+
+
 
 ```
 Ka0s WhatGroup        ← parent canvas-layout category — landing page (logo, notes, slash list)

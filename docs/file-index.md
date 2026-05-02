@@ -6,8 +6,8 @@ Where each responsibility lives in the source tree. Pair this map with the actua
 
 | File | Responsibility |
 |------|----------------|
-| `WhatGroup.toc` | Manifest. Interface line (`120000,120001,120005`), Title, Author, Version, `iconTexture`, `SavedVariables = WhatGroupDB`, `DefaultState = enabled`, `Category-enUS`, `X-License = MIT`. Then the load order: lib `.lua` files (order: `LibStub` → `CallbackHandler-1.0` → `AceAddon-3.0` → `AceEvent-3.0` → `AceConsole-3.0` → `AceDB-3.0` → `AceHook-3.0`), then `AceGUI-3.0.xml` (which pulls in `widgets/`), then the three core `.lua` files. |
-| `WhatGroup.lua` | AceAddon shell + capture pipeline + slash dispatch + teleport spell table. Promotes any pre-existing `_G.WhatGroup` to an AceAddon via `LibStub("AceAddon-3.0"):NewAddon(existing, "WhatGroup", "AceConsole-3.0", "AceEvent-3.0", "AceHook-3.0")` and re-publishes the global. Houses `OnInitialize` / `OnEnable`, the `CHAT_PREFIX = "\|cff00FFFF[WG]\|r"` constant, the session-only locals (`captureQueue`, `pendingApplications`, `wasInGroup`), the SecureHook on `C_LFGList.ApplyToGroup`, the RawHook on `SetItemRef`, the `LFG_LIST_APPLICATION_STATUS_UPDATED` and `GROUP_ROSTER_UPDATE` handlers, the `ShowNotification` chat-output builder, the `TeleportSpells` mapID → spell-ID table, and the `COMMANDS` slash-dispatch table. Also defines `WhatGroup:RunTest()` — the public method shared by `/wg test` and the panel's Test button. |
+| `WhatGroup.toc` | Manifest. Interface line (`120000,120001,120005`), Title, Author, Version, `iconTexture`, `SavedVariables = WhatGroupDB`, `DefaultState = enabled`, `Category-enUS`, `X-License = MIT`. Then the load order: lib `.lua` files (order: `LibStub` → `CallbackHandler-1.0` → `AceAddon-3.0` → `AceEvent-3.0` → `AceConsole-3.0` → `AceDB-3.0`), then `AceGUI-3.0.xml` (which pulls in `widgets/`), then the three core `.lua` files. AceHook-3.0 is intentionally **not** vendored — see `WhatGroup.lua` for the rationale. |
+| `WhatGroup.lua` | AceAddon shell + capture pipeline + slash dispatch + teleport spell table. Promotes any pre-existing `_G.WhatGroup` to an AceAddon via `LibStub("AceAddon-3.0"):NewAddon(existing, "WhatGroup", "AceConsole-3.0", "AceEvent-3.0")` and re-publishes the global. Houses `OnInitialize` / `OnEnable`, the `CHAT_PREFIX = "\|cff00FFFF[WG]\|r"` constant, the session-only locals (`captureQueue`, `pendingApplications`, `wasInGroup`), a direct `hooksecurefunc` post-hook on `C_LFGList.ApplyToGroup`, a direct `hooksecurefunc` post-hook on `SetItemRef`, the `LFG_LIST_APPLICATION_STATUS_UPDATED` and `GROUP_ROSTER_UPDATE` handlers, the `ShowNotification` chat-output builder, the `TeleportSpells` mapID → spell-ID table, and the `COMMANDS` slash-dispatch table. Also defines `WhatGroup:RunTest()` — the public method shared by `/wg test` and the panel's Test button. |
 | `WhatGroup_Settings.lua` | Schema rows + Helpers + canvas-layout panel builder. Stamps `WhatGroup.Settings = { Schema, Helpers, _refreshers, _panels, BuildDefaults, Register }`. Schema rows are appended via `add{}` calls in source order — order = panel render order. Helpers covers `Get` / `Set` / `FindSchema`, `ValidateSchema`, `RestoreDefaults` (popup-confirmed via `WHATGROUP_RESET_ALL`) / `RefreshAll`, plus the panel-rendering surface (`CreatePanel`, `PatchAlwaysShowScrollbar`, `Section`, `RenderField`, `InlineButton`, `RenderSchema`, `BuildMainContent`). `BuildDefaults` walks the schema and threads each row's `default` into `profile.*`. `Register` is idempotent (`WhatGroup._settingsRegistered` guard) and registers parent + General subcategory; both pages share the same unified header (breadcrumb title + tinted divider + optional Defaults button) and an always-visible AceGUI ScrollFrame. The Test button is rendered via an `afterGroup` callback in `Settings.Register`, not as a schema row. |
 | `WhatGroup_Frame.lua` | The 420×260 popup dialog. Creates the global `WhatGroupFrame` at file-load time (BackdropTemplate, `DIALOG` strata, drag handle, `SetClampedToScreen`). Builds the static row layout (Group / Instance / Type / Leader / Playstyle / Teleport) using `MakeLabel` + label width 72px. Houses `VALUE_COLORS` (per-field hex resolver table), `ConfigureTeleportButton` (icon + click + tooltip), `PopulateFields` (called on every `ShowFrame`), and `WhatGroup:ShowFrame()`. Registers `WhatGroupFrame` with `UISpecialFrames` for ESC-to-close — the Close button and the ESC key are the only hide paths. |
 | `LICENSE` | MIT, current year, copyright add1kted2ka0s. |
@@ -21,13 +21,14 @@ Where each responsibility lives in the source tree. Pair this map with the actua
 Vendored under `libs/`. Order in `WhatGroup.toc` is dependency order:
 
 1. `LibStub` — every Ace3 module's bootstrap.
-2. `CallbackHandler-1.0` — needed by AceEvent / AceHook.
+2. `CallbackHandler-1.0` — needed by AceEvent.
 3. `AceAddon-3.0` — `NewAddon`, `OnInitialize` / `OnEnable` lifecycle.
 4. `AceEvent-3.0` — `RegisterEvent`, event handler dispatch.
 5. `AceConsole-3.0` — `RegisterChatCommand`.
 6. `AceDB-3.0` — `WhatGroupDB` storage.
-7. `AceHook-3.0` — `SecureHook`, `RawHook`.
-8. `AceGUI-3.0` (loaded via its `.xml`, last) — checkbox / slider / button / heading widgets used by the settings panel.
+7. `AceGUI-3.0` (loaded via its `.xml`, last) — checkbox / slider / button / heading widgets used by the settings panel.
+
+`AceHook-3.0` was previously vendored (for `SecureHook` / `RawHook`), but both have been replaced with direct Blizzard `hooksecurefunc` calls — AceHook's wrappers leave per-invocation closures that taint Blizzard's secure-execute chain on Logout. The library directory has been removed from `libs/`.
 
 Libs are copied as-is from Ka0s KickCD (`/mnt/d/Profile/Users/Tushar/Documents/GIT/KickCD/libs/`) so versions stay aligned across the user's addons. Refresh by re-copying that directory.
 
@@ -42,7 +43,7 @@ Logo / screenshot assets referenced by `README.md`. Not loaded by Lua. Files the
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — design overview + invariants + doc index.
 - `docs/*.md` — topic chunks. Read on demand:
   - [scope.md](./scope.md) — in / out of scope + resolved decisions
-  - [capture-pipeline.md](./capture-pipeline.md) — LFG state machine + FIFO + RawHook
+  - [capture-pipeline.md](./capture-pipeline.md) — LFG state machine + FIFO + `hooksecurefunc` on `SetItemRef`
   - [settings-system.md](./settings-system.md) — schema, panel renderer, db.profile
   - [slash-dispatch.md](./slash-dispatch.md) — `/wg` UX + COMMANDS table
   - [frame.md](./frame.md) — popup dialog
