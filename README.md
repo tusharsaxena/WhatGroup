@@ -76,10 +76,6 @@ Capture state is session-only and clears when you leave the group; only your set
 | Teleport button is grayed out for a dungeon I'm in | Either the spell isn't learned on the current character, or the activity has no teleport mapping. The popup always renders the row; the button is disabled when the spell isn't castable. |
 | Settings panel opens to an empty page | `/wg config` lands on the populated **General** page. The parent "Ka0s WhatGroup" sidebar entry is intentionally a thin description page — click **General** in the sidebar. |
 
-## Contributing
-
-Architecture reference for contributors: [ARCHITECTURE.md](ARCHITECTURE.md). Covers the module map, the LFG capture pipeline, the schema-driven settings system, saved-variables shape, and the project's hook / Settings-API / chat-prefix conventions.
-
 ## Issues and feature requests
 
 All bugs, feature requests, and outstanding work are tracked at [https://github.com/tusharsaxena/WhatGroup/issues](https://github.com/tusharsaxena/WhatGroup/issues). Please file new reports there rather than as comments — the issue tracker is the single source of truth for the project's backlog.
