@@ -457,6 +457,90 @@ local function createPanel(name, title, subtitle)
     return panel
 end
 
+-- Parent ("addon landing") panel: title + divider stay fixed at the top;
+-- everything below scrolls vertically inside a UIPanelScrollFrameTemplate.
+-- Body order: logo (300×300 .tga, left-aligned, no resize) → TOC Notes
+-- one-liner (left-aligned) → separator → "Slash Commands" header → list
+-- iterated from WhatGroup.COMMANDS.
+local LOGO_TEXTURE     = "Interface\\AddOns\\WhatGroup\\media\\screenshots\\whatgroup.logo.tga"
+local LOGO_SIZE        = 300
+local DIVIDER_OFFSET_Y = PADDING + 32
+local SCROLLBAR_GUTTER = 24   -- room on the right for the scrollbar
+
+local function createParentPanel(name, title)
+    local panel = CreateFrame("Frame", name, UIParent)
+    panel.name = title
+    panel:Hide()
+
+    local titleFS = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+    titleFS:SetPoint("TOPLEFT", panel, "TOPLEFT", PADDING, -PADDING)
+    titleFS:SetText("|cffFFD700" .. title .. "|r")
+
+    local divider = panel:CreateTexture(nil, "ARTWORK")
+    divider:SetAtlas("Options_HorizontalDivider", true)
+    divider:SetPoint("TOPLEFT",  panel, "TOPLEFT",   PADDING, -DIVIDER_OFFSET_Y)
+    divider:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING, -DIVIDER_OFFSET_Y)
+    divider:SetVertexColor(titleFS:GetTextColor())
+
+    -- Scrollable body. The scrollbar is part of UIPanelScrollFrameTemplate
+    -- and anchors to the scroll frame's right edge — leaving SCROLLBAR_GUTTER
+    -- of margin on the right keeps it inside the panel.
+    local scrollFrame = CreateFrame("ScrollFrame", name .. "Scroll", panel,
+                                    "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT",     panel, "TOPLEFT",      PADDING,
+                         -(DIVIDER_OFFSET_Y + 12))
+    scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -PADDING - SCROLLBAR_GUTTER,
+                         PADDING)
+
+    local content = CreateFrame("Frame", nil, scrollFrame)
+    content:SetSize(1, 1)   -- height set after layout; width tracks scroll viewport
+    scrollFrame:SetScrollChild(content)
+    scrollFrame:HookScript("OnSizeChanged", function(_, w)
+        if w and w > 0 then content:SetWidth(w) end
+    end)
+
+    local y = 0
+
+    -- Logo — left-aligned, fixed 300×300
+    local logo = content:CreateTexture(nil, "ARTWORK")
+    logo:SetTexture(LOGO_TEXTURE)
+    logo:SetSize(LOGO_SIZE, LOGO_SIZE)
+    logo:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+    y = y + LOGO_SIZE + 14
+
+    -- TOC Notes one-liner — left-aligned, pulled live from metadata.
+    local meta  = (C_AddOns and C_AddOns.GetAddOnMetadata) or _G.GetAddOnMetadata
+    local notes = (meta and meta("WhatGroup", "Notes")) or ""
+    local notesFS = content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    notesFS:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+    notesFS:SetText(notes)
+    y = y + 16 + 18
+
+    -- Separator before the slash commands section.
+    local sep = content:CreateTexture(nil, "ARTWORK")
+    sep:SetAtlas("Options_HorizontalDivider", true)
+    sep:SetPoint("TOPLEFT",  content, "TOPLEFT",  0, -y)
+    sep:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -y)
+    sep:SetVertexColor(titleFS:GetTextColor())
+    y = y + 8 + 10
+
+    local slashHeading = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    slashHeading:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
+    slashHeading:SetText("|cffFFD700Slash Commands|r")
+    y = y + 22 + 6
+
+    for _, entry in ipairs(WhatGroup.COMMANDS or {}) do
+        local row = content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        row:SetPoint("TOPLEFT", content, "TOPLEFT", 12, -y)
+        row:SetText(("|cffFFFF00/wg %s|r  —  %s"):format(entry[1], entry[2]))
+        y = y + 16
+    end
+
+    content:SetHeight(y + PADDING)
+
+    return panel
+end
+
 -- ---------------------------------------------------------------------------
 -- Public registration entry
 -- ---------------------------------------------------------------------------
@@ -476,11 +560,9 @@ function Settings.Register()
         return
     end
 
-    -- Parent: minimal landing page. Just the title and a hint that
-    -- settings live in the General subcategory.
-    local parentPanel = createPanel("WhatGroupParentPanel", "Ka0s WhatGroup",
-        "v" .. WhatGroup.VERSION .. " — open the |cffFFFF00General|r subcategory below for settings, "
-        .. "or use |cffFFFF00/wg list|r, |cffFFFF00/wg get|r, |cffFFFF00/wg set|r in chat.")
+    -- Parent: addon landing page. Header + divider, logo, TOC Notes
+    -- one-liner, slash commands. Settings live in the General subcategory.
+    local parentPanel = createParentPanel("WhatGroupParentPanel", "Ka0s WhatGroup")
     local parentCategory = _G.Settings.RegisterCanvasLayoutCategory(parentPanel, "Ka0s WhatGroup")
     _G.Settings.RegisterAddOnCategory(parentCategory)
     WhatGroup._parentSettingsCategory = parentCategory

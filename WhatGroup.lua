@@ -392,6 +392,7 @@ local COMMANDS = {
     {"debug",  "Toggle debug logging",
         function(self) runDebug(self) end},
 }
+WhatGroup.COMMANDS = COMMANDS
 
 local function findCommand(list, name)
     for _, entry in ipairs(list) do
