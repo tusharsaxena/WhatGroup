@@ -167,7 +167,7 @@ Help output convention: cyan `[WG]` prefix, yellow (`|cffFFFF00`) for slash comm
 
 ## Development Notes
 
-- **Do not auto-commit or push.** The user chooses when to `git commit` and `git push`. Even after completing work, do not run commit/push commands unless the user explicitly asks for them in the current turn. A prior approval does not carry forward to a later one.
+- **Do not auto-stage, auto-commit, or auto-push.** The user chooses when to `git add` / `git stage`, `git commit`, and `git push`. Even after completing work, do not run any of those commands unless the user explicitly asks in the current turn. A prior approval does not carry forward. After making edits, leave the working tree in whatever modified-but-unstaged state your edits produced — describe what changed, do not stage it.
 - **Do not bump the version without explicit instruction.** Never edit `## Version:` in `WhatGroup.toc`, `WhatGroup.VERSION` in `WhatGroup.lua`, the README version badge, or any other version site unless the user says so in the current turn. Refactors, feature additions, dep upgrades, and doc changes do not justify a bump — release versioning is the user's call. If a change feels release-worthy, mention it in the end-of-turn summary but leave the edit to the user.
 - **SavedVariables**: `WhatGroupDB` (AceDB instance with default profile). User prefs are persisted; capture/pending state stays session-only and is cleared on group leave.
 - `Settings.BuildDefaults()` walks the schema at every login to recompute defaults — a new schema row appears with its `default` value the first time the user logs in after the upgrade; existing keys are preserved untouched.

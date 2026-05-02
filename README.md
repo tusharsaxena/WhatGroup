@@ -58,4 +58,4 @@ Please report any issues in the [Issues](https://github.com/tusharsaxena/WhatGro
 
 **1.0.0**
 
-*   Initial Release … yay!
+*   Initial Release … yay!

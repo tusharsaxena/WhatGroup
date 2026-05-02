@@ -1,0 +1,47 @@
+# Enforce CRLF line endings on disk for every text file, on every
+# platform, regardless of each contributor's `core.autocrlf` setting.
+#
+# How this works:
+#   * Git stores all text in the index normalized to LF.
+#   * On checkout, `eol=crlf` converts each text file to CRLF on disk.
+#   * On commit, the same rule converts CRLF back to LF in the index.
+# So the working tree is always CRLF and the repository is always LF —
+# no contributor config knob can override these rules.
+#
+# After cloning (or after this file is added/changed), contributors
+# whose working tree was already populated should run:
+#   git add --renormalize .
+#   git commit -m "Renormalize line endings"
+# to bring existing checkouts in line with these rules.
+
+# Default for everything Git auto-detects as text.
+*           text=auto eol=crlf
+
+# Belt-and-suspenders: explicitly mark every text file type used by
+# this addon, so the eol rule applies even if Git mis-detects content.
+*.lua       text eol=crlf
+*.toc       text eol=crlf
+*.xml       text eol=crlf
+*.md        text eol=crlf
+*.txt       text eol=crlf
+*.json      text eol=crlf
+*.yml       text eol=crlf
+*.yaml      text eol=crlf
+LICENSE     text eol=crlf
+.gitignore  text eol=crlf
+
+# Binary assets — never normalize. Covers WoW addon media (textures,
+# sounds) and general repo binaries.
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.tga       binary
+*.blp       binary
+*.mp3       binary
+*.ogg       binary
+*.wav       binary
+*.zip       binary
+*.tar       binary
+*.gz        binary
