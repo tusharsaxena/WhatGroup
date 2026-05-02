@@ -4,6 +4,8 @@
 
 WhatGroup is a World of Warcraft (retail) addon. It hooks into the Premade Group Finder (LFG) flow to capture group details at apply time and display them when the player joins the group.
 
+For a human-oriented architecture reference (module map, capture pipeline diagram, schema/settings system, saved-variables shape, conventions), see [ARCHITECTURE.md](ARCHITECTURE.md). This file is the agent-oriented companion — same facts, plus the development-policy notes that don't belong in user-facing docs.
+
 ## File Structure
 
 | File | Purpose |
@@ -16,7 +18,7 @@ WhatGroup is a World of Warcraft (retail) addon. It hooks into the Premade Group
 
 ### Embedded libraries
 
-`LibStub`, `CallbackHandler-1.0`, `AceAddon-3.0`, `AceConsole-3.0`, `AceEvent-3.0`, `AceDB-3.0`, `AceGUI-3.0`, `AceHook-3.0`. Loaded in that order at the top of `WhatGroup.toc`. AceGUI is loaded via its `.xml` (which pulls in `widgets/`); the rest load via their `.lua`. Copy fresh from `KickCD/libs/` if you ever need to refresh.
+`LibStub`, `CallbackHandler-1.0`, `AceAddon-3.0`, `AceEvent-3.0`, `AceConsole-3.0`, `AceDB-3.0`, `AceHook-3.0`, `AceGUI-3.0`. Loaded in that order at the top of `WhatGroup.toc`. AceGUI is last and loads via its `.xml` (which pulls in `widgets/`); the rest load via their `.lua`. Copy fresh from `KickCD/libs/` if you ever need to refresh.
 
 ## Key Architecture
 
@@ -26,6 +28,7 @@ WhatGroup is a World of Warcraft (retail) addon. It hooks into the Premade Group
 - **`WhatGroup.pendingInfo`** — the single group info object shown in the frame; set on `inviteaccepted`, cleared on group leave; **session-only**, never persisted
 - **`WhatGroup:RunTest()`** — public method that injects synthetic `pendingInfo` and runs the full notification + popup flow. Both `/wg test` and the panel's Test button route here, so the two stay in lockstep.
 - **`captureQueue`** / **`pendingApplications`** — module-locals in `WhatGroup.lua`; FIFO + appID-keyed map of in-flight captures; **session-only**
+- **`wasInGroup`** — module-local in `WhatGroup.lua` tracking the prior in-group state; seeded in `OnEnable` from `IsInGroup()` and updated on every `GROUP_ROSTER_UPDATE`. The not-in→in transition is what triggers the post-join notification + popup; the in→not-in transition wipes `pendingInfo` and both queues. Session-only.
 - **`WhatGroup.TeleportSpells`** — table mapping `activityID`/`instanceID` → `spellID` for dungeon teleports
 - **`WhatGroup._parentSettingsCategory`** — the parent category ("Ka0s WhatGroup"); just a sidebar anchor, holds no widgets (12.0 hides parent widgets when subcategories exist)
 - **`WhatGroup._settingsCategory`** — the **General subcategory** handle; this is what `/wg config` opens via `Settings.OpenToCategory(category:GetID())`, so the user lands directly on the populated page
@@ -88,7 +91,7 @@ Adding an option = one row. The same row drives:
 
 | Surface | How |
 |---|---|
-| Settings panel widget | `buildBody()` dispatches by `type` to `makeCheckbox`/`makeSlider`; each registers a refresher closure in `Settings._refreshers` |
+| Settings panel widget | `renderSchema()` walks the schema and dispatches each row via `makeField()` to `makeCheckbox` / `makeSlider` / `makeActionButton`; the value widgets register a refresher closure in `Settings._refreshers` (action buttons skip this since they have no value) |
 | `/wg list` | groups schema by `section`, prints `path = formattedValue` |
 | `/wg get <path>` | `Helpers.FindSchema(path)` + format |
 | `/wg set <path> <value>` | type-aware parse (bool accepts true/false/on/off/1/0/yes/no/toggle; number clamps to `min/max`) → `Helpers.Set` → `onChange` → `RefreshAll` |

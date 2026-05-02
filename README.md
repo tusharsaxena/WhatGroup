@@ -1,21 +1,17 @@
 # Ka0s WhatGroup
 
-![version](https://img.shields.io/badge/version-1.1.0-blue)
-![wow](https://img.shields.io/badge/WoW-Midnight%2012.0.5-orange)
+![wow](https://img.shields.io/badge/WoW-Midnight_12.0.5-orange)
+![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 ![alt text](https://media.forgecdn.net/attachments/1588/403/whatgroup-logo-png.png)
 
-A World of Warcraft addon that notifies you of group details after joining via the Premade Group Finder.
+WhatGroup is a lightweight, single-folder WoW addon that surfaces the details of any group you join through the Premade Group Finder, so you don't have to keep the LFG window open just to remember what you signed up for. It pairs two pieces of UI:
 
-## Features
+*   A **chat notification** printed a moment after you join: group name, instance, type (Mythic+ / Raid / Dungeon / PvP / …), leader, playstyle (Casual / Moderate / Serious), the dungeon's teleport spell (with a "not learned" tag if you don't have it), and a clickable `[Click here to view details]` link to re-open the popup.
+*   A **popup dialog** with the same fields plus a teleport button for known dungeon teleport spells (grayed out if not learned). Draggable, closeable with `ESC`, and re-openable any time the group is still active via `/wg show` or the chat link.
 
-*   Displays a popup dialog with group info when you join a group through the LFG tool
-*   Shows group name, instance, type (Mythic+, Raid, Dungeon, PvP), leader, and playstyle (Casual/Moderate/Serious)
-*   Teleport spell button for known dungeon teleport spells (grayed out if not learned)
-*   Clickable chat link to re-open the info dialog after dismissing it
-*   Draggable frame, closeable with ESC
-*   No settings or SavedVariables — just install and go
+Every chat line is prefixed with a cyan `[WG]` banner. Every option is configurable through the standard Blizzard Settings panel and through the `/wg` slash command (every panel control has a CLI peer via `/wg get` / `/wg set`).
 
 ## Screenshots
 
@@ -27,35 +23,70 @@ A World of Warcraft addon that notifies you of group details after joining via t
 
 ![Chat Message](https://media.forgecdn.net/attachments/1588/405/chat-png.png)
 
-## Slash Commands
+## Usage
 
-| Command          |Description                            |
-| ---------------- |-------------------------------------- |
-| <code>/wg</code> or <code>/wg help</code> |Show command help                      |
-| <code>/wg show</code> |Re-open the last group info dialog     |
-| <code>/wg test</code> |Preview the dialog with fake test data |
-| <code>/wg config</code> |Open the Ka0s WhatGroup Settings panel |
-| <code>/wg debug</code> |Toggle debug logging to chat           |
-| <code>/whatgroup &lt;cmd&gt;</code> |Alias — same commands as <code>/wg</code> |
+### Slash commands
 
-All chat output from the addon is prefixed with a cyan `[WG]` tag for easy identification.
+| Command | Description |
+|---|---|
+| `/wg` or `/wg help` | Print the help index |
+| `/wg show` | Re-open the last group info popup (only while you're still in that group) |
+| `/wg test` | Preview the chat notification + popup with synthetic data — also available as a **Test** button in the Settings panel |
+| `/wg config` | Open the Settings panel on the **General** page |
+| `/wg list` | Print every setting and its current value |
+| `/wg get <path>` | Print one setting's current value |
+| `/wg set <path> <value>` | Update a setting. Bools accept `true / false / on / off / 1 / 0 / yes / no / toggle`; numbers clamp to the option's min/max |
+| `/wg reset` | Reset every setting to its default |
+| `/wg debug` | Toggle debug logging (persisted across sessions) |
+| `/whatgroup` | Long-form alias for `/wg` — accepts the same subcommands |
+
+### Settings panel
+
+Settings live under **Ka0s WhatGroup → General** in the Blizzard Settings panel, in a two-column layout with a **Notify** sub-section further down:
+
+*   **General** — master enable, popup auto-show on group join, chat notification on/off, notification delay (0–10s), Test button, debug log.
+*   **Notify** — per-line gates for the chat notification: Instance, Type, Leader, Playstyle, the "Click here" link, and the dungeon teleport spell line. Each toggle controls **chat output only** — the popup always shows every field.
+
+`/wg config` opens directly to this page.
 
 ## How It Works
 
-1.  When you click **Apply** on a group in the Premade Group Finder, WhatGroup captures the group's details.
-2.  When the group leader accepts your application, the capture is associated with that application ID.
-3.  When you accept the invite and join the group, a chat notification is printed and the info dialog pops up automatically.
+When you click **Apply** in the Premade Group Finder, WhatGroup quietly snapshots the group's details from the search-result tile. It tracks the application across the LFG state machine so the right group info ends up paired with the right invite, even when several applications are in flight at once. Once you actually join the group, the chat notification prints and the popup opens — both fired after `notify.delay` seconds so the zone-in has time to settle.
 
-## Bug Reports
+Capture state is session-only and clears when you leave the group; only your settings persist between sessions. For the full event flow, hooks, and capture-pipeline diagram see [ARCHITECTURE.md](ARCHITECTURE.md).
 
-Please report any issues in the [Issues](https://github.com/tusharsaxena/WhatGroup/issues) tab, not as a comment!
+## FAQ
+
+| Question | Answer |
+|---|---|
+| Does this work for cross-realm or cross-faction groups? | Yes — WhatGroup just reads whatever the LFG API hands it. Realm, faction, and category don't matter. |
+| Is anything saved between sessions? | Only your settings (in `WhatGroupDB`). The captured group info is session-only and clears the moment you leave the group, so `/wg show` only works while you're still grouped. |
+| How do I preview the popup without joining a real group? | `/wg test`, or the **Test** button in Settings. Both run the full notification + popup flow against synthetic data. |
+| Why is the teleport button or chat teleport line grayed / missing? | Either you don't know the spell (popup grays the button, chat tags `(not learned)`), or the activity has no teleport mapping (popup hides the row, chat skips the line). |
+| Can I disable the popup but keep the chat message (or vice versa)? | Yes — toggle **Auto Show** off to skip the popup, or **Print to Chat** off to skip the chat summary. The two are independent. |
+| Are there profiles? Per-character configs? | Settings live in a single shared profile. There's no Profiles panel exposed in the UI. |
+
+## Troubleshooting
+
+| Symptom | Resolution |
+|---|---|
+| Popup never appears when I join a group | Check `/wg get enabled` (master switch) and `/wg get frame.autoShow` — both must be `true`. If they are, run `/wg debug` and re-apply to a group; the log will tell you which capture stage didn't fire. |
+| Chat notification is missing fields | The per-line `notify.show*` toggles are independent. The popup always shows every field; the toggles only affect chat output. |
+| `/wg show` says "No group info available" | The captured info clears when you leave the group, so `/wg show` only works while you're still in that group. Use `/wg test` if you just want to preview the popup. |
+| Teleport button is grayed out for a dungeon I'm in | Either the spell isn't learned on the current character, or the activity has no teleport mapping. The popup always renders the row; the button is disabled when the spell isn't castable. |
+| Settings panel opens to an empty page | `/wg config` lands on the populated **General** page. The parent "Ka0s WhatGroup" sidebar entry is intentionally a thin description page — click **General** in the sidebar. |
+
+## Contributing
+
+Architecture reference for contributors: [ARCHITECTURE.md](ARCHITECTURE.md). Covers the module map, the LFG capture pipeline, the schema-driven settings system, saved-variables shape, and the project's hook / Settings-API / chat-prefix conventions.
+
+## Issues and feature requests
+
+All bugs, feature requests, and outstanding work are tracked at [https://github.com/tusharsaxena/WhatGroup/issues](https://github.com/tusharsaxena/WhatGroup/issues). Please file new reports there rather than as comments — the issue tracker is the single source of truth for the project's backlog.
 
 ## Version History
 
-**1.1.0**
-
-*   TOC version bump
-
-**1.0.0**
-
-*   Initial Release … yay!
+| Version | Notes |
+|---|---|
+| 1.1.0 | TOC version bump |
+| 1.0.0 | Initial Release … yay! |
