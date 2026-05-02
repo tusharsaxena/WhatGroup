@@ -1,0 +1,50 @@
+# File index
+
+Where each responsibility lives in the source tree. Pair this map with the actual files before editing — `WhatGroup.toc` is the source of truth for load order.
+
+## Top-level Lua
+
+| File | Responsibility |
+|------|----------------|
+| `WhatGroup.toc` | Manifest. Interface line (`120000,120001,120005`), Title, Author, Version, `iconTexture`, `SavedVariables = WhatGroupDB`, `DefaultState = enabled`, `Category-enUS`, `X-License = MIT`. Then the load order: lib `.lua` files (order: `LibStub` → `CallbackHandler-1.0` → `AceAddon-3.0` → `AceEvent-3.0` → `AceConsole-3.0` → `AceDB-3.0` → `AceHook-3.0`), then `AceGUI-3.0.xml` (which pulls in `widgets/`), then the three core `.lua` files. |
+| `WhatGroup.lua` | AceAddon shell + capture pipeline + slash dispatch + teleport spell table. Promotes any pre-existing `_G.WhatGroup` to an AceAddon via `LibStub("AceAddon-3.0"):NewAddon(existing, "WhatGroup", "AceConsole-3.0", "AceEvent-3.0", "AceHook-3.0")` and re-publishes the global. Houses `OnInitialize` / `OnEnable`, the `CHAT_PREFIX = "\|cff00FFFF[WG]\|r"` constant, the session-only locals (`captureQueue`, `pendingApplications`, `wasInGroup`), the SecureHook on `C_LFGList.ApplyToGroup`, the RawHook on `SetItemRef`, the `LFG_LIST_APPLICATION_STATUS_UPDATED` and `GROUP_ROSTER_UPDATE` handlers, the `ShowNotification` chat-output builder, the `TeleportSpells` activity-ID → spell-ID table, and the `COMMANDS` slash-dispatch table. Also defines `WhatGroup:RunTest()` — the public method shared by `/wg test` and the panel's Test button. |
+| `WhatGroup_Settings.lua` | Schema rows + Helpers + canvas-layout panel builder. Stamps `WhatGroup.Settings = { Schema, Helpers, _refreshers, BuildDefaults, Register }`. Schema rows are appended via `add{}` calls in source order — order = panel render order. Helpers covers `Resolve` (dotted-path walker), `Get` / `Set`, `FindSchema`, `RestoreDefaults`, `RefreshAll`. `BuildDefaults` walks the schema and threads each row's `default` into the right slot under `profile.*`. `Register` is idempotent (`WhatGroup._settingsRegistered` guard) and registers parent + General subcategory. The panel renderer (`renderSchema` + `makeField` dispatching to `makeCheckbox` / `makeSlider` / `makeActionButton`) lives here. |
+| `WhatGroup_Frame.lua` | The 420×260 popup dialog. Creates the global `WhatGroupFrame` at file-load time (BackdropTemplate, `DIALOG` strata, drag handle, `SetClampedToScreen`). Builds the static row layout (Group / Instance / Type / Leader / Playstyle / Teleport) using `MakeLabel` + label width 72px. Houses `VALUE_COLORS` (per-field hex resolver table), `ConfigureTeleportButton` (icon + click + tooltip), `PopulateFields` (called on every `ShowFrame`), and `WhatGroup:ShowFrame()` / `WhatGroup:HideFrame()`. Registers `WhatGroupFrame` with `UISpecialFrames` for ESC-to-close. |
+| `LICENSE` | MIT, current year, copyright add1kted2ka0s. |
+| `README.md` | User-facing manual. Covers what the addon does, install instructions, slash commands, FAQ, troubleshooting, version history, contributing guide. |
+| `CLAUDE.md` | Engineer working notes: hard rules, working environment, response style, doc index. |
+| `ARCHITECTURE.md` | High-level design overview: what-it-does blurb, subsystem diagram, subsystems table → `docs/*`, invariants, dependencies, load order. |
+| `docs/*.md` | Topic-specific deep dives (this file is one of them). |
+
+## Embedded libraries
+
+Vendored under `libs/`. Order in `WhatGroup.toc` is dependency order:
+
+1. `LibStub` — every Ace3 module's bootstrap.
+2. `CallbackHandler-1.0` — needed by AceEvent / AceHook.
+3. `AceAddon-3.0` — `NewAddon`, `OnInitialize` / `OnEnable` lifecycle.
+4. `AceEvent-3.0` — `RegisterEvent`, event handler dispatch.
+5. `AceConsole-3.0` — `RegisterChatCommand`.
+6. `AceDB-3.0` — `WhatGroupDB` storage.
+7. `AceHook-3.0` — `SecureHook`, `RawHook`.
+8. `AceGUI-3.0` (loaded via its `.xml`, last) — checkbox / slider / button / heading widgets used by the settings panel.
+
+Libs are copied as-is from Ka0s KickCD (`/mnt/d/Profile/Users/Tushar/Documents/GIT/KickCD/libs/`) so versions stay aligned across the user's addons. Refresh by re-copying that directory.
+
+## media/
+
+Logo / screenshot assets referenced by `README.md`. Not loaded by Lua. Files there don't ship in the packaged addon unless explicitly listed in a `.pkgmeta` or required by the TOC.
+
+## Top-level docs
+
+- [README.md](../README.md) — user-facing.
+- [CLAUDE.md](../CLAUDE.md) — engineer working notes (hard rules + response style + doc index).
+- [ARCHITECTURE.md](../ARCHITECTURE.md) — design overview + invariants + doc index.
+- `docs/*.md` — topic chunks. Read on demand:
+  - [scope.md](./scope.md) — in / out of scope + resolved decisions
+  - [capture-pipeline.md](./capture-pipeline.md) — LFG state machine + FIFO + RawHook
+  - [settings-system.md](./settings-system.md) — schema, panel renderer, db.profile
+  - [slash-dispatch.md](./slash-dispatch.md) — `/wg` UX + COMMANDS table
+  - [frame.md](./frame.md) — popup dialog
+  - [wow-quirks.md](./wow-quirks.md) — Blizzard-API gotchas
+  - [common-tasks.md](./common-tasks.md) — recipes
