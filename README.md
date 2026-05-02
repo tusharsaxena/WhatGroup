@@ -42,10 +42,10 @@ Every chat line is prefixed with a cyan `[WG]` banner. Every option is configura
 
 ### Settings panel
 
-Settings live under **Ka0s WhatGroup → General** in the Blizzard Settings panel, in a two-column layout with a **Notify** sub-section further down:
+Settings live under **Ka0s WhatGroup → General** in the Blizzard Settings panel, in a two-column layout with a **Notify** sub-section further down. The page header carries a **Defaults** button on the right that resets every setting after a confirm prompt — same code path as `/wg reset`.
 
-*   **General** — master enable, popup auto-show on group join, chat notification on/off, notification delay (0–10s), Test button, debug log.
-*   **Notify** — per-line gates for the chat notification: Instance, Type, Leader, Playstyle, the "Click here" link, and the dungeon teleport spell line. Each toggle controls **chat output only** — the popup always shows every field.
+*   **General** — master enable, popup auto-show on group join, chat notification on/off, debug log, and a **Test** button that runs the full notify + popup flow against synthetic data.
+*   **Notify** — notification delay (0–10s) plus per-line gates for the chat notification: Instance, Type, Leader, Playstyle, the "Click here" link, and the dungeon teleport spell line. Each toggle controls **chat output only** — the popup always shows every field.
 
 `/wg config` opens directly to this page.
 

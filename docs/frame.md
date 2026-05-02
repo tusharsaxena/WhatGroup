@@ -94,17 +94,13 @@ function WhatGroup:ShowFrame()
     f:Show()
     f:Raise()
 end
-
-function WhatGroup:HideFrame()
-    f:Hide()
-end
 ```
 
 `ShowFrame` re-populates from the current `pendingInfo` every call — so toggling `pendingInfo` and re-calling `ShowFrame` updates the visible rows without recreating widgets. The `Raise()` call ensures the dialog comes to the front of its strata when re-opened over another popup.
 
-The frame is also closed by:
+There is intentionally no programmatic Hide method. The frame is closed by:
 
-- The Close button at the bottom (`UIPanelButtonTemplate`, 90×24).
+- The Close button at the bottom (`UIPanelButtonTemplate`, 90×24) — calls `f:Hide()` directly.
 - The ESC key (`UISpecialFrames` registration).
 - The `WhatGroup:show` chat link → `WhatGroup:ShowFrame()` (re-opens, doesn't close).
 
@@ -118,6 +114,6 @@ If the helpers ever need to diverge (e.g. the popup adopts an icon-based type in
 
 ## Frame dependencies
 
-- **`WhatGroup` global** — read at file-load time to attach `ShowFrame` / `HideFrame` methods, and again at `PopulateFields` time for `WhatGroup.pendingInfo` and `WhatGroup:GetTeleportSpell`.
+- **`WhatGroup` global** — read at file-load time to attach the `ShowFrame` method, and again at `PopulateFields` time for `WhatGroup.pendingInfo` and `WhatGroup:GetTeleportSpell`.
 - **WoW API** — `CreateFrame`, `BackdropTemplate`, `UISpecialFrames`, `GameFontNormalLarge` / `GameFontNormal` / `GameFontHighlight`, `GameTooltip`, `C_Spell.GetSpellTexture`, `IsSpellKnown`, `CastSpellByID`.
 - **No Ace3 dependencies.** The popup uses raw Blizzard `Frame` / `FontString` / `Texture` / `Button` — no AceGUI. (AceGUI is only used in the Settings panel.)

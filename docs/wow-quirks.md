@@ -135,6 +135,6 @@ Ka0s KickCD (`/mnt/d/Profile/Users/Tushar/Documents/GIT/KickCD`) is the source p
 The differences (smaller surface area in WhatGroup):
 
 - No `valueGate` on schema rows (rows enabling/disabling on another value).
-- No `afterGroup` callback (KickCD uses it for module-specific post-render hooks).
-- No `panelKey` (KickCD has multiple panels; WhatGroup has one).
+- One schema panel, not many. WhatGroup passes `panelKey = "main"` / `"general"` to `CreatePanel` for ctx tracking, but `RenderSchema` doesn't filter the schema by `panelKey` — every row renders into the General sub-page.
+- `afterGroup` callbacks render non-setting actions (Test) outside the schema, but the schema rows themselves stay simpler than KickCD's (no module-specific post-render hooks).
 - No vertical layout — every WhatGroup widget pairs into the two-column Flow grid.

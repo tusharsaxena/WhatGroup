@@ -41,7 +41,6 @@ local function p(...)
     print(CHAT_PREFIX, ...)
 end
 WhatGroup._print = p
-WhatGroup._dbg   = dbg
 
 -- ---------------------------------------------------------------------------
 -- Teleport spell lookup

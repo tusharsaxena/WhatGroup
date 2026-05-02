@@ -239,14 +239,10 @@ closeBtn:SetScript("OnClick", function() f:Hide() end)
 tinsert(UISpecialFrames, "WhatGroupFrame")
 
 -- ============================================================
--- Public API: ShowFrame / HideFrame
+-- Public API: ShowFrame
 -- ============================================================
 function WhatGroup:ShowFrame()
     PopulateFields()
     f:Show()
     f:Raise()
-end
-
-function WhatGroup:HideFrame()
-    f:Hide()
 end

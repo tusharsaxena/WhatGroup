@@ -191,7 +191,6 @@ local function Resolve(path)
     end
     return parent, segments[#segments]
 end
-Helpers.Resolve = Resolve
 
 function Helpers.Get(path)
     local parent, key = Resolve(path)
@@ -384,7 +383,6 @@ local function attachTooltip(widget, label, tooltip)
         widget:HookScript("OnLeave", hide)
     end
 end
-Helpers.AttachTooltip = attachTooltip
 
 -- ---------------------------------------------------------------------------
 -- Header (title + Defaults button + divider)

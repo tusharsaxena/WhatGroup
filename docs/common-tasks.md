@@ -66,7 +66,7 @@ One row to `COMMANDS` in `WhatGroup.lua`. Help output and dispatcher both update
 ```lua
 local COMMANDS = {
     -- … existing rows …
-    {"clear", "Clear pendingInfo and the popup",
+    {"clear", "Forget the captured group info so /wg show is empty",
         function(self) runClear(self) end},
 }
 
@@ -74,7 +74,6 @@ local COMMANDS = {
 
 local function runClear(self)
     WhatGroup.pendingInfo = nil
-    WhatGroup:HideFrame()
     p("group info cleared")
 end
 ```

@@ -53,13 +53,12 @@ Helpers.RenderSchema(generalCtx, {
 
 ## Helpers
 
-All schema reads and writes go through `Helpers.Resolve(path)`, which walks dotted paths into `db.profile` and returns `(parent, key)` so the caller can read `parent[key]` or write `parent[key] = value`. If any intermediate segment is missing, `Resolve` creates an empty table at that segment so writes don't error on first-use paths.
+All schema reads and writes go through a private `Resolve(path)` helper that walks dotted paths into `db.profile` and returns `(parent, key)` so the caller can read `parent[key]` or write `parent[key] = value`. If any intermediate segment is missing, `Resolve` creates an empty table at that segment so writes don't error on first-use paths. Public callers go through `Helpers.Get` / `Helpers.Set`.
 
 | Helper | Purpose |
 |---|---|
-| `Helpers.Resolve(path)` | walk dotted path; returns `(parent, key)` |
-| `Helpers.Get(path)` | `Resolve` + read |
-| `Helpers.Set(path, value)` | `Resolve` + write (no `onChange`, no refresh — those are the caller's job) |
+| `Helpers.Get(path)` | resolve dotted path; read |
+| `Helpers.Set(path, value)` | resolve dotted path; write (no `onChange`, no refresh — those are the caller's job) |
 | `Helpers.FindSchema(path)` | linear scan of `Schema` for `def.path == path` |
 | `Helpers.ValidateSchema()` | walk Schema and chat-print errors for missing `path`, unknown `type`, non-string `section`/`group`/`label`. Non-fatal. Runs once at registration. |
 | `Helpers.RestoreDefaults()` | for each row: `Set(def.path, def.default)` + `pcall(def.onChange, def.default)`; then `RefreshAll()`. Caller (`StaticPopup` OnAccept, slash command) handles confirmation. |
@@ -78,7 +77,6 @@ All schema reads and writes go through `Helpers.Resolve(path)`, which walks dott
 | `Helpers.InlineButton(ctx, spec)` | Standalone action button rendered into the page's scroll. `spec = { text, tooltip, onClick, width? }`. |
 | `Helpers.RenderSchema(ctx, afterGroup?)` | Walk the schema, emit Section headings on group transitions, pair widgets into 50/50 Flow rows, fire `afterGroup` callbacks at group boundaries. |
 | `Helpers.BuildMainContent(ctx)` | Render the addon-landing-page body (logo + TOC notes + Slash Commands heading + per-command Labels) as AceGUI widgets in `ctx.scroll`. |
-| `Helpers.AttachTooltip(widget, label, tooltip)` | Tooltip helper that works on AceGUI widgets (via `SetCallback`) and raw Blizzard frames (via `HookScript`). |
 
 ## `BuildDefaults`
 
