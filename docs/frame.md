@@ -27,7 +27,7 @@ A single content frame inset 14px from the title bar and 14px / 44px from the bo
 | 2 | `Instance:` | `info.fullName` (fallback `"Unknown"`) |
 | 3 | `Type:` | `info.shortName` (fallback `GetGroupTypeLabel(info)`) |
 | 4 | `Leader:` | `info.leaderName` |
-| 5 | `Playstyle:` | `PLAYSTYLE_LABELS[info.playstyle]` (fallback dim em-dash) |
+| 5 | `Playstyle:` | `info.playstyleString` (server-rendered) → `PLAYSTYLE_LABELS[info.generalPlaystyle]` → fallback dim em-dash |
 | 6 | `Teleport:` | 24×24 spell icon button (hidden when no spell mapped) |
 
 Labels use a fixed 72px column (`LABEL_WIDTH`) coloured gold (`|cffFFD700`); values are anchored 6px to the right of the label and use `GameFontHighlight` (white). The 18px row gap (`yGap`) gives a clean vertical rhythm and the content frame's height is set explicitly to `abs(yGap) * 6 + 24` so the layout can't underflow.
@@ -71,20 +71,35 @@ Edge cases:
 - **`pendingInfo == nil`** — every text field shows `|cff888888No data|r` and the teleport button hides. This shouldn't normally happen (`/wg show` and `/wg test` both set `pendingInfo` before calling `ShowFrame`), but the populator defends against it.
 - **`info.fullName == ""`** — Instance row falls back to `"Unknown"`.
 - **`info.shortName == ""`** — Type row falls back to `GetGroupTypeLabel(info)`.
-- **`PLAYSTYLE_LABELS[info.playstyle] == nil` (or `""`)** — Playstyle row falls back to a dim em-dash.
+- **`info.playstyleString == ""` AND `PLAYSTYLE_LABELS[info.generalPlaystyle] == nil`** — Playstyle row falls back to a dim em-dash. This is also the path taken when `generalPlaystyle == Enum.LFGEntryGeneralPlaystyle.None` (= 0).
 
 ## Teleport button
 
+`teleportBtn` is a `SecureActionButtonTemplate` Button (globally named `WhatGroupFrameTeleportButton`) registered for `AnyUp` / `AnyDown` clicks. The secure template is mandatory: `CastSpellByID` from a non-secure `OnClick` handler fires `ADDON_ACTION_FORBIDDEN` in retail. The macro-attribute approach below routes the click through Blizzard's secure action handler, which is the only legal cast path from addon code.
+
+The button is parented to **`UIParent`**, not to the popup. Retail's secure-frame system rejects anchoring a protected frame to any non-secure region — including FontStrings, sibling frames, and even the protected frame's own non-secure parent. UIParent is the only universally allowed anchor for a protected frame, so the button lives there.
+
+A non-secure proxy Frame (`teleportSlot`) sits inside the popup, anchored to the `Teleport:` label, marking where the icon should appear visually. `syncTeleportButton()` mirrors the secure button's screen position to `teleportSlot:GetCenter()` whenever the layout changes:
+
+- inline at the end of `ShowFrame()` (after `f:Show()`)
+- one frame later via `C_Timer.After(0, ...)` — covers the race where `teleportSlot:GetCenter()` returns nil because the layout pass hasn't run yet
+- on the popup's drag-stop (re-anchor as the popup moves)
+- on `PLAYER_REGEN_ENABLED` — `SetPoint` on a protected frame is blocked during combat, so a `ShowFrame` triggered mid-combat retries on combat exit
+
+`syncTeleportButton` also handles visibility: it `Show`s the secure button when the popup is visible AND `ConfigureTeleportButton` set the `type="macro"` attribute, and `Hide`s it otherwise. `f:HookScript("OnHide", ...)` hides the secure button when the popup closes (it lives on UIParent, so it doesn't auto-hide with `f`).
+
 `ConfigureTeleportButton(btn, icon, info)`:
 
-1. `WhatGroup:GetTeleportSpell(info.activityID, info.mapID)` — returns a spell ID or nil.
-2. If nil, the button hides and the function returns.
-3. Otherwise the icon texture is set from `C_Spell.GetSpellTexture(spellID)` (with `134400` as a fallback texID — the `?` glyph).
-4. `IsSpellKnown(spellID)`:
-   - **known**: full alpha, `EnableMouse(true)`, `OnClick` casts the spell, `OnEnter` shows `GameTooltip:SetSpellByID(spellID)`.
-   - **not known**: 50% alpha, desaturated icon, `EnableMouse(false)`, no scripts wired up.
+1. `WhatGroup:GetTeleportSpell(info.activityID, info.mapID)` — returns a spell ID or nil. The lookup is keyed by `mapID` (see [capture-pipeline.md → Teleport spell lookup](./capture-pipeline.md#teleport-spell-lookup)).
+2. If nil: clear the macro attributes, `Hide()`, return.
+3. Otherwise: spell name from `C_Spell.GetSpellName(spellID)` (with `GetSpellInfo` legacy fallback); icon texture from `C_Spell.GetSpellTexture(spellID)` (with `134400` — the `?` glyph — as a fallback texID).
+4. `IsSpellKnown(spellID)` AND a non-nil spell name:
+   - **known + named**: full alpha, `EnableMouse(true)`, `type="macro"` and `macrotext="/cast <SpellName>"` so a click runs the cast through the secure handler. `OnEnter` shows `GameTooltip:SetSpellByID(spellID)`.
+   - **not known / unnamed**: 50% alpha, desaturated icon, `EnableMouse(false)`, secure attributes cleared.
 
-The label `Teleport:` is built directly inline (not via `MakeLabel`) because it anchors to a button rather than a FontString, and its value side is the button's `LEFT` attached at `LABEL_WIDTH + 6`.
+`SetAttribute` calls are safe in or out of combat — only `SetPoint` is gated by combat lockdown, which is why position sync is what's deferred to `PLAYER_REGEN_ENABLED`, not attribute config.
+
+The label `Teleport:` is built directly inline (not via `MakeLabel`) because it anchors to a proxy Frame rather than a FontString, and `teleportSlot`'s `LEFT` is attached at `LABEL_WIDTH + 6` from `lblPort`.
 
 ## Public API
 

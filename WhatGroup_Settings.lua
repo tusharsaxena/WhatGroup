@@ -149,7 +149,7 @@ add{
     section = "notify",  group = "Notify",
     path    = "notify.showPlaystyle",  type = "bool",
     label   = "Show Playstyle",
-    tooltip = "Include the Playstyle line (Casual / Moderate / Serious) in the chat notification.",
+    tooltip = "Include the Playstyle line (Learning / Fun (Relaxed) / Fun (Serious) / Expert) in the chat notification.",
     default = true,
     solo    = true,
 }

@@ -53,7 +53,8 @@ LFG_LIST_APPLICATION_STATUS_UPDATED  status = "invited"   no-op (waits for accep
         │
         ▼
 LFG_LIST_APPLICATION_STATUS_UPDATED  status = "inviteaccepted"
-        ├─ WhatGroup.pendingInfo = pendingApplications[appID]
+        ├─ fresh = CaptureGroupInfo(appID)        re-fetch fresh from LFG API
+        ├─ WhatGroup.pendingInfo = fresh ?? pendingApplications[appID]
         └─ wipe(captureQueue) + wipe(pendingApplications)
         │
         ▼
@@ -75,6 +76,28 @@ GROUP_ROSTER_UPDATE  ¬inGroup
 A player can have multiple applications in flight before any of them resolve. The `searchResultID` we capture at apply time isn't useful for matching against later events — only the LFG-assigned `appID` is, and that's not known until `applied` fires.
 
 The queue is FIFO because the LFG API fires `applied` in apply-order. Each `applied` event dequeues one capture and pairs it with the freshly-assigned `appID`. The pairing means captures that *don't* receive an `applied` event (e.g. apply-rejected before it ever became an application) get pushed off the front of the queue by subsequent applies and eventually wiped on group-leave.
+
+## Why we re-capture at `inviteaccepted`
+
+`CaptureGroupInfo` is called once at apply time, but `C_LFGList.GetActivityInfoTable` can return nil or partial data at that point — keystone groups in particular sometimes don't have their activity-info table fully populated until the invite is on the way. That makes `mapID`, `fullName`, `shortName`, and the `isMythicPlus` / `isCurrentRaid` flags silently default to nil/empty, which surfaces as "popup shows the group title and leader but the teleport icon is missing."
+
+To make the activity-derived fields reliable, the `inviteaccepted` branch re-runs `CaptureGroupInfo` against the same id (the event's first arg, which for the player's own application is the same value as the searchResultID — feeding it back into `GetSearchResultInfo` works). By that point the activity table is reliably populated. The queued capture from `pendingApplications` becomes the safety-net fallback only used if the fresh re-capture itself returns nil.
+
+The merge isn't a flat "fresh wins" — it picks the more-complete capture:
+
+```lua
+local queued = pendingApplications[appID]
+local fresh  = self:CaptureGroupInfo(appID)
+local final
+if     fresh  and fresh.mapID  then final = fresh        -- fresh is most current AND has the field that drives the teleport icon
+elseif queued and queued.mapID then final = queued       -- fresh re-capture missed mapID; queued had it
+elseif fresh                   then final = fresh        -- neither has mapID — take whichever exists
+elseif queued                  then final = queued
+end
+self.pendingInfo = final
+```
+
+`mapID` is the discriminator because (a) it drives the teleport icon, the most visible failure mode, and (b) it's the field most prone to upstream flakiness — the rest of the activity-info table tends to be present when `mapID` is, so picking on `mapID` correlates well with "this capture is healthy."
 
 ## Why `wasInGroup` is the join trigger
 
@@ -101,12 +124,21 @@ The notification's last line is a clickable green hyperlink:
 ```lua
 function WhatGroup:OnSetItemRef(linkArg, text, button, ...)
     if linkArg and linkArg:match("^WhatGroup:") then
+        if not self.pendingInfo then
+            -- Stale link from a previous session — the chat scrollback
+            -- survives /reload but pendingInfo doesn't. Print a hint
+            -- instead of opening a "No data" popup.
+            p("Group info no longer available — captures clear on group-leave or /reload. Use /wg test to preview.")
+            return
+        end
         self:ShowFrame()
         return
     end
     return self.hooks.SetItemRef(linkArg, text, button, ...)
 end
 ```
+
+The `pendingInfo == nil` guard sits ahead of `ShowFrame` because `pendingInfo` is session-only — it's wiped on group-leave (in `GROUP_ROSTER_UPDATE`) and absent after a `/reload`, but the chat link itself persists in scrollback. Without the guard, clicking a link from a previous session opens an empty popup with `No data` in every value field, which reads as broken rather than "your previous capture has expired."
 
 The third arg `true` to `RawHook("SetItemRef", "OnSetItemRef", true)` enables secure post-hooking semantics for the case where Blizzard re-tags `SetItemRef` as protected in a future patch.
 
@@ -122,7 +154,9 @@ See [wow-quirks.md](./wow-quirks.md#hook-discipline) for the rules on when to us
 | `leaderName` | `info.leaderName` | `"Unknown"` |
 | `numMembers` | `info.numMembers` | `0` |
 | `voiceChat` | `info.voiceChat` | `""` |
-| `playstyle` | `info.playstyle` | `0` (→ `""` via `PLAYSTYLE_LABELS`) |
+| `generalPlaystyle` | `info.generalPlaystyle` (current API) → `info.playstyle` (legacy fallback) | `0` (= `Enum.LFGEntryGeneralPlaystyle.None` → `""` via `PLAYSTYLE_LABELS`) |
+| `playstyleString` | `info.playstyleString` (server-rendered, localized) | `""` (consumers fall back to `PLAYSTYLE_LABELS[generalPlaystyle]`) |
+| `playstyle` | alias for `generalPlaystyle` | mirrors `generalPlaystyle` |
 | `age` | `info.age` | `0` |
 | `activityIDs` | `info.activityIDs` (or `{info.activityID}` fallback) | `{}` |
 | `activityID` | `activityIDs[1]` | `nil` |
@@ -134,7 +168,7 @@ See [wow-quirks.md](./wow-quirks.md#hook-discipline) for the rules on when to us
 | `isCurrentRaid` | `actInfo.isCurrentRaidActivity` | `false` |
 | `isHeroicRaid` | `actInfo.isHeroicRaidActivity` | `false` |
 | `categoryID` | `actInfo.categoryID` | `0` |
-| `mapID` | (reserved, currently always nil) | `nil` |
+| `mapID` | `actInfo.mapID` (the dungeon's instance map ID — stable across seasons; the key used by `WhatGroup.TeleportSpells`) | `nil` |
 
 The activity-derived fields are only populated when `C_LFGList.GetActivityInfoTable(firstActivityID)` returns a non-nil table. If the activity table is missing the fields stay at their defaults — the popup and notification still render, just with placeholder values.
 
@@ -142,12 +176,12 @@ The activity-derived fields are only populated when `C_LFGList.GetActivityInfoTa
 
 ## Teleport spell lookup
 
-`WhatGroup.TeleportSpells` is a flat table mapping `activityID` (or `mapID`, hence the parameter pair on the lookup) to the dungeon's teleport `spellID`. `WhatGroup:GetTeleportSpell(activityID, mapID)` checks `activityID` first, then `mapID`, returning `nil` if neither hits.
+`WhatGroup.TeleportSpells` is a flat table keyed by `mapID` (the dungeon's instance map ID — stable across seasons) mapping to the dungeon's teleport `spellID`. `WhatGroup:GetTeleportSpell(activityID, mapID)` checks `mapID` first, then falls back to `activityID` for backwards compatibility — but the table no longer carries activityID-keyed rows, so the fallback is effectively a nop. activityID was abandoned as a key because Blizzard rotates activity IDs every season.
 
 The lookup is consumed by:
 
 - `ShowNotification` — only emits the Teleport line if `spellID` is non-nil and `notify.showTeleport` is on; the line includes `IsSpellKnown(spellID)` as a `(not learned)` tag when false.
-- `ConfigureTeleportButton` (popup) — desaturates the icon and sets `EnableMouse(false)` when `IsSpellKnown` is false; the button is hidden entirely when `spellID` is nil.
+- `ConfigureTeleportButton` (popup) — desaturates the icon and sets `EnableMouse(false)` when `IsSpellKnown` is false; the button is hidden entirely when `spellID` is nil. The button is a `SecureActionButtonTemplate` parented to UIParent with `type="macro"` + `macrotext="/cast <SpellName>"` — `CastSpellByID` from a non-secure click hits `ADDON_ACTION_FORBIDDEN` in retail. See [frame.md → Teleport button](./frame.md#teleport-button).
 
 Adding a teleport mapping is one row in the table — see [common-tasks.md](./common-tasks.md#add-a-dungeon-teleport-spell-mapping).
 

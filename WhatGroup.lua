@@ -41,42 +41,39 @@ local function p(...)
     print(CHAT_PREFIX, ...)
 end
 WhatGroup._print = p
+-- Public so WhatGroup_Frame.lua can route its diagnostic prints
+-- through the same prefix path; users still toggle via /wg debug.
+WhatGroup._dbg   = dbg
 
 -- ---------------------------------------------------------------------------
 -- Teleport spell lookup
 -- ---------------------------------------------------------------------------
 
+-- Keyed by mapID (the dungeon's instance map ID — stable across seasons).
+-- mapID is captured into pendingInfo.mapID from
+-- C_LFGList.GetActivityInfoTable's mapID field; activityIDs rotate per
+-- season and aren't reliable lookup keys.
 WhatGroup.TeleportSpells = {
-    -- Brackenhide Hollow
-    [2522] = 393256,
-    -- Halls of Infusion
-    [2526] = 393262,
-    -- Neltharus
-    [2519] = 393279,
-    -- Ruby Life Pools
-    [2521] = 393265,
-    -- The Azure Vault
-    [2515] = 393273,
-    -- The Nokhud Offensive
-    [2516] = 393276,
-    -- Uldaman: Legacy of Tyr
-    [2451] = 393222,
-    -- Algeth'ar Academy
-    [2526] = 393270,
-    -- Dawn of the Infinite: Galakrond's Fall
-    [2579] = 424163,
-    -- Dawn of the Infinite: Murozond's Rise
-    [2580] = 424167,
-    -- Waycrest Manor
-    [1862] = 322118,
-    -- Siege of Boralus
-    [1822] = 322746,
-    -- Tol Dagor
-    [1841] = 324235,
-    -- Mechagon: Workshop
-    [2097] = 324802,
-    -- Operation: Mechagon - Junkyard
-    [2097] = 323822,
+    -- TWW Season 3 dungeons
+    [2660] = 445417,  -- Ara-Kara, City of Echoes
+    [2649] = 445444,  -- Priory of the Sacred Flame
+    [2662] = 445414,  -- The Dawnbreaker
+    [2773] = 1216786, -- Operation: Floodgate
+    [2830] = 1237215, -- Eco-Dome Al'dani
+    [2441] = 367416,  -- Tazavesh: Streets of Wonder + So'leah's Gambit (shared map)
+    [2287] = 354465,  -- Halls of Atonement
+    -- TWW (other)
+    [2669] = 445416,  -- City of Threads
+    [2661] = 445440,  -- Cinderbrew Meadery
+    [2651] = 445441,  -- Darkflame Cleft
+    [2648] = 445443,  -- The Rookery
+    [2652] = 445269,  -- The Stonevault
+    -- Midnight Season 1 dungeons
+    [2811] = 1254572, -- Magisters' Terrace
+    [2874] = 1254559, -- Maisara Caverns
+    [2915] = 1254563, -- Nexus-Point Xenas
+    [2805] = 1254400, -- Windrunner Spire
+    [2526] = 393273,  -- Algeth'ar Academy
 }
 
 local function colorize(text, hex)
@@ -145,23 +142,31 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
     if not info then return end
 
     local captured = {
-        title       = info.name or info.title or "Unknown",
-        leaderName  = info.leaderName or "Unknown",
-        numMembers  = info.numMembers or 0,
-        voiceChat   = info.voiceChat or "",
-        playstyle   = info.playstyle or 0,
-        age         = info.age or 0,
-        activityIDs = info.activityIDs or (info.activityID and {info.activityID}) or {},
-        activityID  = nil,
-        fullName    = "",
-        activityName= "",
-        maxNumPlayers       = 0,
-        isMythicPlus        = false,
-        isCurrentRaid       = false,
-        isHeroicRaid        = false,
-        categoryID          = 0,
-        mapID               = nil,
+        title             = info.name or info.title or "Unknown",
+        leaderName        = info.leaderName or "Unknown",
+        numMembers        = info.numMembers or 0,
+        voiceChat         = info.voiceChat or "",
+        -- Playstyle: API offers three plausible fields. `playstyleString` is
+        -- the server-rendered, localized text (preferred when present);
+        -- `generalPlaystyle` is the integer enum (Enum.LFGEntryGeneralPlaystyle);
+        -- `playstyle` is the legacy alias kept for older clients. Capture
+        -- all three; consumers prefer playstyleString, then look up
+        -- generalPlaystyle in PLAYSTYLE_LABELS.
+        generalPlaystyle  = info.generalPlaystyle or info.playstyle or 0,
+        playstyleString   = info.playstyleString or "",
+        age               = info.age or 0,
+        activityIDs       = info.activityIDs or (info.activityID and {info.activityID}) or {},
+        activityID        = nil,
+        fullName          = "",
+        activityName      = "",
+        maxNumPlayers     = 0,
+        isMythicPlus      = false,
+        isCurrentRaid     = false,
+        isHeroicRaid      = false,
+        categoryID        = 0,
+        mapID             = nil,
     }
+    captured.playstyle = captured.generalPlaystyle
 
     local firstActivityID = captured.activityIDs[1]
     if firstActivityID then
@@ -177,19 +182,46 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
             captured.isHeroicRaid   = actInfo.isHeroicRaidActivity or false
             captured.categoryID     = actInfo.categoryID or 0
             captured.shortName      = actInfo.shortName or ""
+            captured.mapID          = actInfo.mapID
+            dbg("activity table OK:",
+                "mapID=" .. tostring(actInfo.mapID),
+                "fullName=" .. tostring(actInfo.fullName),
+                "isMythicPlus=" .. tostring(actInfo.isMythicPlusActivity))
+        else
+            dbg("GetActivityInfoTable returned nil for activityID",
+                tostring(firstActivityID),
+                "→ mapID/fullName/isMythicPlus stay at defaults")
         end
+    else
+        dbg("info.activityIDs is empty — no activity-derived fields captured")
     end
+
+    dbg("CaptureGroupInfo result:",
+        "title=" .. tostring(captured.title),
+        "activityID=" .. tostring(captured.activityID),
+        "mapID=" .. tostring(captured.mapID),
+        "isMythicPlus=" .. tostring(captured.isMythicPlus),
+        "generalPlaystyle=" .. tostring(captured.generalPlaystyle),
+        "playstyleString='" .. tostring(captured.playstyleString) .. "'")
 
     return captured
 end
 
 function WhatGroup:GetTeleportSpell(activityID, mapID)
-    if activityID and self.TeleportSpells[activityID] then
-        return self.TeleportSpells[activityID]
-    end
+    -- mapID first: TeleportSpells is keyed by mapID. activityID lookup is
+    -- a back-compat fallback; the table no longer carries activityID rows.
     if mapID and self.TeleportSpells[mapID] then
+        dbg("GetTeleportSpell HIT mapID=" .. tostring(mapID)
+            .. " spellID=" .. tostring(self.TeleportSpells[mapID]))
         return self.TeleportSpells[mapID]
     end
+    if activityID and self.TeleportSpells[activityID] then
+        dbg("GetTeleportSpell HIT activityID=" .. tostring(activityID)
+            .. " spellID=" .. tostring(self.TeleportSpells[activityID]))
+        return self.TeleportSpells[activityID]
+    end
+    dbg("GetTeleportSpell MISS — activityID=" .. tostring(activityID)
+        .. ", mapID=" .. tostring(mapID))
     return nil
 end
 
@@ -213,9 +245,20 @@ local function GetGroupTypeLabel(info)
     end
 end
 
-local PLAYSTYLE_LABELS = { [1] = "Casual", [2] = "Moderate", [3] = "Serious" }
+-- Keyed by Enum.LFGEntryGeneralPlaystyle so the labels match the LFG UI's
+-- own "Learning / Fun (Relaxed) / Fun (Serious) / Expert" wording, pulled
+-- from Blizzard's localized GROUP_FINDER_GENERAL_PLAYSTYLE1..4 globals.
+local PLAYSTYLE_LABELS = {
+    [Enum.LFGEntryGeneralPlaystyle.Learning]   = GROUP_FINDER_GENERAL_PLAYSTYLE1,
+    [Enum.LFGEntryGeneralPlaystyle.FunRelaxed] = GROUP_FINDER_GENERAL_PLAYSTYLE2,
+    [Enum.LFGEntryGeneralPlaystyle.FunSerious] = GROUP_FINDER_GENERAL_PLAYSTYLE3,
+    [Enum.LFGEntryGeneralPlaystyle.Expert]     = GROUP_FINDER_GENERAL_PLAYSTYLE4,
+}
 local function GetPlaystyleLabel(info)
-    return PLAYSTYLE_LABELS[info.playstyle] or ""
+    if info.playstyleString and info.playstyleString ~= "" then
+        return info.playstyleString
+    end
+    return PLAYSTYLE_LABELS[info.generalPlaystyle] or ""
 end
 
 -- ---------------------------------------------------------------------------
@@ -224,6 +267,10 @@ end
 
 function WhatGroup:ShowNotification()
     local info = self.pendingInfo
+    dbg("ShowNotification: pendingInfo="
+        .. (info and ("title=" .. tostring(info.title)
+                      .. " mapID=" .. tostring(info.mapID))
+                  or "NIL — no chat output"))
     if not info then return end
     local n = self.db and self.db.profile and self.db.profile.notify
     if not n or not n.enabled then return end
@@ -232,7 +279,7 @@ function WhatGroup:ShowNotification()
     local clickLink = colorize(link("WhatGroup:show", "[Click here to view details]"), "00FF7F")
 
     print(CHAT_PREFIX .. " You have joined a group!")
-    print(CHAT_PREFIX .. "   - " .. colorize("Group:", gold) .. " " .. info.title)
+    print(CHAT_PREFIX .. "   - " .. colorize("Group:", gold) .. " " .. tostring(info.title or "Unknown"))
 
     if n.showInstance then
         print(CHAT_PREFIX .. "   - " .. colorize("Instance:", gold)
@@ -287,6 +334,19 @@ end
 
 function WhatGroup:OnSetItemRef(linkArg, text, button, ...)
     if linkArg and linkArg:match("^WhatGroup:") then
+        dbg("OnSetItemRef WhatGroup link clicked, pendingInfo="
+            .. (self.pendingInfo
+                and ("title=" .. tostring(self.pendingInfo.title)
+                     .. " mapID=" .. tostring(self.pendingInfo.mapID))
+                or "NIL"))
+        -- pendingInfo is session-only (cleared on group-leave or
+        -- /reload). A click on a stale chat link from a previous
+        -- session would otherwise open an empty "No data" popup; print
+        -- a one-line hint instead.
+        if not self.pendingInfo then
+            p("Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview.")
+            return
+        end
         self:ShowFrame()
         return
     end
@@ -308,7 +368,14 @@ function WhatGroup:GROUP_ROSTER_UPDATE()
                        and self.db.profile.notify.delay) or 1.5
         local autoShow = not (self.db and self.db.profile and self.db.profile.frame
                               and self.db.profile.frame.autoShow == false)
+        local pendingAtSchedule = self.pendingInfo
+        dbg("GROUP_ROSTER_UPDATE: scheduling notify in " .. tostring(delay) .. "s",
+            "pendingInfo at schedule: title=" .. tostring(pendingAtSchedule.title)
+            .. " mapID=" .. tostring(pendingAtSchedule.mapID))
         C_Timer.After(delay, function()
+            dbg("notify timer fired",
+                "pendingInfo still set? " .. tostring(self.pendingInfo ~= nil)
+                .. " same identity? " .. tostring(self.pendingInfo == pendingAtSchedule))
             self:ShowNotification()
             if autoShow then self:ShowFrame() end
         end)
@@ -316,6 +383,11 @@ function WhatGroup:GROUP_ROSTER_UPDATE()
     wasInGroup = inGroup
 
     if not inGroup then
+        if self.pendingInfo then
+            dbg("GROUP_ROSTER_UPDATE inGroup=false → clearing pendingInfo (was: title="
+                .. tostring(self.pendingInfo.title)
+                .. " mapID=" .. tostring(self.pendingInfo.mapID) .. ")")
+        end
         self.pendingInfo = nil
         wipe(captureQueue)
         wipe(pendingApplications)
@@ -333,10 +405,35 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
     elseif newStatus == "invited" then
         -- Wait for the user to accept; multiple invites can arrive.
     elseif newStatus == "inviteaccepted" then
-        local info = pendingApplications[appID]
-        if info then
-            self.pendingInfo = info
+        -- Pick the more-complete capture between fresh (re-fetched
+        -- from the LFG API now that the invite is accepted) and
+        -- queued (captured at apply time). Prefer whichever has
+        -- mapID — that's the field most prone to apply-time staleness
+        -- AND the one that drives the teleport icon. If both have
+        -- mapID, fresh wins (most current data).
+        local queued = pendingApplications[appID]
+        local fresh  = self:CaptureGroupInfo(appID)
+        local final
+        if fresh and fresh.mapID then
+            final = fresh
+        elseif queued and queued.mapID then
+            final = queued
+        elseif fresh then
+            final = fresh
+        elseif queued then
+            final = queued
         end
+        self.pendingInfo = final
+
+        dbg("inviteaccepted resolved:",
+            "fresh=" .. (fresh and ("mapID=" .. tostring(fresh.mapID))
+                                or "nil"),
+            "queued=" .. (queued and ("mapID=" .. tostring(queued.mapID))
+                                or "nil"),
+            "pendingInfo=" .. (final and ("mapID=" .. tostring(final.mapID)
+                                          .. " title=" .. tostring(final.title))
+                                     or "NIL"))
+
         wipe(captureQueue)
         wipe(pendingApplications)
     end
@@ -552,24 +649,31 @@ end
 -- Public method so the Settings panel's Test button can invoke the
 -- same code path as /wg test without going through the slash dispatch.
 function WhatGroup:RunTest()
+    -- mapID 2652 is The Stonevault — exercises the mapID-keyed teleport
+    -- lookup (445269 in TeleportSpells). generalPlaystyle exercises the
+    -- enum-based label path; leave playstyleString empty so the lookup
+    -- falls through to PLAYSTYLE_LABELS instead of using the pre-rendered
+    -- string.
     self.pendingInfo = {
-        title         = "Test Group — Stonevault +12",
-        leaderName    = "Testadin-Silvermoon",
-        numMembers    = 3,
-        voiceChat     = "",
-        age           = 127,
-        activityIDs   = {2516},
-        activityID    = 2516,
-        fullName      = "Dungeons > Mythic+ > The Stonevault",
-        activityName  = "The Stonevault",
-        maxNumPlayers = 5,
-        isMythicPlus  = true,
-        isCurrentRaid = false,
-        isHeroicRaid  = false,
-        categoryID    = 1,
-        mapID         = nil,
-        playstyle     = 2,
-        shortName     = "Mythic+",
+        title             = "Test Group — Stonevault +12",
+        leaderName        = "Testadin-Silvermoon",
+        numMembers        = 3,
+        voiceChat         = "",
+        age               = 127,
+        activityIDs       = {2516},
+        activityID        = 2516,
+        fullName          = "Dungeons > Mythic+ > The Stonevault",
+        activityName      = "The Stonevault",
+        maxNumPlayers     = 5,
+        isMythicPlus      = true,
+        isCurrentRaid     = false,
+        isHeroicRaid      = false,
+        categoryID        = 1,
+        mapID             = 2652,
+        generalPlaystyle  = Enum.LFGEntryGeneralPlaystyle.FunSerious,
+        playstyle         = Enum.LFGEntryGeneralPlaystyle.FunSerious,
+        playstyleString   = "",
+        shortName         = "Mythic+",
     }
     self:ShowNotification()
     self:ShowFrame()

@@ -118,6 +118,35 @@ self.db = LibStub("AceDB-3.0"):New("WhatGroupDB", defaults, true)
 - **Existing keys are preserved untouched.**
 - **Removed schema rows leave orphaned values in SVs.** The keys aren't surfaced in the UI / `/wg list` anymore but they sit in the saved-vars table. AceDB-3.0 has no automatic cleanup. Acceptable today; add a one-shot migration if a removal ever becomes user-visible.
 
+## Secure buttons can't have an explicit non-secure anchor target
+
+A `SecureActionButtonTemplate` Button (or any frame inheriting from `SecureFrameTemplate`) is "protected" the moment it's `CreateFrame`'d. Retail's secure-frame system rejects any `SetPoint` / `SetAllPoints` call on a protected frame that **explicitly names** a non-secure region as the anchor target — including the protected frame's own parent — with:
+
+```
+Action[SetPoint] failed because[Cannot anchor protected frames to regions]
+```
+
+This isn't combat-gated; it errors during initial layout. Once the load-time `SetPoint` errors, the rest of the source file aborts — anything defined after that line (including `WhatGroup:ShowFrame`) never registers, which surfaces as "attempt to call a nil value" at the next call site.
+
+The protection check gates on the *explicit-region mention*, not on the underlying parent relationship. So the **implicit-parent form** (no `relativeTo` arg) is allowed:
+
+```lua
+-- These FAIL ("Cannot anchor protected frames to regions"):
+secureBtn:SetAllPoints(parent)
+secureBtn:SetPoint("LEFT", someFrame, "LEFT", x, y)
+
+-- These WORK (no explicit relativeTo arg → resolved to parent transitively):
+secureBtn:SetPoint("TOPLEFT", 0, 0)
+secureBtn:SetPoint("BOTTOMRIGHT", 0, 0)
+secureBtn:SetAllPoints()
+```
+
+Workaround for "I need the secure button positioned relative to a non-secure FontString / sibling that I don't control": parent the secure button directly to `UIParent` and mirror its screen position from a non-secure helper via `region:GetCenter()` + `SetPoint("CENTER", UIParent, "BOTTOMLEFT", cx, cy)`, re-syncing on the popup's drag-stop, on `PLAYER_REGEN_ENABLED`, and on first show.
+
+WhatGroup uses this pattern for the popup's teleport icon — see `WhatGroup_Frame.lua` (`teleportSlot` non-secure proxy + `teleportBtn` UIParent-parented secure button + `syncTeleportButton`) and [frame.md → Teleport button](./frame.md#teleport-button).
+
+Side note: `CastSpellByID` is also protected in retail (it fires `ADDON_ACTION_FORBIDDEN` from a non-secure `OnClick`). The macro-attribute path on a `SecureActionButtonTemplate` is the legal cast route from addon code — set `type="macro"` and `macrotext="/cast <SpellName>"`, and the click runs through Blizzard's secure action handler.
+
 ## Spell texture fallback (`134400`)
 
 `C_Spell.GetSpellTexture(spellID)` returns `nil` for spell IDs that aren't currently loaded into the client's spell database (e.g. teleport spells the player has never trained). The popup's `ConfigureTeleportButton` falls back to `134400` (the `?` glyph fileID) so the row still shows *something*:
