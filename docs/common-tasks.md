@@ -17,7 +17,6 @@ add{
     default = true,
     -- onChange = function(v) … end,   -- optional, runs after the panel widget OR /wg set
     -- solo = true,                      -- optional, force onto its own row
-    -- spacerBefore = true,              -- optional, blank row before this widget
 }
 ```
 
@@ -36,25 +35,29 @@ add{
 
 `min` / `max` clamp the panel slider and `/wg set`. `fmt` is the format string used by `/wg get` / `/wg list` for display (Lua `string.format` rules).
 
-### Action button
+### Action button (afterGroup)
+
+Non-setting affordances live outside the schema. Hand the action to `Helpers.InlineButton` from an `afterGroup` callback in `Settings.Register`:
 
 ```lua
-add{
-    section = "general",  group = "General",
-    type    = "action",
-    label   = "Do The Thing",
-    tooltip = "What clicking this does.",
-    onClick = function() WhatGroup:DoTheThing() end,
-}
+Helpers.RenderSchema(generalCtx, {
+    ["General"] = function(ctxRef)
+        Helpers.InlineButton(ctxRef, {
+            text    = "Do The Thing",
+            tooltip = "What clicking this does.",
+            onClick = function() WhatGroup:DoTheThing() end,
+        })
+    end,
+})
 ```
 
-Action rows have no `path` and no value — `/wg list / get / set / reset` skip them entirely. They render as a Button widget that participates in the two-column pairing.
+The callback fires once, immediately after the last schema row of the named group. `Helpers.InlineButton` renders a 160-px button (override via `spec.width`) left-aligned in a full-width row.
 
 ### After adding a row
 
 - If you also want the new value to do something on change, add an `onChange = function(value) … end` to the row. Both the panel widget and `/wg set <path>` call it.
 - Read the new value from runtime code via `Settings.Helpers.Get("frame.someToggle")` — never reach into `db.profile` directly, or `Helpers.RefreshAll` won't sync the panel checkbox.
-- If you want a section heading break before the row, change its `group` field — `renderSchema` emits an AceGUI Heading on every group transition.
+- If you want a section heading break before the row, change its `group` field — `RenderSchema` emits an AceGUI Heading on every group transition.
 
 ## Add a slash command
 

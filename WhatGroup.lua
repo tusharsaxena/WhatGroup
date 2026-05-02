@@ -532,8 +532,14 @@ function runReset(self)
     if not (H and H.RestoreDefaults) then
         return p("Settings layer not ready yet")
     end
-    H.RestoreDefaults()
-    p("all settings reset to defaults")
+    -- Route through the same popup the Defaults button uses so both
+    -- code paths share one OnAccept body (defined in WhatGroup_Settings.lua).
+    if StaticPopup_Show then
+        StaticPopup_Show("WHATGROUP_RESET_ALL")
+    else
+        H.RestoreDefaults()
+        p("all settings reset to defaults")
+    end
 end
 
 function runShow(self)

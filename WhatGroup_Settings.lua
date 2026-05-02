@@ -1,26 +1,28 @@
 -- WhatGroup_Settings.lua
 -- Schema rows + Helpers + canvas-layout panel builder.
 --
--- Every option is one row in WhatGroup.Settings.Schema. The same row
--- drives:
---   * the AceGUI widget rendered in the Settings panel
+-- Every option is one row in WhatGroup.Settings.Schema. The same row drives:
+--   * the AceGUI widget rendered in the General sub-page
 --   * /wg list (groups by `section`, prints path = formattedValue)
---   * /wg get <path>  (uses Helpers.FindSchema + Helpers.Get)
---   * /wg set <path> <value>  (type-aware parse → Helpers.Set → onChange → RefreshAll)
---   * AceDB defaults (BuildDefaults walks Schema and threads `default`
---     values into the nested `profile` table)
+--   * /wg get <path>            (Helpers.FindSchema + Helpers.Get)
+--   * /wg set <path> <value>    (type-aware parse → Helpers.Set → onChange → RefreshAll)
+--   * AceDB defaults            (BuildDefaults walks Schema and threads `default`
+--                                values into the nested `profile` table)
+--   * /wg reset / Defaults btn  (Helpers.RestoreDefaults via WHATGROUP_RESET_ALL popup)
 --
--- Adding a new option = one schema row; UI, CLI, and defaults all
--- follow automatically.
+-- Adding a new option = one schema row.
 --
 -- Panel layout follows Ka0s KickCD:
---   * Parent category "Ka0s WhatGroup" is registered with a placeholder
---     panel — in WoW 12.0, a parent category with subcategories hides
---     its own widgets, so widgets there would never display anyway.
---   * Subcategory "General" hosts every schema widget, rendered in a
---     two-column Flow layout (50%/50% per row). `solo = true` forces a
---     widget onto its own row (left half occupied, right half empty);
---     `spacerBefore = true` inserts a blank row before the widget.
+--   * Parent "Ka0s WhatGroup" — canvas-layout category. Hosts an addon-
+--     landing page (logo + notes + slash command list), built entirely
+--     from AceGUI widgets inside the same lazy ScrollFrame the sub-page
+--     uses, so both pages share one scrollbar style and gutter.
+--   * Sub-page "General" — schema widgets in a two-column Flow layout,
+--     wrapped in an always-visible AceGUI ScrollFrame so content never
+--     clips at low UI scale. Header carries a breadcrumb-style title
+--     ("Ka0s WhatGroup  |  General"), divider, and a Defaults button.
+--   * Non-setting actions (e.g. "Test") render via afterGroup callbacks
+--     using Helpers.InlineButton, so the schema stays settings-only.
 
 local WhatGroup = LibStub("AceAddon-3.0"):GetAddon("WhatGroup")
 local AceGUI    = LibStub("AceGUI-3.0")
@@ -29,34 +31,40 @@ WhatGroup.Settings = WhatGroup.Settings or {}
 local Settings    = WhatGroup.Settings
 Settings.Schema   = {}
 Settings.Helpers  = {}
-Settings._refreshers = {}   -- { [path] = function() widget:SetValue(Helpers.Get(path)) end }
+Settings._refreshers = {}
+Settings._panels = Settings._panels or {}
 
 local Schema  = Settings.Schema
 local Helpers = Settings.Helpers
+
+-- Single chat-out routed through WhatGroup._print so the cyan [WG] prefix
+-- lives in exactly one place. Falls back to raw print only if this file
+-- somehow loads before WhatGroup.lua has set _print (shouldn't happen
+-- given the TOC order, but the fallback keeps the panel from going dark).
+local function pout(...)
+    if WhatGroup._print then return WhatGroup._print(...) end
+    print(...)
+end
 
 -- ---------------------------------------------------------------------------
 -- Schema
 -- ---------------------------------------------------------------------------
 --
--- Panel layout intent (rows are positioned in schema-declaration order):
+-- Rendered panel layout:
 --
 --   --- General ---
 --   [Enable]        | [Auto Show]
---   [Print to Chat] | [Notification Delay]
---   [Test]          | [Debug]
+--   [Print to Chat] | [Debug]
+--     <afterGroup: Test button (160 px, left-aligned)>
 --
 --   --- Notify ---
+--   [Notification Delay]
 --   [Show Instance]
 --   [Show Type]
 --   [Show Leader]
 --   [Show Playstyle]
 --   [Show ClickLink]
 --   [Show Teleport]
---
--- The Test row uses `type = "action"` — rendered as a Button widget
--- in the panel, ignored by /wg list/get/set (it has no path / value).
--- panelHidden = true is still supported by the renderer for any future
--- power-user-only setting that should stay out of the panel.
 
 local function add(t) Schema[#Schema + 1] = t end
 
@@ -87,27 +95,6 @@ add{
 }
 
 add{
-    section = "notify",  group = "General",
-    path    = "notify.delay",  type = "number",
-    label   = "Notification Delay",
-    tooltip = "Seconds to wait after joining before printing the notification and showing the popup. Lets the zone-in settle.",
-    default = 1.5,
-    min = 0, max = 10, step = 0.5, fmt = "%.1fs",
-}
-
--- Test action — paired with Debug on the same row. Action rows have no
--- `path` and no value, so they're skipped by /wg list / get / set;
--- they're purely a panel affordance. Mirror code path is /wg test
--- (both go through WhatGroup:RunTest).
-add{
-    section = "general",  group = "General",
-    type    = "action",
-    label   = "Test",
-    tooltip = "Inject synthetic group info and run the full notification + popup flow. Useful for previewing changes to the chat-output toggles without joining a real group.",
-    onClick = function() if WhatGroup.RunTest then WhatGroup:RunTest() end end,
-}
-
-add{
     section = "general",  group = "General",
     path    = "debug",  type = "bool",
     label   = "Debug",
@@ -116,9 +103,20 @@ add{
     onChange = function(v) WhatGroup.debug = v and true or false end,
 }
 
--- Notify — per-line gates for the chat notification. Each row is solo
--- so the section reads as a vertical checklist of "include this line
--- when printing the notification."
+-- Notify — `solo = true` makes each row span the left half on its own
+-- line, so the section reads as a vertical checklist of "include this
+-- line when printing the notification." `notify.delay` joins the same
+-- vertical column as a half-width slider above the show* checkboxes.
+
+add{
+    section = "notify",  group = "Notify",
+    path    = "notify.delay",  type = "number",
+    label   = "Notification Delay",
+    tooltip = "Seconds to wait after joining before printing the notification and showing the popup. Lets the zone-in settle.",
+    default = 1.5,
+    min = 0, max = 10, step = 0.5, fmt = "%.1fs",
+    solo    = true,
+}
 
 add{
     section = "notify",  group = "Notify",
@@ -175,11 +173,9 @@ add{
 }
 
 -- ---------------------------------------------------------------------------
--- Helpers
+-- db.profile path helpers
 -- ---------------------------------------------------------------------------
 
--- Walk a dotted path into db.profile and return (parent, key) so the
--- caller can read parent[key] or write parent[key] = value.
 local function Resolve(path)
     if not (WhatGroup.db and WhatGroup.db.profile) then return nil, nil end
     local segments = {}
@@ -215,12 +211,63 @@ function Helpers.FindSchema(path)
     end
 end
 
--- Walk Schema and build the nested AceDB defaults table by threading
--- each row's `default` into the path it names.
+-- ---------------------------------------------------------------------------
+-- Schema-shape validation
+-- ---------------------------------------------------------------------------
+--
+-- Run once at panel-registration time. Catches missing `path`, unknown
+-- `type`, non-string `section` / `group` / `label`. Errors are PRINTED
+-- only — a broken row is an addon-author bug; the right user-visible
+-- behaviour is "the option you wanted is missing AND a chat error tells
+-- you why," not "the entire settings panel refuses to register."
+
+local _validTypes = { bool = true, number = true }
+
+function Helpers.ValidateSchema()
+    local errors = 0
+    for i, def in ipairs(Schema) do
+        local where = "row #" .. i .. " (" .. tostring(def and def.path or "<no path>") .. ")"
+        if type(def) ~= "table" then
+            pout("|cffff0000schema error|r " .. where .. ": row is not a table")
+            errors = errors + 1
+        else
+            if type(def.path) ~= "string" or def.path == "" then
+                pout("|cffff0000schema error|r " .. where .. ": missing or empty `path`")
+                errors = errors + 1
+            end
+            if not _validTypes[def.type] then
+                pout("|cffff0000schema error|r " .. where
+                     .. ": invalid `type` = " .. tostring(def.type)
+                     .. " (expected one of: bool, number)")
+                errors = errors + 1
+            end
+            if type(def.section) ~= "string" then
+                pout("|cffff0000schema error|r " .. where .. ": missing or non-string `section`")
+                errors = errors + 1
+            end
+            if type(def.group) ~= "string" then
+                pout("|cffff0000schema error|r " .. where .. ": missing or non-string `group`")
+                errors = errors + 1
+            end
+            if type(def.label) ~= "string" then
+                pout("|cffff0000schema error|r " .. where .. ": missing or non-string `label`")
+                errors = errors + 1
+            end
+        end
+    end
+    return errors
+end
+
+-- ---------------------------------------------------------------------------
+-- Defaults
+-- ---------------------------------------------------------------------------
+
+-- Walk Schema and build the nested AceDB defaults table by threading each
+-- row's `default` into the path it names.
 function Settings.BuildDefaults()
     local out = { profile = {} }
     for _, def in ipairs(Schema) do
-        if def.path then   -- skip action rows (no value to seed)
+        if def.path then
             local segs = {}
             for part in string.gmatch(def.path, "[^.]+") do
                 segs[#segs + 1] = part
@@ -236,17 +283,20 @@ function Settings.BuildDefaults()
     return out
 end
 
--- Reset every schema row to its declared default. Fires onChange on
--- each row, then refreshes the open settings panel widgets.
+-- Reset every schema row to its declared default, fire onChange on each,
+-- then refresh open panel widgets. Both the Defaults button and `/wg
+-- reset` route through this — the StaticPopup confirm step lives in
+-- the caller (WHATGROUP_RESET_ALL OnAccept), so callers that want a
+-- silent reset (none today) could still bypass the popup.
 function Helpers.RestoreDefaults()
     for _, def in ipairs(Schema) do
-        if def.path then   -- skip action rows
+        if def.path then
             Helpers.Set(def.path, def.default)
             if def.onChange then
                 local ok, err = pcall(def.onChange, def.default)
                 if not ok then
-                    print("|cff00FFFF[WG]|r RestoreDefaults onChange failed for "
-                          .. def.path .. ": " .. tostring(err))
+                    pout("RestoreDefaults onChange failed for " .. def.path
+                         .. ": " .. tostring(err))
                 end
             end
         end
@@ -254,148 +304,477 @@ function Helpers.RestoreDefaults()
     Helpers.RefreshAll()
 end
 
--- Re-sync every panel widget against the current db.profile value.
+-- Re-sync every panel widget against the current db.profile value. Called
+-- after a reset, after `/wg set`, and after profile switches (none today
+-- but the hook is here if AceDBOptions is ever added).
 function Helpers.RefreshAll()
     for _, refresher in pairs(Settings._refreshers) do
         local ok, err = pcall(refresher)
         if not ok then
-            print("|cff00FFFF[WG]|r refresher failed: " .. tostring(err))
+            pout("refresher failed: " .. tostring(err))
         end
     end
 end
 
 -- ---------------------------------------------------------------------------
--- Canvas panel builder
+-- StaticPopup — irreversible reset-all confirmation
 -- ---------------------------------------------------------------------------
 --
--- Renders Schema as AceGUI widgets stacked inside a SimpleGroup parented
--- to a Blizzard Frame registered via Settings.RegisterCanvasLayoutSubcategory.
--- Group transitions emit a Heading; widgets are paired into 50%/50%
--- Flow rows. `solo = true` forces a widget onto its own row;
--- `spacerBefore = true` inserts a blank row before the widget.
+-- Single OnAccept body so the Defaults button (panel) and `/wg reset`
+-- (slash) share one code path; no chance of the two diverging if a new
+-- side effect lands later.
+StaticPopupDialogs = StaticPopupDialogs or {}
+StaticPopupDialogs["WHATGROUP_RESET_ALL"] = {
+    text         = "Reset every WhatGroup setting to its default? The active profile is the only one affected.",
+    button1      = YES or "Yes",
+    button2      = NO  or "No",
+    timeout      = 0,
+    whileDead    = true,
+    hideOnEscape = true,
+    OnAccept     = function()
+        Helpers.RestoreDefaults()
+        pout("all settings reset to defaults")
+    end,
+}
 
-local PADDING       = 16
-local HEADER_HEIGHT = 56
-local ROW_VSPACER   = 6
-local SECTION_TOP   = 10
+-- ---------------------------------------------------------------------------
+-- Layout constants
+-- ---------------------------------------------------------------------------
+
+local PADDING_X     = 16
+local HEADER_TOP    = 20
+local HEADER_HEIGHT = 54
+local DEFAULTS_W    = 110
+
+local SECTION_TOP_SPACER    = 10
+local SECTION_BOTTOM_SPACER = 6
+local SECTION_HEADING_H     = 26
+local ROW_VSPACER           = 8
+
+-- ---------------------------------------------------------------------------
+-- Tooltip helper — works on AceGUI widgets (via SetCallback) and plain
+-- Blizzard frames (via HookScript). Anchors on widget.frame when the
+-- target is an AceGUI widget.
+-- ---------------------------------------------------------------------------
 
 local function attachTooltip(widget, label, tooltip)
-    if not (widget and tooltip and tooltip ~= "") then return end
-    widget:SetCallback("OnEnter", function(self)
-        GameTooltip:SetOwner(self.frame, "ANCHOR_RIGHT")
+    if not widget then return end
+    if not (tooltip and tooltip ~= "") and not (label and label ~= "") then return end
+    local anchor = widget.frame or widget
+    if not anchor then return end
+
+    local function show()
+        if not GameTooltip then return end
+        GameTooltip:SetOwner(anchor, "ANCHOR_RIGHT")
         if label and label ~= "" then
             GameTooltip:SetText(label, 1, 1, 1)
         end
-        GameTooltip:AddLine(tooltip, nil, nil, nil, true)
+        if tooltip and tooltip ~= "" then
+            GameTooltip:AddLine(tooltip, nil, nil, nil, true)
+        end
         GameTooltip:Show()
-    end)
-    widget:SetCallback("OnLeave", function() GameTooltip:Hide() end)
+    end
+    local function hide() if GameTooltip then GameTooltip:Hide() end end
+
+    if widget.SetCallback then
+        widget:SetCallback("OnEnter", show)
+        widget:SetCallback("OnLeave", hide)
+    elseif widget.HookScript then
+        widget:HookScript("OnEnter", show)
+        widget:HookScript("OnLeave", hide)
+    end
+end
+Helpers.AttachTooltip = attachTooltip
+
+-- ---------------------------------------------------------------------------
+-- Header (title + Defaults button + divider)
+-- ---------------------------------------------------------------------------
+
+local function buildHeader(panel, title, opts)
+    -- Sub-pages render with an "Ka0s WhatGroup | <Page>" prefix so the
+    -- in-page title reads as a breadcrumb. The parent/main page opts in
+    -- to the unprefixed form via opts.isMain. The Blizzard tree label
+    -- is driven by panel.name in CreatePanel and stays unprefixed.
+    local displayTitle = title
+    if not opts.isMain then
+        displayTitle = "Ka0s WhatGroup  |  " .. title
+    end
+
+    local titleFS = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+    titleFS:SetPoint("TOPLEFT", panel, "TOPLEFT", PADDING_X, -HEADER_TOP)
+    titleFS:SetText(displayTitle)
+
+    local divider = panel:CreateTexture(nil, "ARTWORK")
+    divider:SetAtlas("Options_HorizontalDivider", true)
+    divider:SetPoint("TOPLEFT",  panel, "TOPLEFT",   PADDING_X, -HEADER_HEIGHT)
+    divider:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_HEIGHT)
+    -- Tint to match the title font (Blizzard NORMAL_FONT_COLOR yellow on
+    -- GameFontNormalHuge). Reading from the title rather than hardcoding
+    -- the gold tracks any future theme retune.
+    divider:SetVertexColor(titleFS:GetTextColor())
+
+    local defaultsBtn
+    if opts.defaultsButton then
+        defaultsBtn = AceGUI:Create("Button")
+        defaultsBtn:SetText("Defaults")
+        defaultsBtn:SetWidth(DEFAULTS_W)
+        defaultsBtn.frame:SetParent(panel)
+        defaultsBtn.frame:ClearAllPoints()
+        defaultsBtn.frame:SetPoint("TOPRIGHT", panel, "TOPRIGHT",
+                                   -PADDING_X, -HEADER_TOP)
+        defaultsBtn.frame:Show()
+        attachTooltip(defaultsBtn, "Defaults", opts.defaultsTooltip)
+    end
+
+    return titleFS, divider, defaultsBtn
 end
 
-local function makeCheckbox(def)
-    local w = AceGUI:Create("CheckBox")
-    w:SetLabel(def.label)
-    w:SetRelativeWidth(0.5)
-    w:SetValue(Helpers.Get(def.path) and true or false)
-    w:SetCallback("OnValueChanged", function(_, _, v)
-        local val = v and true or false
-        Helpers.Set(def.path, val)
-        if def.onChange then
-            local ok, err = pcall(def.onChange, val)
-            if not ok then
-                print("|cff00FFFF[WG]|r onChange failed for "
-                      .. def.path .. ": " .. tostring(err))
+-- ---------------------------------------------------------------------------
+-- CreatePanel — Frame compatible with RegisterCanvasLayout(Sub)category.
+-- Returns a `ctx` table the caller threads through ensureScroll /
+-- Section / RenderField / RenderSchema / InlineButton.
+-- ---------------------------------------------------------------------------
+
+function Helpers.CreatePanel(name, title, opts)
+    opts = opts or {}
+
+    local panel = CreateFrame("Frame", name, UIParent)
+    panel.name = title
+    panel:Hide()
+
+    local titleFS, divider, defaultsBtn = buildHeader(panel, title, opts)
+    panel.title       = titleFS
+    panel.divider     = divider
+    panel.defaultsBtn = defaultsBtn
+
+    local body = CreateFrame("Frame", nil, panel)
+    body:SetPoint("TOPLEFT",     panel, "TOPLEFT",     0, -(HEADER_HEIGHT + 8))
+    body:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", 0, 0)
+    panel.body = body
+
+    local ctx = {
+        panel       = panel,
+        body        = body,
+        scroll      = nil,
+        refreshers  = {},
+        lastGroup   = nil,
+        panelKey    = opts.panelKey,
+    }
+    Settings._panels[#Settings._panels + 1] = ctx
+    return ctx
+end
+
+-- ---------------------------------------------------------------------------
+-- Always-visible scrollbar patch (ported from KickCD/settings/Panel.lua)
+-- ---------------------------------------------------------------------------
+--
+-- AceGUI's stock ScrollFrame.FixScroll auto-hides the scrollbar when the
+-- content fits inside the viewport. The General page is short and would
+-- normally render without a scrollbar, while a future longer page would
+-- show one — visually asymmetric. This helper keeps the scrollbar (and
+-- its 20 px right gutter) visible at all times, parking the thumb at
+-- the top and greying it out when there's nothing to scroll.
+--
+-- Stock FixScroll + OnRelease are restored on widget release so the
+-- shared AceGUI pool returns to a clean state for the next acquirer.
+
+function Helpers.PatchAlwaysShowScrollbar(scroll)
+    if not scroll or scroll._wgAlwaysScrollbar then return end
+    scroll._wgAlwaysScrollbar = true
+
+    local origFixScroll  = scroll.FixScroll
+    local origMoveScroll = scroll.MoveScroll
+    local origOnRelease  = scroll.OnRelease
+
+    local scrollbar = scroll.scrollbar
+    local thumb     = scrollbar and scrollbar.GetThumbTexture and scrollbar:GetThumbTexture() or nil
+    local sbName    = scrollbar and scrollbar.GetName and scrollbar:GetName() or nil
+    local upBtn     = sbName and _G[sbName .. "ScrollUpButton"]   or nil
+    local downBtn   = sbName and _G[sbName .. "ScrollDownButton"] or nil
+
+    local currentEnabled
+
+    local function setEnabled(want)
+        if currentEnabled == want then return end
+        currentEnabled = want
+        if not scrollbar then return end
+
+        if want then
+            if scrollbar.Enable then scrollbar:Enable() end
+            if thumb and thumb.SetVertexColor then
+                thumb:SetVertexColor(1, 1, 1, 1)
+            end
+            if upBtn   and upBtn.Enable   then upBtn:Enable()   end
+            if downBtn and downBtn.Enable then downBtn:Enable() end
+        else
+            scrollbar:SetValue(0)
+            if scrollbar.Disable then scrollbar:Disable() end
+            if thumb and thumb.SetVertexColor then
+                thumb:SetVertexColor(0.5, 0.5, 0.5, 0.6)
+            end
+            if upBtn   and upBtn.Disable   then upBtn:Disable()   end
+            if downBtn and downBtn.Disable then downBtn:Disable() end
+        end
+    end
+
+    scroll.scrollBarShown = true
+    if scrollbar then scrollbar:Show() end
+    if scroll.scrollframe then
+        scroll.scrollframe:SetPoint("BOTTOMRIGHT", -20, 0)
+    end
+    if scroll.content and scroll.content.original_width then
+        scroll.content.width = scroll.content.original_width - 20
+    end
+
+    scroll.FixScroll = function(self)
+        if self.updateLock then return end
+        self.updateLock = true
+
+        if not self.scrollBarShown then
+            self.scrollBarShown = true
+            self.scrollbar:Show()
+            self.scrollframe:SetPoint("BOTTOMRIGHT", -20, 0)
+            if self.content.original_width then
+                self.content.width = self.content.original_width - 20
             end
         end
-    end)
-    Settings._refreshers[def.path] = function()
-        w:SetValue(Helpers.Get(def.path) and true or false)
-    end
-    attachTooltip(w, def.label, def.tooltip)
-    return w
-end
 
-local function makeSlider(def)
-    local w = AceGUI:Create("Slider")
-    w:SetLabel(def.label)
-    w:SetSliderValues(def.min or 0, def.max or 1, def.step or 0.1)
-    w:SetIsPercent(false)
-    w:SetRelativeWidth(0.5)
-    w:SetValue(Helpers.Get(def.path) or def.default or 0)
-    w:SetCallback("OnValueChanged", function(_, _, v)
-        Helpers.Set(def.path, v)
-        if def.onChange then
-            local ok, err = pcall(def.onChange, v)
-            if not ok then
-                print("|cff00FFFF[WG]|r onChange failed for "
-                      .. def.path .. ": " .. tostring(err))
+        local status = self.status or self.localstatus
+        local height, viewheight =
+            self.scrollframe:GetHeight(), self.content:GetHeight()
+        local offset = status.offset or 0
+
+        if viewheight < height + 2 then
+            setEnabled(false)
+            self.scrollbar:SetValue(0)
+            self.scrollframe:SetVerticalScroll(0)
+            status.offset = 0
+        else
+            setEnabled(true)
+            local value = (offset / (viewheight - height) * 1000)
+            if value > 1000 then value = 1000 end
+            self.scrollbar:SetValue(value)
+            self:SetScroll(value)
+            if value < 1000 then
+                self.content:ClearAllPoints()
+                self.content:SetPoint("TOPLEFT",  0, offset)
+                self.content:SetPoint("TOPRIGHT", 0, offset)
+                status.offset = offset
             end
         end
-    end)
-    Settings._refreshers[def.path] = function()
-        w:SetValue(Helpers.Get(def.path) or def.default or 0)
+
+        self.updateLock = nil
     end
-    attachTooltip(w, def.label, def.tooltip)
-    return w
+
+    scroll.MoveScroll = function(self, value)
+        if currentEnabled == false then return end
+        if origMoveScroll then return origMoveScroll(self, value) end
+    end
+
+    scroll.OnRelease = function(self)
+        self.FixScroll  = origFixScroll
+        self.MoveScroll = origMoveScroll
+        self.OnRelease  = origOnRelease
+        self._wgAlwaysScrollbar = nil
+        currentEnabled = nil
+        if thumb and thumb.SetVertexColor then
+            thumb:SetVertexColor(1, 1, 1, 1)
+        end
+        if scrollbar and scrollbar.Enable then scrollbar:Enable() end
+        if upBtn   and upBtn.Enable   then upBtn:Enable()   end
+        if downBtn and downBtn.Enable then downBtn:Enable() end
+        if origOnRelease then origOnRelease(self) end
+    end
 end
 
--- Action button — used for "Test" and any future inline panel action.
--- Action rows have no `path` and no `default`, so they're skipped by
--- BuildDefaults / RestoreDefaults / /wg list / get / set; they exist
--- purely to render a button in the panel's grid alongside checkbox and
--- slider rows. SetRelativeWidth(0.5) means they participate in the
--- two-column pairing — a Test action followed by a bool row puts the
--- two on the same line.
-local function makeActionButton(def)
-    local btn = AceGUI:Create("Button")
-    btn:SetText(def.label or "")
-    btn:SetRelativeWidth(0.5)
-    btn:SetCallback("OnClick", function()
-        if not def.onClick then return end
-        local ok, err = pcall(def.onClick)
+-- ---------------------------------------------------------------------------
+-- Lazy AceGUI scroll container
+-- ---------------------------------------------------------------------------
+
+local function ensureScroll(ctx)
+    if ctx.scroll then return ctx.scroll end
+    local scroll = AceGUI:Create("ScrollFrame")
+    scroll:SetLayout("List")
+    scroll.frame:SetParent(ctx.body)
+    scroll.frame:ClearAllPoints()
+    -- Right inset of PADDING_X+12 leaves room for the scrollbar (which
+    -- AceGUI nudges 20 px to the right of the scrollframe when visible)
+    -- without it sitting flush against the panel border.
+    scroll.frame:SetPoint("TOPLEFT",     ctx.body, "TOPLEFT",      PADDING_X - 4, -8)
+    scroll.frame:SetPoint("BOTTOMRIGHT", ctx.body, "BOTTOMRIGHT", -(PADDING_X + 12), 8)
+    scroll.frame:Show()
+
+    -- AceGUI normally has its width/height set by a parent AceGUI
+    -- container during DoLayout, which fires OnWidthSet / OnHeightSet
+    -- and updates content.width / scrollbar visibility. We parent it to
+    -- a Blizzard frame via anchors instead, so those callbacks never
+    -- fire and `content.width` stays nil. Hook OnSizeChanged to forward
+    -- the actual size into AceGUI and re-run DoLayout + FixScroll on
+    -- every resize.
+    scroll.frame:SetScript("OnSizeChanged", function(_, w, h)
+        if scroll.OnWidthSet  then scroll:OnWidthSet(w)  end
+        if scroll.OnHeightSet then scroll:OnHeightSet(h) end
+        if scroll.DoLayout    then scroll:DoLayout()     end
+        if scroll.FixScroll   then scroll:FixScroll()    end
+    end)
+
+    Helpers.PatchAlwaysShowScrollbar(scroll)
+
+    ctx.scroll = scroll
+    return scroll
+end
+
+local function fireOnChange(def, value)
+    if def.onChange then
+        local ok, err = pcall(def.onChange, value)
         if not ok then
-            print("|cff00FFFF[WG]|r action onClick failed: " .. tostring(err))
+            pout("onChange for " .. tostring(def.path) .. " failed: " .. tostring(err))
         end
-    end)
-    attachTooltip(btn, def.label, def.tooltip)
-    return btn
-end
-
-local function makeField(def)
-    if def.type == "bool"   then return makeCheckbox(def)     end
-    if def.type == "number" then return makeSlider(def)       end
-    if def.type == "action" then return makeActionButton(def) end
-end
-
-local function makeHeading(text)
-    local h = AceGUI:Create("Heading")
-    h:SetText(text)
-    h:SetFullWidth(true)
-    h:SetHeight(28)
-    if h.label and h.label.SetFontObject and _G.GameFontNormalLarge then
-        h.label:SetFontObject(_G.GameFontNormalLarge)
     end
-    return h
 end
 
-local function addSpacer(container, height)
+-- ---------------------------------------------------------------------------
+-- Section header — AceGUI Heading with breathing room above and below.
+-- ---------------------------------------------------------------------------
+
+local function addSpacer(parent, height)
     local sp = AceGUI:Create("SimpleGroup")
     sp:SetLayout(nil)
     sp:SetFullWidth(true)
     sp:SetHeight(height or ROW_VSPACER)
-    container:AddChild(sp)
+    parent:AddChild(sp)
 end
 
--- Build the body of the General subcategory: every schema row, paired
--- into two-column rows (or solo, per def.solo). Group transitions emit
--- a Heading; def.spacerBefore inserts a blank row before that widget.
-local function renderSchema(container)
-    local pendingRow, pendingCount, lastGroup = nil, 0, nil
+function Helpers.Section(ctx, label)
+    local scroll = ensureScroll(ctx)
+
+    if ctx.lastGroup ~= nil then
+        addSpacer(scroll, SECTION_TOP_SPACER)
+    end
+
+    local h = AceGUI:Create("Heading")
+    h:SetText(label)
+    h:SetFullWidth(true)
+    h:SetHeight(SECTION_HEADING_H)
+    if h.label and h.label.SetFontObject and _G.GameFontNormalLarge then
+        h.label:SetFontObject(_G.GameFontNormalLarge)
+    end
+    scroll:AddChild(h)
+
+    addSpacer(scroll, SECTION_BOTTOM_SPACER)
+    return h
+end
+
+-- ---------------------------------------------------------------------------
+-- Widget creators
+-- ---------------------------------------------------------------------------
+
+local function applyWidth(widget, relativeWidth)
+    if relativeWidth then widget:SetRelativeWidth(relativeWidth)
+    else                   widget:SetFullWidth(true) end
+end
+
+local function makeCheckbox(ctx, def, parent, relativeWidth)
+    parent = parent or ensureScroll(ctx)
+    local cb = AceGUI:Create("CheckBox")
+    cb:SetLabel(def.label or def.path)
+    applyWidth(cb, relativeWidth)
+    cb:SetValue(Helpers.Get(def.path) and true or false)
+
+    cb:SetCallback("OnValueChanged", function(_, _, value)
+        local v = value and true or false
+        Helpers.Set(def.path, v)
+        fireOnChange(def, v)
+    end)
+
+    Settings._refreshers[def.path] = function()
+        cb:SetValue(Helpers.Get(def.path) and true or false)
+    end
+
+    attachTooltip(cb, def.label, def.tooltip)
+    parent:AddChild(cb)
+    return cb
+end
+
+local function makeSlider(ctx, def, parent, relativeWidth)
+    parent = parent or ensureScroll(ctx)
+    local s = AceGUI:Create("Slider")
+    s:SetLabel(def.label or def.path)
+    s:SetSliderValues(def.min or 0, def.max or 1, def.step or 0.1)
+    s:SetIsPercent(false)
+    applyWidth(s, relativeWidth)
+    s:SetValue(Helpers.Get(def.path) or def.default or 0)
+
+    s:SetCallback("OnValueChanged", function(_, _, v)
+        Helpers.Set(def.path, v)
+        fireOnChange(def, v)
+    end)
+
+    Settings._refreshers[def.path] = function()
+        s:SetValue(Helpers.Get(def.path) or def.default or 0)
+    end
+
+    attachTooltip(s, def.label, def.tooltip)
+    parent:AddChild(s)
+    return s
+end
+
+function Helpers.RenderField(ctx, def, parent, relativeWidth)
+    if def.type == "bool"   then return makeCheckbox(ctx, def, parent, relativeWidth) end
+    if def.type == "number" then return makeSlider(ctx, def, parent, relativeWidth)   end
+end
+
+-- Standalone action button rendered after a group's last schema row via
+-- an afterGroup callback. Default 160 px wide, left-aligned in a full-
+-- width Flow row — matches KickCD's General-tab "Reset position" pattern.
+function Helpers.InlineButton(ctx, spec)
+    local scroll = ensureScroll(ctx)
+
+    local row = AceGUI:Create("SimpleGroup")
+    row:SetLayout("Flow")
+    row:SetFullWidth(true)
+    row:SetHeight(28)
+
+    local btn = AceGUI:Create("Button")
+    btn:SetText(spec.text or "")
+    btn:SetWidth(spec.width or 160)
+    btn:SetCallback("OnClick", function()
+        if not spec.onClick then return end
+        local ok, err = pcall(spec.onClick)
+        if not ok then pout("button onClick failed: " .. tostring(err)) end
+    end)
+    row:AddChild(btn)
+
+    attachTooltip(btn, spec.text, spec.tooltip)
+    scroll:AddChild(row)
+    addSpacer(scroll, ROW_VSPACER)
+    return btn
+end
+
+-- ---------------------------------------------------------------------------
+-- Schema-driven render
+-- ---------------------------------------------------------------------------
+--
+-- Schema widgets pair into 50%/50% Flow rows wrapped in a full-width
+-- SimpleGroup, so the AceGUI layout pass gives both children half the
+-- panel width and breaks them onto the same line. Section headings span
+-- the full width (one per row), and every row is followed by a small
+-- vertical spacer for breathing room.
+--
+-- afterGroup is { [groupName] = function(ctx) ... end }. The callback
+-- runs once, immediately after the last schema row of that group is
+-- rendered (and before the next group's section header). One-shot —
+-- removed from the table after firing so a second sweep wouldn't
+-- re-render it.
+
+function Helpers.RenderSchema(ctx, afterGroup)
+    local scroll = ensureScroll(ctx)
+    local pendingRow, pendingCount = nil, 0
 
     local function flushRow()
         if pendingRow then
-            container:AddChild(pendingRow)
-            addSpacer(container, ROW_VSPACER)
+            scroll:AddChild(pendingRow)
+            addSpacer(scroll, ROW_VSPACER)
             pendingRow, pendingCount = nil, 0
         end
     end
@@ -407,151 +786,125 @@ local function renderSchema(container)
         return row
     end
 
-    for _, def in ipairs(Schema) do
-        if not def.panelHidden then
-            if def.group and def.group ~= lastGroup then
-                flushRow()
-                if lastGroup ~= nil then addSpacer(container, SECTION_TOP) end
-                container:AddChild(makeHeading(def.group))
-                addSpacer(container, ROW_VSPACER)
-                lastGroup = def.group
-            end
+    for i, def in ipairs(Schema) do
+        if def.group and def.group ~= ctx.lastGroup then
+            flushRow()
+            Helpers.Section(ctx, def.group)
+            ctx.lastGroup = def.group
+        end
 
-            if def.spacerBefore then
-                flushRow()
-                addSpacer(container, ROW_VSPACER * 2)
-            end
+        if def.solo and pendingCount > 0 then flushRow() end
 
-            -- A solo widget always starts a fresh row and ends it.
-            if def.solo and pendingCount > 0 then flushRow() end
+        if not pendingRow then pendingRow = startRow() end
+        Helpers.RenderField(ctx, def, pendingRow, 0.5)
+        pendingCount = pendingCount + 1
 
-            if not pendingRow then pendingRow = startRow() end
-            pendingRow:AddChild(makeField(def))
-            pendingCount = pendingCount + 1
+        if def.solo or pendingCount >= 2 then flushRow() end
 
-            if def.solo or pendingCount >= 2 then flushRow() end
+        local nextDef = Schema[i + 1]
+        if afterGroup and def.group
+           and (not nextDef or nextDef.group ~= def.group)
+           and afterGroup[def.group] then
+            flushRow()
+            afterGroup[def.group](ctx)
+            afterGroup[def.group] = nil
         end
     end
     flushRow()
-end
-
-
--- Build a canvas-layout panel Frame compatible with both
--- RegisterCanvasLayoutCategory and RegisterCanvasLayoutSubcategory.
--- Stamps a unified header (gold title + subtitle) on top.
-local function createPanel(name, title, subtitle)
-    local panel = CreateFrame("Frame", name, UIParent)
-    panel.name = title
-    panel:Hide()
-
-    local titleFS = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
-    titleFS:SetPoint("TOPLEFT", panel, "TOPLEFT", PADDING, -PADDING)
-    titleFS:SetText("|cffFFD700" .. title .. "|r")
-
-    if subtitle and subtitle ~= "" then
-        local subFS = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        subFS:SetPoint("TOPLEFT", titleFS, "BOTTOMLEFT", 0, -6)
-        subFS:SetText(subtitle)
-    end
-
-    return panel
-end
-
--- Parent ("addon landing") panel: title + divider stay fixed at the top;
--- everything below scrolls vertically inside a UIPanelScrollFrameTemplate.
--- Body order: logo (300×300 .tga, left-aligned, no resize) → TOC Notes
--- one-liner (left-aligned) → separator → "Slash Commands" header → list
--- iterated from WhatGroup.COMMANDS.
-local LOGO_TEXTURE     = "Interface\\AddOns\\WhatGroup\\media\\screenshots\\whatgroup.logo.tga"
-local LOGO_SIZE        = 300
-local DIVIDER_OFFSET_Y = PADDING + 32
-local SCROLLBAR_GUTTER = 24   -- room on the right for the scrollbar
-
-local function createParentPanel(name, title)
-    local panel = CreateFrame("Frame", name, UIParent)
-    panel.name = title
-    panel:Hide()
-
-    local titleFS = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
-    titleFS:SetPoint("TOPLEFT", panel, "TOPLEFT", PADDING, -PADDING)
-    titleFS:SetText("|cffFFD700" .. title .. "|r")
-
-    local divider = panel:CreateTexture(nil, "ARTWORK")
-    divider:SetAtlas("Options_HorizontalDivider", true)
-    divider:SetPoint("TOPLEFT",  panel, "TOPLEFT",   PADDING, -DIVIDER_OFFSET_Y)
-    divider:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING, -DIVIDER_OFFSET_Y)
-    divider:SetVertexColor(titleFS:GetTextColor())
-
-    -- Scrollable body. The scrollbar is part of UIPanelScrollFrameTemplate
-    -- and anchors to the scroll frame's right edge — leaving SCROLLBAR_GUTTER
-    -- of margin on the right keeps it inside the panel.
-    local scrollFrame = CreateFrame("ScrollFrame", name .. "Scroll", panel,
-                                    "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT",     panel, "TOPLEFT",      PADDING,
-                         -(DIVIDER_OFFSET_Y + 12))
-    scrollFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -PADDING - SCROLLBAR_GUTTER,
-                         PADDING)
-
-    local content = CreateFrame("Frame", nil, scrollFrame)
-    content:SetSize(1, 1)   -- height set after layout; width tracks scroll viewport
-    scrollFrame:SetScrollChild(content)
-    scrollFrame:HookScript("OnSizeChanged", function(_, w)
-        if w and w > 0 then content:SetWidth(w) end
-    end)
-
-    local y = 0
-
-    -- Logo — left-aligned, fixed 300×300
-    local logo = content:CreateTexture(nil, "ARTWORK")
-    logo:SetTexture(LOGO_TEXTURE)
-    logo:SetSize(LOGO_SIZE, LOGO_SIZE)
-    logo:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-    y = y + LOGO_SIZE + 14
-
-    -- TOC Notes one-liner — left-aligned, pulled live from metadata.
-    local meta  = (C_AddOns and C_AddOns.GetAddOnMetadata) or _G.GetAddOnMetadata
-    local notes = (meta and meta("WhatGroup", "Notes")) or ""
-    local notesFS = content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    notesFS:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-    notesFS:SetText(notes)
-    y = y + 16 + 18
-
-    -- Separator before the slash commands section.
-    local sep = content:CreateTexture(nil, "ARTWORK")
-    sep:SetAtlas("Options_HorizontalDivider", true)
-    sep:SetPoint("TOPLEFT",  content, "TOPLEFT",  0, -y)
-    sep:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -y)
-    sep:SetVertexColor(titleFS:GetTextColor())
-    y = y + 8 + 10
-
-    local slashHeading = content:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    slashHeading:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -y)
-    slashHeading:SetText("|cffFFD700Slash Commands|r")
-    y = y + 22 + 6
-
-    for _, entry in ipairs(WhatGroup.COMMANDS or {}) do
-        local row = content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        row:SetPoint("TOPLEFT", content, "TOPLEFT", 12, -y)
-        row:SetText(("|cffFFFF00/wg %s|r  —  %s"):format(entry[1], entry[2]))
-        y = y + 16
-    end
-
-    content:SetHeight(y + PADDING)
-
-    return panel
+    if scroll.DoLayout then scroll:DoLayout() end
 end
 
 -- ---------------------------------------------------------------------------
--- Public registration entry
+-- Parent (landing) page content
+-- ---------------------------------------------------------------------------
+--
+-- Logo + TOC notes one-liner + Slash Commands heading + per-command
+-- Labels, all rendered as AceGUI widgets inside the same lazy
+-- ScrollFrame the General sub-page uses. Result: one scrollbar style
+-- across both pages, AceGUI font hooks pick up theme changes for free.
+
+local MAIN_LOGO_TEXTURE   = "Interface\\AddOns\\WhatGroup\\media\\screenshots\\whatgroup.logo.tga"
+local MAIN_LOGO_SIZE      = 300
+local MAIN_GAP_AFTER_LOGO = 8
+local MAIN_GAP_AFTER_DESC = 12
+local MAIN_GAP_BELOW_HEAD = 6
+
+function Helpers.BuildMainContent(ctx)
+    local scroll = ensureScroll(ctx)
+
+    -- Logo. SimpleGroup is a full-width child so AceGUI's List layout
+    -- gives it the scroll's full width; the texture inside is anchored
+    -- TOPLEFT at the source TGA's native dimensions, so it renders
+    -- pixel-exact and left-aligned regardless of panel width.
+    local logoGroup = AceGUI:Create("SimpleGroup")
+    logoGroup:SetLayout(nil)
+    logoGroup:SetFullWidth(true)
+    logoGroup:SetHeight(MAIN_LOGO_SIZE)
+
+    local logoTex = logoGroup.frame:CreateTexture(nil, "ARTWORK")
+    logoTex:SetTexture(MAIN_LOGO_TEXTURE)
+    logoTex:SetSize(MAIN_LOGO_SIZE, MAIN_LOGO_SIZE)
+    logoTex:SetPoint("TOPLEFT", logoGroup.frame, "TOPLEFT", 0, 0)
+    scroll:AddChild(logoGroup)
+
+    addSpacer(scroll, MAIN_GAP_AFTER_LOGO)
+
+    -- TOC Notes one-liner — full-width Label, left-justified.
+    local meta  = (C_AddOns and C_AddOns.GetAddOnMetadata) or _G.GetAddOnMetadata
+    local notes = (meta and meta("WhatGroup", "Notes")) or ""
+
+    local desc = AceGUI:Create("Label")
+    desc:SetFullWidth(true)
+    desc:SetText(notes)
+    if desc.label and desc.label.SetFontObject and _G.GameFontHighlight then
+        desc.label:SetFontObject(_G.GameFontHighlight)
+    end
+    if desc.label and desc.label.SetJustifyH then
+        desc.label:SetJustifyH("LEFT")
+    end
+    scroll:AddChild(desc)
+
+    addSpacer(scroll, MAIN_GAP_AFTER_DESC)
+
+    -- "Slash Commands" heading — AceGUI Heading widget delivers both
+    -- the visual side dividers and the section title in one widget.
+    local heading = AceGUI:Create("Heading")
+    heading:SetFullWidth(true)
+    heading:SetHeight(SECTION_HEADING_H)
+    heading:SetText("Slash Commands")
+    if heading.label and heading.label.SetFontObject and _G.GameFontNormalLarge then
+        heading.label:SetFontObject(_G.GameFontNormalLarge)
+    end
+    scroll:AddChild(heading)
+
+    addSpacer(scroll, MAIN_GAP_BELOW_HEAD)
+
+    -- One Label per command pulled from WhatGroup.COMMANDS so the panel
+    -- list stays in lockstep with /wg help — adding a command in
+    -- WhatGroup.lua surfaces here automatically.
+    for _, entry in ipairs(WhatGroup.COMMANDS or {}) do
+        local row = AceGUI:Create("Label")
+        row:SetFullWidth(true)
+        row:SetText(("|cffffff00/wg %s|r  |cffffffff—|r  %s")
+            :format(entry[1], entry[2]))
+        if row.label and row.label.SetJustifyH then
+            row.label:SetJustifyH("LEFT")
+        end
+        scroll:AddChild(row)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- Public registration
 -- ---------------------------------------------------------------------------
 --
 -- Called from WhatGroup:OnEnable. Idempotent.
 --
 -- WoW 12.0 hides a parent category's own widgets when the parent has
--- subcategories. So the parent panel is intentionally a thin description
+-- subcategories. So the parent panel is intentionally a thin landing
 -- page; every actual setting lives in the General subcategory.
--- WhatGroup._settingsCategory is set to the **subcategory** so /wg config
--- opens directly to the settings, not to the empty parent.
+-- WhatGroup._settingsCategory is set to the **subcategory** so /wg
+-- config opens directly to the settings, not to the empty parent.
 
 function Settings.Register()
     if WhatGroup._settingsRegistered or not _G.Settings
@@ -560,50 +913,61 @@ function Settings.Register()
         return
     end
 
-    -- Parent: addon landing page. Header + divider, logo, TOC Notes
-    -- one-liner, slash commands. Settings live in the General subcategory.
-    local parentPanel = createParentPanel("WhatGroupParentPanel", "Ka0s WhatGroup")
-    local parentCategory = _G.Settings.RegisterCanvasLayoutCategory(parentPanel, "Ka0s WhatGroup")
+    Helpers.ValidateSchema()
+
+    -- Parent: addon landing page. Same unified header (gold title +
+    -- divider) as the sub-page, no Defaults button.
+    local mainCtx = Helpers.CreatePanel(
+        "WhatGroupParentPanel", "Ka0s WhatGroup",
+        { isMain = true, panelKey = "main" })
+
+    -- Defer body render until first OnShow: AceGUI's ScrollFrame lays
+    -- children out against the parent's current width, which is zero at
+    -- PLAYER_LOGIN, and there's no point building widgets for a panel
+    -- the user may never open.
+    local mainRendered = false
+    mainCtx.panel:SetScript("OnShow", function()
+        if mainRendered then return end
+        mainRendered = true
+        Helpers.BuildMainContent(mainCtx)
+    end)
+
+    local parentCategory = _G.Settings.RegisterCanvasLayoutCategory(
+        mainCtx.panel, "Ka0s WhatGroup")
     _G.Settings.RegisterAddOnCategory(parentCategory)
     WhatGroup._parentSettingsCategory = parentCategory
 
-    -- General subcategory: holds every schema widget.
-    local generalPanel = createPanel("WhatGroupGeneralPanel", "General",
-        "Settings auto-wire to |cffFFFF00/wg list|r, |cffFFFF00/wg get|r, |cffFFFF00/wg set|r")
+    -- General sub-page: schema widgets + Test button.
+    local generalCtx = Helpers.CreatePanel(
+        "WhatGroupGeneralPanel", "General",
+        { panelKey = "general", defaultsButton = true,
+          defaultsTooltip = "Reset every WhatGroup setting to its default. Asks for confirmation." })
 
-    -- Defer the AceGUI body build until the panel is actually shown,
-    -- so widgets render against a non-zero panel width.
-    local built = false
-    local container
-    generalPanel:SetScript("OnShow", function()
-        if built then return end
-        built = true
-
-        container = AceGUI:Create("SimpleGroup")
-        container:SetLayout("List")
-        container.frame:SetParent(generalPanel)
-        container.frame:ClearAllPoints()
-        container.frame:SetPoint("TOPLEFT",
-            generalPanel, "TOPLEFT",      PADDING - 4, -HEADER_HEIGHT)
-        container.frame:SetPoint("BOTTOMRIGHT",
-            generalPanel, "BOTTOMRIGHT", -PADDING,      PADDING)
-        container.frame:Show()
-
-        -- Forward Blizzard's frame size into AceGUI so SetRelativeWidth /
-        -- SetFullWidth widgets know how wide to draw. Without this,
-        -- parented-to-blizzard AceGUI containers stay at width 0 until
-        -- something kicks DoLayout.
-        container.frame:SetScript("OnSizeChanged", function(_, w, h)
-            if container.OnWidthSet  then container:OnWidthSet(w)  end
-            if container.OnHeightSet then container:OnHeightSet(h) end
-            if container.DoLayout    then container:DoLayout()     end
+    if generalCtx.panel.defaultsBtn then
+        generalCtx.panel.defaultsBtn:SetCallback("OnClick", function()
+            StaticPopup_Show("WHATGROUP_RESET_ALL")
         end)
+    end
 
-        renderSchema(container)
+    local generalRendered = false
+    generalCtx.panel:SetScript("OnShow", function()
+        if generalRendered then return end
+        generalRendered = true
+        Helpers.RenderSchema(generalCtx, {
+            ["General"] = function(ctxRef)
+                Helpers.InlineButton(ctxRef, {
+                    text    = "Test",
+                    tooltip = "Inject synthetic group info and run the full notification + popup flow. Useful for previewing changes to the chat-output toggles without joining a real group.",
+                    onClick = function()
+                        if WhatGroup.RunTest then WhatGroup:RunTest() end
+                    end,
+                })
+            end,
+        })
     end)
 
     local generalSub = _G.Settings.RegisterCanvasLayoutSubcategory(
-        parentCategory, generalPanel, "General")
+        parentCategory, generalCtx.panel, "General")
     WhatGroup._settingsCategory = generalSub
     WhatGroup._settingsRegistered = true
 end

@@ -77,25 +77,23 @@ local runReset, runShow, runTest, runConfig, runDebug
 | `/wg show` | `runShow` | Open the popup if `pendingInfo` is set. Otherwise print a hint pointing at `/wg test`. |
 | `/wg test` | `runTest` → `WhatGroup:RunTest()` | Inject synthetic `pendingInfo` (Mythic+ Stonevault) and run `ShowNotification()` + `ShowFrame()`. Mirrors the panel's Test button via the same `RunTest()` method, so the two affordances stay in lockstep. |
 | `/wg config` | `runConfig` | `Settings.OpenToCategory(self._settingsCategory:GetID())` — opens the General subcategory directly. Falls back to a print if the Settings API isn't available. |
-| `/wg list` | `listSettings` | Group `Schema` by `section`, print `path = formattedValue` for every row with a `path` (skips action rows — they have no value). |
+| `/wg list` | `listSettings` | Group `Schema` by `section`, print `path = formattedValue` for every row. |
 | `/wg get <path>` | `getSetting` | `Helpers.FindSchema(path)` + format using `def.fmt` for numbers (e.g. `"%.1fs"` → `1.5s`). Prints "Setting not found" for unknown paths. |
 | `/wg set <path> <value>` | `setSetting` → `applyFromText` | Type-aware parse: bool accepts `true / false / on / off / 1 / 0 / yes / no / toggle`; number coerces via `tonumber` and clamps to `min / max` if set. Calls `Helpers.Set` → `def.onChange` (pcall) → `Helpers.RefreshAll`, then echoes the new value. |
-| `/wg reset` | `runReset` → `Helpers.RestoreDefaults()` | Reset every row with a path to its `default`, run each `def.onChange(default)` in pcall, refresh panel widgets. |
+| `/wg reset` | `runReset` → `StaticPopup_Show("WHATGROUP_RESET_ALL")` → `Helpers.RestoreDefaults()` | Show a confirm popup; on accept, reset every row to its `default`, run each `def.onChange(default)` in pcall, refresh panel widgets. The Defaults button in the General sub-page header shows the same popup, so both paths share one OnAccept body. |
 | `/wg debug` | `runDebug` | Toggle `db.profile.debug` and `WhatGroup.debug` together. Equivalent to `/wg set debug toggle`, kept as a convenience shortcut. Prefers `Helpers.Set` so the panel checkbox refreshes; falls back to a direct `db.profile.debug` write only at early-boot if the settings layer isn't loaded yet. |
 
 ## Why `runTest` is split between `/wg test` and `WhatGroup:RunTest()`
 
 `WhatGroup:RunTest()` is a public method on the addon table — anything with a handle on `WhatGroup` can invoke it. The local `runTest(self)` in the COMMANDS table just delegates: `function runTest(self) self:RunTest() end`.
 
-This split exists because the Settings panel's Test button (declared as a schema action row in `WhatGroup_Settings.lua`) needs to invoke the same code path without going through slash dispatch:
+This split exists because the Settings panel's Test button (rendered via `Helpers.InlineButton` in an `afterGroup` callback in `WhatGroup_Settings.lua`) needs to invoke the same code path without going through slash dispatch:
 
 ```lua
-add{
-    section = "general",  group = "General",
-    type    = "action",
-    label   = "Test",
+Helpers.InlineButton(ctxRef, {
+    text    = "Test",
     onClick = function() if WhatGroup.RunTest then WhatGroup:RunTest() end end,
-}
+})
 ```
 
 So `/wg test` and the panel button stay in lockstep with zero risk of drift.
