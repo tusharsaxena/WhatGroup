@@ -4,9 +4,22 @@
 ## Author: add1kted2ka0s
 ## Version: 1.1.0
 ## iconTexture: 134149
+## SavedVariables: WhatGroupDB
 ## DefaultState: enabled
 ## Category-enUS: Chat & Communication
 ## X-License: MIT
 
+# Libraries (must load first)
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+libs\AceAddon-3.0\AceAddon-3.0.lua
+libs\AceEvent-3.0\AceEvent-3.0.lua
+libs\AceConsole-3.0\AceConsole-3.0.lua
+libs\AceDB-3.0\AceDB-3.0.lua
+libs\AceHook-3.0\AceHook-3.0.lua
+libs\AceGUI-3.0\AceGUI-3.0.xml
+
+# Core
 WhatGroup.lua
+WhatGroup_Settings.lua
 WhatGroup_Frame.lua
