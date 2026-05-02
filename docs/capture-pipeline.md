@@ -19,13 +19,14 @@ WhatGroup needs to associate the group-info table read at apply time with the pl
 
 ## State
 
-Three module-locals in `WhatGroup.lua` plus one field on the addon table:
+Four module-locals in `WhatGroup.lua` plus one field on the addon table:
 
 | State | Shape | Lifetime |
 |---|---|---|
-| `captureQueue` | FIFO array of capture tables | session; wiped on group-leave |
+| `captureQueue` | FIFO array of capture tables | session; wiped on group-leave or after `inviteaccepted` |
 | `pendingApplications` | `{ [appID] = capture }` | session; wiped on group-leave or after `inviteaccepted` |
 | `wasInGroup` | bool | session; tracks `IsInGroup()`, seeded in `OnEnable` |
+| `notifiedFor` | the `pendingInfo` table reference that already triggered notify+popup | session; cleared on `inviteaccepted` (new pendingInfo) and on group-leave |
 | `WhatGroup.pendingInfo` | single capture table (the active one) | session; cleared on group-leave |
 
 None of these are persisted — capture state is recomputed from live LFG events every session.
@@ -55,19 +56,29 @@ LFG_LIST_APPLICATION_STATUS_UPDATED  status = "invited"   no-op (waits for accep
 LFG_LIST_APPLICATION_STATUS_UPDATED  status = "inviteaccepted"
         ├─ fresh = CaptureGroupInfo(appID)        re-fetch fresh from LFG API
         ├─ WhatGroup.pendingInfo = fresh ?? pendingApplications[appID]
-        └─ wipe(captureQueue) + wipe(pendingApplications)
+        ├─ notifiedFor = nil                       new pendingInfo → eligible to fire
+        ├─ wipe(captureQueue) + wipe(pendingApplications)
+        └─ _TryFireJoinNotify("inviteaccepted")
         │
         ▼
-GROUP_ROSTER_UPDATE  inGroup ∧ ¬wasInGroup ∧ pendingInfo
-        ├─ C_Timer.After(notify.delay, function()
-        │     ├─ ShowNotification()                 always (gated internally on notify.enabled)
-        │     └─ if frame.autoShow then ShowFrame() end
-        │  end)
+GROUP_ROSTER_UPDATE  (transition: inGroup ∧ ¬wasInGroup)
+        ├─ _TryFireJoinNotify("ROSTER transition")
         └─ wasInGroup = inGroup
+
+  _TryFireJoinNotify(reason):
+        ├─ skip if pendingInfo is nil
+        ├─ skip if notifiedFor == pendingInfo (already fired for this join)
+        ├─ skip if not IsInGroup()
+        ├─ notifiedFor = pendingInfo
+        └─ C_Timer.After(notify.delay, function()
+              ├─ ShowNotification()                always (gated internally on notify.enabled)
+              └─ if frame.autoShow then ShowFrame() end
+           end)
         │
         ▼
 GROUP_ROSTER_UPDATE  ¬inGroup
         ├─ pendingInfo = nil
+        ├─ notifiedFor = nil
         └─ wipe(captureQueue) + wipe(pendingApplications)
 ```
 
@@ -99,11 +110,18 @@ self.pendingInfo = final
 
 `mapID` is the discriminator because (a) it drives the teleport icon, the most visible failure mode, and (b) it's the field most prone to upstream flakiness — the rest of the activity-info table tends to be present when `mapID` is, so picking on `mapID` correlates well with "this capture is healthy."
 
-## Why `wasInGroup` is the join trigger
+## Why the dual-path trigger via `_TryFireJoinNotify`
 
-`GROUP_ROSTER_UPDATE` fires for every roster change once you're in a group — members joining, leaving, going offline. We only want to fire the notification on the not-in-group → in-group transition.
+`GROUP_ROSTER_UPDATE` fires for every roster change once you're in a group — members joining, leaving, going offline. We only want to fire the notification on the not-in-group → in-group transition. `wasInGroup` is seeded in `OnEnable` from `IsInGroup()` (so reloading mid-group doesn't re-trigger) and updated on every `GROUP_ROSTER_UPDATE`. The transition that interests us is `inGroup ∧ ¬wasInGroup`.
 
-`wasInGroup` is seeded in `OnEnable` from `IsInGroup()` (so reloading mid-group doesn't re-trigger) and updated on every `GROUP_ROSTER_UPDATE`. The notify branch fires only when `inGroup ∧ ¬wasInGroup ∧ pendingInfo`.
+But the transition alone isn't enough as the trigger gate. In retail, the order of `GROUP_ROSTER_UPDATE` and `LFG_LIST_APPLICATION_STATUS_UPDATED` (`inviteaccepted`) at join time isn't deterministic — `GROUP_ROSTER_UPDATE` often arrives before `inviteaccepted` lands and sets `pendingInfo`. The old "fire on roster transition only when `pendingInfo` is non-nil" gate would silently miss in that order: by the time `pendingInfo` got set, the transition had already passed.
+
+`WhatGroup:_TryFireJoinNotify(reason)` is the single entry point that schedules `ShowNotification` + `ShowFrame`. It's called from BOTH event paths:
+
+- The `GROUP_ROSTER_UPDATE` not-in → in transition (covers the case where `pendingInfo` was already set when the transition arrived).
+- The `LFG_LIST_APPLICATION_STATUS_UPDATED` `inviteaccepted` handler, after `pendingInfo` is assigned (covers the reverse ordering).
+
+The function gates on three conditions: `pendingInfo` set, `IsInGroup()` true, and `notifiedFor ~= pendingInfo`. The `notifiedFor` flag — assigned to the current `pendingInfo` reference once we schedule notify — prevents double-firing when both paths catch the same join. It's cleared in two places: when `inviteaccepted` assigns a new `pendingInfo` (so the next join can fire), and on group-leave when state is wiped.
 
 ## Why `hooksecurefunc` on `SetItemRef`
 
@@ -191,10 +209,10 @@ For the recipe to add a row (or sweep the table for a new season), see [common-t
 The lookup is consumed by:
 
 - `ShowNotification` — only emits the Teleport line if `spellID` is non-nil and `notify.showTeleport` is on; the line includes `IsSpellKnown(spellID)` as a `(not learned)` tag when false.
-- `ConfigureTeleportButton` (popup) — desaturates the icon and sets `EnableMouse(false)` when `IsSpellKnown` is false; the button is hidden entirely when `spellID` is nil. The button is a `SecureActionButtonTemplate` parented to UIParent with `type="macro"` + `macrotext="/cast <SpellName>"` — `CastSpellByID` from a non-secure click hits `ADDON_ACTION_FORBIDDEN` in retail. See [frame.md → Teleport button](./frame.md#teleport-button).
+- `ConfigureTeleportButton` (popup) — desaturates the icon and sets `EnableMouse(false)` when `IsSpellKnown` is false; the button is hidden entirely when `spellID` is nil. The button is a `SecureActionButtonTemplate` parented directly to the popup frame `f` with `type="macro"` + `macrotext="/cast <SpellName>"` — `CastSpellByID` from a non-secure click hits `ADDON_ACTION_FORBIDDEN` in retail. See [frame.md → Teleport button](./frame.md#teleport-button).
 
 ## Test path
 
-`WhatGroup:RunTest()` injects synthetic `pendingInfo` (a Mythic+ Stonevault group) and runs `ShowNotification()` + `ShowFrame()` directly — bypassing `OnApplyToGroup`, the queue, the LFG event sequence, and the `wasInGroup` join gate. Both `/wg test` and the panel's Test button route through this method, so the two affordances stay in lockstep.
+`WhatGroup:RunTest()` injects synthetic `pendingInfo` (a Mythic+ Stonevault group) and runs `ShowNotification()` + `ShowFrame()` directly — bypassing `OnApplyToGroup`, the queue, the LFG event sequence, and the `_TryFireJoinNotify` join gate. Both `/wg test` and the panel's Test button route through this method, so the two affordances stay in lockstep.
 
 `/wg show` is the read-only equivalent: it opens the popup with whatever `pendingInfo` happens to be set (the most recent real capture), or prints a hint if `pendingInfo` is nil.

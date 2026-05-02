@@ -48,7 +48,7 @@ local function MakeLabel(parent, anchor, yOffset, labelText, valueText)
 end
 ```
 
-Called once at file load to build the static layout. The returned `value` FontStrings are stored in the module-local `fields` table so `PopulateFields` can update them on every `ShowFrame()`.
+Called once inside `buildFrame()` (i.e. on first `ShowFrame()`) to build the static layout. The returned `value` FontStrings are stored in the module-local `fields` table so `PopulateFields` can update them on every `ShowFrame()`.
 
 ## `VALUE_COLORS` resolver table
 
@@ -85,7 +85,7 @@ Edge cases:
 
 **The button is parented directly to `f` (the popup), not to `UIParent`.** Earlier iterations parented it to UIParent and synced its screen position from a non-secure proxy frame inside the popup; that pattern leaked taint into Blizzard's secure-execute chain, surfacing as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked Logout in the GameMenu. Parenting directly to `f` means the button rides on the parent-child relationship: `f:Show()` shows the button, `f:Hide()` hides it, dragging the popup moves the button with it. No `syncTeleportButton`, no `PLAYER_REGEN_ENABLED` handler, no deferred Hide, no proxy frame.
 
-**Anchor uses the implicit-parent `SetPoint` form** (`SetPoint("LEFT", 92, -68)` — 3 args, no explicit `relativeTo`). Retail's secure-frame system rejects any `SetPoint` call on a protected frame that names a non-secure region as the anchor target — even when that region is the protected frame's own parent. The 3-arg form lets the engine resolve the parent transitively after the protection check has already passed, so anchoring against `f` works at file-load. The offset places the button at the Teleport row, right of the `Teleport:` label: x = content_inset(14) + LABEL_WIDTH(72) + gap(6) = 92 from f's LEFT; y = -68 from f's LEFT-mid (`f.center.y`) lands on row 6 of the 6-row label stack. See [wow-quirks.md → Secure buttons can't have an explicit non-secure anchor target](./wow-quirks.md#secure-buttons-cant-have-an-explicit-non-secure-anchor-target).
+**Anchor uses the implicit-parent `SetPoint` form** (`SetPoint("LEFT", 92, -68)` — 3 args, no explicit `relativeTo`). Retail's secure-frame system rejects any `SetPoint` call on a protected frame that names a non-secure region as the anchor target — even when that region is the protected frame's own parent. The 3-arg form lets the engine resolve the parent transitively after the protection check has already passed, so anchoring against `f` works inside `buildFrame()`. The offset places the button at the Teleport row, right of the `Teleport:` label: x = content_inset(14) + LABEL_WIDTH(72) + gap(6) = 92 from f's LEFT; y = -68 from f's LEFT-mid (`f.center.y`) lands on row 6 of the 6-row label stack. See [wow-quirks.md → Secure buttons can't have an explicit non-secure anchor target](./wow-quirks.md#secure-buttons-cant-have-an-explicit-non-secure-anchor-target).
 
 `ConfigureTeleportButton(btn, icon, info)`:
 

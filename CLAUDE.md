@@ -16,7 +16,7 @@ User-facing reference: [README.md](./README.md). Design overview + invariants: [
 - **Cyan `[WG]` chat prefix on all addon output.** Every `print(...)` in `WhatGroup.lua` goes through `CHAT_PREFIX = "\|cff00FFFF[WG]\|r"`. Debug lines additionally tag `[DBG]` in orange. No raw `print(...)` without the prefix.
 - **English-only.** Schema labels, tooltips, chat prefix, `GetGroupTypeLabel` strings, `PLAYSTYLE_LABELS` are all literal English. Localization plumbing is a deliberate non-goal — see [docs/scope.md](./docs/scope.md).
 - **Retail-only.** Interface line in `WhatGroup.toc` is `120000,120001,120005`. The Premade Group Finder API surface and `Settings.RegisterCanvasLayoutCategory` shape are retail-specific.
-- **Capture state is session-only.** `captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup` never touch SavedVariables. Group-leave wipes all four. Don't add a "remember last group across reloads" mode without explicit ask.
+- **Capture state is session-only.** `captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`, `notifiedFor` never touch SavedVariables. Group-leave wipes all five. Don't add a "remember last group across reloads" mode without explicit ask.
 - **Single AceDB profile.** `AceDB:New("WhatGroupDB", defaults, true)` — third arg `true` shares one `Default` profile across every character on the account. Don't add per-character settings without explicit ask.
 - **Don't overwrite `category.ID` with a string.** `Settings.OpenToCategory(category:GetID())` requires the auto-assigned integer ID. Stamping a string over it silently breaks the lookup.
 - **Don't auto-stage, auto-commit, or auto-push.** The user chooses when to `git add` / `git stage`, `git commit`, and `git push`. Even after completing work, do not run any of those commands unless the user explicitly asks in the current turn. A prior approval does not carry forward. After making edits, leave the working tree in whatever modified-but-unstaged state your edits produced — describe what changed, do not stage it.
@@ -26,7 +26,7 @@ User-facing reference: [README.md](./README.md). Design overview + invariants: [
 ## Working environment
 
 - **Dual-path WSL.** `/home/tushar/GIT/WhatGroup/` and `/mnt/d/Profile/Users/Tushar/Documents/GIT/WhatGroup/` are the same repo via symlink. Either path works for git and file tools.
-- **No automated tests.** Validation is manual, in-game. `/wg test` exercises the full notify + popup flow without joining a real group; the panel's Test button hits the same `WhatGroup:RunTest()` code path.
+- **No automated tests.** Validation is manual, in-game. `/wg test` exercises the full notify + popup flow without joining a real group; the panel's Test button hits the same `WhatGroup:RunTest()` code path. The full manual smoke-test checklist lives in [docs/smoke-tests.md](./docs/smoke-tests.md) — run the relevant section after any non-trivial change, after a patch, after a lib refresh, or before tagging a release.
 - **Vendored libs.** `libs/` is copied verbatim from Ka0s KickCD (`/mnt/d/Profile/Users/Tushar/Documents/GIT/KickCD/libs/`). Refresh by re-copying that directory. See [docs/common-tasks.md](./docs/common-tasks.md#refresh-embedded-libs).
 - **`.gitattributes`** enforces CRLF line endings on disk for `.lua` / `.toc` / `.xml` (WoW client expectation).
 
@@ -53,3 +53,4 @@ Topic-specific detail lives in `docs/`. Read on demand — these are not auto-lo
 | Popup dialog (`WhatGroupFrame`) | [docs/frame.md](./docs/frame.md) | Touching the popup layout, value colours, or teleport button. |
 | WoW API gotchas (hook discipline, Settings API, lazy panel build) | [docs/wow-quirks.md](./docs/wow-quirks.md) | Patch-day breakage, hook decisions, Settings API integration. |
 | Recipes (add a setting, add a command, add a teleport, refresh libs, bump Interface) | [docs/common-tasks.md](./docs/common-tasks.md) | Routine modifications. |
+| Manual smoke tests (boot, slash, settings panel, /wg test, real LFG, regression checks) | [docs/smoke-tests.md](./docs/smoke-tests.md) | After any non-trivial change, after `/wow-addon:commit`, after a patch / lib refresh, before tagging a release. |

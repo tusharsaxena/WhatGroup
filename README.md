@@ -76,6 +76,10 @@ Capture state is session-only and clears when you leave the group; only your set
 | Teleport button is grayed out for a dungeon I'm in | Either the spell isn't learned on the current character, or the activity has no teleport mapping. The popup always renders the row; the button is disabled when the spell isn't castable. |
 | Settings panel opens but I can't find the toggles | `/wg config` lands on the addon's landing page (logo + slash list) with the subcategory tree unfolded — click **General** in the sidebar to reach the toggles. |
 
+## For contributors
+
+WhatGroup has no automated test suite — validation is manual, in-game. Before opening a PR or tagging a release, run the relevant section of the [manual smoke-test checklist](docs/smoke-tests.md) (boot health, slash commands, settings panel, `/wg test`, real LFG flow, regression checks). The Quick reference checklist at the bottom of that file is the minimum 80%-coverage pass.
+
 ## Issues and feature requests
 
 All bugs, feature requests, and outstanding work are tracked at [https://github.com/tusharsaxena/WhatGroup/issues](https://github.com/tusharsaxena/WhatGroup/issues). Please file new reports there rather than as comments — the issue tracker is the single source of truth for the project's backlog.

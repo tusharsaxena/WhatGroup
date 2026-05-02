@@ -161,6 +161,8 @@ The fix is the same pattern for all three: **defer everything to actual user dem
 
 At PLAYER_LOGIN the addon now adds nothing to Blizzard's secure surface, GameMenu's `InitButtons` runs in a clean context during boot, and Logout works correctly. Any taint the addon does generate later (on first popup show, or first `/wg config`) is contained to a session where the player has actively used the addon — and even then, GameMenu's button closures were already built with the clean context they captured at boot.
 
+The regression test for this lives in [smoke-tests.md → §1.3 GameMenu Logout — no taint regression](./smoke-tests.md#13-gamemenu-logout--no-taint-regression-critical). Run it after any change that touches hooks, the popup, the Settings panel, or the StaticPopup table.
+
 See `WhatGroup_Frame.lua`'s `buildFrame()`, `WhatGroup_Settings.lua`'s `Settings.Register()`, and `WhatGroup.lua`'s `runConfig()`.
 
 WhatGroup uses this pattern for the popup's teleport icon — see `WhatGroup_Frame.lua` and [frame.md → Teleport button](./frame.md#teleport-button).

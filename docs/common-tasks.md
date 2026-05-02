@@ -150,11 +150,7 @@ cp -r /mnt/d/Profile/Users/Tushar/Documents/GIT/KickCD/libs/ libs/
 
 Then verify `WhatGroup.toc`'s lib block still matches the directory layout — file paths there must point at the actual `.lua` and `.xml` files in the vendored tree. If KickCD has added or removed an Ace3 module since the last refresh, update the TOC accordingly. AceGUI's `.xml` always loads last in the lib block (it pulls in `widgets/` internally).
 
-After refresh:
-
-1. Reload in-game (`/reload`) to confirm there are no boot errors.
-2. Open the Settings panel and confirm widgets render normally.
-3. Run `/wg test` to confirm the pipeline still works end-to-end.
+After refresh, run the [Lib-refresh smoke](./smoke-tests.md#8-lib-refresh-smoke--2-min) section.
 
 ## Bump the Interface version
 
@@ -166,13 +162,7 @@ When a major WoW patch ships, the `## Interface:` line in `WhatGroup.toc` needs 
 
 Comma-separated, no spaces. The full list of supported builds — Blizzard rejects the addon at load if the live client's build number isn't in the list (or the user has to opt in via the AddOns "Load out-of-date" checkbox).
 
-After bumping, also smoke-test:
-
-- Login on the patched client without the "out of date" warning.
-- `/wg test` — full pipeline.
-- Apply to a real LFG group — capture pipeline.
-
-If a Blizzard API broke (e.g. `C_LFGList.GetActivityInfoTable` fields renamed), [capture-pipeline.md → Captured info](./capture-pipeline.md#captured-info) is the table that lists every field WhatGroup reads.
+After bumping, run the [Patch-day smoke](./smoke-tests.md#7-patch-day-smoke--5-min) section. If a Blizzard API broke (e.g. `C_LFGList.GetActivityInfoTable` fields renamed), [capture-pipeline.md → Captured info](./capture-pipeline.md#captured-info) is the table that lists every field WhatGroup reads.
 
 ## Bump the addon version
 

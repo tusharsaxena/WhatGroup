@@ -14,9 +14,15 @@ The addon is observation-only. It never modifies LFG state, never auto-applies, 
 LFG events ─▶ capture pipeline ─▶ pendingInfo
                   │                    │
                   ▼                    ▼
-        ApplyToGroup → applied   GROUP_ROSTER_UPDATE  (not-in → in transition)
-        → inviteaccepted              │
-        (FIFO queue + appID map)      ▼
+        ApplyToGroup → applied   _TryFireJoinNotify(reason)
+        → inviteaccepted          (called from BOTH paths below;
+        (FIFO queue + appID map)   `notifiedFor` flag prevents double-fire)
+                                      ▲                  ▲
+                                      │                  │
+                          ROSTER transition       inviteaccepted
+                          (not-in → in)           (after pendingInfo set)
+                                      │
+                                      ▼
                                   C_Timer.After(notify.delay)
                                       ├─ ShowNotification   chat output
                                       └─ ShowFrame          popup dialog (if frame.autoShow)
@@ -35,6 +41,7 @@ LFG events ─▶ capture pipeline ─▶ pendingInfo
 | Popup dialog (`WhatGroupFrame`) | `WhatGroup_Frame.lua` | [docs/frame.md](./docs/frame.md) |
 | WoW API gotchas (hook discipline, Settings API, lazy panel build) | — | [docs/wow-quirks.md](./docs/wow-quirks.md) |
 | Routine recipes (add a setting, add a command, refresh libs) | — | [docs/common-tasks.md](./docs/common-tasks.md) |
+| Manual smoke tests (boot health, slash, settings panel, `/wg test`, real LFG, regression checks) | — | [docs/smoke-tests.md](./docs/smoke-tests.md) |
 
 ## Invariants worth not breaking
 
@@ -42,10 +49,10 @@ LFG events ─▶ capture pipeline ─▶ pendingInfo
 - **Schema-first.** Adding a setting = one row in `Settings.Schema`. The panel widget, `/wg list/get/set`, AceDB defaults, and `/wg reset` all follow automatically. Don't reach into `db.profile` directly from new code; go through `Helpers.Get` / `Helpers.Set` so the panel refreshers and `/wg list/get/set` stay in sync.
 - **Slash-first.** Adding a command = one row in `COMMANDS`. Help output iterates the table.
 - **Single AceDB profile.** `AceDB:New("WhatGroupDB", defaults, true)` — the third arg `true` shares one `Default` profile across every character on the account. WhatGroup is account-wide by design.
-- **`Settings.Register()` is idempotent.** The `WhatGroup._settingsRegistered` guard means it can be called multiple times without re-registering categories. Always call through `self.Settings.Register()` in `OnEnable`, never `Settings.RegisterCanvasLayoutCategory(...)` directly.
+- **`Settings.Register()` is idempotent and lazy.** The `WhatGroup._settingsRegistered` guard means it can be called multiple times without re-registering categories. It is **only** called from `runConfig` (the `/wg config` slash handler) — never from `OnEnable`. Calling `Settings.RegisterCanvasLayoutCategory` / `Settings.RegisterAddOnCategory` from non-secure addon code at PLAYER_LOGIN taints Blizzard's GameMenu callbacks. See [docs/settings-system.md](./docs/settings-system.md#lazy-panel-build) and [docs/wow-quirks.md](./docs/wow-quirks.md).
 - **Parent settings category is the landing page.** The parent never carries schema widgets — instead it shows the logo, TOC notes, and the slash-command list. `/wg config` opens the **parent** (`self._parentSettingsCategory:GetID()`) and reaches into `SettingsPanel:GetCategoryList():GetCategoryEntry(parent):SetExpanded(true)` (wrapped in `pcall` because that traversal is private Blizzard API) so every subcategory is visible in the sidebar tree. The user lands on the landing page with one click separating them from the General settings. The slash command also refuses to open during `InCombatLockdown()` because the Settings UI uses secure templates that can taint mid-combat. See [docs/wow-quirks.md](./docs/wow-quirks.md#settings-api-parent-vs-subcategory).
-- **`wasInGroup` is the join trigger.** Notify + popup fire on the not-in-group → in-group transition only. Other roster updates inside an existing group don't re-fire.
-- **Capture state is session-only.** `captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup` never touch SavedVariables. Group-leave wipes all four.
+- **Join notify uses a dual-path trigger.** `WhatGroup:_TryFireJoinNotify(reason)` is the single entry point that schedules `ShowNotification` + `ShowFrame`. It's called from BOTH the `GROUP_ROSTER_UPDATE` not-in → in transition AND the `LFG_LIST_APPLICATION_STATUS_UPDATED` `inviteaccepted` handler — because retail can fire those in either order, and the old "fire only on roster transition when pendingInfo is set" gate would silently miss when `inviteaccepted` arrived after the transition. A `notifiedFor` identity flag (the `pendingInfo` reference that already triggered) prevents double-firing when both paths catch the same join.
+- **Capture state is session-only.** `captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`, `notifiedFor` never touch SavedVariables. Group-leave wipes all five.
 - **Cyan `[WG]` chat prefix on every line.** Module-local `CHAT_PREFIX = "\|cff00FFFF[WG]\|r"` in `WhatGroup.lua` is prepended to every `print(...)`. Debug lines additionally tag `[DBG]` in orange.
 - **Lazy AceGUI panel build.** Both the parent landing page and the General subcategory build their body on first `OnShow` (each behind its own one-shot guard). The AceGUI ScrollFrame parented to each panel hooks `OnSizeChanged` to forward dimensions into AceGUI's layout pipeline. Without this, parented-to-Blizzard containers stay at 0×0. See [docs/wow-quirks.md](./docs/wow-quirks.md#lazy-acegui-panel-build).
 - **Defaults button + `/wg reset` share one popup.** Both routes call `StaticPopup_Show("WHATGROUP_RESET_ALL")`; the OnAccept body lives in `WhatGroup_Settings.lua` and calls `Helpers.RestoreDefaults()`. No second confirmation path can drift from the first.
@@ -70,15 +77,15 @@ WoW retail APIs the addon depends on: `C_LFGList.ApplyToGroup` / `GetSearchResul
 `WhatGroup.toc` is the source of truth. Order is dependency, not alphabetical:
 
 1. **libs/** — `LibStub` → `CallbackHandler-1.0` → `AceAddon-3.0` → `AceEvent-3.0` → `AceConsole-3.0` → `AceDB-3.0` → `AceGUI-3.0` (last; loaded via its `.xml` because that pulls in `widgets/`).
-2. **`WhatGroup.lua`** — calls `AceAddon:NewAddon(existing, "WhatGroup", "AceConsole-3.0", "AceEvent-3.0")`, assigns `_G.WhatGroup`, defines `OnInitialize` / `OnEnable` / capture handlers / slash dispatch / teleport spell table. Module-locals `captureQueue`, `pendingApplications`, `wasInGroup` initialise to empty / `false`.
-3. **`WhatGroup_Settings.lua`** — picks up the addon via `LibStub("AceAddon-3.0"):GetAddon("WhatGroup")`, stamps `WhatGroup.Settings = { Schema, Helpers, _refreshers, _panels, BuildDefaults, Register }`. `Helpers` covers schema access (`Get` / `Set` / `FindSchema` / `ValidateSchema`), reset surfaces (`RestoreDefaults` / `RefreshAll`), and the panel-rendering surface (`CreatePanel` / `PatchAlwaysShowScrollbar` / `Section` / `RenderField` / `InlineButton` / `RenderSchema` / `BuildMainContent`). Schema rows are appended via `add{}` calls in source order. Defines `StaticPopupDialogs["WHATGROUP_RESET_ALL"]` for the shared reset-confirmation flow.
-4. **`WhatGroup_Frame.lua`** — creates the global `WhatGroupFrame`, attaches the `WhatGroup:ShowFrame()` method. Registered with `UISpecialFrames` for ESC-to-close (Close button + ESC handle the hide path; no programmatic Hide method is exposed).
+2. **`WhatGroup.lua`** — calls `AceAddon:NewAddon(existing, "WhatGroup", "AceConsole-3.0", "AceEvent-3.0")`, assigns `_G.WhatGroup`, then **at file-load top-level** installs the two direct `hooksecurefunc` post-hooks (on `C_LFGList.ApplyToGroup` and on `SetItemRef`). The hooks are deliberately registered before any later boot-time work runs, so GameMenu's `InitButtons` (which builds the Logout/Settings/Macros button closures during boot) sees a clean secure context. Defines `OnInitialize` / `OnEnable` / capture handlers / slash dispatch / teleport spell table. Module-locals `captureQueue`, `pendingApplications`, `wasInGroup`, `notifiedFor` initialise to empty / `false` / `nil`.
+3. **`WhatGroup_Settings.lua`** — picks up the addon via `LibStub("AceAddon-3.0"):GetAddon("WhatGroup")`, stamps `WhatGroup.Settings = { Schema, Helpers, _refreshers, _panels, BuildDefaults, Register, EnsureResetPopup }`. `Helpers` covers schema access (`Get` / `Set` / `FindSchema` / `ValidateSchema`), reset surfaces (`RestoreDefaults` / `RefreshAll`), and the panel-rendering surface (`CreatePanel` / `PatchAlwaysShowScrollbar` / `Section` / `RenderField` / `InlineButton` / `RenderSchema` / `BuildMainContent`). Schema rows are appended via `add{}` calls in source order. `Settings.EnsureResetPopup()` lazily writes `StaticPopupDialogs["WHATGROUP_RESET_ALL"]` on first call — writing to that table at file-load taints Blizzard's GameMenu callbacks, so it's deferred to first Defaults-button click or `/wg reset`.
+4. **`WhatGroup_Frame.lua`** — file-load runs only the AceAddon lookup and the `WhatGroup:ShowFrame()` method assignment; everything else (the `WhatGroupFrame` itself, the secure teleport button, the `UISpecialFrames` registration, `MakeLabel` calls) is wrapped in a `buildFrame()` function called from the first `ShowFrame()`. Same lazy-creation reasoning as the Settings panel + reset popup. Close button + ESC handle the hide path; no programmatic Hide method is exposed.
 
 Lifecycle:
 
 - **`OnInitialize`** (fires on `ADDON_LOADED` for `"WhatGroup"`, after every TOC line has executed): `defaults = Settings.BuildDefaults()` → `db = AceDB:New("WhatGroupDB", defaults, true)` → seed `WhatGroup.debug` from `db.profile.debug` → register `/wg` and `/whatgroup` chat commands.
-- **`OnEnable`**: register `GROUP_ROSTER_UPDATE` and `LFG_LIST_APPLICATION_STATUS_UPDATED` events, install a direct `hooksecurefunc` post-hook on `C_LFGList.ApplyToGroup`, install a `hooksecurefunc` post-hook on `SetItemRef` (filtered to `WhatGroup:` links), snapshot `wasInGroup = IsInGroup()`. **Settings registration is intentionally NOT done here** — it's deferred until first `/wg config` invocation. Calling `Settings.RegisterAddOnCategory` / `Settings.RegisterCanvasLayoutCategory` from non-secure addon code at PLAYER_LOGIN taints Blizzard's GameMenu callbacks; lazy registration means the addon adds nothing to Blizzard's settings/menu surface during the boot sequence.
+- **`OnEnable`** is intentionally minimal: register `GROUP_ROSTER_UPDATE` and `LFG_LIST_APPLICATION_STATUS_UPDATED` events, snapshot `wasInGroup = IsInGroup()`. **No hook installation, no Settings registration, no StaticPopup write.** Hooks are at file-load (above), Settings registers lazily on first `/wg config`, and the reset popup registers lazily on first reset request. Every addon-author write to a Blizzard-protected surface during the boot window leaks taint into the closures GameMenu builds for its buttons; deferring all of those means PLAYER_LOGIN finds the addon's secure footprint empty, GameMenu's `InitButtons` runs in a clean context, and Logout works correctly even after `/reload`.
 
-`Settings.Register()` defers the AceGUI body build to the General subcategory's first `OnShow`. See [docs/settings-system.md](./docs/settings-system.md#lazy-panel-build).
+`Settings.Register()` is itself called only from `runConfig`. It then defers the AceGUI body build to the parent and General subcategory's first `OnShow` (each behind its own one-shot guard). See [docs/settings-system.md](./docs/settings-system.md#lazy-panel-build).
 
 If you add a new runtime file, put it in the right place in `WhatGroup.toc` (after libs, after the file it depends on).
