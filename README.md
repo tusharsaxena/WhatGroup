@@ -86,8 +86,8 @@ All bugs, feature requests, and outstanding work are tracked at [https://github.
 
 ## Version History
 
-| Version | Notes |
-|---|---|
-| 1.2.0 | Added schema-driven Settings panel with `/wg config` (scrollable General page, Defaults button, AceDB profile)<br>Added `/wg list`, `/wg get`, `/wg set`, `/wg reset`, `/wg debug`, `/wg test` slash commands<br>Added popup teleport button keyed to mapID, grayed when not learned<br>Added atlas-chevron breadcrumb separator (`Ka0s WhatGroup ▸ <Page>`) — font/locale-agnostic inline texture<br>Fixed Logout taint by deferring secure-button config, frame build, and Settings registration past combat / boot<br>Fixed stale notify timers via `notifyGen` generation-counter and `WipeCapture` consolidator<br>Fixed popup teleport and playstyle for real-world LFG joins<br>Internals: Ace3 adoption, schema-first settings, orchestrated `Helpers.Set`, deterministic refresh order, English-only `WhatGroup.Labels` namespace |
-| 1.1.0 | TOC version bump |
-| 1.0.0 | Initial Release … yay! |
+| Version | Date | Notes |
+|---|---|---|
+| 1.2.0 | 2026-05-03 | Adopted Ace3 with a schema-driven Settings panel and `/wg config`, `list`, `get`, `set`, `reset`, `debug`, `test` slash commands<br>Added popup teleport button (mapID-keyed, grayed when not learned) and atlas-chevron breadcrumb separator<br>Fixed Logout taint, stale notify timers, and popup teleport / playstyle on real LFG joins<br>Consolidated playstyle and group-type strings under `WhatGroup.Labels`; orchestrated `Helpers.Set` with deterministic refresh order<br>Moved teleport spell table to `data/TeleportSpells.lua` and refreshed it against current dungeon data<br>Split docs into `docs/*` topic chunks; added `ARCHITECTURE.md` and a smoke-test checklist |
+| 1.1.0 | 2026-04-24 | Bumped TOC interface for client compatibility |
+| 1.0.0 | 2026-03-19 | Initial release: chat notification and popup dialog on LFG join, Playstyle row, gold-unified label colors, MIT license |

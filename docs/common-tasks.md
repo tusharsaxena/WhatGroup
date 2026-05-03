@@ -89,9 +89,9 @@ The order in `COMMANDS` is also the order in `/wg help` output. Pick a slot that
 
 ## Add a dungeon teleport spell mapping
 
-**Primary source for spell IDs and names**: [`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities) on the Warcraft Wiki. Every "Path of …" page on that wiki gives the canonical spell ID and the destination dungeon/raid in its infobox. The current `TeleportSpells` table has been validated against this category as of patch 12.0.5; entries cite the wiki spell name in their trailing comment so future audits stay easy.
+**Primary source for spell IDs and names**: [`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities) on the Warcraft Wiki. Every "Path of …" page on that wiki gives the canonical spell ID and the destination dungeon/raid in its infobox. Entries carry a trailing comment with the dungeon name for at-a-glance scanning.
 
-One row to `WhatGroup.TeleportSpells` in `WhatGroup.lua`. The table is keyed by **`mapID`** (the dungeon's instance map ID — stable across seasons):
+One row to `WhatGroup.TeleportSpells` in `data/TeleportSpells.lua`. The table is keyed by **`mapID`** (the dungeon's instance map ID — stable across seasons):
 
 ```lua
 WhatGroup.TeleportSpells = {
@@ -128,15 +128,15 @@ When Blizzard ships a new M+ season or a patch that adds/changes dungeon telepor
 3. **For each new dungeon, get the mapID and spellID:**
    - mapID: `/dump select(8, GetInstanceInfo())` at the dungeon entrance, or `/wg debug` + apply to an LFG group and read the debug log's `mapID=` value.
    - spellID: from the wiki spell page (preferred). Wowhead is a reasonable cross-check.
-4. **Add the row** under the appropriate `===== <Expansion> =====` section, with a trailing comment that cites the wiki spell name (e.g. `-- Path of the Corrupted Foundry`) so future audits can re-verify quickly. Keep entries sorted by mapID within each expansion for easy diffing.
+4. **Add the row** under the appropriate `===== <Expansion> =====` section, with a trailing comment giving the dungeon name (e.g. `-- The Stonevault`). Keep entries sorted by mapID within each expansion for easy diffing.
 5. **Check old dungeons that have been re-issued.** Sometimes Blizzard adds a *new* spellID for an existing dungeon (e.g. a Midnight-prepatch refresh — Skyreach picked up `1254557` alongside the original `159898`). If you find a second wiki spell page that points at a mapID already in the table, change the value from a single number to a `{ original, new }` list — the lookup resolves to whichever the player knows.
 6. **Verify in-game.** With `/wg debug` on, apply to one group per new dungeon and confirm the debug log shows `GetTeleportSpell HIT mapID=… spellID=…` for the right value, then click the popup's teleport icon and confirm the cast fires (or reports "you don't know that spell" if you haven't learned it — that's also success).
 
-The bottom of `WhatGroup.TeleportSpells` keeps a TODO comment listing every wiki-validated spell whose mapID hasn't been confirmed in-game yet — that's the worklist for future contributions. When you encounter one of those dungeons or raids in the wild and capture its mapID via `/wg debug`, lift the entry up into the active table and delete its TODO line.
+The bottom of `data/TeleportSpells.lua` keeps a "Pending in-game mapID verification" comment block plus commented-out placeholder rows (e.g. raid teleports whose spell exists on the wiki but whose mapID hasn't been captured in-game yet). When you encounter one of those instances in the wild and capture its mapID via `/wg debug`, replace the placeholder line with an active row and remove the comment.
 
 ### Raid teleports
 
-The wiki's [`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities) does include several learnable raid-teleport spells (Castle Nathria, Sanctum of Domination, Sepulcher of the First Ones, Vault of the Incarnates, Aberrus, Amirdrassil, Liberation of Undermine, Manaforge Omega — all "Path of …" spells like the dungeon teleports). They follow the same shape, so the addon handles them identically once a row is added. The TODO block at the bottom of `WhatGroup.TeleportSpells` lists every known raid spell with its wiki name; lift them into the active table as their mapIDs are confirmed in-game (apply to a real LFG raid group with `/wg debug` on and the debug log will show the mapID).
+The wiki's [`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities) does include several learnable raid-teleport spells (Castle Nathria, Sanctum of Domination, Sepulcher of the First Ones, Vault of the Incarnates, Aberrus, Amirdrassil, Liberation of Undermine, Manaforge Omega — all "Path of …" spells like the dungeon teleports). They follow the same shape, so the addon handles them identically once a row is added. The placeholder block at the bottom of `data/TeleportSpells.lua` lists raids whose teleport spell exists but whose mapID still needs in-game confirmation; lift them into the active table as their mapIDs are captured (apply to a real LFG raid group with `/wg debug` on and the debug log will show the mapID).
 
 ## Refresh embedded libs
 

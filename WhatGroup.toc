@@ -20,5 +20,6 @@ libs\AceGUI-3.0\AceGUI-3.0.xml
 
 # Core
 WhatGroup.lua
+data\TeleportSpells.lua
 WhatGroup_Settings.lua
 WhatGroup_Frame.lua
