@@ -24,7 +24,7 @@ local WhatGroup = LibStub("AceAddon-3.0"):NewAddon(
     existing, "WhatGroup",
     "AceConsole-3.0", "AceEvent-3.0")
 _G.WhatGroup = WhatGroup
-WhatGroup.VERSION = "1.1.0"
+WhatGroup.VERSION = "1.2.0"
 
 -- Direct `hooksecurefunc` post-hooks installed at file-load (NOT in
 -- OnEnable). Hooks live at the top of the file; the addon table is

@@ -88,5 +88,6 @@ All bugs, feature requests, and outstanding work are tracked at [https://github.
 
 | Version | Notes |
 |---|---|
+| 1.2.0 | Added schema-driven Settings panel with `/wg config` (scrollable General page, Defaults button, AceDB profile)<br>Added `/wg list`, `/wg get`, `/wg set`, `/wg reset`, `/wg debug`, `/wg test` slash commands<br>Added popup teleport button keyed to mapID, grayed when not learned<br>Added atlas-chevron breadcrumb separator (`Ka0s WhatGroup ▸ <Page>`) — font/locale-agnostic inline texture<br>Fixed Logout taint by deferring secure-button config, frame build, and Settings registration past combat / boot<br>Fixed stale notify timers via `notifyGen` generation-counter and `WipeCapture` consolidator<br>Fixed popup teleport and playstyle for real-world LFG joins<br>Internals: Ace3 adoption, schema-first settings, orchestrated `Helpers.Set`, deterministic refresh order, English-only `WhatGroup.Labels` namespace |
 | 1.1.0 | TOC version bump |
 | 1.0.0 | Initial Release … yay! |
