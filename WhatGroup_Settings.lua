@@ -909,7 +909,12 @@ end
 -- Public registration
 -- ---------------------------------------------------------------------------
 --
--- Called from WhatGroup:OnEnable. Idempotent.
+-- Called lazily from `runConfig` (the `/wg config` slash handler) on first
+-- invocation. Idempotent. **Not** called from `OnEnable` — registering the
+-- Settings panel at load time taints the GameMenu callback chain and the
+-- Logout button fires `ADDON_ACTION_FORBIDDEN`. See
+-- docs/wow-quirks.md → "Lazy popup, secure button, and Settings registration"
+-- for the taint reasoning.
 --
 -- The parent canvas is the addon-landing page (logo + TOC notes +
 -- slash list); every actual setting lives in the General subcategory.
