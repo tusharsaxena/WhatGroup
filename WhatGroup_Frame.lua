@@ -180,6 +180,28 @@ local function buildFrame()
     -- here (inside buildFrame) means it doesn't exist until the popup
     -- exists, which keeps it out of any addon-load-time iteration.
     ConfigureTeleportButton = function(btn, icon, info)
+        -- Secure-button attribute writes (`type`, `macrotext`) and
+        -- Show/Hide are protected while in combat — silently dropped,
+        -- not erroring. Stash the info, queue a re-run on combat-end,
+        -- and bail. The button retains its prior visual state until
+        -- PLAYER_REGEN_ENABLED fires; at that point we Configure with
+        -- the most recently-stashed info.
+        if InCombatLockdown() then
+            f._pendingTeleportInfo = info
+            f:RegisterEvent("PLAYER_REGEN_ENABLED")
+            f:SetScript("OnEvent", function(self, ev)
+                if ev ~= "PLAYER_REGEN_ENABLED" then return end
+                self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+                self:SetScript("OnEvent", nil)
+                local pending = self._pendingTeleportInfo
+                self._pendingTeleportInfo = nil
+                if pending then
+                    ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, pending)
+                end
+            end)
+            return
+        end
+
         local spellID, known = WhatGroup:GetTeleportSpell(info and info.activityID, info and info.mapID)
         if WhatGroup._dbg then
             WhatGroup._dbg("ConfigureTeleportButton:",
@@ -265,6 +287,36 @@ end
 
 -- Public API
 function WhatGroup:ShowFrame()
+    -- First-show-in-combat defer: buildFrame creates a
+    -- SecureActionButtonTemplate button and inserts into UISpecialFrames;
+    -- both operations are protected. If we're in combat AND the popup
+    -- has never been built, queue the build on PLAYER_REGEN_ENABLED and
+    -- print a chat hint. Once buildFrame has run once, subsequent calls
+    -- are safe in combat (only the secure-button reconfigure, handled
+    -- by ConfigureTeleportButton's own combat guard, is at risk).
+    if not f and InCombatLockdown() then
+        if WhatGroup._print then
+            WhatGroup._print("Popup deferred until combat ends.")
+        end
+        if not WhatGroup._frameBuildQueued then
+            WhatGroup._frameBuildQueued = true
+            local pending = WhatGroup.pendingInfo
+            local waitFrame = CreateFrame("Frame")
+            waitFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+            waitFrame:SetScript("OnEvent", function(self)
+                self:UnregisterAllEvents()
+                self:SetScript("OnEvent", nil)
+                WhatGroup._frameBuildQueued = nil
+                -- Restore the captured pendingInfo only if it was
+                -- cleared (e.g. group-leave) during the wait window;
+                -- the user's intent was to see *this* group's popup.
+                WhatGroup.pendingInfo = WhatGroup.pendingInfo or pending
+                WhatGroup:ShowFrame()
+            end)
+        end
+        return
+    end
+
     buildFrame()    -- lazy: creates the popup + secure button +
                     -- UISpecialFrames entry on first call only.
     if WhatGroup._dbg then

@@ -956,6 +956,18 @@ function Settings.Register()
         return
     end
 
+    -- Defense in depth: `runConfig` already guards on InCombatLockdown,
+    -- but registering Settings categories during combat taints the
+    -- GameMenu callback chain. Refuse here too so any future caller
+    -- that bypasses the slash-handler guard doesn't reintroduce the
+    -- Logout taint.
+    if InCombatLockdown() then
+        if WhatGroup._print then
+            WhatGroup._print("Cannot register settings panel during combat.")
+        end
+        return
+    end
+
     Helpers.ValidateSchema()
 
     -- Parent: addon landing page. Same unified header (gold title +
