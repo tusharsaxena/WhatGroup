@@ -207,10 +207,34 @@ function Helpers.Get(path)
     return parent[key]
 end
 
-function Helpers.Set(path, value)
+function Helpers.RawSet(path, value)
     local parent, key = Resolve(path)
     if not parent then return end
     parent[key] = value
+end
+
+-- Orchestrated single write-path: write the value, run the schema row's
+-- onChange (if any), and re-sync open panel widgets. Every caller — CLI
+-- (`/wg set`), panel widget callbacks, `/wg reset`, runtime toggles —
+-- routes through here so the three side effects can't drift out of sync.
+-- `opts.skipOnChange` suppresses the onChange call; `opts.skipRefresh`
+-- suppresses RefreshAll (RestoreDefaults uses it to refresh once after
+-- the loop instead of N times). Use `RawSet` only for genuinely
+-- side-effect-free writes (none today).
+function Helpers.Set(path, value, opts)
+    Helpers.RawSet(path, value)
+    if not (opts and opts.skipOnChange) then
+        local def = Helpers.FindSchema(path)
+        if def and def.onChange then
+            local ok, err = pcall(def.onChange, value)
+            if not ok then
+                pout("onChange for " .. path .. " failed: " .. tostring(err))
+            end
+        end
+    end
+    if not (opts and opts.skipRefresh) then
+        Helpers.RefreshAll()
+    end
 end
 
 function Helpers.FindSchema(path)
@@ -299,14 +323,9 @@ end
 function Helpers.RestoreDefaults()
     for _, def in ipairs(Schema) do
         if def.path then
-            Helpers.Set(def.path, def.default)
-            if def.onChange then
-                local ok, err = pcall(def.onChange, def.default)
-                if not ok then
-                    pout("RestoreDefaults onChange failed for " .. def.path
-                         .. ": " .. tostring(err))
-                end
-            end
+            -- skipRefresh inside the loop; one RefreshAll at the end
+            -- avoids N refreshes for an N-row schema.
+            Helpers.Set(def.path, def.default, { skipRefresh = true })
         end
     end
     Helpers.RefreshAll()
@@ -647,15 +666,6 @@ local function ensureScroll(ctx)
     return scroll
 end
 
-local function fireOnChange(def, value)
-    if def.onChange then
-        local ok, err = pcall(def.onChange, value)
-        if not ok then
-            pout("onChange for " .. tostring(def.path) .. " failed: " .. tostring(err))
-        end
-    end
-end
-
 -- ---------------------------------------------------------------------------
 -- Section header — AceGUI Heading with breathing room above and below.
 -- ---------------------------------------------------------------------------
@@ -705,9 +715,7 @@ local function makeCheckbox(ctx, def, parent, relativeWidth)
     cb:SetValue(Helpers.Get(def.path) and true or false)
 
     cb:SetCallback("OnValueChanged", function(_, _, value)
-        local v = value and true or false
-        Helpers.Set(def.path, v)
-        fireOnChange(def, v)
+        Helpers.Set(def.path, value and true or false)
     end)
 
     if not Settings._refreshers[def.path] then
@@ -733,7 +741,6 @@ local function makeSlider(ctx, def, parent, relativeWidth)
 
     s:SetCallback("OnValueChanged", function(_, _, v)
         Helpers.Set(def.path, v)
-        fireOnChange(def, v)
     end)
 
     if not Settings._refreshers[def.path] then

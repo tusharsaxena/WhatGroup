@@ -747,11 +747,6 @@ local function applyFromText(self, def, text)
     end
 
     H.Set(def.path, newValue)
-    if def.onChange then
-        local ok, err = pcall(def.onChange, newValue)
-        if not ok then p("onChange failed: " .. tostring(err)) end
-    end
-    if H.RefreshAll then H.RefreshAll() end
 
     p(("%s = %s"):format(def.path, formatValue(def, H.Get(def.path))))
 end
@@ -881,15 +876,14 @@ end
 function runDebug(self)
     local H = helpers()
     local newVal = not self.debug
-    self.debug = newVal
-    -- Persist via the schema path so the Settings checkbox refreshes.
-    -- Falls back to a direct write only if the settings layer isn't
-    -- loaded yet (early-boot edge).
+    -- The schema row's onChange sets WhatGroup.debug; orchestrated Set
+    -- handles persist + onChange + panel refresh. Direct-write fallback
+    -- only if the Settings layer hasn't loaded yet (early-boot edge).
     if H and H.Set then
         H.Set("debug", newVal)
-        if H.RefreshAll then H.RefreshAll() end
     elseif self.db and self.db.profile then
         self.db.profile.debug = newVal
+        self.debug = newVal
     end
     p("Debug mode: " .. (newVal and "|cff00FF00ON|r" or "|cffFF4444OFF|r"))
 end
