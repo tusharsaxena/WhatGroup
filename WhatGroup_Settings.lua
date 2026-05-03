@@ -32,6 +32,10 @@ local Settings    = WhatGroup.Settings
 Settings.Schema   = {}
 Settings.Helpers  = {}
 Settings._refreshers = {}
+-- Order array kept alongside the hash so RefreshAll iterates in schema
+-- (= panel render) order, not pairs() hash order. Matters once any row
+-- has a refresher that depends on another row's already-refreshed state.
+Settings._refresherOrder = {}
 Settings._panels = Settings._panels or {}
 
 local Schema  = Settings.Schema
@@ -194,7 +198,12 @@ end
 
 function Helpers.Get(path)
     local parent, key = Resolve(path)
-    if not parent then return nil end
+    if not parent then
+        if WhatGroup.debug and WhatGroup._dbg then
+            WhatGroup._dbg("Helpers.Get: no path -> " .. tostring(path))
+        end
+        return nil
+    end
     return parent[key]
 end
 
@@ -307,10 +316,13 @@ end
 -- after a reset, after `/wg set`, and after profile switches (none today
 -- but the hook is here if AceDBOptions is ever added).
 function Helpers.RefreshAll()
-    for _, refresher in pairs(Settings._refreshers) do
-        local ok, err = pcall(refresher)
-        if not ok then
-            pout("refresher failed: " .. tostring(err))
+    for _, path in ipairs(Settings._refresherOrder) do
+        local refresher = Settings._refreshers[path]
+        if refresher then
+            local ok, err = pcall(refresher)
+            if not ok then
+                pout("refresher failed: " .. tostring(err))
+            end
         end
     end
 end
@@ -698,6 +710,9 @@ local function makeCheckbox(ctx, def, parent, relativeWidth)
         fireOnChange(def, v)
     end)
 
+    if not Settings._refreshers[def.path] then
+        Settings._refresherOrder[#Settings._refresherOrder + 1] = def.path
+    end
     Settings._refreshers[def.path] = function()
         cb:SetValue(Helpers.Get(def.path) and true or false)
     end
@@ -721,6 +736,9 @@ local function makeSlider(ctx, def, parent, relativeWidth)
         fireOnChange(def, v)
     end)
 
+    if not Settings._refreshers[def.path] then
+        Settings._refresherOrder[#Settings._refresherOrder + 1] = def.path
+    end
     Settings._refreshers[def.path] = function()
         s:SetValue(Helpers.Get(def.path) or def.default or 0)
     end

@@ -268,7 +268,7 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
     end
 
     local captured = {
-        title             = info.name or info.title or "Unknown",
+        title             = info.name or "Unknown",
         leaderName        = info.leaderName or "Unknown",
         numMembers        = info.numMembers or 0,
         voiceChat         = info.voiceChat or "",
@@ -281,7 +281,7 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
         generalPlaystyle  = info.generalPlaystyle or info.playstyle or 0,
         playstyleString   = info.playstyleString or "",
         age               = info.age or 0,
-        activityIDs       = info.activityIDs or (info.activityID and {info.activityID}) or {},
+        activityIDs       = info.activityIDs or {},
         activityID        = nil,
         fullName          = "",
         activityName      = "",
@@ -319,20 +319,23 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
     return captured
 end
 
--- Resolve a TeleportSpells value (number OR list) to a single spellID.
+-- Resolve a TeleportSpells value (number OR list) to (spellID, isKnown).
 -- For lists, prefer the first one the player has learned via
 -- IsSpellKnown; if none are known (player never learned the spell),
--- return the first list entry so the popup at least shows the icon
--- desaturated rather than hiding.
+-- return the first list entry with isKnown=false so the popup at least
+-- shows the icon desaturated rather than hiding.
 local function pickKnownSpell(value)
-    if type(value) == "number" then return value end
+    if type(value) == "number" then
+        local known = IsSpellKnown and IsSpellKnown(value) or false
+        return value, known
+    end
     if type(value) == "table" then
         if IsSpellKnown then
             for _, sid in ipairs(value) do
-                if IsSpellKnown(sid) then return sid end
+                if IsSpellKnown(sid) then return sid, true end
             end
         end
-        return value[1]
+        return value[1], false
     end
 end
 
@@ -421,11 +424,10 @@ function WhatGroup:ShowNotification()
         end
     end
     if n.showTeleport then
-        local spellID = self:GetTeleportSpell(info.activityID, info.mapID)
+        local spellID, known = self:GetTeleportSpell(info.activityID, info.mapID)
         if spellID then
             local spellLink = C_Spell and C_Spell.GetSpellLink and C_Spell.GetSpellLink(spellID)
                               or ("|cff71d5ff[Spell " .. spellID .. "]|r")
-            local known = IsSpellKnown and IsSpellKnown(spellID)
             local note  = known and "" or " |cff888888(not learned)|r"
             print(CHAT_PREFIX .. "   - " .. colorize("Teleport:", gold) .. " " .. spellLink .. note)
         end
@@ -599,6 +601,10 @@ local function helpers()
     return WhatGroup.Settings and WhatGroup.Settings.Helpers
 end
 
+local function schema()
+    return WhatGroup.Settings and WhatGroup.Settings.Schema
+end
+
 local function formatValue(def, v)
     if v == nil then return "nil" end
     if def.type == "number" then
@@ -671,15 +677,15 @@ end
 -- ---------------------------------------------------------------------------
 
 function listSettings(self)
-    local H = helpers()
-    if not (H and self.Settings.Schema) then
+    local H, S = helpers(), schema()
+    if not (H and S) then
         return p("Settings layer not ready yet")
     end
     p("Available settings:")
     -- Group by section for readable output. Skip rows without a path
     -- (e.g. type="action" buttons) — they have no value to display.
     local bySection, order = {}, {}
-    for _, def in ipairs(self.Settings.Schema) do
+    for _, def in ipairs(S) do
         if def.path then
             local key = def.section or "?"
             if not bySection[key] then

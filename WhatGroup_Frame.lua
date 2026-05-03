@@ -33,24 +33,6 @@ local PLAYSTYLE_LABELS = {
     [Enum.LFGEntryGeneralPlaystyle.Expert]     = GROUP_FINDER_GENERAL_PLAYSTYLE4,
 }
 
--- Value color resolvers: each field can define a function(info) → hex
--- color or nil (plain). Return nil or "" to leave text uncolored.
-local VALUE_COLORS = {
-    group     = function(info) return nil end,
-    instance  = function(info) return nil end,
-    type      = function(info) return nil end,
-    leader    = function(info) return nil end,
-    playstyle = function(info) return nil end,
-}
-
-local function ColorizeValue(text, resolver, info)
-    local hex = resolver and resolver(info)
-    if hex and hex ~= "" then
-        return "|cff" .. hex .. text .. "|r"
-    end
-    return text
-end
-
 local function GetGroupTypeLabel(info)
     if info.isMythicPlus       then return "Mythic+"
     elseif info.isCurrentRaid  then return "Raid (Current)"
@@ -198,7 +180,7 @@ local function buildFrame()
     -- here (inside buildFrame) means it doesn't exist until the popup
     -- exists, which keeps it out of any addon-load-time iteration.
     ConfigureTeleportButton = function(btn, icon, info)
-        local spellID = WhatGroup:GetTeleportSpell(info and info.activityID, info and info.mapID)
+        local spellID, known = WhatGroup:GetTeleportSpell(info and info.activityID, info and info.mapID)
         if WhatGroup._dbg then
             WhatGroup._dbg("ConfigureTeleportButton:",
                 "info.activityID=" .. tostring(info and info.activityID),
@@ -216,7 +198,6 @@ local function buildFrame()
                           or (GetSpellInfo and GetSpellInfo(spellID))
         local texID     = (C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(spellID))
                           or 134400
-        local known     = IsSpellKnown and IsSpellKnown(spellID)
 
         icon:SetTexture(texID)
         icon:SetDesaturated(not known)
@@ -259,15 +240,15 @@ local function PopulateFields()
         return
     end
 
-    fields.group:SetText(ColorizeValue(info.title, VALUE_COLORS.group, info))
+    fields.group:SetText(info.title)
 
     local instText = info.fullName ~= "" and info.fullName or "Unknown"
-    fields.instance:SetText(ColorizeValue(instText, VALUE_COLORS.instance, info))
+    fields.instance:SetText(instText)
 
     local typeStr = info.shortName ~= "" and info.shortName or GetGroupTypeLabel(info)
-    fields.type:SetText(ColorizeValue(typeStr, VALUE_COLORS.type, info))
+    fields.type:SetText(typeStr)
 
-    fields.leader:SetText(ColorizeValue(info.leaderName, VALUE_COLORS.leader, info))
+    fields.leader:SetText(info.leaderName)
 
     -- Prefer the server-rendered playstyleString when present; otherwise
     -- look up the integer enum in PLAYSTYLE_LABELS. Empty string ("") and
@@ -277,7 +258,7 @@ local function PopulateFields()
     if not playStyle or playStyle == "" then
         playStyle = PLAYSTYLE_LABELS[info.generalPlaystyle] or ""
     end
-    fields.playstyle:SetText(playStyle ~= "" and ColorizeValue(playStyle, VALUE_COLORS.playstyle, info) or "|cff888888—|r")
+    fields.playstyle:SetText(playStyle ~= "" and playStyle or "|cff888888—|r")
 
     ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, info)
 end
