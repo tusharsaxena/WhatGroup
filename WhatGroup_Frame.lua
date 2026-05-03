@@ -111,22 +111,28 @@ local function buildFrame()
     lblPort:SetWidth(LABEL_WIDTH)
     lblPort:SetWordWrap(false)
 
-    -- Secure cast button — anonymous (no global name), parented
-    -- directly to f, anchored via the implicit-parent SetPoint form
-    -- (no explicit relativeTo, which is the only form the secure-frame
-    -- system accepts on a protected frame). The (92, -68) offset
-    -- positions the button at the Teleport row, right of the
-    -- "Teleport:" label.
+    -- Secure cast button — anonymous (no global name), parented directly
+    -- to f. The implicit-parent SetPoint form is the only one the
+    -- secure-frame system accepts on a protected frame, so we anchor
+    -- the button's TOPLEFT against f's TOPLEFT with offsets derived
+    -- from the Teleport label's actual rendered position. This way the
+    -- button stays aligned with its label even if LABEL_WIDTH, yGap,
+    -- or the row count changes — no magic offsets to retune.
+    local btnX = (lblPort:GetLeft() - f:GetLeft()) + LABEL_WIDTH + 6
+    local btnY = lblPort:GetTop()  - f:GetTop()   -- negative; lblPort sits below f.TOPLEFT
+
     local teleportBtn = CreateFrame("Button", nil, f, "SecureActionButtonTemplate")
     teleportBtn:SetSize(24, 24)
-    teleportBtn:SetPoint("LEFT", 92, -68)
+    teleportBtn:SetPoint("TOPLEFT", btnX, btnY)
     teleportBtn:RegisterForClicks("AnyUp", "AnyDown")
     teleportBtn:Hide()
 
     local teleportIcon = teleportBtn:CreateTexture(nil, "ARTWORK")
     teleportIcon:SetAllPoints()
 
-    content:SetHeight(math.abs(yGap) * 6 + 24)
+    -- (No content:SetHeight here — content's TOPLEFT and BOTTOMRIGHT
+    -- anchors fully determine its size, so a SetHeight call would be a
+    -- no-op overridden by the anchors.)
 
     -- Close button
     local closeBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
