@@ -80,6 +80,13 @@ add{
     label   = "Enable",
     tooltip = "Master switch. When off, WhatGroup ignores group applications entirely — no capture, no notification, no popup. Re-enable to resume tracking on your next /lfg apply.",
     default = true,
+    -- Off-flip wipes any in-flight capture so a pre-toggle apply can't
+    -- still surface a notify/popup after the user has explicitly
+    -- disabled the addon. WipeCapture also bumps notifyGen, cancelling
+    -- any C_Timer.After callback already scheduled.
+    onChange = function(v)
+        if not v then WhatGroup:WipeCapture() end
+    end,
 }
 
 add{

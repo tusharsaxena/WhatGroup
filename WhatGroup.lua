@@ -57,6 +57,8 @@ local captureQueue        = {}   -- FIFO: captures awaiting their appID assignme
 local pendingApplications = {}   -- [appID] -> capturedInfo (set when "applied" fires)
 local wasInGroup          = false
 local notifiedFor         = nil  -- pendingInfo identity that already fired notify+popup
+local notifyGen           = 0    -- bumped by any wipe; in-flight C_Timer.After
+                                 -- callbacks check it and bail if superseded
 
 local function dbg(...)
     if WhatGroup.debug then
@@ -501,15 +503,33 @@ function WhatGroup:_TryFireJoinNotify(reason)
     if not IsInGroup() then return end
 
     notifiedFor = self.pendingInfo
+    notifyGen = notifyGen + 1
+    local thisGen = notifyGen
+    local capturedInfo = self.pendingInfo
     local delay = (self.db and self.db.profile and self.db.profile.notify
                    and self.db.profile.notify.delay) or 1.5
     local autoShow = not (self.db and self.db.profile and self.db.profile.frame
                           and self.db.profile.frame.autoShow == false)
     dbg("Notify(" .. reason .. ") scheduling in " .. tostring(delay) .. "s")
     C_Timer.After(delay, function()
+        -- Cancel if a wipe (group-leave, master-switch off) bumped the
+        -- generation, or if a newer notify replaced the pending info.
+        if notifyGen ~= thisGen then return end
+        if self.pendingInfo ~= capturedInfo then return end
         self:ShowNotification()
         if autoShow then self:ShowFrame() end
     end)
+end
+
+-- Capture-state wipe used by group-leave (GROUP_ROSTER_UPDATE) and by
+-- the master-switch off-flip (enabled.onChange). Bumps notifyGen so any
+-- still-scheduled notify callback becomes a no-op when it eventually fires.
+function WhatGroup:WipeCapture()
+    self.pendingInfo = nil
+    notifiedFor      = nil
+    notifyGen        = notifyGen + 1
+    wipe(captureQueue)
+    wipe(pendingApplications)
 end
 
 function WhatGroup:GROUP_ROSTER_UPDATE()
@@ -529,10 +549,7 @@ function WhatGroup:GROUP_ROSTER_UPDATE()
     wasInGroup = inGroup
 
     if not inGroup then
-        self.pendingInfo = nil
-        notifiedFor      = nil
-        wipe(captureQueue)
-        wipe(pendingApplications)
+        self:WipeCapture()
     end
 end
 
@@ -553,6 +570,13 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
         -- AND the one that drives the teleport icon. If both have
         -- mapID, fresh wins (most current data).
         local queued = pendingApplications[appID]
+        -- TODO(F-004): C_LFGList.GetSearchResultInfo is documented to
+        -- accept a searchResultID; passing appID works today only
+        -- because for the player's own application appID == searchResultID
+        -- (undocumented Blizzard behaviour, see docs/capture-pipeline.md).
+        -- Migration plan: introduce CaptureGroupInfoFromApplication that
+        -- routes through C_LFGList.GetApplicationInfo → lfgListID, once
+        -- verified in-game at retail interface 120000-120005.
         local fresh  = self:CaptureGroupInfo(appID)
         local final
         if fresh and fresh.mapID then
