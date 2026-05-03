@@ -71,7 +71,7 @@ All schema reads and writes go through a private `Resolve(path)` helper that wal
 
 | Helper | Purpose |
 |---|---|
-| `Helpers.CreatePanel(name, title, opts)` | Build a Frame with the unified header (breadcrumb-prefixed `GameFontNormalHuge` title + `Options_HorizontalDivider`-tinted divider + optional Defaults button at top-right). Returns a `ctx = { panel, body, scroll, refreshers, lastGroup, panelKey }`. `opts.isMain` skips the `"Ka0s WhatGroup  \|  "` breadcrumb prefix; `opts.defaultsButton` adds the top-right button. |
+| `Helpers.CreatePanel(name, title, opts)` | Build a Frame with the unified header (breadcrumb-prefixed `GameFontNormalHuge` title + `Options_HorizontalDivider`-tinted divider + optional Defaults button at top-right). Returns a `ctx = { panel, body, scroll, refreshers, lastGroup, panelKey }`. `opts.isMain` skips the `"Ka0s WhatGroup <atlas-chevron> "` breadcrumb prefix (separator is the inline atlas `\|A:common-icon-forwardarrow:16:16\|a` — a real texture, not a font glyph, so it renders the same regardless of the FontString font / locale fallback); `opts.defaultsButton` adds the top-right button. |
 | `Helpers.PatchAlwaysShowScrollbar(scroll)` | Rebind an AceGUI ScrollFrame's `FixScroll` so the scrollbar (and its 20-px gutter) stays visible even when content fits — keeps left/right margins symmetric across short and long pages. Restores stock `FixScroll` / `OnRelease` on widget release so the shared AceGUI pool returns clean. |
 | `Helpers.Section(ctx, label)` | AceGUI `Heading` widget at `GameFontNormalLarge` with 10 px above and 6 px below. |
 | `Helpers.RenderField(ctx, def, parent, relativeWidth)` | Dispatch a single schema row to the right widget maker (`bool` → CheckBox, `number` → Slider). |
@@ -178,7 +178,7 @@ Ka0s WhatGroup        ← parent canvas-layout category — landing page (logo, 
 └── General            ← subcategory — every schema widget + the Test button (afterGroup)
 ```
 
-Both pages share the same header layout (gold title + tinted divider) and the same always-visible AceGUI scrollbar. The parent's title reads `Ka0s WhatGroup` (no breadcrumb because `opts.isMain = true`); the General sub-page reads `Ka0s WhatGroup  |  General` and carries a Defaults button at top-right.
+Both pages share the same header layout (gold title + tinted divider) and the same always-visible AceGUI scrollbar. The parent's title reads `Ka0s WhatGroup` (no breadcrumb because `opts.isMain = true`); the General sub-page reads `Ka0s WhatGroup <atlas-chevron> General` (separator is the inline atlas `|A:common-icon-forwardarrow:16:16|a` — a real texture, not a font glyph, so it renders identically across font / locale fallback) and carries a Defaults button at top-right.
 
 Defaults button → `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreDefaults()`. `/wg reset` shows the same popup, so both paths share one OnAccept body.
 
