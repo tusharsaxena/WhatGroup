@@ -440,13 +440,17 @@ end
 -- ---------------------------------------------------------------------------
 
 local function buildHeader(panel, title, opts)
-    -- Sub-pages render with an "Ka0s WhatGroup | <Page>" prefix so the
-    -- in-page title reads as a breadcrumb. The parent/main page opts in
-    -- to the unprefixed form via opts.isMain. The Blizzard tree label
-    -- is driven by panel.name in CreatePanel and stays unprefixed.
+    -- Sub-pages render with an "Ka0s WhatGroup ▸ <Page>" breadcrumb. The
+    -- separator is an inline atlas (not a glyph) so it renders the same
+    -- regardless of the active FontString font / locale fallback. The
+    -- parent/main page opts in to the unprefixed form via opts.isMain
+    -- (otherwise it would read "Ka0s WhatGroup ▸ Ka0s WhatGroup"). The
+    -- Blizzard tree label is driven by panel.name in CreatePanel and
+    -- stays unprefixed so subpages indent cleanly under the parent.
     local displayTitle = title
     if not opts.isMain then
-        displayTitle = "Ka0s WhatGroup  |  " .. title
+        local sep = " |A:common-icon-forwardarrow:16:16|a "
+        displayTitle = "Ka0s WhatGroup" .. sep .. title
     end
 
     local titleFS = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
