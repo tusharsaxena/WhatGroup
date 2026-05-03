@@ -279,7 +279,7 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
         -- `generalPlaystyle` is the integer enum (Enum.LFGEntryGeneralPlaystyle);
         -- `playstyle` is the legacy alias kept for older clients. Capture
         -- all three; consumers prefer playstyleString, then look up
-        -- generalPlaystyle in PLAYSTYLE_LABELS.
+        -- generalPlaystyle in WhatGroup.Labels.PLAYSTYLE.
         generalPlaystyle  = info.generalPlaystyle or info.playstyle or 0,
         playstyleString   = info.playstyleString or "",
         age               = info.age or 0,
@@ -353,7 +353,22 @@ function WhatGroup:GetTeleportSpell(activityID, mapID)
     return nil
 end
 
-local function GetGroupTypeLabel(info)
+-- Shared label namespace consumed by both ShowNotification (chat) and
+-- WhatGroup_Frame.PopulateFields (popup). Single source of truth so a
+-- new playstyle enum or group-type rule lands in one place.
+WhatGroup.Labels = WhatGroup.Labels or {}
+
+-- Keyed by Enum.LFGEntryGeneralPlaystyle so the labels match the LFG UI's
+-- own "Learning / Fun (Relaxed) / Fun (Serious) / Expert" wording, pulled
+-- from Blizzard's localized GROUP_FINDER_GENERAL_PLAYSTYLE1..4 globals.
+WhatGroup.Labels.PLAYSTYLE = {
+    [Enum.LFGEntryGeneralPlaystyle.Learning]   = GROUP_FINDER_GENERAL_PLAYSTYLE1,
+    [Enum.LFGEntryGeneralPlaystyle.FunRelaxed] = GROUP_FINDER_GENERAL_PLAYSTYLE2,
+    [Enum.LFGEntryGeneralPlaystyle.FunSerious] = GROUP_FINDER_GENERAL_PLAYSTYLE3,
+    [Enum.LFGEntryGeneralPlaystyle.Expert]     = GROUP_FINDER_GENERAL_PLAYSTYLE4,
+}
+
+function WhatGroup.Labels.GetGroupTypeLabel(info)
     if info.isMythicPlus then
         return "Mythic+"
     elseif info.isCurrentRaid then
@@ -373,21 +388,14 @@ local function GetGroupTypeLabel(info)
     end
 end
 
--- Keyed by Enum.LFGEntryGeneralPlaystyle so the labels match the LFG UI's
--- own "Learning / Fun (Relaxed) / Fun (Serious) / Expert" wording, pulled
--- from Blizzard's localized GROUP_FINDER_GENERAL_PLAYSTYLE1..4 globals.
-local PLAYSTYLE_LABELS = {
-    [Enum.LFGEntryGeneralPlaystyle.Learning]   = GROUP_FINDER_GENERAL_PLAYSTYLE1,
-    [Enum.LFGEntryGeneralPlaystyle.FunRelaxed] = GROUP_FINDER_GENERAL_PLAYSTYLE2,
-    [Enum.LFGEntryGeneralPlaystyle.FunSerious] = GROUP_FINDER_GENERAL_PLAYSTYLE3,
-    [Enum.LFGEntryGeneralPlaystyle.Expert]     = GROUP_FINDER_GENERAL_PLAYSTYLE4,
-}
-local function GetPlaystyleLabel(info)
+function WhatGroup.Labels.GetPlaystyleLabel(info)
     if info.playstyleString and info.playstyleString ~= "" then
         return info.playstyleString
     end
-    return PLAYSTYLE_LABELS[info.generalPlaystyle] or ""
+    return WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle] or ""
 end
+
+local Labels = WhatGroup.Labels
 
 -- ---------------------------------------------------------------------------
 -- Chat notification
@@ -413,14 +421,14 @@ function WhatGroup:ShowNotification()
               .. " " .. (info.fullName ~= "" and info.fullName or "Unknown"))
     end
     if n.showType then
-        local typeStr = info.shortName ~= "" and info.shortName or GetGroupTypeLabel(info)
+        local typeStr = info.shortName ~= "" and info.shortName or Labels.GetGroupTypeLabel(info)
         print(CHAT_PREFIX .. "   - " .. colorize("Type:", gold) .. " " .. typeStr)
     end
     if n.showLeader then
         print(CHAT_PREFIX .. "   - " .. colorize("Leader:", gold) .. " " .. info.leaderName)
     end
     if n.showPlaystyle then
-        local playStyle = GetPlaystyleLabel(info)
+        local playStyle = Labels.GetPlaystyleLabel(info)
         if playStyle ~= "" then
             print(CHAT_PREFIX .. "   - " .. colorize("Playstyle:", gold) .. " " .. playStyle)
         end
@@ -825,8 +833,8 @@ function WhatGroup:RunTest()
     -- mapID 2652 is The Stonevault — exercises the mapID-keyed teleport
     -- lookup (445269 in TeleportSpells). generalPlaystyle exercises the
     -- enum-based label path; leave playstyleString empty so the lookup
-    -- falls through to PLAYSTYLE_LABELS instead of using the pre-rendered
-    -- string.
+    -- falls through to WhatGroup.Labels.PLAYSTYLE instead of using the
+    -- pre-rendered string.
     self.pendingInfo = {
         title             = "Test Group — Stonevault +12",
         leaderName        = "Testadin-Silvermoon",

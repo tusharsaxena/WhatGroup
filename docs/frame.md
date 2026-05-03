@@ -31,9 +31,9 @@ A single content frame inset 14px from the title bar and 14px / 44px from the bo
 |---|---|---|
 | 1 | `Group:` | `info.title` |
 | 2 | `Instance:` | `info.fullName` (fallback `"Unknown"`) |
-| 3 | `Type:` | `info.shortName` (fallback `GetGroupTypeLabel(info)`) |
+| 3 | `Type:` | `info.shortName` (fallback `WhatGroup.Labels.GetGroupTypeLabel(info)`) |
 | 4 | `Leader:` | `info.leaderName` |
-| 5 | `Playstyle:` | `info.playstyleString` (server-rendered) → `PLAYSTYLE_LABELS[info.generalPlaystyle]` → fallback dim em-dash |
+| 5 | `Playstyle:` | `info.playstyleString` (server-rendered) → `WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle]` → fallback dim em-dash |
 | 6 | `Teleport:` | 24×24 spell icon button (hidden when no spell mapped) |
 
 Labels use a fixed 72px column (`LABEL_WIDTH`) coloured gold (`|cffFFD700`); values are anchored 6px to the right of the label and use `GameFontHighlight` (white). The 18px row gap (`yGap`) gives a clean vertical rhythm and the content frame's height is set explicitly to `abs(yGap) * 6 + 24` so the layout can't underflow.
@@ -50,24 +50,6 @@ end
 
 Called once inside `buildFrame()` (i.e. on first `ShowFrame()`) to build the static layout. The returned `value` FontStrings are stored in the module-local `fields` table so `PopulateFields` can update them on every `ShowFrame()`.
 
-## `VALUE_COLORS` resolver table
-
-Per-field hex resolver. Each entry is a function `(info) → hex` (or returns `nil`/`""` to leave the value uncoloured):
-
-```lua
-local VALUE_COLORS = {
-    group     = function(info) return nil end,
-    instance  = function(info) return nil end,
-    type      = function(info) return nil end,
-    leader    = function(info) return nil end,
-    playstyle = function(info) return nil end,
-}
-```
-
-Today every resolver returns `nil` — values render in plain white. The hook is in place so future per-field colour rules (e.g. red for low-rated leaders, gold for current-tier raids) can be added by editing one resolver without touching the populator.
-
-`ColorizeValue(text, resolver, info)` wraps the text in `|cff<hex>…|r` only if the resolver returns a non-empty hex. Plain text is returned otherwise.
-
 ## `PopulateFields()`
 
 Called on every `ShowFrame()`. Reads `WhatGroup.pendingInfo` and updates each field via the appropriate FontString's `SetText`.
@@ -76,8 +58,8 @@ Edge cases:
 
 - **`pendingInfo == nil`** — every text field shows `|cff888888No data|r` and the teleport button hides. This shouldn't normally happen (`/wg show` and `/wg test` both set `pendingInfo` before calling `ShowFrame`), but the populator defends against it.
 - **`info.fullName == ""`** — Instance row falls back to `"Unknown"`.
-- **`info.shortName == ""`** — Type row falls back to `GetGroupTypeLabel(info)`.
-- **`info.playstyleString == ""` AND `PLAYSTYLE_LABELS[info.generalPlaystyle] == nil`** — Playstyle row falls back to a dim em-dash. This is also the path taken when `generalPlaystyle == Enum.LFGEntryGeneralPlaystyle.None` (= 0).
+- **`info.shortName == ""`** — Type row falls back to `WhatGroup.Labels.GetGroupTypeLabel(info)`.
+- **`info.playstyleString == ""` AND `WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle] == nil`** — Playstyle row falls back to a dim em-dash. This is also the path taken when `generalPlaystyle == Enum.LFGEntryGeneralPlaystyle.None` (= 0).
 
 ## Teleport button
 
@@ -118,16 +100,12 @@ There is intentionally no programmatic Hide method. The frame is closed by:
 - The ESC key (`UISpecialFrames` registration).
 - The `WhatGroup:show` chat link → `WhatGroup:ShowFrame()` (re-opens, doesn't close).
 
-## Why `GetGroupTypeLabel` and `PLAYSTYLE_LABELS` are duplicated
+## Shared label helpers
 
-Both helpers exist in `WhatGroup.lua` (used by `ShowNotification`) and `WhatGroup_Frame.lua` (used by `PopulateFields`).
-
-The duplication is intentional — keeping `WhatGroup_Frame.lua` independent of `WhatGroup.lua`'s internals lets the popup file load without taking a dependency on the addon's slash / dispatch / event-handler code paths during boot. The popup file does reach into `WhatGroup.pendingInfo` (read) and `WhatGroup:GetTeleportSpell()` (call), but it doesn't need anything from the chat-output code.
-
-If the helpers ever need to diverge (e.g. the popup adopts an icon-based type indicator while the chat keeps text), the duplication makes that change one-sided and obvious. If they stay aligned forever, an extraction to a shared module would be a small refactor — but that's not load-bearing today.
+`GetGroupTypeLabel` and the `PLAYSTYLE` enum→string table live on the shared `WhatGroup.Labels` namespace (defined in `WhatGroup.lua`). Both `ShowNotification` (chat output) and `PopulateFields` (popup) read from the same source so a new playstyle enum or group-type rule lands in one place. `WhatGroup.lua` loads before `WhatGroup_Frame.lua` per the TOC, so `WhatGroup.Labels` exists by the time the popup file runs `PopulateFields`.
 
 ## Frame dependencies
 
-- **`WhatGroup` global** — read at file-load time to attach the `ShowFrame` method, and again at `PopulateFields` time for `WhatGroup.pendingInfo` and `WhatGroup:GetTeleportSpell`.
+- **`WhatGroup` global** — read at `PopulateFields` time for `WhatGroup.pendingInfo`, `WhatGroup:GetTeleportSpell`, and `WhatGroup.Labels.{GetGroupTypeLabel, PLAYSTYLE}`. Read at file-load time to attach the `ShowFrame` method.
 - **WoW API** — `CreateFrame`, `BackdropTemplate`, `UISpecialFrames`, `GameFontNormalLarge` / `GameFontNormal` / `GameFontHighlight`, `GameTooltip`, `C_Spell.GetSpellTexture`, `IsSpellKnown`, `CastSpellByID`.
 - **No Ace3 dependencies.** The popup uses raw Blizzard `Frame` / `FontString` / `Texture` / `Button` — no AceGUI. (AceGUI is only used in the Settings panel.)

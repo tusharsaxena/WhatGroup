@@ -23,28 +23,6 @@ local FRAME_HEIGHT = 260
 local LABEL_WIDTH  = 72
 local yGap         = -18
 
--- Mirror of the chat-side table in WhatGroup.lua. Kept independently
--- duplicated so the popup file doesn't take a dependency on
--- WhatGroup.lua's internals at file-load time. See docs/frame.md.
-local PLAYSTYLE_LABELS = {
-    [Enum.LFGEntryGeneralPlaystyle.Learning]   = GROUP_FINDER_GENERAL_PLAYSTYLE1,
-    [Enum.LFGEntryGeneralPlaystyle.FunRelaxed] = GROUP_FINDER_GENERAL_PLAYSTYLE2,
-    [Enum.LFGEntryGeneralPlaystyle.FunSerious] = GROUP_FINDER_GENERAL_PLAYSTYLE3,
-    [Enum.LFGEntryGeneralPlaystyle.Expert]     = GROUP_FINDER_GENERAL_PLAYSTYLE4,
-}
-
-local function GetGroupTypeLabel(info)
-    if info.isMythicPlus       then return "Mythic+"
-    elseif info.isCurrentRaid  then return "Raid (Current)"
-    elseif info.isHeroicRaid   then return "Heroic Raid"
-    elseif info.categoryID == 2 then return "PvP"
-    elseif info.categoryID == 1 then return "Dungeon"
-    elseif info.maxNumPlayers and info.maxNumPlayers >= 10 then return "Raid"
-    elseif info.maxNumPlayers and info.maxNumPlayers > 0   then return "Dungeon"
-    else return "Group"
-    end
-end
-
 -- These get assigned inside buildFrame() and are nil until the popup
 -- is first shown. PopulateFields and ConfigureTeleportButton both
 -- read them after buildFrame() has run, so they're always non-nil
@@ -267,18 +245,19 @@ local function PopulateFields()
     local instText = info.fullName ~= "" and info.fullName or "Unknown"
     fields.instance:SetText(instText)
 
-    local typeStr = info.shortName ~= "" and info.shortName or GetGroupTypeLabel(info)
+    local Labels = WhatGroup.Labels
+    local typeStr = info.shortName ~= "" and info.shortName or Labels.GetGroupTypeLabel(info)
     fields.type:SetText(typeStr)
 
     fields.leader:SetText(info.leaderName)
 
     -- Prefer the server-rendered playstyleString when present; otherwise
-    -- look up the integer enum in PLAYSTYLE_LABELS. Empty string ("") and
-    -- Enum.LFGEntryGeneralPlaystyle.None (= 0) both fall through to the
-    -- dim em-dash placeholder.
+    -- look up the integer enum in WhatGroup.Labels.PLAYSTYLE. Empty
+    -- string ("") and Enum.LFGEntryGeneralPlaystyle.None (= 0) both fall
+    -- through to the dim em-dash placeholder.
     local playStyle = info.playstyleString
     if not playStyle or playStyle == "" then
-        playStyle = PLAYSTYLE_LABELS[info.generalPlaystyle] or ""
+        playStyle = Labels.PLAYSTYLE[info.generalPlaystyle] or ""
     end
     fields.playstyle:SetText(playStyle ~= "" and playStyle or "|cff888888—|r")
 

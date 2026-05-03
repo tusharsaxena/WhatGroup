@@ -190,7 +190,6 @@ If `C_LFGList.GetSearchResultInfo` or `C_LFGList.GetActivityInfoTable` exposes a
    - Add a new `MakeLabel` call after the existing rows, anchored against the previous label.
    - Add a `fields.<name>` entry to the storage table.
    - Add a populator branch in `PopulateFields` reading `info.<field>`.
-   - Add a `VALUE_COLORS.<name>` resolver if the field needs colour rules.
    - Update the content frame height (`content:SetHeight(math.abs(yGap) * <new row count> + 24)`).
 3. If it's surfaced in chat, add a print branch in `ShowNotification` and a corresponding `notify.show<Name>` schema row gated by `n.show<Name>`.
 4. Update the captured-info table in [capture-pipeline.md](./capture-pipeline.md#captured-info).

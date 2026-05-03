@@ -176,8 +176,8 @@ See [wow-quirks.md](./wow-quirks.md#hook-discipline) for the rules on when each 
 | `leaderName` | `info.leaderName` | `"Unknown"` |
 | `numMembers` | `info.numMembers` | `0` |
 | `voiceChat` | `info.voiceChat` | `""` |
-| `generalPlaystyle` | `info.generalPlaystyle` (current API) → `info.playstyle` (legacy fallback) | `0` (= `Enum.LFGEntryGeneralPlaystyle.None` → `""` via `PLAYSTYLE_LABELS`) |
-| `playstyleString` | `info.playstyleString` (server-rendered, localized) | `""` (consumers fall back to `PLAYSTYLE_LABELS[generalPlaystyle]`) |
+| `generalPlaystyle` | `info.generalPlaystyle` (current API) → `info.playstyle` (legacy fallback) | `0` (= `Enum.LFGEntryGeneralPlaystyle.None` → `""` via `WhatGroup.Labels.PLAYSTYLE`) |
+| `playstyleString` | `info.playstyleString` (server-rendered, localized) | `""` (consumers fall back to `WhatGroup.Labels.PLAYSTYLE[generalPlaystyle]`) |
 | `playstyle` | alias for `generalPlaystyle` | mirrors `generalPlaystyle` |
 | `age` | `info.age` | `0` |
 | `activityIDs` | `info.activityIDs` (or `{info.activityID}` fallback) | `{}` |
