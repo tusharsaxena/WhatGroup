@@ -23,13 +23,14 @@ Four module-locals in `WhatGroup.lua` plus one field on the addon table:
 
 | State | Shape | Lifetime |
 |---|---|---|
-| `captureQueue` | FIFO array of capture tables | session; wiped on group-leave or after `inviteaccepted` |
-| `pendingApplications` | `{ [appID] = capture }` | session; wiped on group-leave or after `inviteaccepted` |
+| `captureQueue` | FIFO array of capture tables | session; wiped on group-leave (via `WipeCapture`), master-switch off-flip, or after `inviteaccepted` |
+| `pendingApplications` | `{ [appID] = capture }` | session; wiped on group-leave (via `WipeCapture`), master-switch off-flip, or after `inviteaccepted` |
 | `wasInGroup` | bool | session; tracks `IsInGroup()`, seeded in `OnEnable` |
-| `notifiedFor` | the `pendingInfo` table reference that already triggered notify+popup | session; cleared on `inviteaccepted` (new pendingInfo) and on group-leave |
-| `WhatGroup.pendingInfo` | single capture table (the active one) | session; cleared on group-leave |
+| `notifiedFor` | the `pendingInfo` table reference that already triggered notify+popup | session; cleared on `inviteaccepted` (new pendingInfo) and on group-leave / master-switch off-flip |
+| `notifyGen` | integer counter | session; bumped by `WipeCapture` so any in-flight `C_Timer.After` notify callback bails on fire |
+| `WhatGroup.pendingInfo` | single capture table (the active one) | session; cleared on group-leave / master-switch off-flip |
 
-None of these are persisted — capture state is recomputed from live LFG events every session.
+None of these are persisted — capture state is recomputed from live LFG events every session. `WhatGroup:WipeCapture()` is the consolidated reset: it nils `pendingInfo`, nils `notifiedFor`, bumps `notifyGen`, and wipes both queues. Both the `GROUP_ROSTER_UPDATE` leave-branch and the `enabled` schema row's `onChange` (when flipped to `false`) route through it.
 
 ## Flow
 
@@ -70,16 +71,24 @@ GROUP_ROSTER_UPDATE  (transition: inGroup ∧ ¬wasInGroup)
         ├─ skip if notifiedFor == pendingInfo (already fired for this join)
         ├─ skip if not IsInGroup()
         ├─ notifiedFor = pendingInfo
+        ├─ notifyGen += 1; thisGen = notifyGen; capturedInfo = pendingInfo
         └─ C_Timer.After(notify.delay, function()
+              ├─ bail if notifyGen ~= thisGen   (WipeCapture / leave / master-switch off)
+              ├─ bail if pendingInfo ~= capturedInfo   (replaced by a newer apply)
               ├─ ShowNotification()                always (gated internally on notify.enabled)
               └─ if frame.autoShow then ShowFrame() end
            end)
         │
         ▼
 GROUP_ROSTER_UPDATE  ¬inGroup
-        ├─ pendingInfo = nil
-        ├─ notifiedFor = nil
-        └─ wipe(captureQueue) + wipe(pendingApplications)
+        └─ self:WipeCapture()
+              ├─ pendingInfo = nil
+              ├─ notifiedFor = nil
+              ├─ notifyGen  += 1   (cancels any in-flight notify timer)
+              └─ wipe(captureQueue) + wipe(pendingApplications)
+
+  Master-switch off-flip (enabled.onChange with v=false):
+        └─ self:WipeCapture()   (same five-way reset)
 ```
 
 ## Why a queue, not a single slot
@@ -172,7 +181,7 @@ See [wow-quirks.md](./wow-quirks.md#hook-discipline) for the rules on when each 
 
 | Field | Source | Default |
 |---|---|---|
-| `title` | `info.name or info.title` | `"Unknown"` |
+| `title` | `info.name` | `"Unknown"` |
 | `leaderName` | `info.leaderName` | `"Unknown"` |
 | `numMembers` | `info.numMembers` | `0` |
 | `voiceChat` | `info.voiceChat` | `""` |
@@ -180,7 +189,7 @@ See [wow-quirks.md](./wow-quirks.md#hook-discipline) for the rules on when each 
 | `playstyleString` | `info.playstyleString` (server-rendered, localized) | `""` (consumers fall back to `WhatGroup.Labels.PLAYSTYLE[generalPlaystyle]`) |
 | `playstyle` | alias for `generalPlaystyle` | mirrors `generalPlaystyle` |
 | `age` | `info.age` | `0` |
-| `activityIDs` | `info.activityIDs` (or `{info.activityID}` fallback) | `{}` |
+| `activityIDs` | `info.activityIDs` | `{}` |
 | `activityID` | `activityIDs[1]` | `nil` |
 | `fullName` | `actInfo.fullName or actInfo.activityName` | `""` |
 | `activityName` | `actInfo.activityName` | `""` |
@@ -194,7 +203,7 @@ See [wow-quirks.md](./wow-quirks.md#hook-discipline) for the rules on when each 
 
 The activity-derived fields are only populated when `C_LFGList.GetActivityInfoTable(firstActivityID)` returns a non-nil table. If the activity table is missing the fields stay at their defaults — the popup and notification still render, just with placeholder values.
 
-`GetGroupTypeLabel(info)` (in `WhatGroup.lua`) and a duplicate in `WhatGroup_Frame.lua` derive a human-readable type from these fields: Mythic+ wins, then Raid (Current), Heroic Raid, PvP (`categoryID == 2`), Dungeon (`categoryID == 1`), Raid (`maxNumPlayers >= 10`), Dungeon (`maxNumPlayers > 0`), or "Group" as the final fallback. See [frame.md](./frame.md#why-getgrouptypelabel-and-playstyle_labels-are-duplicated) for why the helper is duplicated.
+`WhatGroup.Labels.GetGroupTypeLabel(info)` (defined in `WhatGroup.lua`) derives a human-readable type from these fields: Mythic+ wins, then Raid (Current), Heroic Raid, PvP (`categoryID == 2`), Dungeon (`categoryID == 1`), Raid (`maxNumPlayers >= 10`), Dungeon (`maxNumPlayers > 0`), or "Group" as the final fallback. The popup's `PopulateFields` and the chat `ShowNotification` both read from this single namespace — see [frame.md → Shared label helpers](./frame.md#shared-label-helpers).
 
 ## Teleport spell lookup
 

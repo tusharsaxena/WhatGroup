@@ -1,6 +1,6 @@
 # Ka0s WhatGroup — Review Smoke Tests
 
-Validation checklist for the M1–M7 changes from [REVIEW_EXECUTION_PLAN.md](./REVIEW_EXECUTION_PLAN.md). Pairs with [REVIEW_FINDINGS.md](./REVIEW_FINDINGS.md) and [REVIEW_PROPOSED_CHANGES.md](./REVIEW_PROPOSED_CHANGES.md).
+Validation checklist for the M1–M7 changes from [04_EXECUTION_PLAN.md](./04_EXECUTION_PLAN.md). Pairs with [01_FINDINGS.md](./01_FINDINGS.md) and [02_PROPOSED_CHANGES.md](./02_PROPOSED_CHANGES.md).
 
 This is **review-specific** — focused tests for the behaviour changes the milestones actually shipped. For the canonical addon-wide smoke checklist (boot, slash, panel, real LFG flow, persistence, patch-day, lib-refresh) see [`docs/smoke-tests.md`](../../docs/smoke-tests.md). Run the review checklist below first; pull from the canonical doc for sections it references.
 

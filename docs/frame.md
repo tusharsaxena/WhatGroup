@@ -36,7 +36,7 @@ A single content frame inset 14px from the title bar and 14px / 44px from the bo
 | 5 | `Playstyle:` | `info.playstyleString` (server-rendered) → `WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle]` → fallback dim em-dash |
 | 6 | `Teleport:` | 24×24 spell icon button (hidden when no spell mapped) |
 
-Labels use a fixed 72px column (`LABEL_WIDTH`) coloured gold (`|cffFFD700`); values are anchored 6px to the right of the label and use `GameFontHighlight` (white). The 18px row gap (`yGap`) gives a clean vertical rhythm and the content frame's height is set explicitly to `abs(yGap) * 6 + 24` so the layout can't underflow.
+Labels use a fixed 72px column (`LABEL_WIDTH`) coloured gold (`|cffFFD700`); values are anchored 6px to the right of the label and use `GameFontHighlight` (white). The 18px row gap (`yGap`) gives a clean vertical rhythm. The content frame's size is fully determined by its TOPLEFT + BOTTOMRIGHT anchors against `f` (insets `14, -38` and `-14, 44`), so no explicit `SetHeight` is needed — the row stack just has to fit inside that natural extent.
 
 ## `MakeLabel` helper
 
@@ -67,7 +67,16 @@ Edge cases:
 
 **The button is parented directly to `f` (the popup), not to `UIParent`.** Earlier iterations parented it to UIParent and synced its screen position from a non-secure proxy frame inside the popup; that pattern leaked taint into Blizzard's secure-execute chain, surfacing as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked Logout in the GameMenu. Parenting directly to `f` means the button rides on the parent-child relationship: `f:Show()` shows the button, `f:Hide()` hides it, dragging the popup moves the button with it. No `syncTeleportButton`, no `PLAYER_REGEN_ENABLED` handler, no deferred Hide, no proxy frame.
 
-**Anchor uses the implicit-parent `SetPoint` form** (`SetPoint("LEFT", 92, -68)` — 3 args, no explicit `relativeTo`). Retail's secure-frame system rejects any `SetPoint` call on a protected frame that names a non-secure region as the anchor target — even when that region is the protected frame's own parent. The 3-arg form lets the engine resolve the parent transitively after the protection check has already passed, so anchoring against `f` works inside `buildFrame()`. The offset places the button at the Teleport row, right of the `Teleport:` label: x = content_inset(14) + LABEL_WIDTH(72) + gap(6) = 92 from f's LEFT; y = -68 from f's LEFT-mid (`f.center.y`) lands on row 6 of the 6-row label stack. See [wow-quirks.md → Secure buttons can't have an explicit non-secure anchor target](./wow-quirks.md#secure-buttons-cant-have-an-explicit-non-secure-anchor-target).
+**Anchor uses the implicit-parent `SetPoint` form** with offsets derived from the Teleport label's actual rendered position:
+
+```lua
+local btnX = (lblPort:GetLeft() - f:GetLeft()) + LABEL_WIDTH + 6
+local btnY = lblPort:GetTop()  - f:GetTop()      -- negative; lblPort is below f.TOPLEFT
+
+teleportBtn:SetPoint("TOPLEFT", btnX, btnY)
+```
+
+Retail's secure-frame system rejects any `SetPoint` call on a protected frame that names a non-secure region as the anchor target — even when that region is the protected frame's own parent. The 3-arg form lets the engine resolve the parent transitively after the protection check has already passed, so anchoring against `f` works inside `buildFrame()`. The offsets are computed from the Teleport label's actual rendered position via `GetLeft()`/`GetTop()` rather than hard-coded magic numbers, so changes to `LABEL_WIDTH`, `yGap`, or the row count keep the button aligned with its label automatically. See [wow-quirks.md → Secure buttons can't have an explicit non-secure anchor target](./wow-quirks.md#secure-buttons-cant-have-an-explicit-non-secure-anchor-target).
 
 `ConfigureTeleportButton(btn, icon, info)`:
 
@@ -86,6 +95,10 @@ The label `Teleport:` is built directly inline (not via `MakeLabel`) because its
 
 ```lua
 function WhatGroup:ShowFrame()
+    -- First-show-in-combat defer: see § Combat-defer below.
+    if not f and InCombatLockdown() then …queue on PLAYER_REGEN_ENABLED… ; return end
+
+    buildFrame()    -- lazy: first call only
     PopulateFields()
     f:Show()
     f:Raise()
@@ -93,6 +106,14 @@ end
 ```
 
 `ShowFrame` re-populates from the current `pendingInfo` every call — so toggling `pendingInfo` and re-calling `ShowFrame` updates the visible rows without recreating widgets. The `Raise()` call ensures the dialog comes to the front of its strata when re-opened over another popup.
+
+## Combat-defer
+
+`SecureActionButtonTemplate` attribute writes (`type`, `macrotext`) and `Show`/`Hide` are protected during `InCombatLockdown()` — silently dropped, not erroring. Three call sites are guarded:
+
+- **`ConfigureTeleportButton`** (called every `PopulateFields`, i.e. every `ShowFrame`). When in combat: stash `info` on `f._pendingTeleportInfo`, register `PLAYER_REGEN_ENABLED` on the popup frame, and return. When the event fires, unregister and rerun `ConfigureTeleportButton` with the most recently-stashed info. Repeated calls during the same combat window safely overwrite the stash; `RegisterEvent` is idempotent. The button retains its prior visual state until the rerun.
+- **`WhatGroup:ShowFrame` first-build** (the `not f and InCombatLockdown()` branch above). Creating the popup itself is fine in combat, but `buildFrame()` creates a `SecureActionButtonTemplate` and inserts `"WhatGroupFrame"` into `UISpecialFrames` — both protected. So the very first show is queued via a one-shot `CreateFrame("Frame")` waiting on `PLAYER_REGEN_ENABLED`, with a `[WG] Popup deferred until combat ends.` chat hint. The captured `pendingInfo` is restored on combat-end only if it was cleared mid-wait (group-leave during the window). Subsequent in-combat shows route through `ConfigureTeleportButton`'s guard, since `f` already exists.
+- **`Settings.Register()`** in `WhatGroup_Settings.lua` self-guards on `InCombatLockdown()` after the idempotent check (defense-in-depth atop `runConfig`'s slash-handler refusal). Same combat-taint rationale as the popup's secure button — registering Settings categories mid-combat taints the GameMenu callback chain.
 
 There is intentionally no programmatic Hide method. The frame is closed by:
 
@@ -106,6 +127,6 @@ There is intentionally no programmatic Hide method. The frame is closed by:
 
 ## Frame dependencies
 
-- **`WhatGroup` global** — read at `PopulateFields` time for `WhatGroup.pendingInfo`, `WhatGroup:GetTeleportSpell`, and `WhatGroup.Labels.{GetGroupTypeLabel, PLAYSTYLE}`. Read at file-load time to attach the `ShowFrame` method.
-- **WoW API** — `CreateFrame`, `BackdropTemplate`, `UISpecialFrames`, `GameFontNormalLarge` / `GameFontNormal` / `GameFontHighlight`, `GameTooltip`, `C_Spell.GetSpellTexture`, `IsSpellKnown`, `CastSpellByID`.
+- **`WhatGroup` global** — read at `PopulateFields` time for `WhatGroup.pendingInfo`, `WhatGroup:GetTeleportSpell`, and `WhatGroup.Labels.{GetGroupTypeLabel, PLAYSTYLE}`. Read at file-load time to attach the `ShowFrame` method. Also reads `WhatGroup._dbg` and `WhatGroup._print` for debug logging and chat hints.
+- **WoW API** — `CreateFrame`, `BackdropTemplate`, `UISpecialFrames`, `GameFontNormalLarge` / `GameFontNormal` / `GameFontHighlight`, `GameTooltip`, `C_Spell.GetSpellName` (with `GetSpellInfo` legacy fallback), `C_Spell.GetSpellTexture` (with `134400` fallback texID), `IsSpellKnown`, `InCombatLockdown`, `PLAYER_REGEN_ENABLED` event. Casting itself is delegated to Blizzard's secure action handler via `type="macro"` + `macrotext="/cast <SpellName>"` — `CastSpellByID` is never called from non-secure code.
 - **No Ace3 dependencies.** The popup uses raw Blizzard `Frame` / `FontString` / `Texture` / `Button` — no AceGUI. (AceGUI is only used in the Settings panel.)

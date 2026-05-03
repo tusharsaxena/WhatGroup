@@ -1,6 +1,6 @@
 # Ka0s WhatGroup — Proposed Changes (HLD + LLD)
 
-Pairs with [REVIEW_FINDINGS.md](./REVIEW_FINDINGS.md). HLD groups findings into themes; LLD lists per-finding code-shape changes.
+Pairs with [01_FINDINGS.md](./01_FINDINGS.md). HLD groups findings into themes; LLD lists per-finding code-shape changes.
 
 ---
 

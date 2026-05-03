@@ -1,8 +1,8 @@
 # Ka0s WhatGroup — Review Final Summary
 
-End-state of the 2026-05-02 principal-engineer review after all proposed milestones executed. Pairs with [REVIEW_FINDINGS.md](./REVIEW_FINDINGS.md), [REVIEW_PROPOSED_CHANGES.md](./REVIEW_PROPOSED_CHANGES.md), [REVIEW_EXECUTION_PLAN.md](./REVIEW_EXECUTION_PLAN.md), and [REVIEW_SMOKE_TESTS.md](./REVIEW_SMOKE_TESTS.md).
+End-state of the 2026-05-02 principal-engineer review after all proposed milestones executed. Pairs with [01_FINDINGS.md](./01_FINDINGS.md), [02_PROPOSED_CHANGES.md](./02_PROPOSED_CHANGES.md), [04_EXECUTION_PLAN.md](./04_EXECUTION_PLAN.md), and [03_SMOKE_TESTS.md](./03_SMOKE_TESTS.md).
 
-This doc assumes the [smoke tests](./REVIEW_SMOKE_TESTS.md) have all passed. Until they do, treat the changes as landed-but-unverified.
+This doc assumes the [smoke tests](./03_SMOKE_TESTS.md) have all passed. Until they do, treat the changes as landed-but-unverified.
 
 ---
 
@@ -206,7 +206,7 @@ Single source of truth for the playstyle / group-type label mappings:
 
 **Risk if not migrated:** Low today. The undocumented appID-as-searchResultID behaviour has been stable across recent retail patches. If a future patch hardens the type check on `GetSearchResultInfo`, the `fresh` re-capture in the `inviteaccepted` handler would silently return `nil` and the addon would fall back to the queued capture (same pendingInfo, slightly older mapID — not a hard break).
 
-**Remediation when ready:** Apply the proposed change at [REVIEW_PROPOSED_CHANGES.md → F-004](./REVIEW_PROPOSED_CHANGES.md):
+**Remediation when ready:** Apply the proposed change at [02_PROPOSED_CHANGES.md → F-004](./02_PROPOSED_CHANGES.md):
 
 ```lua
 function WhatGroup:CaptureGroupInfoFromApplication(appID)
@@ -234,7 +234,7 @@ These are doc-correctness, not behavioural. Not blocking; not part of the review
 
 ## Where to go next
 
-1. **Run [REVIEW_SMOKE_TESTS.md](./REVIEW_SMOKE_TESTS.md).** All sections, but pay attention to the 🔴 critical items.
+1. **Run [03_SMOKE_TESTS.md](./03_SMOKE_TESTS.md).** All sections, but pay attention to the 🔴 critical items.
 2. **Decide on F-004.** Verify `GetApplicationInfo` in-game next time you're playing on retail; either apply the migration above or leave the TODO and revisit on patch days.
 3. **Address doc backlog** via `/wow-addon:sync-docs` when ready.
 4. **Push `main`.** Branch is 7 ahead of `origin/main`. Push when smoke tests are green.
@@ -244,8 +244,8 @@ These are doc-correctness, not behavioural. Not blocking; not part of the review
 
 ## Cross-references
 
-- [REVIEW_FINDINGS.md](./REVIEW_FINDINGS.md) — original 18 findings
-- [REVIEW_PROPOSED_CHANGES.md](./REVIEW_PROPOSED_CHANGES.md) — HLD themes + per-finding LLD
-- [REVIEW_EXECUTION_PLAN.md](./REVIEW_EXECUTION_PLAN.md) — milestone ordering, concurrency, suggested commits
-- [REVIEW_SMOKE_TESTS.md](./REVIEW_SMOKE_TESTS.md) — review-specific validation checklist
+- [01_FINDINGS.md](./01_FINDINGS.md) — original 18 findings
+- [02_PROPOSED_CHANGES.md](./02_PROPOSED_CHANGES.md) — HLD themes + per-finding LLD
+- [04_EXECUTION_PLAN.md](./04_EXECUTION_PLAN.md) — milestone ordering, concurrency, suggested commits
+- [03_SMOKE_TESTS.md](./03_SMOKE_TESTS.md) — review-specific validation checklist
 - [docs/smoke-tests.md](../../docs/smoke-tests.md) — canonical addon-wide smoke checklist (boot, slash, panel, real LFG flow, persistence, patch-day, lib-refresh)

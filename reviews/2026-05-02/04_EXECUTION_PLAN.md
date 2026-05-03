@@ -1,6 +1,6 @@
 # Ka0s WhatGroup — Execution Plan
 
-Pairs with [REVIEW_FINDINGS.md](./REVIEW_FINDINGS.md) and [REVIEW_PROPOSED_CHANGES.md](./REVIEW_PROPOSED_CHANGES.md). Milestones are ordered. Tasks within a milestone may be parallelized where files are disjoint; serial constraints are called out.
+Pairs with [01_FINDINGS.md](./01_FINDINGS.md) and [02_PROPOSED_CHANGES.md](./02_PROPOSED_CHANGES.md). Milestones are ordered. Tasks within a milestone may be parallelized where files are disjoint; serial constraints are called out.
 
 ---
 

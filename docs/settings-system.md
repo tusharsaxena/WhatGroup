@@ -9,9 +9,9 @@ A single flat array `WhatGroup.Settings.Schema` declares every option. One row d
 | Settings panel widget | `Helpers.RenderSchema()` → `Helpers.RenderField()` → `makeCheckbox` / `makeSlider`; widgets register a refresher closure in `Settings._refreshers` keyed by `def.path` |
 | `/wg list` | groups schema by `section`, prints `path = formattedValue` per row |
 | `/wg get <path>` | `Helpers.FindSchema(path)` + format using `def.fmt` for numbers |
-| `/wg set <path> <value>` | type-aware parse → `Helpers.Set` → `def.onChange(value)` → `Helpers.RefreshAll()` |
+| `/wg set <path> <value>` | type-aware parse → `Helpers.Set(path, value)` (orchestrated: writes value, fires `onChange`, runs `RefreshAll` in one call) |
 | AceDB defaults | `Settings.BuildDefaults()` walks the schema, threads each row's `default` into the right slot under `profile.*` |
-| `/wg reset` + Defaults button | `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreDefaults()` (resets every row to its `default`, runs `def.onChange(default)`, refreshes panel widgets) |
+| `/wg reset` + Defaults button | `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreDefaults()` (orchestrated `Set` per row with `{skipRefresh = true}`, then one final `RefreshAll`) |
 
 The schema is settings-only — non-setting actions (the "Test" button) render via `afterGroup` callbacks in `Settings.Register`, not as schema rows. See [Action buttons](#action-buttons-aftergroup).
 
@@ -57,14 +57,15 @@ All schema reads and writes go through a private `Resolve(path)` helper that wal
 
 | Helper | Purpose |
 |---|---|
-| `Helpers.Get(path)` | resolve dotted path; read |
-| `Helpers.Set(path, value)` | resolve dotted path; write (no `onChange`, no refresh — those are the caller's job) |
+| `Helpers.Get(path)` | Resolve dotted path; read. When `WhatGroup.debug` is on, debug-logs `Helpers.Get: no path -> <path>` for typo'd paths so schema-key mistakes surface in the trace. |
+| `Helpers.RawSet(path, value)` | Side-effect-free write — resolve dotted path, write, return. No `onChange`, no `RefreshAll`. Reserved for callers that genuinely need raw writes (none today); prefer `Helpers.Set` for everything else. |
+| `Helpers.Set(path, value, opts)` | **Orchestrated single write-path.** Calls `RawSet`, then runs the row's `onChange` (in pcall), then runs `RefreshAll`. Every existing caller — CLI (`/wg set`), panel widget callbacks, `RestoreDefaults`, `runDebug` — routes through here so the three side effects can't drift out of sync. `opts.skipOnChange` and `opts.skipRefresh` are escape hatches; only `RestoreDefaults` uses `skipRefresh` (to refresh once after the loop). |
 | `Helpers.FindSchema(path)` | linear scan of `Schema` for `def.path == path` |
 | `Helpers.ValidateSchema()` | walk Schema and chat-print errors for missing `path`, unknown `type`, non-string `section`/`group`/`label`. Non-fatal. Runs once at registration. |
-| `Helpers.RestoreDefaults()` | for each row: `Set(def.path, def.default)` + `pcall(def.onChange, def.default)`; then `RefreshAll()`. Caller (`StaticPopup` OnAccept, slash command) handles confirmation. |
-| `Helpers.RefreshAll()` | invoke every refresher in `Settings._refreshers` (each is a `pcall`-guarded closure) |
+| `Helpers.RestoreDefaults()` | For each schema row: `Helpers.Set(def.path, def.default, { skipRefresh = true })` (orchestrated `Set` runs `onChange` in pcall, skips per-row refresh). After the loop, one `RefreshAll()`. Caller (`StaticPopup` OnAccept, slash command) handles confirmation. |
+| `Helpers.RefreshAll()` | Iterate `Settings._refresherOrder` in schema (= panel render) order; for each `def.path`, look up the closure in `Settings._refreshers` and run it under `pcall`. |
 
-`Settings._refreshers[def.path]` is set when a checkbox / slider widget is created — a closure that re-syncs the widget against `Helpers.Get(def.path)`. `RefreshAll` walks every entry.
+`Settings._refreshers[def.path]` is set when a checkbox / slider widget is created — a closure that re-syncs the widget against `Helpers.Get(def.path)`. `Settings._refresherOrder` is a parallel array tracking the registration order; `RefreshAll` iterates the array (rather than `pairs(_refreshers)`) so the iteration order is deterministic — matching the schema source order, which is also the panel render order.
 
 ### Panel infrastructure helpers
 
@@ -165,6 +166,8 @@ See [wow-quirks.md](./wow-quirks.md#lazy-acegui-panel-build) for the broader rul
 ## `Settings.Register()`
 
 Idempotent (`WhatGroup._settingsRegistered` guard). Validates the schema first (chat-prints typos, non-fatal), then registers two categories.
+
+**Combat-guarded.** After the idempotent guard, `Settings.Register()` self-checks `InCombatLockdown()` and refuses with a `[WG] Cannot register settings panel during combat.` chat hint if it's mid-combat. The slash handler `runConfig` already refuses on the same condition; the in-`Register` guard is defense-in-depth so any future caller that bypasses `runConfig` doesn't reintroduce the GameMenu taint that registering Settings categories during combat causes.
 
 **Called lazily** — only from `runConfig` (the `/wg config` slash handler) on first invocation. NOT called from `OnEnable`. Calling `_G.Settings.RegisterCanvasLayoutCategory` / `_G.Settings.RegisterAddOnCategory` from non-secure addon code at PLAYER_LOGIN taints Blizzard's GameMenu callbacks (Logout etc. fail with `ADDON_ACTION_FORBIDDEN`). Lazy registration means the addon adds nothing to Blizzard's settings/menu surface during the boot sequence. Trade-off: WhatGroup doesn't appear in the Settings → AddOns list until `/wg config` has been run once per session.
 
