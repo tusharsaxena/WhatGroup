@@ -57,7 +57,7 @@ All schema reads and writes go through a private `Resolve(path)` helper that wal
 
 | Helper | Purpose |
 |---|---|
-| `Helpers.Get(path)` | Resolve dotted path; read. When `WhatGroup.debug` is on, debug-logs `Helpers.Get: no path -> <path>` for typo'd paths so schema-key mistakes surface in the trace. |
+| `Helpers.Get(path)` | Resolve dotted path; read. When `NS.State.debug` is on, debug-logs `Helpers.Get: no path -> <path>` for typo'd paths so schema-key mistakes surface in the trace. |
 | `Helpers.RawSet(path, value)` | Side-effect-free write — resolve dotted path, write, return. No `onChange`, no `RefreshAll`. Reserved for callers that genuinely need raw writes (none today); prefer `Helpers.Set` for everything else. |
 | `Helpers.Set(path, value, opts)` | **Orchestrated single write-path.** Calls `RawSet`, then runs the row's `onChange` (in pcall), then runs `RefreshAll`. Every existing caller — CLI (`/wg set`), panel widget callbacks, `RestoreDefaults`, `runDebug` — routes through here so the three side effects can't drift out of sync. `opts.skipOnChange` and `opts.skipRefresh` are escape hatches; only `RestoreDefaults` uses `skipRefresh` (to refresh once after the loop). |
 | `Helpers.FindSchema(path)` | linear scan of `Schema` for `def.path == path` |
@@ -204,12 +204,11 @@ The integer `GetID()` is auto-assigned by the API. Don't overwrite `category.ID`
 
 ## Persisted shape — `WhatGroupDB`
 
-Single SavedVariables (declared in `WhatGroup.toc`). Holds an AceDB instance with the shared `Default` profile. The current `db.profile` shape, derived from the schema:
+Single SavedVariables (declared in `WhatGroup.toc`). Holds an AceDB instance with the shared `Default` profile plus an account-wide `global` block. The current shape, derived from the schema (`Settings.BuildDefaults`):
 
 ```
 profile = {
   enabled = true,
-  debug   = false,
   frame   = { autoShow = true },
   notify  = {
     enabled       = true,
@@ -222,9 +221,10 @@ profile = {
     showTeleport  = true,
   },
 }
+global = { schemaVersion = 1 }   -- seeded here; read by NS:RunMigrations (Database.lua)
 ```
 
-Capture / pending state (`captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is **session-only** and never touches SavedVariables. See [capture-pipeline.md](./capture-pipeline.md#state) for why.
+There is **no `debug` key** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). Capture / pending state (`captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [capture-pipeline.md](./capture-pipeline.md#state) for why.
 
 ## Current schema rows
 
@@ -235,7 +235,6 @@ Order matches panel render order — `add{}` calls in source order. Layout colum
 | general | `enabled` | bool | true | (paired) | **Master switch.** When false, `OnApplyToGroup` short-circuits — no capture, no notification, no popup. `/wg test` and `/wg show` bypass this gate. |
 | frame | `frame.autoShow` | bool | true | (paired) | Auto-open the popup on group join. With this off, the chat notification still prints and the user can re-open via the chat link or `/wg show`. |
 | notify | `notify.enabled` | bool | true | (paired) | Print the chat summary on group join. |
-| general | `debug` | bool | false | (paired) | Verbose event/hook logging (mirrors to `WhatGroup.debug` via `onChange`). |
 | notify | `notify.delay` | number | 1.5 | solo | Seconds (0–10, step 0.5) between joining and notifying. Lets the zone-in settle. |
 | notify | `notify.showInstance` | bool | true | solo | Include the Instance line in chat. |
 | notify | `notify.showType` | bool | true | solo | Include the Type line in chat. |

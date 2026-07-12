@@ -57,7 +57,7 @@ local runReset, runShow, runTest, runConfig, runDebug
 ## Help output convention
 
 ```
-[WG] v1.2.0 — slash commands (/whatgroup is an alias for /wg):
+[WG] v1.3.0 slash commands (/whatgroup is an alias for /wg):
   /wg help — List available commands
   /wg show — …
 ```
@@ -81,7 +81,7 @@ local runReset, runShow, runTest, runConfig, runDebug
 | `/wg get <path>` | `getSetting` | `Helpers.FindSchema(path)` + format using `def.fmt` for numbers (e.g. `"%.1fs"` → `1.5s`). Prints "Setting not found" for unknown paths. |
 | `/wg set <path> <value>` | `setSetting` → `applyFromText` | Type-aware parse: bool accepts `true / false / on / off / 1 / 0 / yes / no / toggle`; number coerces via `tonumber` and clamps to `min / max` if set. Calls `Helpers.Set(path, value)` — the orchestrated single write-path that internally writes the value, fires the row's `onChange`, then refreshes panel widgets — and echoes the new value. |
 | `/wg reset` | `runReset` → `StaticPopup_Show("WHATGROUP_RESET_ALL")` → `Helpers.RestoreDefaults()` | Show a confirm popup; on accept, reset every row to its `default`, run each `def.onChange(default)` in pcall, refresh panel widgets. The Defaults button in the General sub-page header shows the same popup, so both paths share one OnAccept body. |
-| `/wg debug` | `runDebug` | Toggle `db.profile.debug` and `WhatGroup.debug` together. Equivalent to `/wg set debug toggle`, kept as a convenience shortcut. Prefers `Helpers.Set` so the panel checkbox refreshes; falls back to a direct `db.profile.debug` write only at early-boot if the settings layer isn't loaded yet. |
+| `/wg debug` | `runDebug` | Flip the session-only `NS.State.debug` flag (WG-12). Off on every login; never persisted and **not** a schema row, so there's no `/wg set debug` and no panel checkbox — the slash command is the only toggle. |
 
 ## Why `runTest` is split between `/wg test` and `WhatGroup:RunTest()`
 

@@ -82,7 +82,7 @@ Retail's secure-frame system rejects any `SetPoint` call on a protected frame th
 
 1. `WhatGroup:GetTeleportSpell(info.activityID, info.mapID)` — returns a spell ID or nil. The lookup is keyed by `mapID` (see [capture-pipeline.md → Teleport spell lookup](./capture-pipeline.md#teleport-spell-lookup)).
 2. If nil: clear the macro attributes, `Hide()`, return.
-3. Otherwise: spell name from `C_Spell.GetSpellName(spellID)` (with `GetSpellInfo` legacy fallback); icon texture from `C_Spell.GetSpellTexture(spellID)` (with `134400` — the `?` glyph — as a fallback texID).
+3. Otherwise: spell name from `NS.Compat.GetSpellName(spellID)` (which prefers `C_Spell.GetSpellName`, falls through to the legacy `GetSpellInfo`); icon texture from `NS.Compat.GetSpellTexture(spellID)` with `134400` — the `?` glyph — as the caller-supplied fallback texID.
 4. `IsSpellKnown(spellID)` AND a non-nil spell name:
    - **known + named**: full alpha, `EnableMouse(true)`, `type="macro"` and `macrotext="/cast <SpellName>"` so a click runs the cast through the secure handler. `OnEnter` shows `GameTooltip:SetSpellByID(spellID)`.
    - **not known / unnamed**: 50% alpha, desaturated icon, `EnableMouse(false)`, secure attributes cleared.
@@ -128,5 +128,5 @@ There is intentionally no programmatic Hide method. The frame is closed by:
 ## Frame dependencies
 
 - **`WhatGroup` global** — read at `PopulateFields` time for `WhatGroup.pendingInfo`, `WhatGroup:GetTeleportSpell`, and `WhatGroup.Labels.{GetGroupTypeLabel, PLAYSTYLE}`. Read at file-load time to attach the `ShowFrame` method. Also reads `WhatGroup._dbg` and `WhatGroup._print` for debug logging and chat hints.
-- **WoW API** — `CreateFrame`, `BackdropTemplate`, `UISpecialFrames`, `GameFontNormalLarge` / `GameFontNormal` / `GameFontHighlight`, `GameTooltip`, `C_Spell.GetSpellName` (with `GetSpellInfo` legacy fallback), `C_Spell.GetSpellTexture` (with `134400` fallback texID), `IsSpellKnown`, `InCombatLockdown`, `PLAYER_REGEN_ENABLED` event. Casting itself is delegated to Blizzard's secure action handler via `type="macro"` + `macrotext="/cast <SpellName>"` — `CastSpellByID` is never called from non-secure code.
+- **WoW API** — `CreateFrame`, `BackdropTemplate`, `UISpecialFrames`, `GameFontNormalLarge` / `GameFontNormal` / `GameFontHighlight`, `GameTooltip`, `InCombatLockdown`, `PLAYER_REGEN_ENABLED` event. The version-variant spell lookups (`GetSpellName` / `GetSpellTexture` / `IsSpellKnown`) go through `NS.Compat.*`, not the raw `C_Spell.*` / legacy globals directly — `Compat.lua` is the sole caller. Casting itself is delegated to Blizzard's secure action handler via `type="macro"` + `macrotext="/cast <SpellName>"` — `CastSpellByID` is never called from non-secure code.
 - **No Ace3 dependencies.** The popup uses raw Blizzard `Frame` / `FontString` / `Texture` / `Button` — no AceGUI. (AceGUI is only used in the Settings panel.)

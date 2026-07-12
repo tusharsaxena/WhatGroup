@@ -173,10 +173,10 @@ Side note: `CastSpellByID` is also protected in retail (it fires `ADDON_ACTION_F
 
 ## Spell texture fallback (`134400`)
 
-`C_Spell.GetSpellTexture(spellID)` returns `nil` for spell IDs that aren't currently loaded into the client's spell database (e.g. teleport spells the player has never trained). The popup's `ConfigureTeleportButton` falls back to `134400` (the `?` glyph fileID) so the row still shows *something*:
+`C_Spell.GetSpellTexture(spellID)` returns `nil` for spell IDs that aren't currently loaded into the client's spell database (e.g. teleport spells the player has never trained). The texture lookup is routed through `NS.Compat.GetSpellTexture` (the shim returns `nil` when the API has nothing); the popup's `ConfigureTeleportButton` supplies the `134400` (`?` glyph fileID) fallback so the row still shows *something*:
 
 ```lua
-local texID = C_Spell.GetSpellTexture(spellID) or 134400
+local texID = NS.Compat.GetSpellTexture(spellID) or 134400
 ```
 
 `134400` is widely used as a "dynamic / unknown spell" sentinel across Blizzard's UI. Not load-bearing — any other placeholder fileID would work — but it's the convention.

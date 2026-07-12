@@ -29,7 +29,7 @@ local WhatGroup = LibStub("AceAddon-3.0"):NewAddon(
     NS, addonName,
     "AceConsole-3.0", "AceEvent-3.0")
 NS.addon = WhatGroup
-WhatGroup.VERSION = "1.2.0"
+WhatGroup.VERSION = "1.3.0"
 
 -- Session-only runtime state — never persisted (§12.5). Debug is off on
 -- every login and toggled only by `/wg debug`.

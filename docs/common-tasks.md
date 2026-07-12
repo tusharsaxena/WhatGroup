@@ -211,7 +211,7 @@ The Settings panel's Test button runs the same code path — both invoke `WhatGr
 /wg debug
 ```
 
-Toggles `db.profile.debug` and the `WhatGroup.debug` runtime flag together. Verbose `[DBG]`-tagged lines start printing for every event/hook fire. Useful when:
+Flips the session-only `NS.State.debug` runtime flag (off again on the next login — never persisted). Verbose `[DBG]`-tagged lines start printing for every event/hook fire. Useful when:
 
 - The notification fires at the wrong time → `GROUP_ROSTER_UPDATE` debug shows `inGroup` / `wasInGroup` / `hasPending` at every roster update.
 - The capture is empty → `CaptureGroupInfo` debug dumps the entire `info` table from `GetSearchResultInfo`, the `actInfo` table from `GetActivityInfoTable` (or a "returned nil" line when it's missing), and a final `CaptureGroupInfo result:` summary with the fields downstream consumers actually read (`title`, `activityID`, `mapID`, `isMythicPlus`, `generalPlaystyle`, `playstyleString`).
