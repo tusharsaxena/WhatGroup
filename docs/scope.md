@@ -19,7 +19,7 @@ These have been considered and explicitly declined. A change of heart needs an i
 
 - **LFG state mutation.** The addon never auto-applies, never declines invites, never modifies the LFG search results, and never blocks the join flow. Every hook is observation-only — direct `hooksecurefunc` on `C_LFGList.ApplyToGroup`, and a `hooksecurefunc` post-hook on `SetItemRef` that runs only when the link prefix matches `WhatGroup:`.
 - **Localization.** English-only. The schema labels, tooltips, chat prefixes, and `GetGroupTypeLabel` strings are all literal English. Localization plumbing is a deliberate non-goal at this size.
-- **Classic / Wrath / Cataclysm.** Retail only. Interface line in `WhatGroup.toc` is `120000,120001,120005`. The Premade Group Finder API surface and the `Settings.RegisterCanvasLayoutCategory` shape are retail-specific.
+- **Classic / Wrath / Cataclysm.** Retail only. Interface line in `WhatGroup.toc` is `120007`. The Premade Group Finder API surface and the `Settings.RegisterCanvasLayoutCategory` shape are retail-specific.
 - **Per-character profiles.** Single account-wide profile by design. No profile switcher, no per-character overrides.
 - **Profile import / export.** No serialization layer.
 - **LDB / minimap icon.** Not provided.

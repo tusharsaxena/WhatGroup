@@ -1,4 +1,4 @@
-## Interface: 120000,120001,120005
+## Interface: 120007
 ## Title: Ka0s WhatGroup
 ## Notes: Notifies you of group details after joining via Premade Group Finder
 ## Author: add1kted2ka0s
