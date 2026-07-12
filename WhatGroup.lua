@@ -11,20 +11,34 @@
 -- AceAddon bootstrap
 -- ---------------------------------------------------------------------------
 --
--- The plain `_G.WhatGroup` table that the legacy file populated is
--- promoted to an AceAddon, preserving every prior field. Downstream
--- files (Settings, Frame) read `_G.WhatGroup` and see the mixed-in
--- version with RegisterChatCommand / RegisterEvent / db / etc. Hooks
--- are direct `hooksecurefunc` post-hooks installed at file-load
--- (below) — not AceHook. AceHook adds a per-invocation closure that
--- taints Blizzard's secure-execute chain at GameMenu Logout time.
+-- Private-namespace pattern (§4.1, §10): `NS` is the addon's private table,
+-- shared across every source file via the second load vararg. AceAddon
+-- mixes its methods (RegisterChatCommand / RegisterEvent / db / …) directly
+-- INTO `NS`, so `NS` IS the addon object and `NS.addon` aliases it. Earlier
+-- files (Compat, Locale, Database) have already hung NS.Compat / NS.L /
+-- NS:RunMigrations on this same table; NewAddon preserves those fields.
+--
+-- No `_G.WhatGroup` — the addon exposes no public global (WG-01). Downstream
+-- files pick the object up with `local WhatGroup = NS.addon`. Hooks are
+-- direct `hooksecurefunc` post-hooks installed at file-load (below) — not
+-- AceHook. AceHook adds a per-invocation closure that taints Blizzard's
+-- secure-execute chain at GameMenu Logout time.
 
-local existing = _G.WhatGroup or {}
+local addonName, NS = ...
 local WhatGroup = LibStub("AceAddon-3.0"):NewAddon(
-    existing, "WhatGroup",
+    NS, addonName,
     "AceConsole-3.0", "AceEvent-3.0")
-_G.WhatGroup = WhatGroup
+NS.addon = WhatGroup
 WhatGroup.VERSION = "1.2.0"
+
+-- Session-only runtime state — never persisted (§12.5). Debug is off on
+-- every login and toggled only by `/wg debug`.
+NS.State = NS.State or {}
+NS.State.debug = false
+
+-- Single shared chat prefix (§7.4). NS.PREFIX is the one source of truth;
+-- `CHAT_PREFIX` below is a file-local alias for the many print call sites.
+NS.PREFIX = "|cff00FFFF[WG]|r"
 
 -- Direct `hooksecurefunc` post-hooks installed at file-load (NOT in
 -- OnEnable). Hooks live at the top of the file; the addon table is
@@ -50,7 +64,8 @@ hooksecurefunc("SetItemRef", function(linkArg, text, button, ...)
     end
 end)
 
-local CHAT_PREFIX = "|cff00FFFF[WG]|r"
+local CHAT_PREFIX = NS.PREFIX
+local L = NS.L
 
 -- Session-only state. Cleared on group leave; never persisted.
 local captureQueue        = {}   -- FIFO: captures awaiting their appID assignment
@@ -61,7 +76,7 @@ local notifyGen           = 0    -- bumped by any wipe; in-flight C_Timer.After
                                  -- callbacks check it and bail if superseded
 
 local function dbg(...)
-    if WhatGroup.debug then
+    if NS.State.debug then
         print(CHAT_PREFIX, "|cffFF8C00[DBG]|r", ...)
     end
 end
@@ -78,8 +93,8 @@ WhatGroup._dbg   = dbg
 -- Teleport spell lookup
 -- ---------------------------------------------------------------------------
 --
--- The mapID → spellID table itself lives in data/TeleportSpells.lua —
--- loaded after this file via the .toc, populates WhatGroup.TeleportSpells.
+-- The mapID → spellID table itself lives in TeleportSpells.lua, loaded
+-- via the .toc; it populates NS.TeleportSpells (== self.TeleportSpells).
 -- Resolver below reads from it.
 
 local function colorize(text, hex)
@@ -104,10 +119,12 @@ function WhatGroup:OnInitialize()
 
     self.db = LibStub("AceDB-3.0"):New("WhatGroupDB", defaults, true)
 
-    -- Seed runtime debug flag from the persisted preference. /wg debug
-    -- and the schema setter both write back to db.profile.debug so this
-    -- stays in sync.
-    self.debug = self.db.profile.debug and true or false
+    -- Migration seam: run once, right after AceDB:New, before any code
+    -- reads the profile (WG-08 / Database.lua). Idempotent.
+    self:RunMigrations()
+
+    -- Debug is session-only (NS.State.debug), off on every login. It is
+    -- NOT seeded from SavedVariables (WG-12).
 
     self:RegisterChatCommand("wg",        "OnSlashCommand")
     self:RegisterChatCommand("whatgroup", "OnSlashCommand")
@@ -141,8 +158,8 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
     end
 
     local captured = {
-        title             = info.name or "Unknown",
-        leaderName        = info.leaderName or "Unknown",
+        title             = info.name or L["Unknown"],
+        leaderName        = info.leaderName or L["Unknown"],
         numMembers        = info.numMembers or 0,
         voiceChat         = info.voiceChat or "",
         -- Playstyle: API offers three plausible fields. `playstyleString` is
@@ -170,8 +187,7 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
     local firstActivityID = captured.activityIDs[1]
     if firstActivityID then
         captured.activityID = firstActivityID
-        local actInfo = C_LFGList.GetActivityInfoTable
-                        and C_LFGList.GetActivityInfoTable(firstActivityID)
+        local actInfo = NS.Compat.GetActivityInfoTable(firstActivityID)
         if actInfo then
             captured.fullName       = actInfo.fullName or actInfo.activityName or ""
             captured.activityName   = actInfo.activityName or ""
@@ -199,14 +215,11 @@ end
 -- shows the icon desaturated rather than hiding.
 local function pickKnownSpell(value)
     if type(value) == "number" then
-        local known = IsSpellKnown and IsSpellKnown(value) or false
-        return value, known
+        return value, NS.Compat.IsSpellKnown(value)
     end
     if type(value) == "table" then
-        if IsSpellKnown then
-            for _, sid in ipairs(value) do
-                if IsSpellKnown(sid) then return sid, true end
-            end
+        for _, sid in ipairs(value) do
+            if NS.Compat.IsSpellKnown(sid) then return sid, true end
         end
         return value[1], false
     end
@@ -241,21 +254,21 @@ WhatGroup.Labels.PLAYSTYLE = {
 
 function WhatGroup.Labels.GetGroupTypeLabel(info)
     if info.isMythicPlus then
-        return "Mythic+"
+        return L["Mythic+"]
     elseif info.isCurrentRaid then
-        return "Raid (Current)"
+        return L["Raid (Current)"]
     elseif info.isHeroicRaid then
-        return "Heroic Raid"
+        return L["Heroic Raid"]
     elseif info.categoryID == 2 then
-        return "PvP"
+        return L["PvP"]
     elseif info.categoryID == 1 then
-        return "Dungeon"
+        return L["Dungeon"]
     elseif info.maxNumPlayers and info.maxNumPlayers >= 10 then
-        return "Raid"
+        return L["Raid"]
     elseif info.maxNumPlayers and info.maxNumPlayers > 0 then
-        return "Dungeon"
+        return L["Dungeon"]
     else
-        return "Group"
+        return L["Group"]
     end
 end
 
@@ -282,35 +295,35 @@ function WhatGroup:ShowNotification()
     if not n or not n.enabled then return end
 
     local gold      = "FFD700"
-    local clickLink = colorize(link("WhatGroup:show", "[Click here to view details]"), "00FF7F")
+    local clickLink = colorize(link("WhatGroup:show", L["[Click here to view details]"]), "00FF7F")
 
-    print(CHAT_PREFIX .. " You have joined a group!")
-    print(CHAT_PREFIX .. "   - " .. colorize("Group:", gold) .. " " .. tostring(info.title or "Unknown"))
+    print(CHAT_PREFIX .. " " .. L["You have joined a group!"])
+    print(CHAT_PREFIX .. "   - " .. colorize(L["Group:"], gold) .. " " .. tostring(info.title or L["Unknown"]))
 
     if n.showInstance then
-        print(CHAT_PREFIX .. "   - " .. colorize("Instance:", gold)
-              .. " " .. (info.fullName ~= "" and info.fullName or "Unknown"))
+        print(CHAT_PREFIX .. "   - " .. colorize(L["Instance:"], gold)
+              .. " " .. (info.fullName ~= "" and info.fullName or L["Unknown"]))
     end
     if n.showType then
         local typeStr = info.shortName ~= "" and info.shortName or Labels.GetGroupTypeLabel(info)
-        print(CHAT_PREFIX .. "   - " .. colorize("Type:", gold) .. " " .. typeStr)
+        print(CHAT_PREFIX .. "   - " .. colorize(L["Type:"], gold) .. " " .. typeStr)
     end
     if n.showLeader then
-        print(CHAT_PREFIX .. "   - " .. colorize("Leader:", gold) .. " " .. info.leaderName)
+        print(CHAT_PREFIX .. "   - " .. colorize(L["Leader:"], gold) .. " " .. info.leaderName)
     end
     if n.showPlaystyle then
         local playStyle = Labels.GetPlaystyleLabel(info)
         if playStyle ~= "" then
-            print(CHAT_PREFIX .. "   - " .. colorize("Playstyle:", gold) .. " " .. playStyle)
+            print(CHAT_PREFIX .. "   - " .. colorize(L["Playstyle:"], gold) .. " " .. playStyle)
         end
     end
     if n.showTeleport then
         local spellID, known = self:GetTeleportSpell(info.activityID, info.mapID)
         if spellID then
-            local spellLink = C_Spell and C_Spell.GetSpellLink and C_Spell.GetSpellLink(spellID)
+            local spellLink = NS.Compat.GetSpellLink(spellID)
                               or ("|cff71d5ff[Spell " .. spellID .. "]|r")
-            local note  = known and "" or " |cff888888(not learned)|r"
-            print(CHAT_PREFIX .. "   - " .. colorize("Teleport:", gold) .. " " .. spellLink .. note)
+            local note  = known and "" or (" |cff888888" .. L["(not learned)"] .. "|r")
+            print(CHAT_PREFIX .. "   - " .. colorize(L["Teleport:"], gold) .. " " .. spellLink .. note)
         end
     end
     if n.showClickLink then
@@ -347,7 +360,7 @@ function WhatGroup:OnSetItemRef(linkArg, text, button, ...)
     -- A click on a stale chat link from a previous session would
     -- otherwise open an empty "No data" popup; print a one-line hint.
     if not self.pendingInfo then
-        p("Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview.")
+        p(L["Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."])
         return
     end
     self:ShowFrame()
@@ -390,6 +403,12 @@ function WhatGroup:_TryFireJoinNotify(reason)
     local autoShow = not (self.db and self.db.profile and self.db.profile.frame
                           and self.db.profile.frame.autoShow == false)
     dbg("Notify(" .. reason .. ") scheduling in " .. tostring(delay) .. "s")
+    -- WG-17 (§3.1 SHOULD): AceTimer-3.0 is the mandated timer lib, but this
+    -- addon deliberately uses raw C_Timer.After. The generation-counter
+    -- cancel below (notifyGen / thisGen) already gives us the one thing
+    -- AceTimer would add (cancellable one-shots); vendoring AceTimer to
+    -- wrap a single fire-and-forget delay is churn without benefit. See
+    -- docs/ARCHITECTURE.md → "Timers".
     C_Timer.After(delay, function()
         -- Cancel if a wipe (group-leave, master-switch off) bumped the
         -- generation, or if a newer notify replaced the pending info.
@@ -551,10 +570,12 @@ local function findCommand(list, name)
 end
 
 function printHelp(self)
-    p("v" .. WhatGroup.VERSION
-      .. " — slash commands (|cffFFFF00/whatgroup|r is an alias for |cffFFFF00/wg|r):")
+    -- §7.4 shape: "<tag> v<ver> slash commands (<alias> is an alias for
+    -- <slash>):" — the [WG] tag is prepended by p().
+    p("v" .. WhatGroup.VERSION .. " " .. L["slash commands"]
+      .. " (|cffFFFF00/whatgroup|r is an alias for |cffFFFF00/wg|r):")
     for _, entry in ipairs(COMMANDS) do
-        p(("  |cffFFFF00/wg %s|r — |cffFFFFFF%s|r"):format(entry[1], entry[2]))
+        p(("  |cffFFFF00/wg %s|r — |cffFFFFFF%s|r"):format(entry[1], L[entry[2]]))
     end
 end
 
@@ -686,7 +707,7 @@ function runReset(self)
         StaticPopup_Show("WHATGROUP_RESET_ALL")
     else
         H.RestoreDefaults()
-        p("all settings reset to defaults")
+        p(L["all settings reset to defaults"])
     end
 end
 
@@ -694,7 +715,7 @@ function runShow(self)
     if self.pendingInfo then
         self:ShowFrame()
     else
-        p("No group info available. Use |cffFFFF00/wg test|r to preview.")
+        p(L["No group info available. Use |cffFFFF00/wg test|r to preview."])
     end
 end
 
@@ -737,7 +758,7 @@ function runConfig(self)
     -- Settings UI uses secure templates protected during combat;
     -- opening it mid-combat can taint. Refuse and print a hint.
     if InCombatLockdown() then
-        return p("Cannot open the settings panel during combat. Try again after combat ends.")
+        return p(L["Cannot open the settings panel during combat. Try again after combat ends."])
     end
 
     -- Lazy Settings registration: we deliberately don't register at
@@ -777,16 +798,8 @@ function runConfig(self)
 end
 
 function runDebug(self)
-    local H = helpers()
-    local newVal = not self.debug
-    -- The schema row's onChange sets WhatGroup.debug; orchestrated Set
-    -- handles persist + onChange + panel refresh. Direct-write fallback
-    -- only if the Settings layer hasn't loaded yet (early-boot edge).
-    if H and H.Set then
-        H.Set("debug", newVal)
-    elseif self.db and self.db.profile then
-        self.db.profile.debug = newVal
-        self.debug = newVal
-    end
-    p("Debug mode: " .. (newVal and "|cff00FF00ON|r" or "|cffFF4444OFF|r"))
+    -- Session-only (WG-12 / §12.5): toggles NS.State.debug in memory only.
+    -- Never persisted; off again on the next login.
+    NS.State.debug = not NS.State.debug
+    p("Debug mode: " .. (NS.State.debug and "|cff00FF00ON|r" or "|cffFF4444OFF|r"))
 end

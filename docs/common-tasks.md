@@ -91,7 +91,7 @@ The order in `COMMANDS` is also the order in `/wg help` output. Pick a slot that
 
 **Primary source for spell IDs and names**: [`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities) on the Warcraft Wiki. Every "Path of …" page on that wiki gives the canonical spell ID and the destination dungeon/raid in its infobox. Entries carry a trailing comment with the dungeon name for at-a-glance scanning.
 
-One row to `WhatGroup.TeleportSpells` in `data/TeleportSpells.lua`. The table is keyed by **`mapID`** (the dungeon's instance map ID — stable across seasons):
+One row to `NS.TeleportSpells` in `TeleportSpells.lua`. The table is keyed by **`mapID`** (the dungeon's instance map ID — stable across seasons):
 
 ```lua
 WhatGroup.TeleportSpells = {
@@ -132,11 +132,11 @@ When Blizzard ships a new M+ season or a patch that adds/changes dungeon telepor
 5. **Check old dungeons that have been re-issued.** Sometimes Blizzard adds a *new* spellID for an existing dungeon (e.g. a Midnight-prepatch refresh — Skyreach picked up `1254557` alongside the original `159898`). If you find a second wiki spell page that points at a mapID already in the table, change the value from a single number to a `{ original, new }` list — the lookup resolves to whichever the player knows.
 6. **Verify in-game.** With `/wg debug` on, apply to one group per new dungeon and confirm the debug log shows `GetTeleportSpell HIT mapID=… spellID=…` for the right value, then click the popup's teleport icon and confirm the cast fires (or reports "you don't know that spell" if you haven't learned it — that's also success).
 
-The bottom of `data/TeleportSpells.lua` keeps a "Pending in-game mapID verification" comment block plus commented-out placeholder rows (e.g. raid teleports whose spell exists on the wiki but whose mapID hasn't been captured in-game yet). When you encounter one of those instances in the wild and capture its mapID via `/wg debug`, replace the placeholder line with an active row and remove the comment.
+The bottom of `TeleportSpells.lua` keeps a "Pending in-game mapID verification" comment block plus commented-out placeholder rows (e.g. raid teleports whose spell exists on the wiki but whose mapID hasn't been captured in-game yet). When you encounter one of those instances in the wild and capture its mapID via `/wg debug`, replace the placeholder line with an active row and remove the comment.
 
 ### Raid teleports
 
-The wiki's [`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities) does include several learnable raid-teleport spells (Castle Nathria, Sanctum of Domination, Sepulcher of the First Ones, Vault of the Incarnates, Aberrus, Amirdrassil, Liberation of Undermine, Manaforge Omega — all "Path of …" spells like the dungeon teleports). They follow the same shape, so the addon handles them identically once a row is added. The placeholder block at the bottom of `data/TeleportSpells.lua` lists raids whose teleport spell exists but whose mapID still needs in-game confirmation; lift them into the active table as their mapIDs are captured (apply to a real LFG raid group with `/wg debug` on and the debug log will show the mapID).
+The wiki's [`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities) does include several learnable raid-teleport spells (Castle Nathria, Sanctum of Domination, Sepulcher of the First Ones, Vault of the Incarnates, Aberrus, Amirdrassil, Liberation of Undermine, Manaforge Omega — all "Path of …" spells like the dungeon teleports). They follow the same shape, so the addon handles them identically once a row is added. The placeholder block at the bottom of `TeleportSpells.lua` lists raids whose teleport spell exists but whose mapID still needs in-game confirmation; lift them into the active table as their mapIDs are captured (apply to a real LFG raid group with `/wg debug` on and the debug log will show the mapID).
 
 ## Refresh embedded libs
 

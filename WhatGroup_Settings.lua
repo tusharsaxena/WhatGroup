@@ -24,7 +24,9 @@
 --   * Non-setting actions (e.g. "Test") render via afterGroup callbacks
 --     using Helpers.InlineButton, so the schema stays settings-only.
 
-local WhatGroup = LibStub("AceAddon-3.0"):GetAddon("WhatGroup")
+local addonName, NS = ...
+local WhatGroup = NS.addon
+local L         = NS.L
 local AceGUI    = LibStub("AceGUI-3.0")
 
 WhatGroup.Settings = WhatGroup.Settings or {}
@@ -58,7 +60,7 @@ end
 --
 --   --- General ---
 --   [Enable]        | [Auto Show]
---   [Print to Chat] | [Debug]
+--   [Print to Chat]
 --     <afterGroup: Test button (160 px, left-aligned)>
 --
 --   --- Notify ---
@@ -105,14 +107,10 @@ add{
     default = true,
 }
 
-add{
-    section = "general",  group = "General",
-    path    = "debug",  type = "bool",
-    label   = "Debug",
-    tooltip = "Print every internal event/hook to chat. Useful for diagnosing capture issues.",
-    default = false,
-    onChange = function(v) WhatGroup.debug = v and true or false end,
-}
+-- Debug is intentionally NOT a schema row: it's session-only runtime
+-- state (NS.State.debug), toggled via `/wg debug`, never persisted to
+-- SavedVariables (WG-12 / §12.5). Keeping it out of the schema keeps it
+-- off the panel and out of BuildDefaults / `/wg list`.
 
 -- Notify — `solo = true` makes each row span the left half on its own
 -- line, so the section reads as a vertical checklist of "include this
@@ -206,7 +204,7 @@ end
 function Helpers.Get(path)
     local parent, key = Resolve(path)
     if not parent then
-        if WhatGroup.debug and WhatGroup._dbg then
+        if NS.State.debug and WhatGroup._dbg then
             WhatGroup._dbg("Helpers.Get: no path -> " .. tostring(path))
         end
         return nil
@@ -304,7 +302,10 @@ end
 -- Walk Schema and build the nested AceDB defaults table by threading each
 -- row's `default` into the path it names.
 function Settings.BuildDefaults()
-    local out = { profile = {} }
+    -- `global.schemaVersion` seeds AceDB's account-wide store so a fresh
+    -- install lands at the current version; Database.lua's RunMigrations
+    -- reads it (WG-08).
+    local out = { profile = {}, global = { schemaVersion = NS.SCHEMA_VERSION or 1 } }
     for _, def in ipairs(Schema) do
         if def.path then
             local segs = {}
@@ -374,7 +375,7 @@ function Settings.EnsureResetPopup()
     Settings._resetPopupRegistered = true
     StaticPopupDialogs = StaticPopupDialogs or {}
     StaticPopupDialogs["WHATGROUP_RESET_ALL"] = {
-        text         = "Reset every WhatGroup setting to its default? The active profile is the only one affected.",
+        text         = L["Reset every WhatGroup setting to its default? The active profile is the only one affected."],
         button1      = YES or "Yes",
         button2      = NO  or "No",
         timeout      = 0,
@@ -382,7 +383,7 @@ function Settings.EnsureResetPopup()
         hideOnEscape = true,
         OnAccept     = function()
             Helpers.RestoreDefaults()
-            pout("all settings reset to defaults")
+            pout(L["all settings reset to defaults"])
         end,
     }
 end
@@ -870,7 +871,7 @@ end
 -- ScrollFrame the General sub-page uses. Result: one scrollbar style
 -- across both pages, AceGUI font hooks pick up theme changes for free.
 
-local MAIN_LOGO_TEXTURE   = "Interface\\AddOns\\WhatGroup\\media\\screenshots\\whatgroup.logo.tga"
+local MAIN_LOGO_TEXTURE   = "Interface\\AddOns\\WhatGroup\\media\\logos\\whatgroup.logo.tga"
 local MAIN_LOGO_SIZE      = 300
 local MAIN_GAP_AFTER_LOGO = 8
 local MAIN_GAP_AFTER_DESC = 12
@@ -996,6 +997,8 @@ function Settings.Register()
     -- execute chain, and creating AceGUI frames synchronously inside
     -- that chain trips ADDON_ACTION_FORBIDDEN. Running the build on the
     -- next frame moves it out of the protected context entirely.
+    -- (Raw C_Timer.After, not AceTimer-3.0 — deliberate; see the WG-17
+    -- note in WhatGroup.lua and docs/ARCHITECTURE.md → "Timers".)
     local mainRendered, mainScheduled = false, false
     mainCtx.panel:SetScript("OnShow", function()
         if mainRendered or mainScheduled then return end
@@ -1028,6 +1031,7 @@ function Settings.Register()
     -- Same deferral as the main panel — keep the synchronous OnShow body
     -- a no-op so it can't ever do work inside Blizzard's secure-execute
     -- chains. The build runs on the next frame in a clean context.
+    -- (Raw C_Timer.After, not AceTimer-3.0 — deliberate; see WG-17.)
     local generalRendered, generalScheduled = false, false
     generalCtx.panel:SetScript("OnShow", function()
         if generalRendered or generalScheduled then return end

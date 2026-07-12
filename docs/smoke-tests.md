@@ -1,6 +1,6 @@
 # Smoke tests
 
-WhatGroup has no automated test suite — every behaviour the addon ships is validated **manually, in-game**. This file is the canonical checklist. Run the relevant section after any of:
+WhatGroup has a **headless test harness** (`lua tests/run.lua`) that covers pure logic — Compat shims, schema defaults/validation/get/set, labels, teleport lookup, and the capture-merge preference — plus `luacheck .` for lint. What the harness **cannot** cover — AceGUI panel rendering, the secure teleport button, and taint — is validated **manually, in-game** with this checklist. Run the relevant section after any of:
 
 - `/wow-addon:commit` of a non-trivial change
 - A WoW patch (Interface bump)

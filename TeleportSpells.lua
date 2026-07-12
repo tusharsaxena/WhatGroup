@@ -1,4 +1,4 @@
--- data/TeleportSpells.lua
+-- TeleportSpells.lua
 -- mapID → Path-of teleport spell ID lookup.
 --
 -- Keyed by the dungeon's instance map ID (stable across seasons).
@@ -15,10 +15,12 @@
 -- Refresh recipe (new season / patch): see
 -- docs/common-tasks.md → "Add a dungeon teleport spell mapping".
 
-local _, _ = ...
-local WhatGroup = _G.WhatGroup
+-- Writes straight to the shared private namespace (NS) so load order
+-- relative to WhatGroup.lua doesn't matter — `self.TeleportSpells`
+-- (self == NS.addon == NS) reads this same slot at lookup time.
+local addonName, NS = ...
 
-WhatGroup.TeleportSpells = {
+NS.TeleportSpells = {
 
     -- ===== Wrath of the Lich King =====
     [658]  = 1254555,             -- Pit of Saron

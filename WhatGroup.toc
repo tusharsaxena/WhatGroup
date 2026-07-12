@@ -3,11 +3,14 @@
 ## Notes: Notifies you of group details after joining via Premade Group Finder
 ## Author: add1kted2ka0s
 ## Version: 1.2.0
-## iconTexture: 134149
+## IconTexture: 134149
 ## SavedVariables: WhatGroupDB
+## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0
 ## DefaultState: enabled
-## Category-enUS: Chat & Communication
+## Category-enUS: Chat
 ## X-License: MIT
+## X-Standard: https://github.com/tusharsaxena/WowAddonStandards
+## X-Curse-Project-ID: 1489907
 
 # Libraries (must load first)
 libs\LibStub\LibStub.lua
@@ -18,8 +21,11 @@ libs\AceConsole-3.0\AceConsole-3.0.lua
 libs\AceDB-3.0\AceDB-3.0.lua
 libs\AceGUI-3.0\AceGUI-3.0.xml
 
-# Core
+# Addon
+Compat.lua
+Locale.lua
+Database.lua
+TeleportSpells.lua
 WhatGroup.lua
-data\TeleportSpells.lua
 WhatGroup_Settings.lua
 WhatGroup_Frame.lua

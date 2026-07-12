@@ -18,6 +18,10 @@
 -- the closures it builds for Logout / Settings / Macros are
 -- taint-free. See [docs/wow-quirks.md] for the full taint analysis.
 
+local addonName, NS = ...
+local WhatGroup = NS.addon
+local L         = NS.L
+
 local FRAME_WIDTH  = 420
 local FRAME_HEIGHT = 260
 local LABEL_WIDTH  = 72
@@ -63,7 +67,7 @@ local function buildFrame()
 
     local titleText = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     titleText:SetPoint("CENTER", titleBar, "CENTER", 0, -2)
-    titleText:SetText("|cffFFD700WhatGroup|r — Group Info")
+    titleText:SetText("|cffFFD700" .. L["WhatGroup"] .. "|r — " .. L["Group Info"])
 
     -- Separator line under title
     local sep = f:CreateTexture(nil, "ARTWORK")
@@ -98,15 +102,15 @@ local function buildFrame()
     topAnchor:SetSize(1, 1)
     topAnchor:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -4)
 
-    local lblGroup, valGroup = MakeLabel(content, topAnchor, 0,    "Group:",     "—")
-    local lblInst,  valInst  = MakeLabel(content, lblGroup,  yGap, "Instance:",  "—")
-    local lblType,  valType  = MakeLabel(content, lblInst,   yGap, "Type:",      "—")
-    local lblLead,  valLead  = MakeLabel(content, lblType,   yGap, "Leader:",    "—")
-    local lblStyle, valStyle = MakeLabel(content, lblLead,   yGap, "Playstyle:", "—")
+    local lblGroup, valGroup = MakeLabel(content, topAnchor, 0,    L["Group:"],     "—")
+    local lblInst,  valInst  = MakeLabel(content, lblGroup,  yGap, L["Instance:"],  "—")
+    local lblType,  valType  = MakeLabel(content, lblInst,   yGap, L["Type:"],      "—")
+    local lblLead,  valLead  = MakeLabel(content, lblType,   yGap, L["Leader:"],    "—")
+    local lblStyle, valStyle = MakeLabel(content, lblLead,   yGap, L["Playstyle:"], "—")
 
     local lblPort = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     lblPort:SetPoint("TOPLEFT", lblStyle, "BOTTOMLEFT", 0, yGap)
-    lblPort:SetText("|cffFFD700Teleport:|r")
+    lblPort:SetText("|cffFFD700" .. L["Teleport:"] .. "|r")
     lblPort:SetJustifyH("LEFT")
     lblPort:SetWidth(LABEL_WIDTH)
     lblPort:SetWordWrap(false)
@@ -138,7 +142,7 @@ local function buildFrame()
     local closeBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
     closeBtn:SetSize(90, 24)
     closeBtn:SetPoint("BOTTOM", f, "BOTTOM", 0, 12)
-    closeBtn:SetText("Close")
+    closeBtn:SetText(L["Close"])
     closeBtn:SetScript("OnClick", function() f:Hide() end)
 
     -- ESC to close — register with UISpecialFrames *now*, lazily.
@@ -200,10 +204,8 @@ local function buildFrame()
             return
         end
 
-        local spellName = (C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(spellID))
-                          or (GetSpellInfo and GetSpellInfo(spellID))
-        local texID     = (C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(spellID))
-                          or 134400
+        local spellName = NS.Compat.GetSpellName(spellID)
+        local texID     = NS.Compat.GetSpellTexture(spellID) or 134400
 
         icon:SetTexture(texID)
         icon:SetDesaturated(not known)
@@ -237,10 +239,11 @@ end
 local function PopulateFields()
     local info = WhatGroup.pendingInfo
     if not info then
-        fields.group:SetText("|cff888888No data|r")
-        fields.instance:SetText("|cff888888No data|r")
-        fields.type:SetText("|cff888888No data|r")
-        fields.leader:SetText("|cff888888No data|r")
+        local noData = "|cff888888" .. L["No data"] .. "|r"
+        fields.group:SetText(noData)
+        fields.instance:SetText(noData)
+        fields.type:SetText(noData)
+        fields.leader:SetText(noData)
         fields.playstyle:SetText("|cff888888—|r")
         fields.teleportBtn:Hide()
         return
@@ -248,7 +251,7 @@ local function PopulateFields()
 
     fields.group:SetText(info.title)
 
-    local instText = info.fullName ~= "" and info.fullName or "Unknown"
+    local instText = info.fullName ~= "" and info.fullName or L["Unknown"]
     fields.instance:SetText(instText)
 
     local Labels = WhatGroup.Labels
@@ -281,16 +284,16 @@ function WhatGroup:ShowFrame()
     -- by ConfigureTeleportButton's own combat guard, is at risk).
     if not f and InCombatLockdown() then
         if WhatGroup._print then
-            WhatGroup._print("Popup deferred until combat ends.")
+            WhatGroup._print(L["Popup deferred until combat ends."])
         end
         if not WhatGroup._frameBuildQueued then
             WhatGroup._frameBuildQueued = true
             local pending = WhatGroup.pendingInfo
             local waitFrame = CreateFrame("Frame")
             waitFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-            waitFrame:SetScript("OnEvent", function(self)
-                self:UnregisterAllEvents()
-                self:SetScript("OnEvent", nil)
+            waitFrame:SetScript("OnEvent", function(wf)
+                wf:UnregisterAllEvents()
+                wf:SetScript("OnEvent", nil)
                 WhatGroup._frameBuildQueued = nil
                 -- Restore the captured pendingInfo only if it was
                 -- cleared (e.g. group-leave) during the wait window;

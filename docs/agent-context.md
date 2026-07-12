@@ -1,0 +1,67 @@
+# Agent context — Ka0s WhatGroup
+
+Full working notes for Claude Code (and other LLM-assisted editors) working on
+**Ka0s WhatGroup**. The root [`CLAUDE.md`](../CLAUDE.md) is a stub that points
+here; this is the complete brief. Read it before touching code.
+
+This addon is **Tier 1 (Flat)** and adheres to the Ka0s WoW Addon Standard —
+<https://github.com/tusharsaxena/WowAddonStandards>.
+
+## What this addon is
+
+A retail WoW addon that hooks into the Premade Group Finder flow. It captures the group details visible at apply time and resurfaces them when the player joins, as a chat notification + popup dialog. The popup carries a teleport button for known dungeon teleport spells. Observation-only — never mutates LFG state.
+
+User-facing reference: [README.md](../README.md). Design overview + invariants: [ARCHITECTURE.md](./ARCHITECTURE.md).
+
+## Hard rules
+
+- **Observation-only, direct `hooksecurefunc` only.** WhatGroup never mutates LFG state, never auto-applies, never blocks the join flow. Both hooks are direct Blizzard `hooksecurefunc` calls (one on `C_LFGList.ApplyToGroup`, one on `SetItemRef` filtered to `WhatGroup:` link clicks). **No AceHook usage** — AceHook's `SecureHook` / `RawHook` wrappers leave a per-invocation closure around the callback, and that closure taints Blizzard's secure-execute chain. The taint surfaces later as `ADDON_ACTION_FORBIDDEN ... 'callback()'` at `Blizzard_GameMenu/Shared/GameMenuFrame.lua:69` when the player clicks Logout. AceHook-3.0 has been removed from the addon's NewAddon mixin list and from `libs/` for this reason.
+- **Private `NS` namespace, no global.** Every source file starts with `local addonName, NS = ...`. The AceAddon object is `NS.addon` (mixed into `NS`; downstream files alias `local WhatGroup = NS.addon`). There is **no `_G.WhatGroup`** (WG-01) — the addon exposes no public global. New standalone data/logic hangs on `NS.*` (e.g. `NS.Compat`, `NS.L`, `NS.State`, `NS.TeleportSpells`, `NS.PREFIX`). If a public surface is ever needed, expose only a versioned `NS.API.v1` via `_G[addonName]`, never the whole table.
+- **Schema-first.** Adding a setting = one row in `Settings.Schema` (`WhatGroup_Settings.lua`). The panel widget, `/wg list/get/set`, AceDB defaults, and `/wg reset` all follow automatically. Don't reach into `db.profile` directly from new code; go through `Settings.Helpers.Get` / `Settings.Helpers.Set` so the panel refreshers stay in sync.
+- **Slash-first.** Adding a command = one row in the `COMMANDS` table (`WhatGroup.lua`). Help output iterates the table.
+- **Cyan `[WG]` chat prefix on all addon output.** The prefix is the single shared constant `NS.PREFIX = "\|cff00FFFF[WG]\|r"`; `WhatGroup.lua` aliases it to a file-local `CHAT_PREFIX` for the many print sites. Debug lines additionally tag `[DBG]` in orange. No raw `print(...)` without the prefix.
+- **Debug is session-only.** Debug state lives in `NS.State.debug` (§12.5 / WG-12), default **off** on every login, toggled only by `/wg debug`. It is **not** a schema row and **never** persisted to SavedVariables. Don't reintroduce a `db.profile.debug`.
+- **English-only, but the locale module is mandatory.** Every string the addon authors is routed through `NS.L[...]` (`Locale.lua`), whose fall-back metatable returns the key so English needs no translation table. Localization *content* is a deliberate non-goal — see [scope.md](./scope.md) — but the locale *shell* (§8.3 / WG-07) stays. Playstyle enum *values* still read Blizzard's `GROUP_FINDER_GENERAL_PLAYSTYLE1..4` globals; those are Blizzard's strings, not ours.
+- **Retail-only.** Interface line in `WhatGroup.toc` is `120007`. The Premade Group Finder API surface and `Settings.RegisterCanvasLayoutCategory` shape are retail-specific.
+- **Capture state is session-only.** `captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`, `notifiedFor`, `notifyGen` never touch SavedVariables. Group-leave (and the master-switch off-flip) routes through `WhatGroup:WipeCapture()`, which clears all of them and bumps `notifyGen` so any in-flight `C_Timer.After` notify callback bails on fire. Don't add a "remember last group across reloads" mode without explicit ask.
+- **Single AceDB profile.** `AceDB:New("WhatGroupDB", defaults, true)` — third arg `true` shares one `Default` profile across every character on the account. Don't add per-character settings without explicit ask.
+- **Don't overwrite `category.ID` with a string.** `Settings.OpenToCategory(category:GetID())` requires the auto-assigned integer ID. Stamping a string over it silently breaks the lookup.
+- **Don't auto-stage, auto-commit, or auto-push.** The user chooses when to `git add` / `git stage`, `git commit`, and `git push`. Even after completing work, do not run any of those commands unless the user explicitly asks in the current turn. A prior approval does not carry forward. After making edits, leave the working tree in whatever modified-but-unstaged state your edits produced — describe what changed, do not stage it.
+    - **Carve-out — `/wow-addon:commit`:** When the user invokes the `/wow-addon:commit` slash command (from their personal `wow-addon` plugin), that invocation IS the explicit per-turn instruction this rule asks for. Follow the command's flow (propose message → `y` confirmation → `git add <named files>` → `git commit`) and treat the user's `y` reply as authorization to stage and commit the proposed file set. This carve-out is narrow: it only applies when the user has explicitly invoked `/wow-addon:commit` (or equivalently typed "commit these"/"commit it" in plain language) in the current turn. It does NOT extend to other slash commands and does NOT mean a `y` to something else earlier in the session counts. Outside of an explicit commit instruction in the current turn, the no-auto-commit rule above still applies in full.
+- **Don't bump the version without explicit instruction.** Never edit `## Version:` in `WhatGroup.toc`, `WhatGroup.VERSION` in `WhatGroup.lua`, the README version badge, or the README "Version History" table unless the user says so in the current turn. Refactors, feature additions, dep upgrades, and doc changes do not justify a bump — release versioning is the user's call. If a change feels release-worthy, mention it in the end-of-turn summary but leave the edit to the user.
+
+## Working environment
+
+- **Dual-path WSL.** `/home/tushar/GIT/WhatGroup/` and `/mnt/d/Profile/Users/Tushar/Documents/GIT/WhatGroup/` are the same repo via symlink. Either path works for git and file tools.
+- **Headless tests + lint (commit gate).** `lua tests/run.lua` loads every source in TOC order under a WoW mock (`tests/wow_mock.lua` + `tests/loader.lua`, `setfenv` + `chunk(addonName, NS)`) and runs the suites (`test_compat`, `test_database`, `test_settings`, `test_labels`, `test_capture`). `luacheck .` must be clean (config in `.luacheckrc`). Both must be green before every commit (§14A). Pure logic is covered here; frame/panel rendering and taint are **not** — those stay manual.
+- **Manual smoke tests.** `/wg test` exercises the full notify + popup flow without joining a real group; the panel's Test button hits the same `WhatGroup:RunTest()` code path. The checklist lives in [smoke-tests.md](./smoke-tests.md) — run the relevant section after any non-trivial change, after a patch, after a lib refresh, or before tagging a release. The **GameMenu → Logout taint check is the critical one** and can only be verified in-game.
+- **Vendored libs.** `libs/` is copied verbatim from Ka0s KickCD (`/mnt/d/Profile/Users/Tushar/Documents/GIT/KickCD/libs/`). Refresh by re-copying that directory. See [common-tasks.md](./common-tasks.md#refresh-embedded-libs).
+- **`.gitattributes`** enforces CRLF line endings on disk for `.lua` / `.toc` / `.xml` (WoW client expectation).
+
+## Response style for this repo
+
+- **Terse.** State the change, not the deliberation.
+- **Use `file_path:line_number` references** when pointing at code.
+- **Don't write summaries** the user can read from the diff.
+- **No comments explaining *what* well-named code does.** Only add a comment when the *why* is non-obvious (subtle invariant, workaround for a Blizzard quirk, hidden constraint).
+- **Don't create docs or planning files unless asked.**
+- **Match the existing patterns.** WhatGroup mirrors KickCD's slash-dispatch and schema-driven settings shape — when extending, look at the equivalent system in KickCD before inventing a new one.
+
+## Doc index
+
+Topic-specific detail lives in `docs/`. Read on demand — these are not auto-loaded.
+
+| Topic | File | When to read |
+|-------|------|--------------|
+| Design overview, subsystem map, load order, invariants | [ARCHITECTURE.md](./ARCHITECTURE.md) | Orienting on the whole addon. |
+| Per-file responsibility map | [file-index.md](./file-index.md) | "Which file owns X?" |
+| Scope boundaries (in / out / resolved decisions) | [scope.md](./scope.md) | Evaluating a feature request; deciding whether a behaviour is in scope. |
+| LFG capture pipeline + queue mechanics + `hooksecurefunc` on `SetItemRef` | [capture-pipeline.md](./capture-pipeline.md) | Touching event handling, capture flow, the `wasInGroup` join trigger, or chat-link hyperlinks. |
+| Settings schema, panel renderer, helpers, db.profile shape | [settings-system.md](./settings-system.md) | Adding a setting, changing the panel layout, building schema-driven CLIs. |
+| `/wg` slash UX + `COMMANDS` table | [slash-dispatch.md](./slash-dispatch.md) | Adding or modifying a slash command. |
+| Popup dialog (`WhatGroupFrame`) | [frame.md](./frame.md) | Touching the popup layout, value colours, or teleport button. |
+| WoW API gotchas (hook discipline, Settings API, lazy panel build) | [wow-quirks.md](./wow-quirks.md) | Patch-day breakage, hook decisions, Settings API integration. |
+| Recipes (add a setting, add a command, add a teleport, refresh libs, bump Interface) | [common-tasks.md](./common-tasks.md) | Routine modifications. |
+| Manual smoke tests (boot, slash, settings panel, /wg test, real LFG, regression checks) | [smoke-tests.md](./smoke-tests.md) | After any non-trivial change, after `/wow-addon:commit`, after a patch / lib refresh, before tagging a release. |
+
+**Standard-shaped files** (Tier 1): `Compat.lua` (`NS.Compat.*` spell/LFG shims — the sole caller of version-variant APIs), `Locale.lua` (`NS.L` shell), `Database.lua` (`NS:RunMigrations` + `global.schemaVersion`), `TeleportSpells.lua` (root, `NS.TeleportSpells`), `tests/` (headless harness), `.luacheckrc`, `.pkgmeta`. Some topic docs under `docs/` still describe the pre-refactor `_G.WhatGroup` shape — treat this file and `ARCHITECTURE.md` as the source of truth for the namespace, and run `/wow-addon:sync-docs` to refresh the rest.

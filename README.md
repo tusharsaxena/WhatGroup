@@ -1,8 +1,9 @@
 # Ka0s WhatGroup
 
-![wow](https://img.shields.io/badge/WoW-Midnight_12.0.5-orange)
+![wow](https://img.shields.io/badge/WoW-Midnight_12.0.7-orange)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![license](https://img.shields.io/badge/license-MIT-green)
+[![Ka0s Standard](https://img.shields.io/badge/Ka0s-Standard-blue)](https://github.com/tusharsaxena/WowAddonStandards)
 
 ![alt text](https://media.forgecdn.net/attachments/1588/403/whatgroup-logo-png.png)
 
@@ -37,7 +38,7 @@ Every chat line is prefixed with a cyan `[WG]` banner. Every option is configura
 | `/wg get <path>` | Print one setting's current value |
 | `/wg set <path> <value>` | Update a setting. Bools accept `true / false / on / off / 1 / 0 / yes / no / toggle`; numbers clamp to the option's min/max |
 | `/wg reset` | Reset every setting to its default |
-| `/wg debug` | Toggle debug logging (persisted across sessions) |
+| `/wg debug` | Toggle debug logging (session-only — resets to off each login) |
 | `/whatgroup` | Long-form alias for `/wg` — accepts the same subcommands |
 
 ### Settings panel
@@ -46,14 +47,14 @@ Every chat line is prefixed with a cyan `[WG]` banner. Every option is configura
 
 The **General** subcategory holds every setting in a two-column layout with a **Notify** sub-section further down. The page header carries a **Defaults** button on the right that resets every setting after a confirm prompt — same code path as `/wg reset`.
 
-*   **General** — master enable, popup auto-show on group join, chat notification on/off, debug log, and a **Test** button that runs the full notify + popup flow against synthetic data.
+*   **General** — master enable, popup auto-show on group join, chat notification on/off, and a **Test** button that runs the full notify + popup flow against synthetic data. (Debug logging is toggled with `/wg debug`, not a panel control — it's session-only.)
 *   **Notify** — notification delay (0–10s) plus per-line gates for the chat notification: Instance, Type, Leader, Playstyle, the "Click here" link, and the dungeon teleport spell line. Each toggle controls **chat output only** — the popup always shows every field.
 
 ## How It Works
 
 When you click **Apply** in the Premade Group Finder, WhatGroup quietly snapshots the group's details from the search-result tile. It tracks the application across the LFG state machine so the right group info ends up paired with the right invite, even when several applications are in flight at once. Once you actually join the group, the chat notification prints and the popup opens — both fired after `notify.delay` seconds so the zone-in has time to settle.
 
-Capture state is session-only and clears when you leave the group; only your settings persist between sessions. For the full event flow, hooks, and capture-pipeline diagram see [ARCHITECTURE.md](ARCHITECTURE.md).
+Capture state is session-only and clears when you leave the group; only your settings persist between sessions. For the full event flow, hooks, and capture-pipeline diagram see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## FAQ
 
@@ -76,13 +77,19 @@ Capture state is session-only and clears when you leave the group; only your set
 | Teleport button is grayed out for a dungeon I'm in | Either the spell isn't learned on the current character, or the activity has no teleport mapping. The popup always renders the row; the button is disabled when the spell isn't castable. |
 | Settings panel opens but I can't find the toggles | `/wg config` lands on the addon's landing page (logo + slash list) with the subcategory tree unfolded — click **General** in the sidebar to reach the toggles. |
 
-## For contributors
-
-WhatGroup has no automated test suite — validation is manual, in-game. Before opening a PR or tagging a release, run the relevant section of the [manual smoke-test checklist](docs/smoke-tests.md) (boot health, slash commands, settings panel, `/wg test`, real LFG flow, regression checks). The Quick reference checklist at the bottom of that file is the minimum 80%-coverage pass.
-
 ## Issues and feature requests
 
 All bugs, feature requests, and outstanding work are tracked at [https://github.com/tusharsaxena/WhatGroup/issues](https://github.com/tusharsaxena/WhatGroup/issues). Please file new reports there rather than as comments — the issue tracker is the single source of truth for the project's backlog.
+
+## Testing
+
+WhatGroup is validated on three levels:
+
+*   **Headless tests** — `lua tests/run.lua` loads every source in TOC order under a WoW mock and runs the pure-logic suites (Compat shims, schema defaults/validation/get/set, group-type & playstyle labels, teleport lookup, and the capture-merge preference). No game client required.
+*   **Lint** — `luacheck .` must report 0 warnings / 0 errors (config in `.luacheckrc`). Both the harness and the lint are the commit gate.
+*   **In-game smoke tests** — the pieces that can't be exercised headlessly (AceGUI panel rendering, secure teleport button, and the **GameMenu → Logout taint check**) are covered by the manual [smoke-test checklist](docs/smoke-tests.md). Run the relevant section after any non-trivial change, after an `## Interface:` bump, after refreshing `libs/`, and before tagging a release — the Quick reference checklist at the bottom of that file is the minimum pre-release pass.
+
+This addon follows the [Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards).
 
 ## Version History
 
