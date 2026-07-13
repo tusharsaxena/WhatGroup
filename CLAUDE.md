@@ -3,8 +3,25 @@
 **Tier 1 (Flat).** A single-folder retail WoW addon: flat source layout, Ace3
 vendored under `libs/`, one shared AceDB profile.
 
-This addon adheres to the **Ka0s WoW Addon Standard** —
-<https://github.com/tusharsaxena/WowAddonStandards>.
+## Standards adherence — read before any change
+
+This addon is built to the **Ka0s WoW Addon Standard** —
+<https://github.com/tusharsaxena/WowAddonStandards>. Treat that repo (its
+`standards/01_STANDARD.md`) as the source of truth for structure, conventions,
+metadata, testing, and layout. **All development work in this repo is done
+against the standard** — check every change against it as you go.
+
+**Deviation rule (MUST).** If a change would deviate from the standard — or you
+notice existing code/docs that already deviate — **stop and flag it to the
+user.** Never silently conform and never silently deviate. The user decides
+whether it should be:
+1. an **accepted deviation** in this addon (record it with an in-code
+   SHOULD-justification comment per §0, and note it where relevant), or
+2. a **change to the standard definition** itself (a PR/edit to the
+   WowAddonStandards repo).
+
+Do not resolve a standards conflict on your own — surface it and let the user
+choose. (See the frozen compliance snapshot in `audit/2026-07-12/`.)
 
 This root file is a **stub** (§15.2). The full agent brief — hard rules (taint
 discipline, schema-first settings, slash-first commands, English-only, the
