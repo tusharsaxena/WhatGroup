@@ -47,4 +47,4 @@ Decisions that were made during requirements review and the v1.0 / v1.1 launches
 
 - User-facing behaviour: [README.md](../README.md) — slash commands, FAQ, troubleshooting.
 - Engineer working notes: [../CLAUDE.md](../CLAUDE.md) — hard rules, response style, working environment.
-- Module map + invariants: [../ARCHITECTURE.md](../ARCHITECTURE.md).
+- Module map + invariants: [ARCHITECTURE.md](./ARCHITECTURE.md).

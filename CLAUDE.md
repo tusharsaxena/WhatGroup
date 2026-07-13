@@ -21,7 +21,7 @@ whether it should be:
    WowAddonStandards repo).
 
 Do not resolve a standards conflict on your own — surface it and let the user
-choose. (See the frozen compliance snapshot in `audit/2026-07-12/`.)
+choose. (See the frozen compliance snapshot in `docs/audits/2026-07-12/`.)
 
 This root file is a **stub** (§15.2). The full agent brief — hard rules (taint
 discipline, schema-first settings, slash-first commands, English-only, the

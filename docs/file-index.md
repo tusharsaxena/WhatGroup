@@ -41,7 +41,7 @@ Logo / screenshot assets referenced by `README.md`. Not loaded by Lua. Files the
 
 - [README.md](../README.md) — user-facing.
 - [CLAUDE.md](../CLAUDE.md) — engineer working notes (hard rules + response style + doc index).
-- [ARCHITECTURE.md](../ARCHITECTURE.md) — design overview + invariants + doc index.
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — design overview + invariants + doc index.
 - `docs/*.md` — topic chunks. Read on demand:
   - [scope.md](./scope.md) — in / out of scope + resolved decisions
   - [capture-pipeline.md](./capture-pipeline.md) — LFG state machine + FIFO + `hooksecurefunc` on `SetItemRef`

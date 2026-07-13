@@ -19,7 +19,7 @@ WhatGroup needs to associate the group-info table read at apply time with the pl
 
 ## State
 
-Four module-locals in `WhatGroup.lua` plus one field on the addon table:
+Five module-locals in `WhatGroup.lua` plus one field on the addon table:
 
 | State | Shape | Lifetime |
 |---|---|---|

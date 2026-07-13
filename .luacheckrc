@@ -6,7 +6,7 @@ max_line_length = false
 codes = true
 
 -- Vendored libs and the audit/review/test trees are not ours to lint.
-exclude_files = { "libs/", "audit/", "reviews/", "tests/" }
+exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "tests/" }
 
 ignore = {
   "211/addonName", -- canonical `local addonName, NS = ...` header; NS is what's used

@@ -7,7 +7,5 @@ ignore:
   - .luacheckrc
   - .gitignore
   - .gitattributes
-  - audit
-  - docs
+  - docs        # includes docs/audits and docs/reviews
   - tests
-  - reviews
