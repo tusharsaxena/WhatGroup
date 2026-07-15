@@ -250,7 +250,7 @@ Rendered panel layout:
 ```
 --- General ---
 [Enable]        | [Auto Show]
-[Print to Chat] | [Debug]
+[Print to Chat] |
   <Test button (160 px, left-aligned, afterGroup)>
 
 --- Notify ---

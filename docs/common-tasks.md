@@ -173,13 +173,13 @@ When the user does ask, the version sites are:
 | Site | Where |
 |---|---|
 | `## Version:` | `WhatGroup.toc` line 5 |
-| `WhatGroup.VERSION` | `WhatGroup.lua` line 25 |
+| `WhatGroup.VERSION` | `WhatGroup.lua` line 32 |
 | README badge | `README.md` (look for the version-shield URL) |
 | README "Version History" table | `README.md` |
 | Settings parent panel subtitle | derived from `WhatGroup.VERSION` at runtime — no hard-coded copy |
 | `/wg help` output | derived from `WhatGroup.VERSION` at runtime — no hard-coded copy |
 
-The user has a `/wow-addon:version-bump <X.Y.Z>` slash command in their personal `wow-addon` plugin that updates every site in one pass. Prefer that over manual edits.
+The user has a `/wow-addon:bump-version <X.Y.Z>` slash command in their personal `wow-addon` plugin that updates every site in one pass. Prefer that over manual edits.
 
 ## Add a captured-info field
 
