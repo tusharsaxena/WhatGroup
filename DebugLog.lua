@@ -247,20 +247,32 @@ function D:SetEnabled(on)
     on = not not on
     NS.State.debug = on
     D:RefreshHeader()
-    ack("Debug mode: " .. (on and "|cff00FF00ON|r" or "|cffFF4444OFF|r"))
+    -- Colour-coded chat ack (debug-logging §5 MUST): ON green (40ff40) / OFF red
+    -- (ff4040), matching the title-bar toggle so the flag reads identically in
+    -- chat and on the console header. Routed through NS.PREFIX via ack().
+    ack("debug logging " .. (on and "|cff40ff40ON|r" or "|cffff4040OFF|r"))
     -- Bracket every session with a console line at both ends. Write through
     -- D:Add rather than NS.Debug so the "logging disabled" line still lands
     -- after NS.State.debug has flipped off (NS.Debug is gated on the flag,
     -- D:Add is not).
     D:Add("Debug", on and "logging enabled" or "logging disabled")
+    -- On enable, emit a one-line [Init] session summary immediately after the
+    -- bracket (debug-logging §5 MUST) — addon/version, schema, active profile —
+    -- so a pasted log is self-identifying. Via the raw D:Add (not the gated
+    -- NS.Debug sink), and only on enable: the flag is session-only and off at
+    -- login, so the SetEnabled seam is the only current, visible point (§8).
+    if on and NS.addon and NS.addon.InitSummary then
+        D:Add("Init", NS.addon:InitSummary())
+    end
 end
 
 function D:RefreshHeader()
     if not (frame and frame.debugToggle) then return end
     local on = NS.State and NS.State.debug
     frame.debugToggle:SetText(on and "Debug: ON" or "Debug: OFF")
-    if on then frame.debugToggle:SetTextColor(0.30, 0.85, 0.30)
-    else frame.debugToggle:SetTextColor(0.90, 0.30, 0.30) end
+    -- Matches the colour-coded chat ack (debug-logging §5): ON 40ff40, OFF ff4040.
+    if on then frame.debugToggle:SetTextColor(0.25, 1.0, 0.25)
+    else frame.debugToggle:SetTextColor(1.0, 0.25, 0.25) end
 end
 
 -- Global debug sink. No-op (zero alloc) when debug is off; otherwise appends to

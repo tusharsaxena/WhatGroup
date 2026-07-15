@@ -65,8 +65,10 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.6 | `/wg set notify.delay 2.5` | Prints `notify.delay = 2.5s`. Re-running `/wg get notify.delay` confirms. |
 | 2.7 | `/wg set notify.enabled toggle` | Toggles bool — confirm with `/wg get notify.enabled`. Run twice to restore. |
 | 2.8 | `/wg debug` | **Opens the debug console window** (`Ka0s WhatGroup — Debug`, 700×344, monospace). Run again to close it. State is untouched — the header toggle still reads `Debug: OFF`. |
-| 2.8a | `/wg debug on` then `/wg debug off` | Each prints `Debug mode: ON`/`OFF` in chat **and** appends a `[Debug] logging enabled`/`disabled` line inside the console. The header toggle flips green/red to match. |
+| 2.8a | `/wg debug on` then `/wg debug off` | Each prints `[WG] debug logging ON`/`OFF` in chat with the state word **colour-coded** (ON green `40ff40`, OFF red `ff4040`, matching the title-bar toggle) **and** appends a `[Debug] logging enabled`/`disabled` line inside the console. `on` also appends one `[Init]` line right after the bracket — `WhatGroup v<ver>, schema v1, profile '<name>'` followed by the current runtime state (`enabled`, `notify.delay`, `autoShow`, `inGroup`, `hasPending`). |
 | 2.8b | Click the `Debug: OFF`/`ON` toggle in the console title bar | Flips logging state (green ON / red OFF) with the same chat ack + console bracket line as `/wg debug on\|off`. `Copy` opens a highlight-ready plain-text buffer; `Clear` wipes both views. |
+| 2.8c | With debug on: `/wg set notify.delay 3.0` | Console shows **one** `[Set] notify.delay = 3` line. Restore with `/wg set notify.delay 1.5` (another single `[Set]`). |
+| 2.8d | With debug on: `/wg reset` → **Yes** | Console shows **one** coalesced `[Reset] restored N settings to defaults` line — **not** one `[Set]` per row. |
 | 2.9 | `/wg show` (no group, no pendingInfo) | Prints "No group info available. Use `/wg test` to preview." |
 | 2.10 | `/wg test` | Synthetic chat notification + popup fire (full coverage in §4). |
 | 2.11 | `/wg show` (right after 2.10) | Re-opens the same popup. |
@@ -189,14 +191,16 @@ The end-to-end test. Requires an active LFG and at least one group leader willin
 **Expected debug trace in the console (order may vary slightly), each line `HH:MM:SS | [Tag] …`:**
 
 ```
-<ts> | [Apply] ApplyToGroup id=<N>
-<ts> | [Capture] title=<X> activityID=<A> mapID=<M>
-<ts> | [LFG] LFG_STATUS appID=<N> status=applied
-<ts> | [LFG] LFG_STATUS appID=<N> status=invited            (some flows skip this)
-<ts> | [LFG] LFG_STATUS appID=<N> status=inviteaccepted
-<ts> | [Invite] inviteaccepted: pendingInfo=title=<X> mapID=<M>
+<ts> | [Init] WhatGroup v1.3.0, schema v1, profile 'Default' (enabled=true, notify.delay=1.5s, autoShow=true, inGroup=false, hasPending=false)
+<ts> | [Apply] id=<N> captured "<title>" (activity=<A> map=<M> m+=true)
+<ts> | [LFG] appID=<N> status=applied
+<ts> | [LFG] appID=<N> status=invited            (some flows skip this)
+<ts> | [LFG] appID=<N> status=inviteaccepted
+<ts> | [Invite] accepted appID=<N> → "<title>" map=<M> (source=fresh)
 <ts> | [Roster] inGroup=true wasInGroup=false hasPending=true
-<ts> | [Notify] (<reason>) scheduling in <delay>s
+<ts> | [Notify] scheduling in <delay>s (<reason>)
+<ts> | [Notify] fired
+<ts> | [Frame] popup shown "<title>" map=<M>
 ```
 
 **Expected user-visible output (after `notify.delay` seconds):** Full chat notification + popup, with the **real** group name, leader, mapID-resolved teleport spell.

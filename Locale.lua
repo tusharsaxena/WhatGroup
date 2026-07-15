@@ -18,7 +18,7 @@
 -- SCOPE: the player-facing surfaces route through L — the join notification,
 -- the popup dialog, the help header + command descriptions, and the reset
 -- confirmation. Slash-CLI diagnostics ("unknown command", "Usage: …",
--- "Settings layer not ready yet", "Debug mode: ON/OFF") are deliberately
+-- "Settings layer not ready yet", "debug logging ON/OFF") are deliberately
 -- NOT routed: they are developer/power-user feedback for the `/wg`
 -- command line, not chrome a translator would localize. Keeping them out
 -- keeps this table focused on the strings a player actually reads.

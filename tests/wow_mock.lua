@@ -73,6 +73,7 @@ local function build()
             local db = {}
             db.profile = deepcopy(defaults and defaults.profile or {})
             db.global  = deepcopy(defaults and defaults.global  or {})
+            db.GetCurrentProfile = function() return "Default" end
             return db
         end,
     }

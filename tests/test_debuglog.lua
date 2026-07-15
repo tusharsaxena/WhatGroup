@@ -72,9 +72,42 @@ test("debuglog: enabling writes a '[Debug] logging enabled' console line", funct
     local NS = T.newAddon()
     NS.State.debug = false
     debugCmd(NS, "on")
-    local last = NS.DebugLog.buffer[#NS.DebugLog.buffer]
-    assertTrue(last and last:find("[Debug] logging enabled", 1, true) ~= nil,
-        "enabling should log '[Debug] logging enabled'")
+    -- The enable path appends the bracket line and THEN a [Init] state snapshot
+    -- (§8), so assert containment rather than last-line.
+    local found = false
+    for _, line in ipairs(NS.DebugLog.buffer) do
+        if line:find("[Debug] logging enabled", 1, true) then found = true end
+    end
+    assertTrue(found, "enabling should log '[Debug] logging enabled'")
+end)
+
+test("debuglog: enabling debug appends the [Init] session summary after the bracket (§5)", function()
+    local NS = T.bootAddon()
+    NS.State.debug = false
+    debugCmd(NS, "on")
+    local buf = NS.DebugLog.buffer
+    local last = buf[#buf]
+    assertTrue(last and last:find("[Init]", 1, true) ~= nil,
+        "the on path must end with the [Init] summary, after the bracket line")
+    -- Identity content: addon/version, schema, profile (debug-logging §5).
+    assertTrue(last:find("WhatGroup v", 1, true) ~= nil, "carries addon + version")
+    assertTrue(last:find("schema v", 1, true) ~= nil, "carries schema version")
+    assertTrue(last:find("profile 'Default'", 1, true) ~= nil, "carries active profile")
+    -- Order: the bracket line comes immediately before the [Init] line.
+    assertTrue(buf[#buf - 1]:find("[Debug] logging enabled", 1, true) ~= nil,
+        "[Init] follows the enable bracket line")
+end)
+
+test("debuglog: [Init] fires only on enable, not on disable (§5)", function()
+    local NS = T.bootAddon()
+    NS.State.debug = false
+    debugCmd(NS, "on")
+    local afterOn = #NS.DebugLog.buffer
+    debugCmd(NS, "off")
+    for i = afterOn + 1, #NS.DebugLog.buffer do
+        assertTrue(NS.DebugLog.buffer[i]:find("[Init]", 1, true) == nil,
+            "disable must not emit an [Init] line")
+    end
 end)
 
 test("debuglog: disabling still appends a '[Debug] logging disabled' line", function()
@@ -94,4 +127,60 @@ test("debuglog: NS.Debug is a no-op (no console write) when debug is off", funct
     local before = #NS.DebugLog.buffer
     NS.Debug("Capture", "should not append")
     assertEqual(#NS.DebugLog.buffer, before)
+end)
+
+-- ── message coverage / coalescing (§8/§9/§10) ──────────────────────────────
+
+-- Count buffer lines containing a literal fragment (plain-text buffer, no colours).
+local function countLines(NS, fragment)
+    local n = 0
+    for _, line in ipairs(NS.DebugLog.buffer) do
+        if line:find(fragment, 1, true) then n = n + 1 end
+    end
+    return n
+end
+
+test("debuglog: settings change logs one [Set] line at the write seam (§10)", function()
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    local before = countLines(NS, "[Set]")
+    NS.addon.Settings.Helpers.Set("notify.delay", 3.0)
+    assertEqual(countLines(NS, "[Set]") - before, 1, "exactly one [Set] line")
+    assertTrue(countLines(NS, "notify.delay = 3") >= 1, "line shows path = value")
+end)
+
+test("debuglog: RestoreDefaults coalesces to one [Reset], zero [Set] (§9)", function()
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    local setBefore = countLines(NS, "[Set]")
+    NS.addon.Settings.Helpers.RestoreDefaults()
+    assertEqual(countLines(NS, "[Set]") - setBefore, 0, "per-row [Set] suppressed")
+    assertEqual(countLines(NS, "[Reset]"), 1, "one [Reset] summary")
+    assertTrue(countLines(NS, "settings to defaults") >= 1, "summary names the count")
+end)
+
+test("debuglog: InitSummary leads with the §5 identity fields, then runtime state", function()
+    local NS = T.bootAddon()
+    local s = NS.addon:InitSummary()
+    -- Standard-mandated identity prefix (name/version/schema/profile) comes first.
+    assertEqual(s:sub(1, #("WhatGroup v" .. NS.addon.VERSION .. ", schema v1, profile 'Default'")),
+        "WhatGroup v" .. NS.addon.VERSION .. ", schema v1, profile 'Default'")
+    -- Runtime state appended on the same one line.
+    for _, frag in ipairs({ "enabled=true", "notify.delay=1.5s", "autoShow=true",
+                            "inGroup=false", "hasPending=false" }) do
+        assertTrue(s:find(frag, 1, true) ~= nil, "summary carries " .. frag)
+    end
+end)
+
+test("debuglog: enable ack is colour-coded green/red matching the header (§5)", function()
+    -- The chat ack routes through NS.Print (prefixed). Assert the state word
+    -- carries the mandated colour codes: ON 40ff40, OFF ff4040.
+    local NS, _, mock = T.newAddon()
+    NS.State.debug = false
+    debugCmd(NS, "on")
+    local onAck = mock.prints[#mock.prints]
+    assertTrue(onAck:find("|cff40ff40ON|r", 1, true) ~= nil, "ON ack is green 40ff40")
+    debugCmd(NS, "off")
+    local offAck = mock.prints[#mock.prints]
+    assertTrue(offAck:find("|cffff4040OFF|r", 1, true) ~= nil, "OFF ack is red ff4040")
 end)

@@ -27,6 +27,16 @@ Everything hangs off the shared namespace (`local addonName, NS = ...`):
   - `D.FormatPlain(ts, tag, msg)` / `D.FormatColored(ts, tag, msg)` — the two
     pure formatters (frame-free, unit-tested in `tests/test_debuglog.lua`).
   - `D.buffer` — the plain-text mirror (capped at 500 lines) the Copy window reads.
+- **`WhatGroup:InitSummary()`** (in `WhatGroup.lua`) — a pure builder returning
+  the one-line `[Init]` session summary: the standard-mandated identity fields
+  first — `WhatGroup v<version>, schema v<schemaVersion>, profile '<profile>'` —
+  then the current runtime state `(enabled=…, notify.delay=…s, autoShow=…,
+  inGroup=…, hasPending=…)` on the same line. The `D:SetEnabled` seam calls it and
+  appends the line via raw `D:Add` **on enable, immediately after the
+  `[Debug] logging enabled` bracket** (debug-logging §5 MUST). Emitted at the
+  seam, not at login — the session-only flag is off at login, so the seam is the
+  only current, visible point (§8). This makes a pasted log self-identifying
+  (which build / schema / profile) without asking the reporter.
 
 ## The window
 
@@ -53,10 +63,27 @@ Each line is `HH:MM:SS | [Tag] message`:
   clean. The two pure formatters keep the coloured and plain strings from
   drifting.
 
-Tags currently in use: `Capture`, `Notify`, `Apply`, `ChatLink`, `Roster`,
-`LFG`, `Invite` (`WhatGroup.lua`), `Frame` (`WhatGroup_Frame.lua`), `Settings`
-(`WhatGroup_Settings.lua`), and `Debug` (the enable/disable bracket lines). The
-set is open — add a tag as needed.
+Tags currently in use:
+
+- **Lifecycle** — `Init` (session summary: addon/version, schema, profile —
+  emitted at the `SetEnabled` seam on enable), `Migrate` (only when
+  `RunMigrations` actually moves the version).
+- **Capture flow** (`WhatGroup.lua`) — `Apply` (one merged line per apply:
+  `id=… captured "…" (activity=… map=… m+=…)`), `Capture` (no-op / wipe
+  decisions), `LFG` (status events), `Invite` (accepted, with the winning
+  `source=fresh|queued`), `Roster` (in-group transitions only), `Notify`
+  (`scheduling` / `fired` / `cancelled` / skip), `ChatLink`, `Test`.
+- **Frame** (`WhatGroup_Frame.lua`) — `Frame` (`popup shown …`, `teleport
+  spellID=… known=…`).
+- **Settings** (`WhatGroup_Settings.lua`) — `Set` (the one canonical
+  settings-change line, at the `Helpers.Set` seam), `Reset` (one coalesced
+  summary for `/wg reset`), `Schema` (internal path-lookup miss).
+- **Console** — `Debug` (the enable/disable bracket lines).
+
+The set is open — add a tag as needed. The content rules the addon follows —
+**coverage** of the main flows (§8), **coalescing** to one summary line per pass
+(§9), and **one `[Set]` line per settings change at the single seam** (§10) — are
+MUSTs in the standard's `debug-logging` section.
 
 ## Enabled-state — session-only, decoupled from the window
 
@@ -68,11 +95,14 @@ set is open — add a tag as needed.
 - **Logging and the window are independent** — capture runs even with the console
   closed, so a bug can be reproduced first and the log opened after.
 - **Single write path**: `D:SetEnabled(on)` sets the flag → `RefreshHeader` →
-  chat ack via `NS.Print` (`Debug mode: ON/OFF`) → a `[Debug] logging
-  enabled/disabled` **console** bracket line at both transitions. The disable
-  line is written through raw `D:Add` (not `NS.Debug`) so it still lands after
-  the flag has flipped off. The slash command and the header toggle both route
-  through this one seam, so they can't diverge.
+  **colour-coded** chat ack via `NS.Print` (`debug logging |cff40ff40ON|r` /
+  `|cffff4040OFF|r` — ON green `40ff40`, OFF red `ff4040`, matching the title-bar
+  toggle) → a `[Debug] logging enabled/disabled` **console** bracket line at both
+  transitions → **on enable only**, the `[Init]` session summary
+  (`InitSummary()`) immediately after the bracket. The disable and `[Init]` lines
+  are written through raw `D:Add` (not `NS.Debug`) so they land regardless of the
+  gate. The slash command and the header toggle both route through this one seam,
+  so they can't diverge (debug-logging §5).
 
 ## Slash semantics (`/wg debug`)
 
@@ -103,14 +133,17 @@ both the console log and the Copy `EditBox`.
 
 ## Adding a debug line
 
-Just call the sink with a tag:
+Just call the sink with a tag (format args are applied only when debug is on, so
+string-building stays behind the gate — §9):
 
 ```lua
-NS.Debug("Capture", "title=%s mapID=%s", tostring(title), tostring(mapID))
+NS.Debug("Apply", 'id=%s captured "%s" (map=%s)', tostring(id), tostring(title), tostring(mapID))
 ```
 
 No guard needed at the call site — `NS.Debug` self-gates on `NS.State.debug` and
-is zero-alloc when off.
+is zero-alloc when off. Follow the content rules: cover the main flows (§8),
+coalesce repeating paths to one summary line per pass — never per item (§9), and
+log each settings change once at the `Helpers.Set` seam (§10).
 
 ## Tests
 

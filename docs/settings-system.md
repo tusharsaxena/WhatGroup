@@ -9,7 +9,7 @@ A single flat array `WhatGroup.Settings.Schema` declares every option. One row d
 | Settings panel widget | `Helpers.RenderSchema()` → `Helpers.RenderField()` → `makeCheckbox` / `makeSlider`; widgets register a refresher closure in `Settings._refreshers` keyed by `def.path` |
 | `/wg list` | groups schema by `section`, prints `path = formattedValue` per row |
 | `/wg get <path>` | `Helpers.FindSchema(path)` + format using `def.fmt` for numbers |
-| `/wg set <path> <value>` | type-aware parse → `Helpers.Set(path, value)` (orchestrated: writes value, fires `onChange`, runs `RefreshAll` in one call) |
+| `/wg set <path> <value>` | type-aware parse → `Helpers.Set(path, value)` (orchestrated: writes value, logs one `[Set]` line, fires `onChange`, runs `RefreshAll` in one call) |
 | AceDB defaults | `Settings.BuildDefaults()` walks the schema, threads each row's `default` into the right slot under `profile.*` |
 | `/wg reset` + Defaults button | `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreDefaults()` (orchestrated `Set` per row with `{skipRefresh = true}`, then one final `RefreshAll`) |
 
@@ -57,12 +57,12 @@ All schema reads and writes go through a private `Resolve(path)` helper that wal
 
 | Helper | Purpose |
 |---|---|
-| `Helpers.Get(path)` | Resolve dotted path; read. When `NS.State.debug` is on, debug-logs `Helpers.Get: no path -> <path>` for typo'd paths so schema-key mistakes surface in the trace. |
+| `Helpers.Get(path)` | Resolve dotted path; read. When `NS.State.debug` is on, debug-logs `[Schema] Get: no path -> <path>` for typo'd paths so schema-key mistakes surface in the trace. |
 | `Helpers.RawSet(path, value)` | Side-effect-free write — resolve dotted path, write, return. No `onChange`, no `RefreshAll`. Reserved for callers that genuinely need raw writes (none today); prefer `Helpers.Set` for everything else. |
-| `Helpers.Set(path, value, opts)` | **Orchestrated single write-path.** Calls `RawSet`, then runs the row's `onChange` (in pcall), then runs `RefreshAll`. Every existing caller — CLI (`/wg set`), panel widget callbacks, `RestoreDefaults`, `runDebug` — routes through here so the three side effects can't drift out of sync. `opts.skipOnChange` and `opts.skipRefresh` are escape hatches; only `RestoreDefaults` uses `skipRefresh` (to refresh once after the loop). |
+| `Helpers.Set(path, value, opts)` | **Orchestrated single write-path.** Calls `RawSet`, logs one `[Set] <path> = <value>` console line (the canonical settings-change trace, debug-logging §10), then runs the row's `onChange` (in pcall), then runs `RefreshAll`. Every existing caller — CLI (`/wg set`), panel widget callbacks, `RestoreDefaults` — routes through here so the side effects can't drift out of sync. `opts.skipOnChange`, `opts.skipRefresh`, and `opts.skipLog` are escape hatches; `RestoreDefaults` uses `skipRefresh` (refresh once after the loop) **and** `skipLog` (suppress per-row `[Set]` spam so one coalesced `[Reset]` summary stands in, §9). |
 | `Helpers.FindSchema(path)` | linear scan of `Schema` for `def.path == path` |
 | `Helpers.ValidateSchema()` | walk Schema and chat-print errors for missing `path`, unknown `type`, non-string `section`/`group`/`label`. Non-fatal. Runs once at registration. |
-| `Helpers.RestoreDefaults()` | For each schema row: `Helpers.Set(def.path, def.default, { skipRefresh = true })` (orchestrated `Set` runs `onChange` in pcall, skips per-row refresh). After the loop, one `RefreshAll()`. Caller (`StaticPopup` OnAccept, slash command) handles confirmation. |
+| `Helpers.RestoreDefaults()` | For each schema row: `Helpers.Set(def.path, def.default, { skipRefresh = true, skipLog = true })` (orchestrated `Set` runs `onChange` in pcall, skips per-row refresh and per-row `[Set]` log). After the loop, emits one coalesced `[Reset] restored N settings to defaults` line (§9), then one `RefreshAll()`. Caller (`StaticPopup` OnAccept, slash command) handles confirmation. |
 | `Helpers.RefreshAll()` | Iterate `Settings._refresherOrder` in schema (= panel render) order; for each `def.path`, look up the closure in `Settings._refreshers` and run it under `pcall`. |
 
 `Settings._refreshers[def.path]` is set when a checkbox / slider widget is created — a closure that re-syncs the widget against `Helpers.Get(def.path)`. `Settings._refresherOrder` is a parallel array tracking the registration order; `RefreshAll` iterates the array (rather than `pairs(_refreshers)`) so the iteration order is deterministic — matching the schema source order, which is also the panel render order.

@@ -26,6 +26,8 @@ function NS:RunMigrations()
 
     g.schemaVersion = g.schemaVersion or NS.SCHEMA_VERSION
 
+    local from = g.schemaVersion
+
     -- while g.schemaVersion < NS.SCHEMA_VERSION do
     --     if g.schemaVersion == 1 then
     --         -- migrate 1 -> 2 here
@@ -34,4 +36,10 @@ function NS:RunMigrations()
     -- end
 
     g.schemaVersion = NS.SCHEMA_VERSION
+
+    -- Lifecycle coverage (§8): log only when a migration actually moved the
+    -- version — a fresh/already-current DB stays silent.
+    if from ~= g.schemaVersion and NS.Debug then
+        NS.Debug("Migrate", "v" .. tostring(from) .. " -> v" .. tostring(g.schemaVersion))
+    end
 end

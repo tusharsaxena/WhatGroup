@@ -148,6 +148,32 @@ function WhatGroup:OnEnable()
     self:RegisterEvent("GROUP_ROSTER_UPDATE")
     self:RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
     wasInGroup = IsInGroup()
+    -- No lifecycle line here: the debug flag is session-only and off at login,
+    -- so a boot-time summary would always be gated off (§5/§8). The [Init]
+    -- summary is emitted at the DebugLog:SetEnabled seam instead, the only
+    -- point where it is both current and visible — see InitSummary below.
+end
+
+-- One-line [Init] session summary (debug-logging §5 MUST / §8 boot-summary):
+-- addon name + version, schema/DB version, active AceDB profile. A pure builder
+-- — the DebugLog:SetEnabled seam calls it and appends the line via raw D:Add on
+-- enable. Guarded so it can't error before the db is ready. Values are plain
+-- (no combat-protected secrets), so tostring is secret-safe here.
+function WhatGroup:InitSummary()
+    local db = self.db
+    local schema  = db and db.global and db.global.schemaVersion
+    local profile = (db and db.GetCurrentProfile and db:GetCurrentProfile()) or "?"
+    local pr = (db and db.profile) or {}
+    -- Standard-mandated identity fields first (name/version/schema/profile, §5),
+    -- then the current runtime state so a debug session opens with full context.
+    return string.format(
+        "%s v%s, schema v%s, profile '%s' (enabled=%s, notify.delay=%ss, autoShow=%s, inGroup=%s, hasPending=%s)",
+        addonName, tostring(self.VERSION), tostring(schema), tostring(profile),
+        tostring(pr.enabled),
+        tostring(pr.notify and pr.notify.delay),
+        tostring(not (pr.frame and pr.frame.autoShow == false)),
+        tostring(IsInGroup() and true or false),
+        tostring(self.pendingInfo ~= nil))
 end
 
 -- ---------------------------------------------------------------------------
@@ -205,10 +231,10 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
         end
     end
 
-    NS.Debug("Capture", "title=" .. tostring(captured.title)
-        .. " activityID=" .. tostring(captured.activityID)
-        .. " mapID=" .. tostring(captured.mapID))
-
+    -- No success line here: OnApplyToGroup emits one [Apply] summary that
+    -- carries the captured title/activity/map, so a single line covers the
+    -- whole apply→capture step (§9). The nil-result no-op above is still
+    -- logged — that's the "why nothing was captured" trace (§8).
     return captured
 end
 
@@ -292,7 +318,7 @@ local Labels = WhatGroup.Labels
 function WhatGroup:ShowNotification()
     local info = self.pendingInfo
     if not info then
-        NS.Debug("Notify", "ShowNotification skip: pendingInfo is nil")
+        NS.Debug("Notify", "skip: no pendingInfo (notification)")
         return
     end
     local n = self.db and self.db.profile and self.db.profile.notify
@@ -347,10 +373,13 @@ function WhatGroup:OnApplyToGroup(searchResultID, ...)
     if not (self.db and self.db.profile and self.db.profile.enabled) then
         return
     end
-    NS.Debug("Apply", "ApplyToGroup id=" .. tostring(searchResultID))
     local captured = self:CaptureGroupInfo(searchResultID)
     if captured then
         table.insert(captureQueue, captured)
+        NS.Debug("Apply", 'id=%s captured "%s" (activity=%s map=%s m+=%s)',
+            tostring(searchResultID), tostring(captured.title),
+            tostring(captured.activityID), tostring(captured.mapID),
+            tostring(captured.isMythicPlus))
     end
 end
 
@@ -359,7 +388,7 @@ end
 -- SetItemRef has already run by this point and no-op'd on our prefix;
 -- this just opens the popup (or prints a hint if pendingInfo is gone).
 function WhatGroup:OnSetItemRef(linkArg, text, button, ...)
-    NS.Debug("ChatLink", "hasPending=" .. tostring(self.pendingInfo ~= nil))
+    NS.Debug("ChatLink", "clicked hasPending=" .. tostring(self.pendingInfo ~= nil))
     -- pendingInfo is session-only (cleared on group-leave or /reload).
     -- A click on a stale chat link from a previous session would
     -- otherwise open an empty "No data" popup; print a one-line hint.
@@ -391,7 +420,7 @@ function WhatGroup:_TryFireJoinNotify(reason)
         -- Only log "no pendingInfo" from the inviteaccepted path —
         -- ROSTER transitions hit this constantly and just clutter chat.
         if reason == "inviteaccepted" then
-            NS.Debug("Notify", "(" .. reason .. ") skip: no pendingInfo")
+            NS.Debug("Notify", "skip: no pendingInfo (" .. reason .. ")")
         end
         return
     end
@@ -406,7 +435,7 @@ function WhatGroup:_TryFireJoinNotify(reason)
                    and self.db.profile.notify.delay) or 1.5
     local autoShow = not (self.db and self.db.profile and self.db.profile.frame
                           and self.db.profile.frame.autoShow == false)
-    NS.Debug("Notify", "(" .. reason .. ") scheduling in " .. tostring(delay) .. "s")
+    NS.Debug("Notify", "scheduling in " .. tostring(delay) .. "s (" .. reason .. ")")
     -- WG-17 (§3.1 SHOULD): AceTimer-3.0 is the mandated timer lib, but this
     -- addon deliberately uses raw C_Timer.After. The generation-counter
     -- cancel below (notifyGen / thisGen) already gives us the one thing
@@ -416,8 +445,11 @@ function WhatGroup:_TryFireJoinNotify(reason)
     C_Timer.After(delay, function()
         -- Cancel if a wipe (group-leave, master-switch off) bumped the
         -- generation, or if a newer notify replaced the pending info.
-        if notifyGen ~= thisGen then return end
-        if self.pendingInfo ~= capturedInfo then return end
+        if notifyGen ~= thisGen or self.pendingInfo ~= capturedInfo then
+            NS.Debug("Notify", "cancelled (superseded)")
+            return
+        end
+        NS.Debug("Notify", "fired")
         self:ShowNotification()
         if autoShow then self:ShowFrame() end
     end)
@@ -426,12 +458,21 @@ end
 -- Capture-state wipe used by group-leave (GROUP_ROSTER_UPDATE) and by
 -- the master-switch off-flip (enabled.onChange). Bumps notifyGen so any
 -- still-scheduled notify callback becomes a no-op when it eventually fires.
-function WhatGroup:WipeCapture()
+-- `reason` (optional) turns on a one-line material-effect log (§10): only the
+-- caller that wipes for a *reason the reader can't infer from context* (the
+-- master-switch off-flip) passes one, and only when something was actually in
+-- flight. Group-leave passes nothing — the [Roster] line already tells that story.
+function WhatGroup:WipeCapture(reason)
+    local hadInFlight = self.pendingInfo ~= nil
+        or next(captureQueue) ~= nil or next(pendingApplications) ~= nil
     self.pendingInfo = nil
     notifiedFor      = nil
     notifyGen        = notifyGen + 1
     wipe(captureQueue)
     wipe(pendingApplications)
+    if reason and hadInFlight then
+        NS.Debug("Capture", "wiped (" .. reason .. ")")
+    end
 end
 
 function WhatGroup:GROUP_ROSTER_UPDATE()
@@ -456,7 +497,7 @@ function WhatGroup:GROUP_ROSTER_UPDATE()
 end
 
 function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
-    NS.Debug("LFG", "LFG_STATUS appID=" .. tostring(appID) .. " status=" .. tostring(newStatus))
+    NS.Debug("LFG", "appID=" .. tostring(appID) .. " status=" .. tostring(newStatus))
     if newStatus == "applied" then
         local capture = table.remove(captureQueue, 1)
         if capture then
@@ -480,23 +521,26 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
         -- routes through C_LFGList.GetApplicationInfo → lfgListID, once
         -- verified in-game at retail interface 120000-120005.
         local fresh  = self:CaptureGroupInfo(appID)
-        local final
+        local final, source
         if fresh and fresh.mapID then
-            final = fresh
+            final, source = fresh, "fresh"
         elseif queued and queued.mapID then
-            final = queued
+            final, source = queued, "queued"
         elseif fresh then
-            final = fresh
+            final, source = fresh, "fresh"
         elseif queued then
-            final = queued
+            final, source = queued, "queued"
         end
         self.pendingInfo = final
         notifiedFor      = nil  -- new pendingInfo identity → eligible to fire again
 
-        NS.Debug("Invite", "inviteaccepted: pendingInfo="
-            .. (final and ("title=" .. tostring(final.title)
-                           .. " mapID=" .. tostring(final.mapID))
-                      or "NIL"))
+        if final then
+            NS.Debug("Invite", 'accepted appID=%s → "%s" map=%s (source=%s)',
+                tostring(appID), tostring(final.title), tostring(final.mapID),
+                tostring(source))
+        else
+            NS.Debug("Invite", "accepted appID=" .. tostring(appID) .. " → no capture")
+        end
 
         wipe(captureQueue)
         wipe(pendingApplications)
@@ -761,6 +805,7 @@ function WhatGroup:RunTest()
         playstyleString   = "",
         shortName         = "Mythic+",
     }
+    NS.Debug("Test", 'synthetic capture injected "' .. tostring(self.pendingInfo.title) .. '"')
     self:ShowNotification()
     self:ShowFrame()
 end
@@ -822,6 +867,10 @@ function runDebug(self, rest)
     if not DL then return p("Debug console not ready yet") end
 
     if sub == "on" or sub == "off" then
+        -- SetEnabled is the single write seam: it sets the flag, refreshes the
+        -- header, prints the colour-coded ack, writes the bracket line, and (on
+        -- enable) emits the [Init] session summary — all in one place so the
+        -- slash command and the header toggle can't diverge (§5).
         DL:SetEnabled(sub == "on")
     elseif sub == "" then
         DL:Toggle()

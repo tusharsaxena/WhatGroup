@@ -87,7 +87,12 @@ add{
     -- disabled the addon. WipeCapture also bumps notifyGen, cancelling
     -- any C_Timer.After callback already scheduled.
     onChange = function(v)
-        if not v then WhatGroup:WipeCapture() end
+        -- Pass a reason so WipeCapture emits the material-effect log (§10):
+        -- the [Set] line already shows `enabled = false`; WipeCapture logs the
+        -- wipe only when there was an in-flight capture to drop, never a
+        -- restatement of the value. Group-leave calls WipeCapture with no
+        -- reason (silent — the [Roster] line already covers that path).
+        if not v then WhatGroup:WipeCapture("addon disabled") end
     end,
 }
 
@@ -204,7 +209,7 @@ end
 function Helpers.Get(path)
     local parent, key = Resolve(path)
     if not parent then
-        NS.Debug("Settings", "Helpers.Get: no path -> " .. tostring(path))
+        NS.Debug("Schema", "Get: no path -> " .. tostring(path))
         return nil
     end
     return parent[key]
@@ -226,6 +231,12 @@ end
 -- side-effect-free writes (none today).
 function Helpers.Set(path, value, opts)
     Helpers.RawSet(path, value)
+    -- Settings-change trace (§10): one canonical [Set] line at the single write
+    -- seam. skipLog lets a bulk caller (RestoreDefaults) suppress the per-row
+    -- lines and emit one coalesced summary instead (§9).
+    if not (opts and opts.skipLog) then
+        NS.Debug("Set", tostring(path) .. " = " .. tostring(value))
+    end
     if not (opts and opts.skipOnChange) then
         local def = Helpers.FindSchema(path)
         if def and def.onChange then
@@ -327,13 +338,17 @@ end
 -- the caller (WHATGROUP_RESET_ALL OnAccept), so callers that want a
 -- silent reset (none today) could still bypass the popup.
 function Helpers.RestoreDefaults()
+    local n = 0
     for _, def in ipairs(Schema) do
         if def.path then
-            -- skipRefresh inside the loop; one RefreshAll at the end
-            -- avoids N refreshes for an N-row schema.
-            Helpers.Set(def.path, def.default, { skipRefresh = true })
+            -- skipRefresh inside the loop; one RefreshAll at the end avoids N
+            -- refreshes for an N-row schema. skipLog suppresses the per-row
+            -- [Set] spam — one [Reset] summary is emitted below instead (§9).
+            Helpers.Set(def.path, def.default, { skipRefresh = true, skipLog = true })
+            n = n + 1
         end
     end
+    NS.Debug("Reset", "restored " .. n .. " settings to defaults")
     Helpers.RefreshAll()
 end
 

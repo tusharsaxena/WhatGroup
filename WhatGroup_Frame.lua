@@ -191,10 +191,10 @@ local function buildFrame()
         end
 
         local spellID, known = WhatGroup:GetTeleportSpell(info and info.activityID, info and info.mapID)
-        NS.Debug("Frame", "ConfigureTeleportButton:"
-            .. " info.activityID=" .. tostring(info and info.activityID)
-            .. " info.mapID=" .. tostring(info and info.mapID)
-            .. " spellID=" .. tostring(spellID))
+        NS.Debug("Frame", "teleport spellID=" .. tostring(spellID)
+            .. " known=" .. tostring(known)
+            .. " (activity=" .. tostring(info and info.activityID)
+            .. " map=" .. tostring(info and info.mapID) .. ")")
         if not spellID then
             btn:SetAttribute("type", nil)
             btn:SetAttribute("macrotext", nil)
@@ -307,12 +307,10 @@ function WhatGroup:ShowFrame()
                     -- UISpecialFrames entry on first call only.
     do
         local info = WhatGroup.pendingInfo
-        NS.Debug("Frame", "ShowFrame: pendingInfo="
-            .. (info
-                and ("title=" .. tostring(info.title)
-                     .. " mapID=" .. tostring(info.mapID)
-                     .. " activityID=" .. tostring(info.activityID))
-                or "NIL — popup will render 'No data' fallbacks"))
+        NS.Debug("Frame", info
+            and ('popup shown "' .. tostring(info.title) .. '" map='
+                 .. tostring(info.mapID))
+            or "popup shown (no pendingInfo → 'No data' fallbacks)")
     end
     PopulateFields()
     f:Show()

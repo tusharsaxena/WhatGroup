@@ -225,24 +225,39 @@ console closed, so you can reproduce a bug first and open the console after with
 `/wg debug` to read the trace. Enabling/disabling is session-bracketed by a
 `[Debug] logging enabled` / `disabled` console line.
 
-The tags emitted today, and what each is useful for:
+Turning debug on emits a one-line **`[Init]` session summary** first — the
+standard-mandated `WhatGroup v<version>, schema v<schemaVersion>, profile
+'<profile>'` followed by the current runtime state `(enabled=…, notify.delay=…s,
+autoShow=…, inGroup=…, hasPending=…)` — so a pasted log is self-identifying
+(build / schema / profile) and opens with full context. It's written at the
+`DebugLog:SetEnabled` seam, right after the `[Debug] logging enabled` bracket
+(debug-logging §5). The tags emitted, and what each is useful for:
 
-- **`[Roster]`** (`GROUP_ROSTER_UPDATE`) → `inGroup` / `wasInGroup` / `hasPending`
-  at every roster update — for "notification fires at the wrong time".
-- **`[Capture]`** (`CaptureGroupInfo`) → `title=… activityID=… mapID=…`, or a
-  `GetSearchResultInfo returned nil for id=…` line — for "the capture is empty".
-- **`[Apply]`** (`ApplyToGroup id=…`) and **`[ChatLink]`** (`hasPending=…`) — the
-  apply-hook and chat-link entry points.
-- **`[LFG]`** (`LFG_LIST_APPLICATION_STATUS_UPDATED`) → every `appID` / `status`
-  tuple, and **`[Invite]`** → the `inviteaccepted` merge result (`pendingInfo=…`
-  or `NIL`) — for "the LFG event sequence is misordered".
-- **`[Notify]`** → `(reason) scheduling in Ns` / skip lines, and **`[Frame]`** →
-  `ShowFrame: pendingInfo=…` / `ConfigureTeleportButton: … spellID=…` — for "the
-  popup or chat link came up empty". A `MISS`-style `spellID=nil` on
-  `ConfigureTeleportButton` with a non-nil `mapID` means the dungeon needs a row
-  in `WhatGroup.TeleportSpells`.
-- **`[Settings]`** → `Helpers.Get: no path -> …` when a schema lookup misses.
+- **`[Init]`** / **`[Migrate]`** — lifecycle: the session summary (emitted on
+  enable, via `WhatGroup:InitSummary()`); `[Migrate]` prints `vX -> vY` only when
+  a DB migration actually runs.
+- **`[Apply]`** → one merged line per apply: `id=… captured "…" (activity=… map=…
+  m+=…)` — the apply-hook + capture in a single line. **`[Capture]`** carries the
+  no-op decisions (`GetSearchResultInfo returned nil …`, `wiped (addon disabled)`)
+  — for "capture is empty / vanished".
+- **`[LFG]`** → every `appID status=…` event, and **`[Invite]`** → `accepted … →
+  "<title>" map=… (source=fresh|queued)` showing which capture won the merge —
+  for "the LFG sequence is misordered".
+- **`[Roster]`** → `inGroup / wasInGroup / hasPending` on in-group transitions
+  only (no-op ticks suppressed) — for "notification fires at the wrong time".
+- **`[Notify]`** → `scheduling in Ns (reason)` → `fired` / `cancelled
+  (superseded)` / skip lines, and **`[Frame]`** → `popup shown "…"` /
+  `teleport spellID=… known=…` — for "popup or chat link came up empty". A
+  `teleport spellID=nil` with a non-nil `map=` means the dungeon needs a row in
+  `WhatGroup.TeleportSpells`. **`[ChatLink]`** / **`[Test]`** mark the chat-link
+  click and `/wg test` entry points.
+- **`[Set]`** → one line per settings change (`<path> = <value>`) at the
+  `Helpers.Set` seam; **`[Reset]`** → one coalesced summary for `/wg reset`;
+  **`[Schema]`** → an internal path-lookup miss.
 
 To add a new debug line, call `NS.Debug("Tag", "fmt", …)` — it self-gates on
-`NS.State.debug` and is zero-alloc when off. Debug is **not** a schema row (WG-12),
-so there is no `/wg set debug` — `/wg debug on|off` is the only enable path.
+`NS.State.debug` and is zero-alloc when off. Follow the standard's content rules:
+**cover** the main flows (§8), **coalesce** repeating paths to one summary line —
+never per-item (§9), and log each **settings change once** at the `Helpers.Set`
+seam (§10). Debug is **not** a schema row (WG-12), so there is no `/wg set debug`
+— `/wg debug on|off` is the only enable path.
