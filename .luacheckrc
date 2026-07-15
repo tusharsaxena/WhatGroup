@@ -35,5 +35,5 @@ read_globals = {
   "GROUP_FINDER_GENERAL_PLAYSTYLE3", "GROUP_FINDER_GENERAL_PLAYSTYLE4",
   "Settings", "SettingsPanel", "StaticPopup_Show",
   "GameTooltip", "YES", "NO",
-  "wipe", "tinsert",
+  "wipe", "tinsert", "date",
 }

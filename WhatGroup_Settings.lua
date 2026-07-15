@@ -204,9 +204,7 @@ end
 function Helpers.Get(path)
     local parent, key = Resolve(path)
     if not parent then
-        if NS.State.debug and WhatGroup._dbg then
-            WhatGroup._dbg("Helpers.Get: no path -> " .. tostring(path))
-        end
+        NS.Debug("Settings", "Helpers.Get: no path -> " .. tostring(path))
         return nil
     end
     return parent[key]

@@ -127,6 +127,6 @@ There is intentionally no programmatic Hide method. The frame is closed by:
 
 ## Frame dependencies
 
-- **`WhatGroup` global** — read at `PopulateFields` time for `WhatGroup.pendingInfo`, `WhatGroup:GetTeleportSpell`, and `WhatGroup.Labels.{GetGroupTypeLabel, PLAYSTYLE}`. Read at file-load time to attach the `ShowFrame` method. Also reads `WhatGroup._dbg` and `WhatGroup._print` for debug logging and chat hints.
+- **`WhatGroup` global** — read at `PopulateFields` time for `WhatGroup.pendingInfo`, `WhatGroup:GetTeleportSpell`, and `WhatGroup.Labels.{GetGroupTypeLabel, PLAYSTYLE}`. Read at file-load time to attach the `ShowFrame` method. Also calls `NS.Debug("Frame", …)` (the on-screen debug console) and reads `WhatGroup._print` for the combat-deferred chat hint.
 - **WoW API** — `CreateFrame`, `BackdropTemplate`, `UISpecialFrames`, `GameFontNormalLarge` / `GameFontNormal` / `GameFontHighlight`, `GameTooltip`, `InCombatLockdown`, `PLAYER_REGEN_ENABLED` event. The version-variant spell lookups (`GetSpellName` / `GetSpellTexture` / `IsSpellKnown`) go through `NS.Compat.*`, not the raw `C_Spell.*` / legacy globals directly — `Compat.lua` is the sole caller. Casting itself is delegated to Blizzard's secure action handler via `type="macro"` + `macrotext="/cast <SpellName>"` — `CastSpellByID` is never called from non-secure code.
 - **No Ace3 dependencies.** The popup uses raw Blizzard `Frame` / `FontString` / `Texture` / `Button` — no AceGUI. (AceGUI is only used in the Settings panel.)

@@ -38,7 +38,8 @@ Every chat line is prefixed with a cyan `[WG]` banner. Every option is configura
 | `/wg get <path>` | Print one setting's current value |
 | `/wg set <path> <value>` | Update a setting. Bools accept `true / false / on / off / 1 / 0 / yes / no / toggle`; numbers clamp to the option's min/max |
 | `/wg reset` | Reset every setting to its default |
-| `/wg debug` | Toggle debug logging (session-only — resets to off each login) |
+| `/wg debug` | Open/close the on-screen debug console window |
+| `/wg debug on` / `/wg debug off` | Enable/disable debug logging (session-only — resets to off each login) |
 | `/whatgroup` | Long-form alias for `/wg` — accepts the same subcommands |
 
 ### Settings panel
@@ -47,7 +48,7 @@ Every chat line is prefixed with a cyan `[WG]` banner. Every option is configura
 
 The **General** subcategory holds every setting in a two-column layout with a **Notify** sub-section further down. The page header carries a **Defaults** button on the right that resets every setting after a confirm prompt — same code path as `/wg reset`.
 
-*   **General** — master enable, popup auto-show on group join, chat notification on/off, and a **Test** button that runs the full notify + popup flow against synthetic data. (Debug logging is toggled with `/wg debug`, not a panel control — it's session-only.)
+*   **General** — master enable, popup auto-show on group join, chat notification on/off, and a **Test** button that runs the full notify + popup flow against synthetic data. (Debug logging lives in an on-screen console opened with `/wg debug` and enabled with `/wg debug on`, not a panel control — it's session-only.)
 *   **Notify** — notification delay (0–10s) plus per-line gates for the chat notification: Instance, Type, Leader, Playstyle, the "Click here" link, and the dungeon teleport spell line. Each toggle controls **chat output only** — the popup always shows every field.
 
 ## How It Works
@@ -71,7 +72,7 @@ Capture state is session-only and clears when you leave the group; only your set
 
 | Symptom | Resolution |
 |---|---|
-| Popup never appears when I join a group | Check `/wg get enabled` (master switch) and `/wg get frame.autoShow` — both must be `true`. If they are, run `/wg debug` and re-apply to a group; the log will tell you which capture stage didn't fire. |
+| Popup never appears when I join a group | Check `/wg get enabled` (master switch) and `/wg get frame.autoShow` — both must be `true`. If they are, run `/wg debug on` then `/wg debug` to open the console, and re-apply to a group; the log will tell you which capture stage didn't fire. |
 | Chat notification is missing fields | The per-line `notify.show*` toggles are independent. The popup always shows every field; the toggles only affect chat output. |
 | `/wg show` says "No group info available" | The captured info clears when you leave the group, so `/wg show` only works while you're still in that group. Use `/wg test` if you just want to preview the popup. |
 | Teleport button is grayed out for a dungeon I'm in | Either the spell isn't learned on the current character, or the activity has no teleport mapping. The popup always renders the row; the button is disabled when the spell isn't castable. |

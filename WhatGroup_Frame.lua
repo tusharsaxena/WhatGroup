@@ -191,12 +191,10 @@ local function buildFrame()
         end
 
         local spellID, known = WhatGroup:GetTeleportSpell(info and info.activityID, info and info.mapID)
-        if WhatGroup._dbg then
-            WhatGroup._dbg("ConfigureTeleportButton:",
-                "info.activityID=" .. tostring(info and info.activityID),
-                "info.mapID=" .. tostring(info and info.mapID),
-                "spellID=" .. tostring(spellID))
-        end
+        NS.Debug("Frame", "ConfigureTeleportButton:"
+            .. " info.activityID=" .. tostring(info and info.activityID)
+            .. " info.mapID=" .. tostring(info and info.mapID)
+            .. " spellID=" .. tostring(spellID))
         if not spellID then
             btn:SetAttribute("type", nil)
             btn:SetAttribute("macrotext", nil)
@@ -307,9 +305,9 @@ function WhatGroup:ShowFrame()
 
     buildFrame()    -- lazy: creates the popup + secure button +
                     -- UISpecialFrames entry on first call only.
-    if WhatGroup._dbg then
+    do
         local info = WhatGroup.pendingInfo
-        WhatGroup._dbg("ShowFrame: pendingInfo="
+        NS.Debug("Frame", "ShowFrame: pendingInfo="
             .. (info
                 and ("title=" .. tostring(info.title)
                      .. " mapID=" .. tostring(info.mapID)

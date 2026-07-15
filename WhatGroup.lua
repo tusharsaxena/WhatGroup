@@ -75,19 +75,23 @@ local notifiedFor         = nil  -- pendingInfo identity that already fired noti
 local notifyGen           = 0    -- bumped by any wipe; in-flight C_Timer.After
                                  -- callbacks check it and bail if superseded
 
-local function dbg(...)
-    if NS.State.debug then
-        print(CHAT_PREFIX, "|cffFF8C00[DBG]|r", ...)
-    end
-end
-
 local function p(...)
     print(CHAT_PREFIX, ...)
 end
 WhatGroup._print = p
--- Public so WhatGroup_Frame.lua can route its diagnostic prints
--- through the same prefix path; users still toggle via /wg debug.
-WhatGroup._dbg   = dbg
+-- Shared chat printer seam (§7.4). NS.Print is the single user-facing chat
+-- path; DebugLog.lua (loaded earlier) uses it for its enable/disable acks.
+NS.Print = p
+
+-- Monospace font for the debug console (debug-logging §2). Vendored under
+-- media/fonts/ (JetBrains Mono, OFL) and registered with LibSharedMedia so it
+-- also shows up in any media picker; NS.FONT_MONO is the addon-relative path
+-- DebugLog.lua feeds straight to SetFont.
+NS.FONT_MONO = "Interface\\AddOns\\WhatGroup\\media\\fonts\\JetBrainsMono-Regular.ttf"
+do
+    local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+    if LSM and LSM.Register then LSM:Register("font", "JetBrains Mono", NS.FONT_MONO) end
+end
 
 -- ---------------------------------------------------------------------------
 -- Teleport spell lookup
@@ -153,7 +157,7 @@ end
 function WhatGroup:CaptureGroupInfo(searchResultID)
     local info = C_LFGList.GetSearchResultInfo(searchResultID)
     if not info then
-        dbg("CaptureGroupInfo: GetSearchResultInfo returned nil for id=" .. tostring(searchResultID))
+        NS.Debug("Capture", "GetSearchResultInfo returned nil for id=" .. tostring(searchResultID))
         return
     end
 
@@ -201,7 +205,7 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
         end
     end
 
-    dbg("Capture: title=" .. tostring(captured.title)
+    NS.Debug("Capture", "title=" .. tostring(captured.title)
         .. " activityID=" .. tostring(captured.activityID)
         .. " mapID=" .. tostring(captured.mapID))
 
@@ -288,7 +292,7 @@ local Labels = WhatGroup.Labels
 function WhatGroup:ShowNotification()
     local info = self.pendingInfo
     if not info then
-        dbg("ShowNotification skip: pendingInfo is nil")
+        NS.Debug("Notify", "ShowNotification skip: pendingInfo is nil")
         return
     end
     local n = self.db and self.db.profile and self.db.profile.notify
@@ -343,7 +347,7 @@ function WhatGroup:OnApplyToGroup(searchResultID, ...)
     if not (self.db and self.db.profile and self.db.profile.enabled) then
         return
     end
-    dbg("ApplyToGroup id=" .. tostring(searchResultID))
+    NS.Debug("Apply", "ApplyToGroup id=" .. tostring(searchResultID))
     local captured = self:CaptureGroupInfo(searchResultID)
     if captured then
         table.insert(captureQueue, captured)
@@ -355,7 +359,7 @@ end
 -- SetItemRef has already run by this point and no-op'd on our prefix;
 -- this just opens the popup (or prints a hint if pendingInfo is gone).
 function WhatGroup:OnSetItemRef(linkArg, text, button, ...)
-    dbg("ChatLink hasPending=" .. tostring(self.pendingInfo ~= nil))
+    NS.Debug("ChatLink", "hasPending=" .. tostring(self.pendingInfo ~= nil))
     -- pendingInfo is session-only (cleared on group-leave or /reload).
     -- A click on a stale chat link from a previous session would
     -- otherwise open an empty "No data" popup; print a one-line hint.
@@ -387,7 +391,7 @@ function WhatGroup:_TryFireJoinNotify(reason)
         -- Only log "no pendingInfo" from the inviteaccepted path —
         -- ROSTER transitions hit this constantly and just clutter chat.
         if reason == "inviteaccepted" then
-            dbg("Notify(" .. reason .. ") skip: no pendingInfo")
+            NS.Debug("Notify", "(" .. reason .. ") skip: no pendingInfo")
         end
         return
     end
@@ -402,7 +406,7 @@ function WhatGroup:_TryFireJoinNotify(reason)
                    and self.db.profile.notify.delay) or 1.5
     local autoShow = not (self.db and self.db.profile and self.db.profile.frame
                           and self.db.profile.frame.autoShow == false)
-    dbg("Notify(" .. reason .. ") scheduling in " .. tostring(delay) .. "s")
+    NS.Debug("Notify", "(" .. reason .. ") scheduling in " .. tostring(delay) .. "s")
     -- WG-17 (§3.1 SHOULD): AceTimer-3.0 is the mandated timer lib, but this
     -- addon deliberately uses raw C_Timer.After. The generation-counter
     -- cancel below (notifyGen / thisGen) already gives us the one thing
@@ -436,7 +440,7 @@ function WhatGroup:GROUP_ROSTER_UPDATE()
     -- change (talents, specs, auras on some patches) and floods chat.
     -- Only log on a transition or when there's pendingInfo to clear.
     if inGroup ~= wasInGroup or (not inGroup and self.pendingInfo) then
-        dbg("ROSTER inGroup=" .. tostring(inGroup)
+        NS.Debug("Roster", "inGroup=" .. tostring(inGroup)
             .. " wasInGroup=" .. tostring(wasInGroup)
             .. " hasPending=" .. tostring(self.pendingInfo ~= nil))
     end
@@ -452,7 +456,7 @@ function WhatGroup:GROUP_ROSTER_UPDATE()
 end
 
 function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
-    dbg("LFG_STATUS appID=" .. tostring(appID) .. " status=" .. tostring(newStatus))
+    NS.Debug("LFG", "LFG_STATUS appID=" .. tostring(appID) .. " status=" .. tostring(newStatus))
     if newStatus == "applied" then
         local capture = table.remove(captureQueue, 1)
         if capture then
@@ -489,7 +493,7 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
         self.pendingInfo = final
         notifiedFor      = nil  -- new pendingInfo identity → eligible to fire again
 
-        dbg("inviteaccepted: pendingInfo="
+        NS.Debug("Invite", "inviteaccepted: pendingInfo="
             .. (final and ("title=" .. tostring(final.title)
                            .. " mapID=" .. tostring(final.mapID))
                       or "NIL"))
@@ -558,8 +562,8 @@ local COMMANDS = {
         function(self, rest) setSetting(self, rest) end},
     {"reset",  "Reset every setting to defaults",
         function(self) runReset(self) end},
-    {"debug",  "Toggle debug logging",
-        function(self) runDebug(self) end},
+    {"debug",  "Open/close the debug window — `/wg debug on|off` toggles logging",
+        function(self, rest) runDebug(self, rest) end},
 }
 WhatGroup.COMMANDS = COMMANDS
 
@@ -600,12 +604,21 @@ end
 -- Schema-driven /wg list|get|set
 -- ---------------------------------------------------------------------------
 
+-- Shared `key = value` formatter for schema output (slash-commands §5): setting
+-- key gold (ffff00), value white (ffffff). Used by /wg list rows and the /wg get
+-- and /wg set single-line echo so `key = value` reads identically everywhere.
+local function FormatKV(path, valueStr)
+    return ("|cFFFFFF00%s|r = |cFFFFFFFF%s|r"):format(path, valueStr)
+end
+
 function listSettings(self)
     local H, S = helpers(), schema()
     if not (H and S) then
         return p("Settings layer not ready yet")
     end
-    p("Available settings:")
+    -- Colour scheme (slash-commands §5): header green (33ff99), [section]
+    -- group headers azure (3399ff), key/value via FormatKV. No trailing colons.
+    p("|cff33ff99Available settings|r")
     -- Group by section for readable output. Skip rows without a path
     -- (e.g. type="action" buttons) — they have no value to display.
     local bySection, order = {}, {}
@@ -620,9 +633,9 @@ function listSettings(self)
         end
     end
     for _, key in ipairs(order) do
-        p("  [" .. key .. "]")
+        p("  |cff3399ff[" .. key .. "]|r")
         for _, def in ipairs(bySection[key]) do
-            p(("    %s = %s"):format(def.path, formatValue(def, H.Get(def.path))))
+            p("    " .. FormatKV(def.path, formatValue(def, H.Get(def.path))))
         end
     end
 end
@@ -638,7 +651,7 @@ function getSetting(self, rest)
     if not def then
         return p(("Setting not found: %s"):format(path))
     end
-    p(("%s = %s"):format(def.path, formatValue(def, H.Get(def.path))))
+    p(FormatKV(def.path, formatValue(def, H.Get(def.path))))
 end
 
 local function applyFromText(self, def, text)
@@ -672,7 +685,7 @@ local function applyFromText(self, def, text)
 
     H.Set(def.path, newValue)
 
-    p(("%s = %s"):format(def.path, formatValue(def, H.Get(def.path))))
+    p(FormatKV(def.path, formatValue(def, H.Get(def.path))))
 end
 
 function setSetting(self, rest)
@@ -797,9 +810,23 @@ function runConfig(self)
     end)
 end
 
-function runDebug(self)
-    -- Session-only (WG-12 / §12.5): toggles NS.State.debug in memory only.
-    -- Never persisted; off again on the next login.
-    NS.State.debug = not NS.State.debug
-    p("Debug mode: " .. (NS.State.debug and "|cff00FF00ON|r" or "|cffFF4444OFF|r"))
+function runDebug(self, rest)
+    -- debug-logging §5: `/wg debug` toggles the console WINDOW (logging state
+    -- untouched); `/wg debug on|off` sets the session-only NS.State.debug flag
+    -- through the single DebugLog:SetEnabled seam (chat ack + console bracket
+    -- line). The flag is never persisted — off again on the next login (WG-12 /
+    -- §12.5).
+    local sub = (rest or ""):match("^(%S+)")
+    sub = sub and sub:lower() or ""
+    local DL = NS.DebugLog
+    if not DL then return p("Debug console not ready yet") end
+
+    if sub == "on" or sub == "off" then
+        DL:SetEnabled(sub == "on")
+    elseif sub == "" then
+        DL:Toggle()
+    else
+        p("Usage: /wg debug        (toggle the debug window)")
+        p("       /wg debug on|off (enable/disable logging)")
+    end
 end

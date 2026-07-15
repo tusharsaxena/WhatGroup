@@ -39,7 +39,7 @@ local COMMANDS = {
     {"get",    "Print a setting's current value …",            handler},
     {"set",    "Set a setting …",                              handler},
     {"reset",  "Reset every setting to defaults",             handler},
-    {"debug",  "Toggle debug logging",                        handler},
+    {"debug",  "Open/close the debug window — `/wg debug on|off` toggles logging", handler},
 }
 ```
 
@@ -77,11 +77,11 @@ local runReset, runShow, runTest, runConfig, runDebug
 | `/wg show` | `runShow` | Open the popup if `pendingInfo` is set. Otherwise print a hint pointing at `/wg test`. |
 | `/wg test` | `runTest` → `WhatGroup:RunTest()` | Inject synthetic `pendingInfo` (Mythic+ Stonevault) and run `ShowNotification()` + `ShowFrame()`. Mirrors the panel's Test button via the same `RunTest()` method, so the two affordances stay in lockstep. |
 | `/wg config` | `runConfig` | Refuses during `InCombatLockdown()` (Settings UI is taint-protected). Otherwise calls `Settings.OpenToCategory(self._parentSettingsCategory:GetID())` then `pcall`s into `SettingsPanel:GetCategoryList():GetCategoryEntry(parent):SetExpanded(true)` — opens the addon-landing page and unfolds the subcategory tree so General is one click away. The pcall protects against patch-day shifts in the private CategoryList internals: if the path breaks, the panel still opens, the tree just doesn't auto-unfold. |
-| `/wg list` | `listSettings` | Group `Schema` by `section`, print `path = formattedValue` for every row. |
-| `/wg get <path>` | `getSetting` | `Helpers.FindSchema(path)` + format using `def.fmt` for numbers (e.g. `"%.1fs"` → `1.5s`). Prints "Setting not found" for unknown paths. |
+| `/wg list` | `listSettings` | Group `Schema` by `section`, print `path = formattedValue` for every row. Coloured per slash-commands §5: header green (`33ff99`), `[section]` group headers azure (`3399ff`), and each `key = value` through the shared `FormatKV` (key gold `ffff00`, value white). |
+| `/wg get <path>` | `getSetting` | `Helpers.FindSchema(path)` + format using `def.fmt` for numbers (e.g. `"%.1fs"` → `1.5s`), echoed through the same `FormatKV` so `key = value` reads identically to `/wg list` and the `/wg set` echo. Prints "Setting not found" for unknown paths. |
 | `/wg set <path> <value>` | `setSetting` → `applyFromText` | Type-aware parse: bool accepts `true / false / on / off / 1 / 0 / yes / no / toggle`; number coerces via `tonumber` and clamps to `min / max` if set. Calls `Helpers.Set(path, value)` — the orchestrated single write-path that internally writes the value, fires the row's `onChange`, then refreshes panel widgets — and echoes the new value. |
 | `/wg reset` | `runReset` → `StaticPopup_Show("WHATGROUP_RESET_ALL")` → `Helpers.RestoreDefaults()` | Show a confirm popup; on accept, reset every row to its `default`, run each `def.onChange(default)` in pcall, refresh panel widgets. The Defaults button in the General sub-page header shows the same popup, so both paths share one OnAccept body. |
-| `/wg debug` | `runDebug` | Flip the session-only `NS.State.debug` flag (WG-12). Off on every login; never persisted and **not** a schema row, so there's no `/wg set debug` and no panel checkbox — the slash command is the only toggle. |
+| `/wg debug` / `/wg debug on\|off` | `runDebug` | Bare `/wg debug` **toggles the on-screen debug console window** (`NS.DebugLog:Toggle()`), state untouched; `/wg debug on\|off` sets the session-only `NS.State.debug` flag through the single `NS.DebugLog:SetEnabled` seam (chat ack + `[Debug] logging enabled/disabled` console line). The flag is off on every login, never persisted, and **not** a schema row (WG-12), so there's no `/wg set debug` and no panel checkbox. Debug output (`NS.Debug(tag, …)`) renders in the console, not chat — see [debug-console.md](./debug-console.md). |
 
 ## Why `runTest` is split between `/wg test` and `WhatGroup:RunTest()`
 

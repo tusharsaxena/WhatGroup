@@ -208,15 +208,41 @@ The Settings panel's Test button runs the same code path — both invoke `WhatGr
 ## Toggle debug logging
 
 ```
-/wg debug
+/wg debug on      -- enable logging (session-only)
+/wg debug         -- open/close the on-screen debug console window
+/wg debug off     -- disable logging
 ```
 
-Flips the session-only `NS.State.debug` runtime flag (off again on the next login — never persisted). Verbose `[DBG]`-tagged lines start printing for every event/hook fire. Useful when:
+Debug output routes to an **on-screen console** (`WhatGroupDebugWindow`), styled
+like the main popup, in a monospace font — **not** the chat frame. This is the
+standard's requirement for any addon that ships a main window (debug-logging §7);
+the console lives in `DebugLog.lua`. Each line is `HH:MM:SS | [Tag] message`. Full
+detail in [debug-console.md](./debug-console.md).
 
-- The notification fires at the wrong time → `GROUP_ROSTER_UPDATE` debug shows `inGroup` / `wasInGroup` / `hasPending` at every roster update.
-- The capture is empty → `CaptureGroupInfo` debug dumps the entire `info` table from `GetSearchResultInfo`, the `actInfo` table from `GetActivityInfoTable` (or a "returned nil" line when it's missing), and a final `CaptureGroupInfo result:` summary with the fields downstream consumers actually read (`title`, `activityID`, `mapID`, `isMythicPlus`, `generalPlaystyle`, `playstyleString`).
-- The teleport icon doesn't appear → `GetTeleportSpell` logs every lookup as either `HIT mapID=X spellID=Y`, `HIT activityID=X spellID=Y` (back-compat path), or `MISS — activityID=…, mapID=…`. A `MISS` paired with a `mapID=nil` line up in `CaptureGroupInfo result` means the activity table didn't surface a mapID; a `MISS` with a non-nil mapID means the dungeon needs a row in `WhatGroup.TeleportSpells`.
-- The LFG event sequence is misordered → `LFG_LIST_APPLICATION_STATUS_UPDATED` debug logs every (`appID`, `status`) tuple. The `inviteaccepted` branch logs `inviteaccepted resolved: fresh=mapID=… queued=mapID=… pendingInfo=mapID=… title=…` so you can see exactly which capture (fresh re-fetch vs apply-time queued) won the merge and what the final `pendingInfo` looks like.
-- The popup or chat link came up empty → the trail at notify time is `GROUP_ROSTER_UPDATE: scheduling notify in Xs pendingInfo at schedule: …` → `notify timer fired pendingInfo still set? true/false same identity? true/false` → `ShowNotification: pendingInfo=…` → `ShowFrame: pendingInfo=…` → `ConfigureTeleportButton: info.activityID=… info.mapID=… spellID=…`. If `pendingInfo` is set at scheduling time but nil when the timer fires, watch for a `GROUP_ROSTER_UPDATE inGroup=false → clearing pendingInfo` line in between — that's the join transition flipping back to false (server hiccup, group disbanded, etc.). For chat-link clicks, `OnSetItemRef WhatGroup link clicked, pendingInfo=…` shows the state at click time.
+`NS.State.debug` is session-only (default off, never persisted, off again on the
+next login). Logging and the window are independent — capture runs even with the
+console closed, so you can reproduce a bug first and open the console after with
+`/wg debug` to read the trace. Enabling/disabling is session-bracketed by a
+`[Debug] logging enabled` / `disabled` console line.
 
-Same code path as `/wg set debug toggle` — the `/wg debug` shortcut exists so it's reachable from muscle memory.
+The tags emitted today, and what each is useful for:
+
+- **`[Roster]`** (`GROUP_ROSTER_UPDATE`) → `inGroup` / `wasInGroup` / `hasPending`
+  at every roster update — for "notification fires at the wrong time".
+- **`[Capture]`** (`CaptureGroupInfo`) → `title=… activityID=… mapID=…`, or a
+  `GetSearchResultInfo returned nil for id=…` line — for "the capture is empty".
+- **`[Apply]`** (`ApplyToGroup id=…`) and **`[ChatLink]`** (`hasPending=…`) — the
+  apply-hook and chat-link entry points.
+- **`[LFG]`** (`LFG_LIST_APPLICATION_STATUS_UPDATED`) → every `appID` / `status`
+  tuple, and **`[Invite]`** → the `inviteaccepted` merge result (`pendingInfo=…`
+  or `NIL`) — for "the LFG event sequence is misordered".
+- **`[Notify]`** → `(reason) scheduling in Ns` / skip lines, and **`[Frame]`** →
+  `ShowFrame: pendingInfo=…` / `ConfigureTeleportButton: … spellID=…` — for "the
+  popup or chat link came up empty". A `MISS`-style `spellID=nil` on
+  `ConfigureTeleportButton` with a non-nil `mapID` means the dungeon needs a row
+  in `WhatGroup.TeleportSpells`.
+- **`[Settings]`** → `Helpers.Get: no path -> …` when a schema lookup misses.
+
+To add a new debug line, call `NS.Debug("Tag", "fmt", …)` — it self-gates on
+`NS.State.debug` and is zero-alloc when off. Debug is **not** a schema row (WG-12),
+so there is no `/wg set debug` — `/wg debug on|off` is the only enable path.

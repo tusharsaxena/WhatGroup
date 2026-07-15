@@ -18,8 +18,9 @@ local loadAddon = dofile(here .. "/loader.lua")
 
 -- Addon sources, TOC load order (libs are mocked, not loaded).
 local SOURCES = {
-    "Compat.lua", "Locale.lua", "Database.lua", "TeleportSpells.lua",
-    "WhatGroup.lua", "WhatGroup_Settings.lua", "WhatGroup_Frame.lua",
+    "Compat.lua", "Locale.lua", "Database.lua", "DebugLog.lua",
+    "TeleportSpells.lua", "WhatGroup.lua", "WhatGroup_Settings.lua",
+    "WhatGroup_Frame.lua",
 }
 
 -- ---- micro-framework ------------------------------------------------------
@@ -91,7 +92,7 @@ _G.WHATGROUP_TEST = {
 
 local SUITES = {
     "test_compat", "test_database", "test_settings",
-    "test_labels", "test_capture",
+    "test_labels", "test_capture", "test_debuglog",
 }
 
 print("WhatGroup headless tests")

@@ -21,7 +21,7 @@ Verifies the addon loads cleanly and registers nothing that taints Blizzard's se
 2. Launch, log in to any character.
 3. Open chat.
 
-**Expected:** No Lua errors. No `[WG]` lines on first boot beyond what `/wg debug` would print (which is OFF by default).
+**Expected:** No Lua errors. No `[WG]` chat spam on first boot — debug logging is session-only and OFF by default (nothing routes to the console until you `/wg debug on`).
 
 ### 1.2 `/reload` health
 
@@ -60,11 +60,13 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.1 | `/wg` | Help index prints, listing all commands with the `[WG]` prefix. |
 | 2.2 | `/wg help` | Same as 2.1. |
 | 2.3 | `/whatgroup help` | Same — long alias works. |
-| 2.4 | `/wg list` | Every setting prints under its `[section]` header with current value. |
-| 2.5 | `/wg get enabled` | Prints `enabled = true`. |
+| 2.4 | `/wg list` | Green **Available settings** header, azure `[section]` group headers, each `key = value` with a gold key and white value (slash-commands §5). |
+| 2.5 | `/wg get enabled` | Prints `enabled = true` (gold key / white value). |
 | 2.6 | `/wg set notify.delay 2.5` | Prints `notify.delay = 2.5s`. Re-running `/wg get notify.delay` confirms. |
 | 2.7 | `/wg set notify.enabled toggle` | Toggles bool — confirm with `/wg get notify.enabled`. Run twice to restore. |
-| 2.8 | `/wg debug` | Prints `Debug mode: ON` (or OFF). Toggle back. |
+| 2.8 | `/wg debug` | **Opens the debug console window** (`Ka0s WhatGroup — Debug`, 700×344, monospace). Run again to close it. State is untouched — the header toggle still reads `Debug: OFF`. |
+| 2.8a | `/wg debug on` then `/wg debug off` | Each prints `Debug mode: ON`/`OFF` in chat **and** appends a `[Debug] logging enabled`/`disabled` line inside the console. The header toggle flips green/red to match. |
+| 2.8b | Click the `Debug: OFF`/`ON` toggle in the console title bar | Flips logging state (green ON / red OFF) with the same chat ack + console bracket line as `/wg debug on\|off`. `Copy` opens a highlight-ready plain-text buffer; `Clear` wipes both views. |
 | 2.9 | `/wg show` (no group, no pendingInfo) | Prints "No group info available. Use `/wg test` to preview." |
 | 2.10 | `/wg test` | Synthetic chat notification + popup fire (full coverage in §4). |
 | 2.11 | `/wg show` (right after 2.10) | Re-opens the same popup. |
@@ -177,24 +179,24 @@ The end-to-end test. Requires an active LFG and at least one group leader willin
 
 ### 5.1 Single application
 
-1. `/wg debug` to turn on debug logging.
-2. `/reload`
+1. `/wg debug on` to enable logging, then `/wg debug` to open the console window (or leave it closed — capture runs regardless; you can open it afterwards to read the trace).
+2. `/reload`  *(logging is session-only — re-run `/wg debug on` after the reload)*
 3. Open Premade Group Finder, find a Mythic+ or raid group.
 4. Click **Apply**.
 5. Wait for invite, accept it.
-6. Watch chat.
+6. Open the console (`/wg debug`) and read the trace.
 
-**Expected debug trace (order may vary slightly):**
+**Expected debug trace in the console (order may vary slightly), each line `HH:MM:SS | [Tag] …`:**
 
 ```
-[WG][DBG] ApplyToGroup id=<N>
-[WG][DBG] Capture: title=<X> activityID=<A> mapID=<M>
-[WG][DBG] LFG_STATUS appID=<N> status=applied
-[WG][DBG] LFG_STATUS appID=<N> status=invited            (some flows skip this)
-[WG][DBG] LFG_STATUS appID=<N> status=inviteaccepted
-[WG][DBG] inviteaccepted: pendingInfo=title=<X> mapID=<M>
-[WG][DBG] ROSTER inGroup=true wasInGroup=false hasPending=true
-[WG][DBG] Notify(<reason>) scheduling in <delay>s
+<ts> | [Apply] ApplyToGroup id=<N>
+<ts> | [Capture] title=<X> activityID=<A> mapID=<M>
+<ts> | [LFG] LFG_STATUS appID=<N> status=applied
+<ts> | [LFG] LFG_STATUS appID=<N> status=invited            (some flows skip this)
+<ts> | [LFG] LFG_STATUS appID=<N> status=inviteaccepted
+<ts> | [Invite] inviteaccepted: pendingInfo=title=<X> mapID=<M>
+<ts> | [Roster] inGroup=true wasInGroup=false hasPending=true
+<ts> | [Notify] (<reason>) scheduling in <delay>s
 ```
 
 **Expected user-visible output (after `notify.delay` seconds):** Full chat notification + popup, with the **real** group name, leader, mapID-resolved teleport spell.
@@ -213,10 +215,10 @@ Tests the FIFO `captureQueue` + `pendingApplications[appID]` pairing.
 
 1. Right-click your portrait → **Leave Group**, or `/leavegroup`.
 
-**Expected debug trace:**
+**Expected debug trace in the console:**
 
 ```
-[WG][DBG] ROSTER inGroup=false wasInGroup=true hasPending=true
+<ts> | [Roster] inGroup=false wasInGroup=true hasPending=true
 ```
 
 `/wg show` after leaving prints "No group info available. …" — `pendingInfo` is cleared on leave, by design.

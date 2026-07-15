@@ -99,6 +99,7 @@ local function build()
     env.wipe             = function(t) for k in pairs(t) do t[k] = nil end return t end
     env.tinsert          = table.insert
     env.UISpecialFrames  = {}
+    env.date             = function(fmt) return os.date(fmt) end
 
     env.C_Timer = {
         After = function(_delay, fn) mock.timers[#mock.timers + 1] = fn end,
