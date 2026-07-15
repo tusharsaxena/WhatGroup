@@ -2,6 +2,7 @@
 
 ![wow](https://img.shields.io/badge/WoW-Midnight_12.0.7-orange)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
+![tests](https://img.shields.io/badge/tests-45%2F45_passing-brightgreen)
 ![license](https://img.shields.io/badge/license-MIT-green)
 [![Ka0s Standard](https://img.shields.io/badge/Ka0s-Standard-blue)](https://github.com/tusharsaxena/WowAddonStandards)
 
@@ -86,7 +87,7 @@ All bugs, feature requests, and outstanding work are tracked at [https://github.
 
 WhatGroup is validated on three levels:
 
-*   **Headless tests** — `lua tests/run.lua` loads every source in TOC order under a WoW mock and runs the pure-logic suites (Compat shims, schema defaults/validation/get/set, group-type & playstyle labels, teleport lookup, and the capture-merge preference). No game client required.
+*   **Headless tests** — `lua tests/run.lua` loads every source in TOC order under a WoW mock and runs the pure-logic suites (Compat shims, schema defaults/validation/get/set, group-type & playstyle labels, teleport lookup, and the capture-merge preference). No game client required. The full enumerated case list and the authoritative pass count live in the generated [docs/test-cases.md](docs/test-cases.md) (`lua tests/run.lua --list > docs/test-cases.md`); the `tests` badge above is a static, hand-maintained X/Y kept in lockstep with it (see [docs/testing.md](docs/testing.md)).
 *   **Lint** — `luacheck .` must report 0 warnings / 0 errors (config in `.luacheckrc`). Both the harness and the lint are the commit gate.
 *   **In-game smoke tests** — the pieces that can't be exercised headlessly (AceGUI panel rendering, secure teleport button, and the **GameMenu → Logout taint check**) are covered by the manual [smoke-test checklist](docs/smoke-tests.md). Run the relevant section after any non-trivial change, after an `## Interface:` bump, after refreshing `libs/`, and before tagging a release — the Quick reference checklist at the bottom of that file is the minimum pre-release pass.
 
