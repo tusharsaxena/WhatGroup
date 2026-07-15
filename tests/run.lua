@@ -23,12 +23,26 @@ local SOURCES = {
     "WhatGroup_Frame.lua",
 }
 
+-- Non-executing inventory mode (§5): `lua tests/run.lua --list` loads every
+-- suite, prints docs/test-cases.md's body to stdout, and exits without running.
+local listMode = false
+for _, a in ipairs(arg or {}) do
+    if a == "--list" then listMode = true end
+end
+
 -- ---- micro-framework ------------------------------------------------------
 
 local passed, failed = 0, 0
 local failedNames = {}
 
+-- Stamped to the suite file currently being dofile'd so each registered case
+-- carries its origin suite (§5). `cases` is the ordered registry --list reads.
+local currentSuite
+local cases = {}
+
 local function test(name, fn)
+    cases[#cases + 1] = { name = name, suite = currentSuite }
+    if listMode then return end   -- --list registers but never executes
     local ok, err = pcall(fn)
     if ok then
         passed = passed + 1
@@ -95,11 +109,44 @@ local SUITES = {
     "test_labels", "test_capture", "test_debuglog",
 }
 
-print("WhatGroup headless tests")
-print("========================")
+if not listMode then
+    print("WhatGroup headless tests")
+    print("========================")
+end
 for _, s in ipairs(SUITES) do
-    print("[" .. s .. "]")
+    currentSuite = s .. ".lua"
+    if not listMode then print("[" .. s .. "]") end
     dofile(here .. "/" .. s .. ".lua")
+end
+
+-- --list: emit the generated inventory (docs/test-cases.md body) and exit,
+-- grouped in SUITES (load) order with per-suite and grand totals (§5).
+if listMode then
+    local order, byS, count = {}, {}, {}
+    for _, c in ipairs(cases) do
+        if not byS[c.suite] then byS[c.suite] = {}; count[c.suite] = 0; order[#order + 1] = c.suite end
+        byS[c.suite][#byS[c.suite] + 1] = c.name
+        count[c.suite] = count[c.suite] + 1
+    end
+    print("# Test Cases")
+    print("")
+    print("_Generated — do not hand-edit, regenerate with "
+          .. "`lua tests/run.lua --list > docs/test-cases.md`._")
+    for _, s in ipairs(order) do
+        print("")
+        print(string.format("### %s (%d)", s, count[s]))
+        for _, name in ipairs(byS[s]) do print("- " .. name) end
+    end
+    print("")
+    print("## Totals")
+    print("")
+    print("| Suite | Count |")
+    print("| --- | --- |")
+    for _, s in ipairs(order) do
+        print(string.format("| %s | %d |", s, count[s]))
+    end
+    print(string.format("| **Total** | **%d** |", #cases))
+    os.exit(0)
 end
 
 print("========================")
