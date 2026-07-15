@@ -76,7 +76,7 @@ All vendored under `libs/` and copied verbatim from Ka0s KickCD:
 - `AceGUI-3.0` (loaded via its `.xml`)
 - `LibSharedMedia-3.0` (loaded last via its `lib.xml`; copied from Ka0s AbsorbTracker) — the media registry the debug console's JetBrains Mono font registers with
 
-WoW retail APIs the addon depends on: `C_LFGList.ApplyToGroup` / `GetSearchResultInfo` / `GetActivityInfoTable`, `C_Spell.GetSpellTexture` / `GetSpellLink`, `C_Timer.After`, `IsInGroup`, `IsSpellKnown`, `CastSpellByID`, `SetItemRef`. Settings API: `Settings.RegisterCanvasLayoutCategory`, `Settings.RegisterCanvasLayoutSubcategory`, `Settings.RegisterAddOnCategory`, `Settings.OpenToCategory`. Frame chrome: `BackdropTemplate`, `UISpecialFrames`.
+WoW retail APIs the addon depends on: `C_LFGList.ApplyToGroup` / `GetSearchResultInfo` / `GetActivityInfoTable`, `C_Spell.GetSpellName` / `GetSpellTexture` / `GetSpellLink`, `C_Timer.After`, `IsInGroup`, `IsSpellKnown`, `SetItemRef`. Teleport casting goes through a `SecureActionButtonTemplate` `macrotext` (`/cast <SpellName>`) — **not** `CastSpellByID`, which a non-secure addon click would trip `ADDON_ACTION_FORBIDDEN` on. Settings API: `Settings.RegisterCanvasLayoutCategory`, `Settings.RegisterCanvasLayoutSubcategory`, `Settings.RegisterAddOnCategory`, `Settings.OpenToCategory`. Frame chrome: `BackdropTemplate`, `SecureActionButtonTemplate`, `UISpecialFrames`.
 
 ## Load order
 
