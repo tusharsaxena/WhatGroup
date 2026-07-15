@@ -30,6 +30,15 @@
 LICENSE     text eol=crlf
 .gitignore  text eol=crlf
 
+# SHOULD-justification (§0, accepted deviation): the repo-wide `eol=crlf`
+# above applies to `.md` too, including the generated `docs/test-cases.md`.
+# testing-§5's suggested sync check `diff <(lua tests/run.lua --list)
+# docs/test-cases.md` therefore reports a spurious whole-file diff (LF process
+# output vs CRLF working copy). The inventory is still kept in lockstep; we
+# verify it the git-native, CRLF-safe way — `git diff --exit-code --
+# docs/test-cases.md` — rather than exempting the one file to LF. See
+# docs/testing.md ("Keeping the inventory & badge in sync").
+
 # Binary assets — never normalize. Covers WoW addon media (textures,
 # sounds) and general repo binaries.
 *.png       binary
