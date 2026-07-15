@@ -1,9 +1,9 @@
 -- core/DebugLog.lua
--- On-screen debug console (Ka0s standard, debug-logging §). Debug output
+-- On-screen debug console (Ka0s standard, debug-logging). Debug output
 -- (NS.Debug) renders here in a monospace font instead of spamming the chat
 -- frame — required because WhatGroup ships a main window (modules/Frame.lua),
--- so the chat fallback (§7) is not available to us. Session-only: the enabled
--- state lives in NS.State.debug and resets on every reload/login (§5 / §12.5).
+-- so the chat fallback (debug-logging-§7) is not available to us. Session-only: the enabled
+-- state lives in NS.State.debug and resets on every reload/login (debug-logging-§5).
 
 local addonName, NS = ...
 NS.DebugLog = NS.DebugLog or {}
@@ -145,14 +145,14 @@ local function EnsureFrame()
 end
 
 -- Pure plain-text line formatter (no frames, no colour codes): "<ts> | [<tag>] <msg>".
--- This is what the Copy buffer mirrors — clean text with the tag verbatim (§3).
+-- This is what the Copy buffer mirrors — clean text with the tag verbatim (debug-logging-§3).
 function D.FormatPlain(ts, tag, msg)
     return ("%s | [%s] %s"):format(tostring(ts), tostring(tag or ""), tostring(msg))
 end
 
 -- Pure colour-coded line formatter for the console view: timestamp muted
 -- steel-blue (6f8faf), [tag] muted tan/gold (c9a66b); the "|" separator and
--- message stay default white. "||" renders one literal pipe in the string (§3).
+-- message stay default white. "||" renders one literal pipe in the string (debug-logging-§3).
 function D.FormatColored(ts, tag, msg)
     return ("|cff6f8faf%s|r || |cffc9a66b[%s]|r %s"):format(
         tostring(ts), tostring(tag or ""), tostring(msg))
@@ -171,7 +171,7 @@ function D:Clear()
     wipe(D.buffer)
 end
 
--- ── Copy window: read-through EditBox holding the whole log as plain text (§6) ──
+-- ── Copy window: read-through EditBox holding the whole log as plain text (debug-logging-§6) ──
 local copyFrame
 local function EnsureCopyFrame()
     if copyFrame then return copyFrame end
@@ -242,12 +242,12 @@ end
 
 -- Single seam for changing debug state. The slash command and the header toggle
 -- both call this so the chat ack and the header label stay consistent.
--- Session-only (§5 / §12.5).
+-- Session-only (debug-logging-§5).
 function D:SetEnabled(on)
     on = not not on
     NS.State.debug = on
     D:RefreshHeader()
-    -- Colour-coded chat ack (debug-logging §5 MUST): ON green (40ff40) / OFF red
+    -- Colour-coded chat ack (debug-logging-§5 MUST): ON green (40ff40) / OFF red
     -- (ff4040), matching the title-bar toggle so the flag reads identically in
     -- chat and on the console header. Routed through NS.PREFIX via ack().
     ack("debug logging " .. (on and "|cff40ff40ON|r" or "|cffff4040OFF|r"))
@@ -257,10 +257,10 @@ function D:SetEnabled(on)
     -- D:Add is not).
     D:Add("Debug", on and "logging enabled" or "logging disabled")
     -- On enable, emit a one-line [Init] session summary immediately after the
-    -- bracket (debug-logging §5 MUST) — addon/version, schema, active profile —
+    -- bracket (debug-logging-§5 MUST) — addon/version, schema, active profile —
     -- so a pasted log is self-identifying. Via the raw D:Add (not the gated
     -- NS.Debug sink), and only on enable: the flag is session-only and off at
-    -- login, so the SetEnabled seam is the only current, visible point (§8).
+    -- login, so the SetEnabled seam is the only current, visible point (debug-logging-§8).
     if on and NS.addon and NS.addon.InitSummary then
         D:Add("Init", NS.addon:InitSummary())
     end
@@ -270,7 +270,7 @@ function D:RefreshHeader()
     if not (frame and frame.debugToggle) then return end
     local on = NS.State and NS.State.debug
     frame.debugToggle:SetText(on and "Debug: ON" or "Debug: OFF")
-    -- Matches the colour-coded chat ack (debug-logging §5): ON 40ff40, OFF ff4040.
+    -- Matches the colour-coded chat ack (debug-logging-§5): ON 40ff40, OFF ff4040.
     if on then frame.debugToggle:SetTextColor(0.25, 1.0, 0.25)
     else frame.debugToggle:SetTextColor(1.0, 0.25, 0.25) end
 end

@@ -77,7 +77,7 @@ add{
     -- disabled the addon. WipeCapture also bumps notifyGen, cancelling
     -- any C_Timer.After callback already scheduled.
     onChange = function(v)
-        -- Pass a reason so WipeCapture emits the material-effect log (§10):
+        -- Pass a reason so WipeCapture emits the material-effect log (debug-logging-§10):
         -- the [Set] line already shows `enabled = false`; WipeCapture logs the
         -- wipe only when there was an in-flight capture to drop, never a
         -- restatement of the value. Group-leave calls WipeCapture with no
@@ -104,7 +104,7 @@ add{
 
 -- Debug is intentionally NOT a schema row: it's session-only runtime
 -- state (NS.State.debug), toggled via `/wg debug`, never persisted to
--- SavedVariables (WG-12 / §12.5). Keeping it out of the schema keeps it
+-- SavedVariables (WG-12 / debug-logging-§5). Keeping it out of the schema keeps it
 -- off the panel and out of BuildDefaults / `/wg list`.
 
 -- Notify — `solo = true` makes each row span the left half on its own
@@ -221,9 +221,9 @@ end
 -- side-effect-free writes (none today).
 function Helpers.Set(path, value, opts)
     Helpers.RawSet(path, value)
-    -- Settings-change trace (§10): one canonical [Set] line at the single write
+    -- Settings-change trace (debug-logging-§10): one canonical [Set] line at the single write
     -- seam. skipLog lets a bulk caller (RestoreDefaults) suppress the per-row
-    -- lines and emit one coalesced summary instead (§9).
+    -- lines and emit one coalesced summary instead (debug-logging-§9).
     if not (opts and opts.skipLog) then
         NS.Debug("Set", tostring(path) .. " = " .. tostring(value))
     end
@@ -333,7 +333,7 @@ function Helpers.RestoreDefaults()
         if def.path then
             -- skipRefresh inside the loop; one RefreshAll at the end avoids N
             -- refreshes for an N-row schema. skipLog suppresses the per-row
-            -- [Set] spam — one [Reset] summary is emitted below instead (§9).
+            -- [Set] spam — one [Reset] summary is emitted below instead (debug-logging-§9).
             Helpers.Set(def.path, def.default, { skipRefresh = true, skipLog = true })
             n = n + 1
         end

@@ -1,13 +1,13 @@
 #!/usr/bin/env lua
 -- tests/run.lua
--- Headless test runner + micro-framework (§14A.1).
+-- Headless test runner + micro-framework (testing-§1).
 --
 -- Usage:  lua tests/run.lua        (from the repo root)
 --
 -- Loads every addon source in TOC order under the WoW mock, exposes the
 -- framework + a fresh-addon factory to suites via _G.WHATGROUP_TEST, runs
 -- each suite under pcall, prints PASS/FAIL, and exits non-zero on any
--- failure so the commit gate (§14A) can enforce green.
+-- failure so the commit gate (testing-§4) can enforce green.
 
 local here    = (arg and arg[0] and arg[0]:match("^(.*)[/\\][^/\\]*$")) or "."
 local repo    = here .. "/.."
@@ -23,7 +23,7 @@ local SOURCES = {
     "settings/Schema.lua", "settings/Panel.lua", "modules/Frame.lua",
 }
 
--- Non-executing inventory mode (§5): `lua tests/run.lua --list` loads every
+-- Non-executing inventory mode (testing-§5): `lua tests/run.lua --list` loads every
 -- suite, prints docs/test-cases.md's body to stdout, and exits without running.
 local listMode = false
 for _, a in ipairs(arg or {}) do
@@ -36,7 +36,7 @@ local passed, failed = 0, 0
 local failedNames = {}
 
 -- Stamped to the suite file currently being dofile'd so each registered case
--- carries its origin suite (§5). `cases` is the ordered registry --list reads.
+-- carries its origin suite (testing-§5). `cases` is the ordered registry --list reads.
 local currentSuite
 local cases = {}
 
@@ -120,7 +120,7 @@ for _, s in ipairs(SUITES) do
 end
 
 -- --list: emit the generated inventory (docs/test-cases.md body) and exit,
--- grouped in SUITES (load) order with per-suite and grand totals (§5).
+-- grouped in SUITES (load) order with per-suite and grand totals (testing-§5).
 if listMode then
     local order, byS, count = {}, {}, {}
     for _, c in ipairs(cases) do

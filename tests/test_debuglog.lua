@@ -1,5 +1,5 @@
 -- tests/test_debuglog.lua — debug console: pure formatters, font constant,
--- and the /wg debug window-vs-flag semantics (debug-logging §2/§3/§5).
+-- and the /wg debug window-vs-flag semantics (debug-logging-§2/§3/§5).
 local T = _G.WHATGROUP_TEST
 local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 
@@ -73,7 +73,7 @@ test("debuglog: enabling writes a '[Debug] logging enabled' console line", funct
     NS.State.debug = false
     debugCmd(NS, "on")
     -- The enable path appends the bracket line and THEN a [Init] state snapshot
-    -- (§8), so assert containment rather than last-line.
+    -- (debug-logging-§8), so assert containment rather than last-line.
     local found = false
     for _, line in ipairs(NS.DebugLog.buffer) do
         if line:find("[Debug] logging enabled", 1, true) then found = true end
@@ -81,7 +81,7 @@ test("debuglog: enabling writes a '[Debug] logging enabled' console line", funct
     assertTrue(found, "enabling should log '[Debug] logging enabled'")
 end)
 
-test("debuglog: enabling debug appends the [Init] session summary after the bracket (§5)", function()
+test("debuglog: enabling debug appends the [Init] session summary after the bracket (debug-logging-§5)", function()
     local NS = T.bootAddon()
     NS.State.debug = false
     debugCmd(NS, "on")
@@ -89,7 +89,7 @@ test("debuglog: enabling debug appends the [Init] session summary after the brac
     local last = buf[#buf]
     assertTrue(last and last:find("[Init]", 1, true) ~= nil,
         "the on path must end with the [Init] summary, after the bracket line")
-    -- Identity content: addon/version, schema, profile (debug-logging §5).
+    -- Identity content: addon/version, schema, profile (debug-logging-§5).
     assertTrue(last:find("WhatGroup v", 1, true) ~= nil, "carries addon + version")
     assertTrue(last:find("schema v", 1, true) ~= nil, "carries schema version")
     assertTrue(last:find("profile 'Default'", 1, true) ~= nil, "carries active profile")
@@ -98,7 +98,7 @@ test("debuglog: enabling debug appends the [Init] session summary after the brac
         "[Init] follows the enable bracket line")
 end)
 
-test("debuglog: [Init] fires only on enable, not on disable (§5)", function()
+test("debuglog: [Init] fires only on enable, not on disable (debug-logging-§5)", function()
     local NS = T.bootAddon()
     NS.State.debug = false
     debugCmd(NS, "on")
@@ -129,7 +129,7 @@ test("debuglog: NS.Debug is a no-op (no console write) when debug is off", funct
     assertEqual(#NS.DebugLog.buffer, before)
 end)
 
--- ── message coverage / coalescing (§8/§9/§10) ──────────────────────────────
+-- ── message coverage / coalescing (debug-logging-§8/§9/§10) ────────────────
 
 -- Count buffer lines containing a literal fragment (plain-text buffer, no colours).
 local function countLines(NS, fragment)
@@ -140,7 +140,7 @@ local function countLines(NS, fragment)
     return n
 end
 
-test("debuglog: settings change logs one [Set] line at the write seam (§10)", function()
+test("debuglog: settings change logs one [Set] line at the write seam (debug-logging-§10)", function()
     local NS = T.bootAddon()
     NS.State.debug = true
     local before = countLines(NS, "[Set]")
@@ -149,7 +149,7 @@ test("debuglog: settings change logs one [Set] line at the write seam (§10)", f
     assertTrue(countLines(NS, "notify.delay = 3") >= 1, "line shows path = value")
 end)
 
-test("debuglog: RestoreDefaults coalesces to one [Reset], zero [Set] (§9)", function()
+test("debuglog: RestoreDefaults coalesces to one [Reset], zero [Set] (debug-logging-§9)", function()
     local NS = T.bootAddon()
     NS.State.debug = true
     local setBefore = countLines(NS, "[Set]")
@@ -159,7 +159,7 @@ test("debuglog: RestoreDefaults coalesces to one [Reset], zero [Set] (§9)", fun
     assertTrue(countLines(NS, "settings to defaults") >= 1, "summary names the count")
 end)
 
-test("debuglog: InitSummary leads with the §5 identity fields, then runtime state", function()
+test("debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state", function()
     local NS = T.bootAddon()
     local s = NS.addon:InitSummary()
     -- Standard-mandated identity prefix (name/version/schema/profile) comes first.
@@ -172,7 +172,7 @@ test("debuglog: InitSummary leads with the §5 identity fields, then runtime sta
     end
 end)
 
-test("debuglog: enable ack is colour-coded green/red matching the header (§5)", function()
+test("debuglog: enable ack is colour-coded green/red matching the header (debug-logging-§5)", function()
     -- The chat ack routes through NS.Print (prefixed). Assert the state word
     -- carries the mandated colour codes: ON 40ff40, OFF ff4040.
     local NS, _, mock = T.newAddon()

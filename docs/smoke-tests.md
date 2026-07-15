@@ -60,7 +60,7 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.1 | `/wg` | Help index prints, listing all commands with the `[WG]` prefix. |
 | 2.2 | `/wg help` | Same as 2.1. |
 | 2.3 | `/whatgroup help` | Same — long alias works. |
-| 2.4 | `/wg list` | Green **Available settings** header, azure `[section]` group headers, each `key = value` with a gold key and white value (slash-commands §5). |
+| 2.4 | `/wg list` | Green **Available settings** header, azure `[section]` group headers, each `key = value` with a gold key and white value (slash-commands-§5). |
 | 2.5 | `/wg get enabled` | Prints `enabled = true` (gold key / white value). |
 | 2.6 | `/wg set notify.delay 2.5` | Prints `notify.delay = 2.5s`. Re-running `/wg get notify.delay` confirms. |
 | 2.7 | `/wg set notify.enabled toggle` | Toggles bool — confirm with `/wg get notify.enabled`. Run twice to restore. |

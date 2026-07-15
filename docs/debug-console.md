@@ -4,7 +4,7 @@
 **Ka0s WoW Addon Standard** (`debug-logging §`) requires any addon that ships a
 main window — WhatGroup has `WhatGroupFrame` — to route debug output to a
 **dedicated on-screen console styled like its own window**, never to the chat
-frame (§7). The reference implementation is Ka0s AbsorbTracker's
+frame (debug-logging-§7). The reference implementation is Ka0s AbsorbTracker's
 `core/DebugLog.lua`; this is a close port adapted to WhatGroup's namespace.
 
 ## Public surface
@@ -32,9 +32,9 @@ Everything hangs off the shared namespace (`local addonName, NS = ...`):
   then the current runtime state `(enabled=…, notify.delay=…s, autoShow=…,
   inGroup=…, hasPending=…)` on the same line. The `D:SetEnabled` seam calls it and
   appends the line via raw `D:Add` **on enable, immediately after the
-  `[Debug] logging enabled` bracket** (debug-logging §5 MUST). Emitted at the
+  `[Debug] logging enabled` bracket** (debug-logging-§5 MUST). Emitted at the
   seam, not at login — the session-only flag is off at login, so the seam is the
-  only current, visible point (§8). This makes a pasted log self-identifying
+  only current, visible point (debug-logging-§8). This makes a pasted log self-identifying
   (which build / schema / profile) without asking the reporter.
 
 ## The window
@@ -80,8 +80,8 @@ Tags currently in use:
 - **Console** — `Debug` (the enable/disable bracket lines).
 
 The set is open — add a tag as needed. The content rules the addon follows —
-**coverage** of the main flows (§8), **coalescing** to one summary line per pass
-(§9), and **one `[Set]` line per settings change at the single seam** (§10) — are
+**coverage** of the main flows (debug-logging-§8), **coalescing** to one summary line per pass
+(debug-logging-§9), and **one `[Set]` line per settings change at the single seam** (debug-logging-§10) — are
 MUSTs in the standard's `debug-logging` section.
 
 ## Enabled-state — session-only, decoupled from the window
@@ -101,11 +101,11 @@ MUSTs in the standard's `debug-logging` section.
   (`InitSummary()`) immediately after the bracket. The disable and `[Init]` lines
   are written through raw `D:Add` (not `NS.Debug`) so they land regardless of the
   gate. The slash command and the header toggle both route through this one seam,
-  so they can't diverge (debug-logging §5).
+  so they can't diverge (debug-logging-§5).
 
 ## Slash semantics (`/wg debug`)
 
-Per `debug-logging §5` (and matching AbsorbTracker):
+Per `debug-logging-§5` (and matching AbsorbTracker):
 
 - `/wg debug` — **toggles the console window** (`D:Toggle()`); logging state
   untouched.
@@ -133,16 +133,16 @@ both the console log and the Copy `EditBox`.
 ## Adding a debug line
 
 Just call the sink with a tag (format args are applied only when debug is on, so
-string-building stays behind the gate — §9):
+string-building stays behind the gate — debug-logging-§9):
 
 ```lua
 NS.Debug("Apply", 'id=%s captured "%s" (map=%s)', tostring(id), tostring(title), tostring(mapID))
 ```
 
 No guard needed at the call site — `NS.Debug` self-gates on `NS.State.debug` and
-is zero-alloc when off. Follow the content rules: cover the main flows (§8),
-coalesce repeating paths to one summary line per pass — never per item (§9), and
-log each settings change once at the `Helpers.Set` seam (§10).
+is zero-alloc when off. Follow the content rules: cover the main flows (debug-logging-§8),
+coalesce repeating paths to one summary line per pass — never per item (debug-logging-§9), and
+log each settings change once at the `Helpers.Set` seam (debug-logging-§10).
 
 ## Tests
 

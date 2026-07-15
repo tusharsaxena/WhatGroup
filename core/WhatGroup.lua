@@ -11,7 +11,7 @@
 -- AceAddon bootstrap
 -- ---------------------------------------------------------------------------
 --
--- Private-namespace pattern (§4.1, §10): `NS` is the addon's private table,
+-- Private-namespace pattern (architecture-§1, public-api): `NS` is the addon's private table,
 -- shared across every source file via the second load vararg. AceAddon
 -- mixes its methods (RegisterChatCommand / RegisterEvent / db / …) directly
 -- INTO `NS`, so `NS` IS the addon object and `NS.addon` aliases it. Earlier
@@ -33,12 +33,12 @@ local WhatGroup = LibStub("AceAddon-3.0"):NewAddon(
 NS.addon = WhatGroup
 WhatGroup.VERSION = "1.3.0"
 
--- Session-only runtime state — never persisted (§12.5). Debug is off on
+-- Session-only runtime state — never persisted (debug-logging-§5). Debug is off on
 -- every login and toggled only by `/wg debug`.
 NS.State = NS.State or {}
 NS.State.debug = false
 
--- Single shared chat prefix (§7.4). NS.PREFIX is the one source of truth;
+-- Single shared chat prefix (slash-commands-§4). NS.PREFIX is the one source of truth;
 -- `CHAT_PREFIX` below is a file-local alias for the many print call sites.
 NS.PREFIX = "|cff00FFFF[WG]|r"
 
@@ -80,11 +80,11 @@ local function p(...)
     print(CHAT_PREFIX, ...)
 end
 WhatGroup._print = p
--- Shared chat printer seam (§7.4). NS.Print is the single user-facing chat
+-- Shared chat printer seam (slash-commands-§4). NS.Print is the single user-facing chat
 -- path; DebugLog.lua (loaded earlier) uses it for its enable/disable acks.
 NS.Print = p
 
--- Monospace font for the debug console (debug-logging §2). Vendored under
+-- Monospace font for the debug console (debug-logging-§2). Vendored under
 -- media/fonts/ (JetBrains Mono, OFL) and registered with LibSharedMedia so it
 -- also shows up in any media picker; NS.FONT_MONO is the addon-relative path
 -- DebugLog.lua feeds straight to SetFont.
@@ -150,12 +150,12 @@ function WhatGroup:OnEnable()
     self:RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
     wasInGroup = IsInGroup()
     -- No lifecycle line here: the debug flag is session-only and off at login,
-    -- so a boot-time summary would always be gated off (§5/§8). The [Init]
+    -- so a boot-time summary would always be gated off (debug-logging-§5 / debug-logging-§8). The [Init]
     -- summary is emitted at the DebugLog:SetEnabled seam instead, the only
     -- point where it is both current and visible — see InitSummary below.
 end
 
--- One-line [Init] session summary (debug-logging §5 MUST / §8 boot-summary):
+-- One-line [Init] session summary (debug-logging-§5 MUST / debug-logging-§8 boot-summary):
 -- addon name + version, schema/DB version, active AceDB profile. A pure builder
 -- — the DebugLog:SetEnabled seam calls it and appends the line via raw D:Add on
 -- enable. Guarded so it can't error before the db is ready. Values are plain
@@ -165,7 +165,7 @@ function WhatGroup:InitSummary()
     local schema  = db and db.global and db.global.schemaVersion
     local profile = (db and db.GetCurrentProfile and db:GetCurrentProfile()) or "?"
     local pr = (db and db.profile) or {}
-    -- Standard-mandated identity fields first (name/version/schema/profile, §5),
+    -- Standard-mandated identity fields first (name/version/schema/profile, debug-logging-§5),
     -- then the current runtime state so a debug session opens with full context.
     return string.format(
         "%s v%s, schema v%s, profile '%s' (enabled=%s, notify.delay=%ss, autoShow=%s, inGroup=%s, hasPending=%s)",
@@ -234,8 +234,8 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
 
     -- No success line here: OnApplyToGroup emits one [Apply] summary that
     -- carries the captured title/activity/map, so a single line covers the
-    -- whole apply→capture step (§9). The nil-result no-op above is still
-    -- logged — that's the "why nothing was captured" trace (§8).
+    -- whole apply→capture step (debug-logging-§9). The nil-result no-op above is still
+    -- logged — that's the "why nothing was captured" trace (debug-logging-§8).
     return captured
 end
 
@@ -437,7 +437,7 @@ function WhatGroup:_TryFireJoinNotify(reason)
     local autoShow = not (self.db and self.db.profile and self.db.profile.frame
                           and self.db.profile.frame.autoShow == false)
     NS.Debug("Notify", "scheduling in " .. tostring(delay) .. "s (" .. reason .. ")")
-    -- WG-17 (§3.1 SHOULD): AceTimer-3.0 is the mandated timer lib, but this
+    -- WG-17 (library-stack-§1 SHOULD): AceTimer-3.0 is the mandated timer lib, but this
     -- addon deliberately uses raw C_Timer.After. The generation-counter
     -- cancel below (notifyGen / thisGen) already gives us the one thing
     -- AceTimer would add (cancellable one-shots); vendoring AceTimer to
@@ -459,7 +459,7 @@ end
 -- Capture-state wipe used by group-leave (GROUP_ROSTER_UPDATE) and by
 -- the master-switch off-flip (enabled.onChange). Bumps notifyGen so any
 -- still-scheduled notify callback becomes a no-op when it eventually fires.
--- `reason` (optional) turns on a one-line material-effect log (§10): only the
+-- `reason` (optional) turns on a one-line material-effect log (debug-logging-§10): only the
 -- caller that wipes for a *reason the reader can't infer from context* (the
 -- master-switch off-flip) passes one, and only when something was actually in
 -- flight. Group-leave passes nothing — the [Roster] line already tells that story.
@@ -619,7 +619,7 @@ local function findCommand(list, name)
 end
 
 function printHelp(self)
-    -- §7.4 shape: "<tag> v<ver> slash commands (<alias> is an alias for
+    -- slash-commands-§4 shape: "<tag> v<ver> slash commands (<alias> is an alias for
     -- <slash>):" — the [WG] tag is prepended by p().
     p("v" .. WhatGroup.VERSION .. " " .. NS.L["slash commands"]
       .. " (|cffFFFF00/whatgroup|r is an alias for |cffFFFF00/wg|r):")
@@ -649,7 +649,7 @@ end
 -- Schema-driven /wg list|get|set
 -- ---------------------------------------------------------------------------
 
--- Shared `key = value` formatter for schema output (slash-commands §5): setting
+-- Shared `key = value` formatter for schema output (slash-commands-§5): setting
 -- key gold (ffff00), value white (ffffff). Used by /wg list rows and the /wg get
 -- and /wg set single-line echo so `key = value` reads identically everywhere.
 local function FormatKV(path, valueStr)
@@ -661,7 +661,7 @@ function listSettings(self)
     if not (H and S) then
         return p("Settings layer not ready yet")
     end
-    -- Colour scheme (slash-commands §5): header green (33ff99), [section]
+    -- Colour scheme (slash-commands-§5): header green (33ff99), [section]
     -- group headers azure (3399ff), key/value via FormatKV. No trailing colons.
     p("|cff33ff99Available settings|r")
     -- Group by section for readable output. Skip rows without a path
@@ -857,11 +857,11 @@ function runConfig(self)
 end
 
 function runDebug(self, rest)
-    -- debug-logging §5: `/wg debug` toggles the console WINDOW (logging state
+    -- debug-logging-§5: `/wg debug` toggles the console WINDOW (logging state
     -- untouched); `/wg debug on|off` sets the session-only NS.State.debug flag
     -- through the single DebugLog:SetEnabled seam (chat ack + console bracket
     -- line). The flag is never persisted — off again on the next login (WG-12 /
-    -- §12.5).
+    -- debug-logging-§5).
     local sub = (rest or ""):match("^(%S+)")
     sub = sub and sub:lower() or ""
     local DL = NS.DebugLog
@@ -871,7 +871,7 @@ function runDebug(self, rest)
         -- SetEnabled is the single write seam: it sets the flag, refreshes the
         -- header, prints the colour-coded ack, writes the bracket line, and (on
         -- enable) emits the [Init] session summary — all in one place so the
-        -- slash command and the header toggle can't diverge (§5).
+        -- slash command and the header toggle can't diverge (debug-logging-§5).
         DL:SetEnabled(sub == "on")
     elseif sub == "" then
         DL:Toggle()

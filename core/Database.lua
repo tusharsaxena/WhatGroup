@@ -1,7 +1,7 @@
 -- core/Database.lua
 -- SavedVariables schema version + migration runner.
 --
--- Establishes the migration seam from day one (§2.2 / §5.1). AceDB stores
+-- Establishes the migration seam from day one (toc-file-§2 / savedvariables-§1). AceDB stores
 -- the persisted schema version in `db.global.schemaVersion` (seeded by
 -- Settings.BuildDefaults). `NS:RunMigrations()` is called once from
 -- OnInitialize immediately after `AceDB:New`, before any code reads the
@@ -37,7 +37,7 @@ function NS:RunMigrations()
 
     g.schemaVersion = NS.SCHEMA_VERSION
 
-    -- Lifecycle coverage (§8): log only when a migration actually moved the
+    -- Lifecycle coverage (debug-logging-§8): log only when a migration actually moved the
     -- version — a fresh/already-current DB stays silent.
     if from ~= g.schemaVersion and NS.Debug then
         NS.Debug("Migrate", "v" .. tostring(from) .. " -> v" .. tostring(g.schemaVersion))

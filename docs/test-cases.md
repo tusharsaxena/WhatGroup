@@ -50,14 +50,14 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - debuglog: /wg debug (no arg) toggles the window, not the state
 - debuglog: header toggle click flips debug state
 - debuglog: enabling writes a '[Debug] logging enabled' console line
-- debuglog: enabling debug appends the [Init] session summary after the bracket (§5)
-- debuglog: [Init] fires only on enable, not on disable (§5)
+- debuglog: enabling debug appends the [Init] session summary after the bracket (debug-logging-§5)
+- debuglog: [Init] fires only on enable, not on disable (debug-logging-§5)
 - debuglog: disabling still appends a '[Debug] logging disabled' line
 - debuglog: NS.Debug is a no-op (no console write) when debug is off
-- debuglog: settings change logs one [Set] line at the write seam (§10)
-- debuglog: RestoreDefaults coalesces to one [Reset], zero [Set] (§9)
-- debuglog: InitSummary leads with the §5 identity fields, then runtime state
-- debuglog: enable ack is colour-coded green/red matching the header (§5)
+- debuglog: settings change logs one [Set] line at the write seam (debug-logging-§10)
+- debuglog: RestoreDefaults coalesces to one [Reset], zero [Set] (debug-logging-§9)
+- debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state
+- debuglog: enable ack is colour-coded green/red matching the header (debug-logging-§5)
 
 ## Totals
 

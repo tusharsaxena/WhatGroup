@@ -215,7 +215,7 @@ The Settings panel's Test button runs the same code path — both invoke `WhatGr
 
 Debug output routes to an **on-screen console** (`WhatGroupDebugWindow`), styled
 like the main popup, in a monospace font — **not** the chat frame. This is the
-standard's requirement for any addon that ships a main window (debug-logging §7);
+standard's requirement for any addon that ships a main window (debug-logging-§7);
 the console lives in `DebugLog.lua`. Each line is `HH:MM:SS | [Tag] message`. Full
 detail in [debug-console.md](./debug-console.md).
 
@@ -231,7 +231,7 @@ standard-mandated `WhatGroup v<version>, schema v<schemaVersion>, profile
 autoShow=…, inGroup=…, hasPending=…)` — so a pasted log is self-identifying
 (build / schema / profile) and opens with full context. It's written at the
 `DebugLog:SetEnabled` seam, right after the `[Debug] logging enabled` bracket
-(debug-logging §5). The tags emitted, and what each is useful for:
+(debug-logging-§5). The tags emitted, and what each is useful for:
 
 - **`[Init]`** / **`[Migrate]`** — lifecycle: the session summary (emitted on
   enable, via `WhatGroup:InitSummary()`); `[Migrate]` prints `vX -> vY` only when
@@ -257,7 +257,7 @@ autoShow=…, inGroup=…, hasPending=…)` — so a pasted log is self-identify
 
 To add a new debug line, call `NS.Debug("Tag", "fmt", …)` — it self-gates on
 `NS.State.debug` and is zero-alloc when off. Follow the standard's content rules:
-**cover** the main flows (§8), **coalesce** repeating paths to one summary line —
-never per-item (§9), and log each **settings change once** at the `Helpers.Set`
-seam (§10). Debug is **not** a schema row (WG-12), so there is no `/wg set debug`
+**cover** the main flows (debug-logging-§8), **coalesce** repeating paths to one summary line —
+never per-item (debug-logging-§9), and log each **settings change once** at the `Helpers.Set`
+seam (debug-logging-§10). Debug is **not** a schema row (WG-12), so there is no `/wg set debug`
 — `/wg debug on|off` is the only enable path.

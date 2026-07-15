@@ -1,5 +1,5 @@
 -- tests/loader.lua
--- Headless source loader (§14A.1).
+-- Headless source loader (testing-§1).
 --
 -- Loads each addon source in TOC order, binds it to the mock environment
 -- with setfenv, and invokes it as `chunk(addonName, NS)` — reproducing the

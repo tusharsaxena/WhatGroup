@@ -3,7 +3,7 @@
 -- route its user-facing literals through NS.L[...].
 --
 -- English-only is a deliberate project stance (see docs/scope.md), but the
--- Ka0s Standard (§8.3) still mandates a locale MODULE so strings are never
+-- Ka0s Standard (localization-§3) still mandates a locale MODULE so strings are never
 -- hardcoded at the call site and never sourced from Blizzard `_G` globals
 -- as a substitute. NS.L carries a fall-back metatable: any missing key
 -- returns the key itself, so routing a literal through L[...] is behaviour-

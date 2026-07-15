@@ -1,5 +1,5 @@
 -- tests/wow_mock.lua
--- WoW API mock builder for the headless harness (§14A.1).
+-- WoW API mock builder for the headless harness (testing-§1).
 --
 -- Returns a builder function. Each call constructs a FRESH environment +
 -- control table so suites are isolated from one another. The env is what
