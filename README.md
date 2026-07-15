@@ -8,12 +8,12 @@
 
 ![alt text](https://media.forgecdn.net/attachments/1794/926/whatgroup-logo-png.png)
 
-WhatGroup is a lightweight WoW addon that surfaces the details of any group you join through the Premade Group Finder, so you don't have to keep the LFG window open just to remember what you signed up for. It pairs two pieces of UI:
+WhatGroup remembers the details of any group you join through the Premade Group Finder, so you can close the LFG window and still know what you signed up for. It shows those details two ways:
 
-*   A **chat notification** printed a moment after you join: group name, instance, type (Mythic+ / Raid / Dungeon / PvP / …), leader, playstyle (Learning / Fun (Relaxed) / Fun (Serious) / Expert — using the LFG UI's own labels), the dungeon's teleport spell (with a "not learned" tag if you don't have it), and a clickable `[Click here to view details]` link to re-open the popup.
-*   A **popup dialog** with the same fields plus a teleport button for known dungeon teleport spells (grayed out if not learned). Draggable, closeable with `ESC`, and re-openable any time the group is still active via `/wg show` or the chat link.
+*   A **chat message** a moment after you join. It lists the group name, the instance, the type (Mythic+, Raid, Dungeon, PvP, and so on), the leader, and the group's playstyle. If the dungeon has a teleport spell, that's shown too (tagged if you haven't learned it), plus a "view details" link that re-opens the popup.
+*   A **popup window** with the same details and a teleport button for the dungeon (grayed out until you learn the spell). Drag it anywhere, close it with `ESC`, or re-open it with `/wg show` while you're still in the group.
 
-Every chat line is prefixed with a cyan `[WG]` banner. Every option is configurable through the standard Blizzard Settings panel and through the `/wg` slash command (every panel control has a CLI peer via `/wg get` / `/wg set`).
+Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Settings panel, or with the `/wg` commands below.
 
 ## Screenshots
 
@@ -29,75 +29,70 @@ Every chat line is prefixed with a cyan `[WG]` banner. Every option is configura
 
 ### Slash commands
 
-| Command | Description |
+`/wg` is the short form and `/whatgroup` is the long form; both take the same commands, and every reply is tagged with `[WG]`.
+
+| Command | What it does |
 |---|---|
-| `/wg` or `/wg help` | Print the help index |
-| `/wg show` | Re-open the last group info popup (only while you're still in that group) |
-| `/wg test` | Preview the chat notification + popup with synthetic data — also available as a **Test** button in the Settings panel |
-| `/wg config` | Open the Settings panel on the addon's landing page, with the subcategory tree unfolded |
-| `/wg list` | Print every setting and its current value |
-| `/wg get <path>` | Print one setting's current value |
-| `/wg set <path> <value>` | Update a setting. Bools accept `true / false / on / off / 1 / 0 / yes / no / toggle`; numbers clamp to the option's min/max |
+| `/wg` or `/wg help` | Show the list of commands |
+| `/wg show` | Re-open the last group popup (while you're still in that group) |
+| `/wg test` | Preview the chat message and popup with sample data — also a **Test** button in the Settings panel |
+| `/wg config` | Open the Settings panel |
+| `/wg list` | Show every setting and its current value |
+| `/wg get <name>` | Show one setting's current value |
+| `/wg set <name> <value>` | Change a setting. On/off settings accept `on`, `off`, or `toggle`; number settings stay within their allowed range |
 | `/wg reset` | Reset every setting to its default |
-| `/wg debug` | Open/close the on-screen debug console window |
-| `/wg debug on` / `/wg debug off` | Enable/disable debug logging (session-only — resets to off each login) |
-| `/whatgroup` | Long-form alias for `/wg` — accepts the same subcommands |
+| `/wg debug` | Open or close the on-screen debug window |
+| `/wg debug on` / `/wg debug off` | Turn debug logging on or off (resets to off each login) |
+| `/whatgroup` | Long-form alias for `/wg` |
 
 ### Settings panel
 
-`/wg config` opens the Blizzard Settings panel on **Ka0s WhatGroup**'s landing page (logo, addon notes, slash-command list) with the subcategory tree unfolded so **General** is one click away in the sidebar.
+`/wg config` opens the Blizzard Settings panel. It starts on the **Ka0s WhatGroup** landing page (logo, notes, and the command list); click **General** in the sidebar to reach the options.
 
-The **General** subcategory holds every setting in a two-column layout with a **Notify** sub-section further down. The page header carries a **Defaults** button on the right that resets every setting after a confirm prompt — same code path as `/wg reset`.
+| Tab | Covers |
+|---|---|
+| General | Every setting, with a **Notify** section below it, plus a **Test** button and a **Defaults** reset |
 
-*   **General** — master enable, popup auto-show on group join, chat notification on/off, and a **Test** button that runs the full notify + popup flow against synthetic data. (Debug logging lives in an on-screen console opened with `/wg debug` and enabled with `/wg debug on`, not a panel control — it's session-only.)
-*   **Notify** — notification delay (0–10s) plus per-line gates for the chat notification: Instance, Type, Leader, Playstyle, the "Click here" link, and the dungeon teleport spell line. Each toggle controls **chat output only** — the popup always shows every field.
+**General** — turn the addon on or off, show the popup automatically when you join, and print the chat message or not. The **Test** button previews the whole thing with sample data, and the **Defaults** button in the top-right resets every setting after a confirmation. (Debug logging isn't a setting here; open its window with `/wg debug`.)
 
-## How It Works
+**Notify** (a section within General) — set how long to wait before the message appears (0–10 seconds), and toggle each line the chat message can include: instance, type, leader, playstyle, the "view details" link, and the teleport spell. These toggles only change the chat message; the popup always shows everything.
 
-When you click **Apply** in the Premade Group Finder, WhatGroup quietly snapshots the group's details from the search-result tile. It tracks the application across the LFG state machine so the right group info ends up paired with the right invite, even when several applications are in flight at once. Once you actually join the group, the chat notification prints and the popup opens — both fired after `notify.delay` seconds so the zone-in has time to settle.
+## How it works
 
-Capture state is session-only and clears when you leave the group; only your settings persist between sessions. For the full event flow, hooks, and capture-pipeline diagram see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+When you click **Apply** in the Premade Group Finder, WhatGroup quietly notes the group's details. It keeps track of your application so the right group info is waiting for you when you join — even if you've applied to several groups at once. When you join, the chat message prints and the popup opens, a moment later so the zone-in has time to settle.
+
+The group info is only remembered for your current play session and clears when you leave the group. Only your settings are saved between sessions. For the technical details, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## FAQ
 
 | Question | Answer |
 |---|---|
-| Does this work for cross-realm or cross-faction groups? | Yes — WhatGroup just reads whatever the LFG API hands it. Realm, faction, and category don't matter. |
-| Is anything saved between sessions? | Only your settings (in `WhatGroupDB`). The captured group info is session-only and clears the moment you leave the group, so `/wg show` only works while you're still grouped. |
-| How do I preview the popup without joining a real group? | `/wg test`, or the **Test** button in Settings. Both run the full notification + popup flow against synthetic data. |
-| Why is the teleport button or chat teleport line grayed / missing? | Either you don't know the spell (popup grays the button, chat tags `(not learned)`), or the activity has no teleport mapping (popup hides the row, chat skips the line). |
-| Can I disable the popup but keep the chat message (or vice versa)? | Yes — toggle **Auto Show** off to skip the popup, or **Print to Chat** off to skip the chat summary. The two are independent. |
-| Are there profiles? Per-character configs? | Settings live in a single shared profile. There's no Profiles panel exposed in the UI. |
+| Does this work for cross-realm or cross-faction groups? | Yes. WhatGroup just reads whatever the group finder shows it, so realm, faction, and category don't matter. |
+| Is anything saved between sessions? | Only your settings. The group info clears the moment you leave the group, so `/wg show` only works while you're still in it. |
+| How do I preview the popup without joining a real group? | Use `/wg test`, or the **Test** button in Settings. Both run the full message and popup with sample data. |
+| Why is the teleport button or teleport line grayed out or missing? | Either you haven't learned the spell (the button grays out and the chat line is tagged), or that dungeon has no teleport (the line is skipped). |
+| Can I keep the chat message but hide the popup, or the reverse? | Yes. Turn **Auto Show** off to skip the popup, or **Print to Chat** off to skip the message. They work independently. |
+| Are there per-character settings? | No. Your settings are shared across all your characters. |
 
 ## Troubleshooting
 
-| Symptom | Resolution |
+| Symptom | Fix |
 |---|---|
-| Popup never appears when I join a group | Check `/wg get enabled` (master switch) and `/wg get frame.autoShow` — both must be `true`. If they are, run `/wg debug on` then `/wg debug` to open the console, and re-apply to a group; the log will tell you which capture stage didn't fire. |
-| Chat notification is missing fields | The per-line `notify.show*` toggles are independent. The popup always shows every field; the toggles only affect chat output. |
-| `/wg show` says "No group info available" | The captured info clears when you leave the group, so `/wg show` only works while you're still in that group. Use `/wg test` if you just want to preview the popup. |
-| Teleport button is grayed out for a dungeon I'm in | Either the spell isn't learned on the current character, or the activity has no teleport mapping. The popup always renders the row; the button is disabled when the spell isn't castable. |
-| Settings panel opens but I can't find the toggles | `/wg config` lands on the addon's landing page (logo + slash list) with the subcategory tree unfolded — click **General** in the sidebar to reach the toggles. |
+| The popup never appears when I join a group | Make sure both **Enable** and **Auto Show** are turned on in the **General** settings. |
+| The chat message is missing some lines | The per-line toggles under **Notify** control what the chat message includes. The popup always shows every line. |
+| `/wg show` says "No group info available" | The group info clears when you leave the group, so `/wg show` only works while you're still in it. Use `/wg test` to preview the popup instead. |
+| The teleport button is grayed out | You haven't learned that dungeon's teleport spell on this character, or the dungeon has no teleport. |
+| I opened Settings but can't find the toggles | `/wg config` lands on the landing page; click **General** in the sidebar to reach the options. |
 
 ## Issues and feature requests
 
 All bugs, feature requests, and outstanding work are tracked at [https://github.com/tusharsaxena/WhatGroup/issues](https://github.com/tusharsaxena/WhatGroup/issues). Please file new reports there rather than as comments — the issue tracker is the single source of truth for the project's backlog.
 
-## Testing
-
-WhatGroup is validated on three levels:
-
-*   **Headless tests** — `lua tests/run.lua` loads every source in TOC order under a WoW mock and runs the pure-logic suites (Compat shims, schema defaults/validation/get/set, group-type & playstyle labels, teleport lookup, and the capture-merge preference). No game client required. The full enumerated case list and the authoritative pass count live in the generated [docs/test-cases.md](docs/test-cases.md) (`lua tests/run.lua --list > docs/test-cases.md`); the `tests` badge above is a static, hand-maintained X/Y kept in lockstep with it (see [docs/testing.md](docs/testing.md)).
-*   **Lint** — `luacheck .` must report 0 warnings / 0 errors (config in `.luacheckrc`). Both the harness and the lint are the commit gate.
-*   **In-game smoke tests** — the pieces that can't be exercised headlessly (AceGUI panel rendering, secure teleport button, and the **GameMenu → Logout taint check**) are covered by the manual [smoke-test checklist](docs/smoke-tests.md). Run the relevant section after any non-trivial change, after an `## Interface:` bump, after refreshing `libs/`, and before tagging a release — the Quick reference checklist at the bottom of that file is the minimum pre-release pass.
-
-This addon follows the [Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards).
-
 ## Version History
 
-| Version | Date | Notes |
+| Version | Date | Highlights |
 |---|---|---|
-| 1.3.0 | 2026-07-12 | Debug logging is now session-only — resets to off each login and is toggled with `/wg debug` (no longer a Settings-panel checkbox)<br>Removed the persisted `debug` setting and the public `_G.WhatGroup` global; the addon now uses a private namespace<br>Restructured to the Ka0s WoW Addon Standard: added `Compat` / `Locale` / `Database` modules, a headless test harness (`lua tests/run.lua`), a `luacheck` config, and `.pkgmeta`, plus TOC metadata hygiene<br>Updated for Interface 120007<br>Docs: reduced `CLAUDE.md` to a stub with the full brief under `docs/`, moved `ARCHITECTURE.md` to `docs/`, and added a Testing section + Standard badge to the README |
-| 1.2.0 | 2026-05-03 | Adopted Ace3 with a schema-driven Settings panel and `/wg config`, `list`, `get`, `set`, `reset`, `debug`, `test` slash commands<br>Added popup teleport button (mapID-keyed, grayed when not learned) and atlas-chevron breadcrumb separator<br>Fixed Logout taint, stale notify timers, and popup teleport / playstyle on real LFG joins<br>Consolidated playstyle and group-type strings under `WhatGroup.Labels`; orchestrated `Helpers.Set` with deterministic refresh order<br>Moved teleport spell table to `data/TeleportSpells.lua` and refreshed it against current dungeon data<br>Split docs into `docs/*` topic chunks; added `ARCHITECTURE.md` and a smoke-test checklist |
-| 1.1.0 | 2026-04-24 | Bumped TOC interface for client compatibility |
-| 1.0.0 | 2026-03-19 | Initial release: chat notification and popup dialog on LFG join, Playstyle row, gold-unified label colors, MIT license |
+| 1.3.0 | 2026-07-12 | Debug logging now resets to off each login and is toggled with `/wg debug` instead of a Settings checkbox.<br>Updated for game patch 12.0.7. |
+| 1.2.0 | 2026-05-03 | Added the Settings panel and the `/wg` slash commands.<br>Added a teleport button to the popup, grayed out until you learn the spell.<br>Fixed a logout error, stale notification timers, and the wrong teleport spell and playstyle showing on real group joins. |
+| 1.1.0 | 2026-04-24 | Updated for a new game patch. |
+| 1.0.0 | 2026-03-19 | Initial release: a chat message and popup whenever you join a group through the Premade Group Finder. |
