@@ -1,12 +1,12 @@
 # Ka0s WhatGroup
 
-![wow](https://img.shields.io/badge/WoW-Midnight_12.0.7-orange)
+![WoW](https://img.shields.io/badge/WoW-Midnight_12.0.7-purple)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
-![tests](https://img.shields.io/badge/tests-45%2F45_passing-brightgreen)
-![license](https://img.shields.io/badge/license-MIT-green)
-[![Ka0s Standard](https://img.shields.io/badge/Ka0s-Standard-blue)](https://github.com/tusharsaxena/WowAddonStandards)
+![License](https://img.shields.io/badge/License-MIT-orange)
+[![Standard](https://img.shields.io/badge/Ka0s-WoW%20Addon%20Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
+![Tests](https://img.shields.io/badge/Tests-45%2F45_passing-green)
 
-![alt text](https://media.forgecdn.net/attachments/1588/403/whatgroup-logo-png.png)
+![alt text](https://media.forgecdn.net/attachments/1794/926/whatgroup-logo-png.png)
 
 WhatGroup is a lightweight, single-folder WoW addon that surfaces the details of any group you join through the Premade Group Finder, so you don't have to keep the LFG window open just to remember what you signed up for. It pairs two pieces of UI:
 
