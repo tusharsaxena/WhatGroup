@@ -136,19 +136,25 @@ function WhatGroup:OnInitialize()
 end
 
 function WhatGroup:OnEnable()
-    -- OnEnable is intentionally minimal. Hooks are installed at
-    -- file-load (top of this file). Settings panel registration is
-    -- deferred to first `/wg config`. StaticPopup registration is
-    -- deferred to first reset. All three of those used to live in
-    -- OnEnable / file-load and were tainting Blizzard's GameMenu
-    -- callbacks (Logout etc. fired ADDON_ACTION_FORBIDDEN). The
-    -- common cause: addon-author writes that touch protected/secure
-    -- surfaces (SettingsPanel categories, StaticPopupDialogs, AceHook
-    -- closures) during the boot window leak taint into the closures
-    -- Blizzard's GameMenu builds for its buttons.
+    -- Hooks are installed at file-load (top of this file), not here.
     self:RegisterEvent("GROUP_ROSTER_UPDATE")
     self:RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
     wasInGroup = IsInGroup()
+
+    -- Register the Settings panel at login so the "Ka0s WhatGroup" entry shows
+    -- in Settings → AddOns without the player running `/wg config` first — the
+    -- same place every other Ka0s addon registers it (AbsorbTracker / KickCD do
+    -- this at OnEnable too). Registering a canvas category at boot does NOT taint
+    -- GameMenu's Logout closure; WhatGroup's real boot-taint sources — the secure
+    -- teleport button and the `UISpecialFrames` insert — stay deferred to first
+    -- popup show (Frame.lua). Panel widget bodies still build lazily on first
+    -- OnShow (Panel.lua), so no AceGUI frame is created inside a secure-execute
+    -- chain. Register() is idempotent (the `_settingsRegistered` guard), so
+    -- runConfig's call becomes a harmless no-op fallback (it also covers the rare
+    -- login-in-combat case where the InCombatLockdown guard makes this one bail).
+    if self.Settings and self.Settings.Register then
+        self.Settings.Register()
+    end
     -- No lifecycle line here: the debug flag is session-only and off at login,
     -- so a boot-time summary would always be gated off (debug-logging-§5 / debug-logging-§8). The [Init]
     -- summary is emitted at the DebugLog:SetEnabled seam instead, the only
@@ -820,14 +826,11 @@ function runConfig(self)
         return p(NS.L["Cannot open the settings panel during combat. Try again after combat ends."])
     end
 
-    -- Lazy Settings registration: we deliberately don't register at
-    -- PLAYER_LOGIN because direct calls to
-    -- `_G.Settings.RegisterCanvasLayoutCategory` /
-    -- `_G.Settings.RegisterAddOnCategory` from non-secure addon code
-    -- at boot taint Blizzard's GameMenu callbacks (Logout etc. fail
-    -- with ADDON_ACTION_FORBIDDEN). Registering on first /wg config
-    -- means the addon adds nothing to Blizzard's settings/menu
-    -- surface during the boot sequence.
+    -- Settings registration normally happens at login (OnEnable), so the panel
+    -- is already in the AddOns list by the time the player runs this. This call
+    -- is an idempotent fallback (the `_settingsRegistered` guard no-ops it) that
+    -- also covers a login in combat, where OnEnable's registration bailed on the
+    -- InCombatLockdown guard.
     if self.Settings and self.Settings.Register then
         self.Settings.Register()
     end

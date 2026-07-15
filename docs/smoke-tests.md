@@ -42,7 +42,8 @@ The addon was previously tainting `GameMenuFrame`'s button callbacks; clicking L
 
 Repeat after each of these to make sure no surface re-introduces the leak:
 - After `/wg test` (exercises `WhatGroupFrame` + secure teleport button)
-- After `/wg config` (exercises lazy `Settings.Register`)
+- After a fresh login / `/reload`, before running anything (`Settings.Register` now runs at `OnEnable`, so the AddOns entry is registered at boot — this is the key case for the login-register change)
+- After `/wg config` (re-opens the already-registered panel)
 - After `/wg reset` confirm (exercises lazy `StaticPopupDialogs["WHATGROUP_RESET_ALL"]`)
 - After clicking the teleport button on the popup
 - After applying to a real LFG group

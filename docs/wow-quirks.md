@@ -144,22 +144,20 @@ secureBtn:SetAllPoints()
 
 **Workaround for popup-style usage**: parent the secure button **directly to the popup frame** (the same Frame that owns the row labels), and use the implicit-parent `SetPoint("LEFT", xOff, yOff)` form to position it. The protection check passes; visibility rides on the parent-child relationship (the popup's `Show()` / `Hide()` automatically propagate to the button); dragging the popup moves the button with it. No proxy frame, no UIParent parent, no screen-position sync, no combat handler.
 
-## Lazy popup, secure button, and Settings registration
+## Lazy popup and secure button (GameMenu Logout taint)
 
 **Anything you do at PLAYER_LOGIN that touches Blizzard's secure surface taints Blizzard's GameMenu callbacks.** That taint surfaces as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicks the GameMenu's Logout button — even on a fresh `/reload` with no addon use. The protected operation that fails is `Logout()`, but the error is attributed to whichever addon left the taint trace. The mechanism: Blizzard's `GameMenuFrame:InitButtons()` builds the Logout / Settings / Macros button-callback closures during boot. If any addon-driven mutation of secure state has happened before that runs, the closures inherit the addon's taint and refuse to invoke `Logout()` (or any other protected button action) when the user clicks them.
 
-In WhatGroup's case, three boot-time operations were demonstrated to taint:
+In WhatGroup's case, two boot-time operations taint:
 
 1. **Creating a `SecureActionButtonTemplate` Button** (the popup's teleport icon).
 2. **`tinsert(UISpecialFrames, "WhatGroupFrame")`** — adding a frame name to UISpecialFrames so ESC closes it.
-3. **`Settings.RegisterCanvasLayoutCategory(panel, name)` + `Settings.RegisterAddOnCategory(category)`** — registering with the modern Settings API.
 
-The fix is the same pattern for all three: **defer everything to actual user demand**.
+The fix for both: **defer them to actual user demand.** `modules/Frame.lua`'s entire setup (popup creation, secure button creation, `UISpecialFrames` registration) is wrapped in a `buildFrame()` function called only on the first `WhatGroup:ShowFrame()`.
 
-- `modules/Frame.lua`'s entire setup (popup creation, secure button creation, `UISpecialFrames` registration) is wrapped in a `buildFrame()` function that's called only on the first `WhatGroup:ShowFrame()` call.
-- `Settings.Register()` is called only from `runConfig` (the `/wg config` slash handler) on first invocation. The addon doesn't appear in the Settings → AddOns list until the user has run `/wg config` once per session — minor UX trade-off for a clean GameMenu.
+> **Settings registration is NOT one of these.** An earlier revision also listed `Settings.RegisterCanvasLayoutCategory` + `RegisterAddOnCategory` as a boot-taint source and deferred `Settings.Register()` to first `/wg config`. That was a misdiagnosis — a confound with the AceHook `RawHook` / `SecureHook` closures that were the actual hook-taint culprit (since removed; see the hook table above). Every other Ka0s addon (AbsorbTracker, KickCD, LootHistory, ConsumableMaster) registers its canvas Settings category at login with no taint, so WhatGroup now registers in `OnEnable` too — the panel appears in Settings → AddOns at login. The panel's widget bodies still build lazily on first `OnShow` (Panel.lua), so no AceGUI frame is created inside a secure-execute chain.
 
-At PLAYER_LOGIN the addon now adds nothing to Blizzard's secure surface, GameMenu's `InitButtons` runs in a clean context during boot, and Logout works correctly. Any taint the addon does generate later (on first popup show, or first `/wg config`) is contained to a session where the player has actively used the addon — and even then, GameMenu's button closures were already built with the clean context they captured at boot.
+At PLAYER_LOGIN the addon now adds nothing to Blizzard's secure surface, GameMenu's `InitButtons` runs in a clean context during boot, and Logout works correctly. Any taint the addon does generate later (on first popup show) is contained to a session where the player has actively used the addon — and even then, GameMenu's button closures were already built with the clean context they captured at boot.
 
 The regression test for this lives in [smoke-tests.md → §1.3 GameMenu Logout — no taint regression](./smoke-tests.md#13-gamemenu-logout--no-taint-regression-critical). Run it after any change that touches hooks, the popup, the Settings panel, or the StaticPopup table.
 

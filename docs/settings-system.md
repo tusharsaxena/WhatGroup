@@ -169,7 +169,7 @@ Idempotent (`WhatGroup._settingsRegistered` guard). Validates the schema first (
 
 **Combat-guarded.** After the idempotent guard, `Settings.Register()` self-checks `InCombatLockdown()` and refuses with a `[WG] Cannot register settings panel during combat.` chat hint if it's mid-combat. The slash handler `runConfig` already refuses on the same condition; the in-`Register` guard is defense-in-depth so any future caller that bypasses `runConfig` doesn't reintroduce the GameMenu taint that registering Settings categories during combat causes.
 
-**Called lazily** — only from `runConfig` (the `/wg config` slash handler) on first invocation. NOT called from `OnEnable`. Calling `_G.Settings.RegisterCanvasLayoutCategory` / `_G.Settings.RegisterAddOnCategory` from non-secure addon code at PLAYER_LOGIN taints Blizzard's GameMenu callbacks (Logout etc. fail with `ADDON_ACTION_FORBIDDEN`). Lazy registration means the addon adds nothing to Blizzard's settings/menu surface during the boot sequence. Trade-off: WhatGroup doesn't appear in the Settings → AddOns list until `/wg config` has been run once per session.
+**Called at login** — from `OnEnable` (PLAYER_LOGIN), so the panel is in the Settings → AddOns list from the moment the player logs in, and again as an idempotent no-op from `runConfig`. This matches every other Ka0s addon: registering a canvas Settings category at login is taint-safe. (An earlier revision deferred this to first `/wg config`, believing the registration tainted GameMenu — a misdiagnosis confounded with the since-removed AceHook closures; see [wow-quirks.md](./wow-quirks.md).) WhatGroup's genuine boot-taint sources — the secure teleport button and `UISpecialFrames` insert — stay deferred in `modules/Frame.lua`.
 
 
 

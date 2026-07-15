@@ -587,12 +587,12 @@ end
 -- Public registration
 -- ---------------------------------------------------------------------------
 --
--- Called lazily from `runConfig` (the `/wg config` slash handler) on first
--- invocation. Idempotent. **Not** called from `OnEnable` — registering the
--- Settings panel at load time taints the GameMenu callback chain and the
--- Logout button fires `ADDON_ACTION_FORBIDDEN`. See
--- docs/wow-quirks.md → "Lazy popup, secure button, and Settings registration"
--- for the taint reasoning.
+-- Called from `OnEnable` (PLAYER_LOGIN) so the panel is in the Settings →
+-- AddOns list at login, like every other Ka0s addon; and again as an
+-- idempotent no-op from `runConfig`. Registering a canvas category at login is
+-- taint-safe — WhatGroup's real GameMenu-taint sources (the secure teleport
+-- button + UISpecialFrames insert) stay deferred in modules/Frame.lua. See
+-- docs/wow-quirks.md → "Lazy popup and secure button" for the taint reasoning.
 --
 -- The parent canvas is the addon-landing page (logo + TOC notes +
 -- slash list); every actual setting lives in the General subcategory.
