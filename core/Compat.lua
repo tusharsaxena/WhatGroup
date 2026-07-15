@@ -1,4 +1,4 @@
--- Compat.lua
+-- core/Compat.lua
 -- Thin compatibility shims for the version-variant spell / LFG APIs the
 -- addon consumes. Loaded first among the addon files (see WhatGroup.toc)
 -- so every later file can reach NS.Compat.* without doing its own

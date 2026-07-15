@@ -1,13 +1,13 @@
 # CLAUDE.md — Ka0s WhatGroup
 
-**Tier 1 (Flat).** A single-folder retail WoW addon: flat source layout, Ace3
-vendored under `libs/`, one shared AceDB profile.
+**Ka0s WoW addon.** A retail WoW addon: Ace3 vendored under `libs/`, one shared
+AceDB profile.
 
 ## Standards adherence — read before any change
 
 This addon is built to the **Ka0s WoW Addon Standard** —
 <https://github.com/tusharsaxena/WowAddonStandards>. Treat that repo (its
-`standards/01_STANDARD.md`) as the source of truth for structure, conventions,
+`standards/STANDARDS.md`) as the source of truth for structure, conventions,
 metadata, testing, and layout. **All development work in this repo is done
 against the standard** — check every change against it as you go.
 

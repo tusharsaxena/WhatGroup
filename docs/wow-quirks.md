@@ -156,16 +156,16 @@ In WhatGroup's case, three boot-time operations were demonstrated to taint:
 
 The fix is the same pattern for all three: **defer everything to actual user demand**.
 
-- `WhatGroup_Frame.lua`'s entire setup (popup creation, secure button creation, `UISpecialFrames` registration) is wrapped in a `buildFrame()` function that's called only on the first `WhatGroup:ShowFrame()` call.
+- `modules/Frame.lua`'s entire setup (popup creation, secure button creation, `UISpecialFrames` registration) is wrapped in a `buildFrame()` function that's called only on the first `WhatGroup:ShowFrame()` call.
 - `Settings.Register()` is called only from `runConfig` (the `/wg config` slash handler) on first invocation. The addon doesn't appear in the Settings → AddOns list until the user has run `/wg config` once per session — minor UX trade-off for a clean GameMenu.
 
 At PLAYER_LOGIN the addon now adds nothing to Blizzard's secure surface, GameMenu's `InitButtons` runs in a clean context during boot, and Logout works correctly. Any taint the addon does generate later (on first popup show, or first `/wg config`) is contained to a session where the player has actively used the addon — and even then, GameMenu's button closures were already built with the clean context they captured at boot.
 
 The regression test for this lives in [smoke-tests.md → §1.3 GameMenu Logout — no taint regression](./smoke-tests.md#13-gamemenu-logout--no-taint-regression-critical). Run it after any change that touches hooks, the popup, the Settings panel, or the StaticPopup table.
 
-See `WhatGroup_Frame.lua`'s `buildFrame()`, `WhatGroup_Settings.lua`'s `Settings.Register()`, and `WhatGroup.lua`'s `runConfig()`.
+See `modules/Frame.lua`'s `buildFrame()`, `settings/Panel.lua`'s `Settings.Register()`, and `core/WhatGroup.lua`'s `runConfig()`.
 
-WhatGroup uses this pattern for the popup's teleport icon — see `WhatGroup_Frame.lua` and [frame.md → Teleport button](./frame.md#teleport-button).
+WhatGroup uses this pattern for the popup's teleport icon — see `modules/Frame.lua` and [frame.md → Teleport button](./frame.md#teleport-button).
 
 > **Earlier iterations got this wrong.** A previous attempt parented the secure button to `UIParent` and synced its screen position from a non-secure proxy frame (`teleportSlot`) via a `syncTeleportButton` function, plus a `PLAYER_REGEN_ENABLED` retry, plus a deferred-Hide on the popup's `OnHide`. That pattern *worked* in the sense that the icon appeared in the right place — but the addon-driven `Show()` / `Hide()` / `SetPoint(... UIParent ...)` calls on a `SecureActionButtonTemplate` parented to `UIParent` accumulated taint that surfaced later as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked the GameMenu's Logout button (the Logout closure's `callback()` runs inside Blizzard's secure-execute chain at `Blizzard_GameMenu/Shared/GameMenuFrame.lua:69`, which detects the addon's prior taint of the secure system and refuses to run `Logout()`). Parenting to the popup frame directly eliminates all of those non-secure operations on the protected button — the only non-secure interaction left is `SetAttribute` calls in `ConfigureTeleportButton`, which is the standard pattern Blizzard expects.
 

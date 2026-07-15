@@ -1,10 +1,10 @@
 # Frame
 
-The popup dialog that displays captured group info. Lives in `WhatGroup_Frame.lua` as a single global Frame named `WhatGroupFrame`.
+The popup dialog that displays captured group info. Lives in `modules/Frame.lua` as a single global Frame named `WhatGroupFrame`.
 
 ## Lazy creation
 
-**Nothing in `WhatGroup_Frame.lua` runs at file-load.** All frame creation — the popup, the Close button, the SecureActionButtonTemplate teleport button, the `UISpecialFrames` entry — is wrapped in a `buildFrame()` function that fires on the first `WhatGroup:ShowFrame()` call only. The reason is taint: creating these things at PLAYER_LOGIN was leaving a residue that surfaced as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked the GameMenu's Logout button. Specifically, adding `"WhatGroupFrame"` to `UISpecialFrames` and creating a `SecureActionButtonTemplate` button before Blizzard's `GameMenuFrame:InitButtons()` first ran caused GameMenu's button-callback closures to inherit the addon's load-time taint — by the time the player clicked Logout, those closures' invocation of `Logout()` was rejected by the secure system and attributed to WhatGroup. Deferring all frame creation to first show fixes this: GameMenu's `InitButtons` runs in a clean context during the boot sequence, the closures it builds for Logout / Settings / Macros / etc. are taint-free, and any taint we generate later is contained to a session where the player has actually used the addon.
+**Nothing in `modules/Frame.lua` runs at file-load.** All frame creation — the popup, the Close button, the SecureActionButtonTemplate teleport button, the `UISpecialFrames` entry — is wrapped in a `buildFrame()` function that fires on the first `WhatGroup:ShowFrame()` call only. The reason is taint: creating these things at PLAYER_LOGIN was leaving a residue that surfaced as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked the GameMenu's Logout button. Specifically, adding `"WhatGroupFrame"` to `UISpecialFrames` and creating a `SecureActionButtonTemplate` button before Blizzard's `GameMenuFrame:InitButtons()` first ran caused GameMenu's button-callback closures to inherit the addon's load-time taint — by the time the player clicked Logout, those closures' invocation of `Logout()` was rejected by the secure system and attributed to WhatGroup. Deferring all frame creation to first show fixes this: GameMenu's `InitButtons` runs in a clean context during the boot sequence, the closures it builds for Logout / Settings / Macros / etc. are taint-free, and any taint we generate later is contained to a session where the player has actually used the addon.
 
 The pattern is borrowed from a similar reference addon that demonstrates the same lazy approach for its group-reminder popup; see [wow-quirks.md → Lazy popup + secure button creation](./wow-quirks.md#lazy-popup--secure-button-creation) for the full background.
 
@@ -113,7 +113,7 @@ end
 
 - **`ConfigureTeleportButton`** (called every `PopulateFields`, i.e. every `ShowFrame`). When in combat: stash `info` on `f._pendingTeleportInfo`, register `PLAYER_REGEN_ENABLED` on the popup frame, and return. When the event fires, unregister and rerun `ConfigureTeleportButton` with the most recently-stashed info. Repeated calls during the same combat window safely overwrite the stash; `RegisterEvent` is idempotent. The button retains its prior visual state until the rerun.
 - **`WhatGroup:ShowFrame` first-build** (the `not f and InCombatLockdown()` branch above). Creating the popup itself is fine in combat, but `buildFrame()` creates a `SecureActionButtonTemplate` and inserts `"WhatGroupFrame"` into `UISpecialFrames` — both protected. So the very first show is queued via a one-shot `CreateFrame("Frame")` waiting on `PLAYER_REGEN_ENABLED`, with a `[WG] Popup deferred until combat ends.` chat hint. The captured `pendingInfo` is restored on combat-end only if it was cleared mid-wait (group-leave during the window). Subsequent in-combat shows route through `ConfigureTeleportButton`'s guard, since `f` already exists.
-- **`Settings.Register()`** in `WhatGroup_Settings.lua` self-guards on `InCombatLockdown()` after the idempotent check (defense-in-depth atop `runConfig`'s slash-handler refusal). Same combat-taint rationale as the popup's secure button — registering Settings categories mid-combat taints the GameMenu callback chain.
+- **`Settings.Register()`** in `settings/Panel.lua` self-guards on `InCombatLockdown()` after the idempotent check (defense-in-depth atop `runConfig`'s slash-handler refusal). Same combat-taint rationale as the popup's secure button — registering Settings categories mid-combat taints the GameMenu callback chain.
 
 There is intentionally no programmatic Hide method. The frame is closed by:
 
@@ -123,7 +123,7 @@ There is intentionally no programmatic Hide method. The frame is closed by:
 
 ## Shared label helpers
 
-`GetGroupTypeLabel` and the `PLAYSTYLE` enum→string table live on the shared `WhatGroup.Labels` namespace (defined in `WhatGroup.lua`). Both `ShowNotification` (chat output) and `PopulateFields` (popup) read from the same source so a new playstyle enum or group-type rule lands in one place. `WhatGroup.lua` loads before `WhatGroup_Frame.lua` per the TOC, so `WhatGroup.Labels` exists by the time the popup file runs `PopulateFields`.
+`GetGroupTypeLabel` and the `PLAYSTYLE` enum→string table live on the shared `WhatGroup.Labels` namespace (defined in `WhatGroup.lua`). Both `ShowNotification` (chat output) and `PopulateFields` (popup) read from the same source so a new playstyle enum or group-type rule lands in one place. `WhatGroup.lua` loads before `modules/Frame.lua` per the TOC, so `WhatGroup.Labels` exists by the time the popup file runs `PopulateFields`.
 
 ## Frame dependencies
 

@@ -8,7 +8,7 @@
 
 ![alt text](https://media.forgecdn.net/attachments/1794/926/whatgroup-logo-png.png)
 
-WhatGroup is a lightweight, single-folder WoW addon that surfaces the details of any group you join through the Premade Group Finder, so you don't have to keep the LFG window open just to remember what you signed up for. It pairs two pieces of UI:
+WhatGroup is a lightweight WoW addon that surfaces the details of any group you join through the Premade Group Finder, so you don't have to keep the LFG window open just to remember what you signed up for. It pairs two pieces of UI:
 
 *   A **chat notification** printed a moment after you join: group name, instance, type (Mythic+ / Raid / Dungeon / PvP / …), leader, playstyle (Learning / Fun (Relaxed) / Fun (Serious) / Expert — using the LFG UI's own labels), the dungeon's teleport spell (with a "not learned" tag if you don't have it), and a clickable `[Click here to view details]` link to re-open the popup.
 *   A **popup dialog** with the same fields plus a teleport button for known dungeon teleport spells (grayed out if not learned). Draggable, closeable with `ESC`, and re-openable any time the group is still active via `/wg show` or the chat link.

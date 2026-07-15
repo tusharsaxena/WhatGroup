@@ -1,7 +1,7 @@
--- DebugLog.lua
+-- core/DebugLog.lua
 -- On-screen debug console (Ka0s standard, debug-logging §). Debug output
 -- (NS.Debug) renders here in a monospace font instead of spamming the chat
--- frame — required because WhatGroup ships a main window (WhatGroup_Frame.lua),
+-- frame — required because WhatGroup ships a main window (modules/Frame.lua),
 -- so the chat fallback (§7) is not available to us. Session-only: the enabled
 -- state lives in NS.State.debug and resets on every reload/login (§5 / §12.5).
 
@@ -23,7 +23,7 @@ D.buffer = D.buffer or {}
 local MAX_BUFFER = 500
 
 -- Backdrop shared by the console + copy windows so they read like the addon's
--- own main frame (WhatGroup_Frame.lua uses the same colours).
+-- own main frame (modules/Frame.lua uses the same colours).
 local BACKDROP = {
     bgFile = "Interface\\Buttons\\WHITE8x8",
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",

@@ -22,12 +22,21 @@ libs\AceDB-3.0\AceDB-3.0.lua
 libs\AceGUI-3.0\AceGUI-3.0.xml
 libs\LibSharedMedia-3.0\lib.xml
 
-# Addon
-Compat.lua
-Locale.lua
-Database.lua
-DebugLog.lua
-TeleportSpells.lua
-WhatGroup.lua
-WhatGroup_Settings.lua
-WhatGroup_Frame.lua
+# Core
+core\Compat.lua
+core\Database.lua
+core\DebugLog.lua
+core\WhatGroup.lua
+
+# Defaults
+defaults\TeleportSpells.lua
+
+# Locales
+locales\enUS.lua
+
+# Settings
+settings\Schema.lua
+settings\Panel.lua
+
+# Modules
+modules\Frame.lua

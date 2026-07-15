@@ -1,4 +1,4 @@
--- WhatGroup_Frame.lua
+-- modules/Frame.lua
 -- Custom popup dialog frame for displaying group details.
 --
 -- Everything in this file is **lazy** — no frames are created at file

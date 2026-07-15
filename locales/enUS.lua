@@ -1,4 +1,4 @@
--- Locale.lua
+-- locales/enUS.lua
 -- Localization shell. Loaded early (after Compat) so every later file can
 -- route its user-facing literals through NS.L[...].
 --

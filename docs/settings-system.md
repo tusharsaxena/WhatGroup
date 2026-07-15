@@ -1,6 +1,6 @@
 # Settings system
 
-A single flat array `WhatGroup.Settings.Schema` declares every option. One row drives six surfaces simultaneously, so adding a setting is a single-row diff. Everything in this doc lives in `WhatGroup_Settings.lua`.
+A single flat array `WhatGroup.Settings.Schema` declares every option. One row drives six surfaces simultaneously, so adding a setting is a single-row diff. The schema rows and helpers live in `settings/Schema.lua`; the canvas panel renderer lives in `settings/Panel.lua`.
 
 ## Six surfaces, one row
 
@@ -103,7 +103,7 @@ Because `BuildDefaults` runs at every login, **a new schema row appears with its
 
 ## Panel renderer
 
-The General sub-page renders the schema as a two-column AceGUI Flow layout (50/50 per row) inside an always-visible AceGUI `ScrollFrame`. The renderer is `Helpers.RenderSchema(ctx, afterGroup)` in `WhatGroup_Settings.lua` — closely modeled on KickCD's `Helpers.RenderSchema`.
+The General sub-page renders the schema as a two-column AceGUI Flow layout (50/50 per row) inside an always-visible AceGUI `ScrollFrame`. The renderer is `Helpers.RenderSchema(ctx, afterGroup)` in `settings/Panel.lua` — closely modeled on KickCD's `Helpers.RenderSchema`.
 
 Pairing rules:
 
@@ -112,7 +112,7 @@ Pairing rules:
 - **`group` transition**: flushes the in-progress row, calls `Helpers.Section` (10 px spacer above the heading if not the first group, then the heading at `GameFontNormalLarge`, then 6 px below), and the next widget starts a fresh row.
 - **`afterGroup[def.group]`**: at the final row of a group (last one in source order, or the next row's group differs), flushes the in-progress row and invokes the callback. One-shot — removed from the table after firing.
 
-Layout constants live at the top of the panel-rendering section in `WhatGroup_Settings.lua`:
+Layout constants live at the top of `settings/Panel.lua`:
 
 ```lua
 local PADDING_X     = 16

@@ -1,4 +1,4 @@
--- TeleportSpells.lua
+-- defaults/TeleportSpells.lua
 -- mapID → Path-of teleport spell ID lookup.
 --
 -- Keyed by the dungeon's instance map ID (stable across seasons).

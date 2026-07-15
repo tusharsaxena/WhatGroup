@@ -5,8 +5,7 @@
 main window — WhatGroup has `WhatGroupFrame` — to route debug output to a
 **dedicated on-screen console styled like its own window**, never to the chat
 frame (§7). The reference implementation is Ka0s AbsorbTracker's
-`core/DebugLog.lua`; this is a close port adapted to WhatGroup's flat layout and
-namespace.
+`core/DebugLog.lua`; this is a close port adapted to WhatGroup's namespace.
 
 ## Public surface
 
@@ -73,9 +72,9 @@ Tags currently in use:
   decisions), `LFG` (status events), `Invite` (accepted, with the winning
   `source=fresh|queued`), `Roster` (in-group transitions only), `Notify`
   (`scheduling` / `fired` / `cancelled` / skip), `ChatLink`, `Test`.
-- **Frame** (`WhatGroup_Frame.lua`) — `Frame` (`popup shown …`, `teleport
+- **Frame** (`modules/Frame.lua`) — `Frame` (`popup shown …`, `teleport
   spellID=… known=…`).
-- **Settings** (`WhatGroup_Settings.lua`) — `Set` (the one canonical
+- **Settings** (`settings/Schema.lua`) — `Set` (the one canonical
   settings-change line, at the `Helpers.Set` seam), `Reset` (one coalesced
   summary for `/wg reset`), `Schema` (internal path-lookup miss).
 - **Console** — `Debug` (the enable/disable bracket lines).

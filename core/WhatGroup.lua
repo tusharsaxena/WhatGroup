@@ -1,8 +1,8 @@
--- WhatGroup.lua
+-- core/WhatGroup.lua
 -- AceAddon shell, event handling, group-info capture, slash dispatch.
 --
--- Settings layer lives in WhatGroup_Settings.lua (schema + helpers +
--- canvas panel). Frame UI lives in WhatGroup_Frame.lua. All persistent
+-- Settings layer lives in settings/Schema.lua (schema + helpers) and
+-- settings/Panel.lua (canvas panel). Frame UI lives in modules/Frame.lua. All persistent
 -- user prefs go through self.db.profile via the Settings.Helpers
 -- Get/Set path; capture/pending state is session-only and lives in
 -- module-local tables.
@@ -15,8 +15,10 @@
 -- shared across every source file via the second load vararg. AceAddon
 -- mixes its methods (RegisterChatCommand / RegisterEvent / db / …) directly
 -- INTO `NS`, so `NS` IS the addon object and `NS.addon` aliases it. Earlier
--- files (Compat, Locale, Database) have already hung NS.Compat / NS.L /
--- NS:RunMigrations on this same table; NewAddon preserves those fields.
+-- files (Compat, Database) have already hung NS.Compat / NS:RunMigrations on
+-- this same table; NewAddon preserves those fields. NS.L is NOT set yet —
+-- locales/enUS.lua loads after this file (layout load order), so L strings are
+-- referenced as NS.L[...] at runtime, never captured at file scope here.
 --
 -- No `_G.WhatGroup` — the addon exposes no public global (WG-01). Downstream
 -- files pick the object up with `local WhatGroup = NS.addon`. Hooks are
@@ -65,7 +67,6 @@ hooksecurefunc("SetItemRef", function(linkArg, text, button, ...)
 end)
 
 local CHAT_PREFIX = NS.PREFIX
-local L = NS.L
 
 -- Session-only state. Cleared on group leave; never persisted.
 local captureQueue        = {}   -- FIFO: captures awaiting their appID assignment
@@ -114,7 +115,7 @@ end
 -- ---------------------------------------------------------------------------
 
 function WhatGroup:OnInitialize()
-    -- WhatGroup_Settings.lua loads after this file but BEFORE OnInitialize
+    -- settings/Schema.lua loads after this file but BEFORE OnInitialize
     -- fires (OnInitialize runs on ADDON_LOADED, after every TOC line has
     -- executed). So Settings.BuildDefaults is guaranteed to exist here.
     local defaults = self.Settings and self.Settings.BuildDefaults
@@ -188,8 +189,8 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
     end
 
     local captured = {
-        title             = info.name or L["Unknown"],
-        leaderName        = info.leaderName or L["Unknown"],
+        title             = info.name or NS.L["Unknown"],
+        leaderName        = info.leaderName or NS.L["Unknown"],
         numMembers        = info.numMembers or 0,
         voiceChat         = info.voiceChat or "",
         -- Playstyle: API offers three plausible fields. `playstyleString` is
@@ -284,21 +285,21 @@ WhatGroup.Labels.PLAYSTYLE = {
 
 function WhatGroup.Labels.GetGroupTypeLabel(info)
     if info.isMythicPlus then
-        return L["Mythic+"]
+        return NS.L["Mythic+"]
     elseif info.isCurrentRaid then
-        return L["Raid (Current)"]
+        return NS.L["Raid (Current)"]
     elseif info.isHeroicRaid then
-        return L["Heroic Raid"]
+        return NS.L["Heroic Raid"]
     elseif info.categoryID == 2 then
-        return L["PvP"]
+        return NS.L["PvP"]
     elseif info.categoryID == 1 then
-        return L["Dungeon"]
+        return NS.L["Dungeon"]
     elseif info.maxNumPlayers and info.maxNumPlayers >= 10 then
-        return L["Raid"]
+        return NS.L["Raid"]
     elseif info.maxNumPlayers and info.maxNumPlayers > 0 then
-        return L["Dungeon"]
+        return NS.L["Dungeon"]
     else
-        return L["Group"]
+        return NS.L["Group"]
     end
 end
 
@@ -325,26 +326,26 @@ function WhatGroup:ShowNotification()
     if not n or not n.enabled then return end
 
     local gold      = "FFD700"
-    local clickLink = colorize(link("WhatGroup:show", L["[Click here to view details]"]), "00FF7F")
+    local clickLink = colorize(link("WhatGroup:show", NS.L["[Click here to view details]"]), "00FF7F")
 
-    print(CHAT_PREFIX .. " " .. L["You have joined a group!"])
-    print(CHAT_PREFIX .. "   - " .. colorize(L["Group:"], gold) .. " " .. tostring(info.title or L["Unknown"]))
+    print(CHAT_PREFIX .. " " .. NS.L["You have joined a group!"])
+    print(CHAT_PREFIX .. "   - " .. colorize(NS.L["Group:"], gold) .. " " .. tostring(info.title or NS.L["Unknown"]))
 
     if n.showInstance then
-        print(CHAT_PREFIX .. "   - " .. colorize(L["Instance:"], gold)
-              .. " " .. (info.fullName ~= "" and info.fullName or L["Unknown"]))
+        print(CHAT_PREFIX .. "   - " .. colorize(NS.L["Instance:"], gold)
+              .. " " .. (info.fullName ~= "" and info.fullName or NS.L["Unknown"]))
     end
     if n.showType then
         local typeStr = info.shortName ~= "" and info.shortName or Labels.GetGroupTypeLabel(info)
-        print(CHAT_PREFIX .. "   - " .. colorize(L["Type:"], gold) .. " " .. typeStr)
+        print(CHAT_PREFIX .. "   - " .. colorize(NS.L["Type:"], gold) .. " " .. typeStr)
     end
     if n.showLeader then
-        print(CHAT_PREFIX .. "   - " .. colorize(L["Leader:"], gold) .. " " .. info.leaderName)
+        print(CHAT_PREFIX .. "   - " .. colorize(NS.L["Leader:"], gold) .. " " .. info.leaderName)
     end
     if n.showPlaystyle then
         local playStyle = Labels.GetPlaystyleLabel(info)
         if playStyle ~= "" then
-            print(CHAT_PREFIX .. "   - " .. colorize(L["Playstyle:"], gold) .. " " .. playStyle)
+            print(CHAT_PREFIX .. "   - " .. colorize(NS.L["Playstyle:"], gold) .. " " .. playStyle)
         end
     end
     if n.showTeleport then
@@ -352,8 +353,8 @@ function WhatGroup:ShowNotification()
         if spellID then
             local spellLink = NS.Compat.GetSpellLink(spellID)
                               or ("|cff71d5ff[Spell " .. spellID .. "]|r")
-            local note  = known and "" or (" |cff888888" .. L["(not learned)"] .. "|r")
-            print(CHAT_PREFIX .. "   - " .. colorize(L["Teleport:"], gold) .. " " .. spellLink .. note)
+            local note  = known and "" or (" |cff888888" .. NS.L["(not learned)"] .. "|r")
+            print(CHAT_PREFIX .. "   - " .. colorize(NS.L["Teleport:"], gold) .. " " .. spellLink .. note)
         end
     end
     if n.showClickLink then
@@ -393,7 +394,7 @@ function WhatGroup:OnSetItemRef(linkArg, text, button, ...)
     -- A click on a stale chat link from a previous session would
     -- otherwise open an empty "No data" popup; print a one-line hint.
     if not self.pendingInfo then
-        p(L["Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."])
+        p(NS.L["Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."])
         return
     end
     self:ShowFrame()
@@ -620,10 +621,10 @@ end
 function printHelp(self)
     -- §7.4 shape: "<tag> v<ver> slash commands (<alias> is an alias for
     -- <slash>):" — the [WG] tag is prepended by p().
-    p("v" .. WhatGroup.VERSION .. " " .. L["slash commands"]
+    p("v" .. WhatGroup.VERSION .. " " .. NS.L["slash commands"]
       .. " (|cffFFFF00/whatgroup|r is an alias for |cffFFFF00/wg|r):")
     for _, entry in ipairs(COMMANDS) do
-        p(("  |cffFFFF00/wg %s|r — |cffFFFFFF%s|r"):format(entry[1], L[entry[2]]))
+        p(("  |cffFFFF00/wg %s|r — |cffFFFFFF%s|r"):format(entry[1], NS.L[entry[2]]))
     end
 end
 
@@ -756,7 +757,7 @@ function runReset(self)
         return p("Settings layer not ready yet")
     end
     -- Route through the same popup the Defaults button uses so both
-    -- code paths share one OnAccept body (defined in WhatGroup_Settings.lua).
+    -- code paths share one OnAccept body (defined in settings/Schema.lua).
     -- EnsureResetPopup lazily registers the dialog on first use; writing
     -- to StaticPopupDialogs at file-load taints GameMenu callbacks.
     if StaticPopup_Show and self.Settings and self.Settings.EnsureResetPopup then
@@ -764,7 +765,7 @@ function runReset(self)
         StaticPopup_Show("WHATGROUP_RESET_ALL")
     else
         H.RestoreDefaults()
-        p(L["all settings reset to defaults"])
+        p(NS.L["all settings reset to defaults"])
     end
 end
 
@@ -772,7 +773,7 @@ function runShow(self)
     if self.pendingInfo then
         self:ShowFrame()
     else
-        p(L["No group info available. Use |cffFFFF00/wg test|r to preview."])
+        p(NS.L["No group info available. Use |cffFFFF00/wg test|r to preview."])
     end
 end
 
@@ -816,7 +817,7 @@ function runConfig(self)
     -- Settings UI uses secure templates protected during combat;
     -- opening it mid-combat can taint. Refuse and print a hint.
     if InCombatLockdown() then
-        return p(L["Cannot open the settings panel during combat. Try again after combat ends."])
+        return p(NS.L["Cannot open the settings panel during combat. Try again after combat ends."])
     end
 
     -- Lazy Settings registration: we deliberately don't register at

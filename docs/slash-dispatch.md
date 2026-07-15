@@ -87,7 +87,7 @@ local runReset, runShow, runTest, runConfig, runDebug
 
 `WhatGroup:RunTest()` is a public method on the addon table — anything with a handle on `WhatGroup` can invoke it. The local `runTest(self)` in the COMMANDS table just delegates: `function runTest(self) self:RunTest() end`.
 
-This split exists because the Settings panel's Test button (rendered via `Helpers.InlineButton` in an `afterGroup` callback in `WhatGroup_Settings.lua`) needs to invoke the same code path without going through slash dispatch:
+This split exists because the Settings panel's Test button (rendered via `Helpers.InlineButton` in an `afterGroup` callback in `settings/Panel.lua`) needs to invoke the same code path without going through slash dispatch:
 
 ```lua
 Helpers.InlineButton(ctxRef, {

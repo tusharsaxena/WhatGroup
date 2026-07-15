@@ -1,4 +1,4 @@
--- Database.lua
+-- core/Database.lua
 -- SavedVariables schema version + migration runner.
 --
 -- Establishes the migration seam from day one (§2.2 / §5.1). AceDB stores

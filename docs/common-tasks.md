@@ -4,7 +4,7 @@ Recipes for the routine modifications. For deeper context on any subsystem, see 
 
 ## Add a setting
 
-One row to `Settings.Schema` in `WhatGroup_Settings.lua`. The UI, CLI, defaults, and reset surfaces all follow automatically.
+One row to `Settings.Schema` in `settings/Schema.lua`. The UI, CLI, defaults, and reset surfaces all follow automatically.
 
 ### Bool setting
 
@@ -186,14 +186,14 @@ The user has a `/wow-addon:bump-version <X.Y.Z>` slash command in their personal
 If `C_LFGList.GetSearchResultInfo` or `C_LFGList.GetActivityInfoTable` exposes a new field worth showing:
 
 1. Add it to the `captured` table inside `CaptureGroupInfo` in `WhatGroup.lua`, with a sensible default.
-2. If it's surfaced in the popup, add a row to `WhatGroup_Frame.lua`:
+2. If it's surfaced in the popup, add a row to `modules/Frame.lua`:
    - Add a new `MakeLabel` call after the existing rows, anchored against the previous label.
    - Add a `fields.<name>` entry to the storage table.
    - Add a populator branch in `PopulateFields` reading `info.<field>`.
    - The `content` frame's size is fixed by its TOPLEFT + BOTTOMRIGHT anchors, so no SetHeight tweak is needed for layout. If the new row would push past `FRAME_HEIGHT - 38 - 44 ≈ 178 px`, bump `FRAME_HEIGHT` instead (step 5 below).
 3. If it's surfaced in chat, add a print branch in `ShowNotification` and a corresponding `notify.show<Name>` schema row gated by `n.show<Name>`.
 4. Update the captured-info table in [capture-pipeline.md](./capture-pipeline.md#captured-info).
-5. If the popup's height needs to grow to fit a new row, also bump `FRAME_HEIGHT` at the top of `WhatGroup_Frame.lua`.
+5. If the popup's height needs to grow to fit a new row, also bump `FRAME_HEIGHT` at the top of `modules/Frame.lua`.
 
 ## Test the full pipeline without joining a group
 

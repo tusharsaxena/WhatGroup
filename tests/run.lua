@@ -18,9 +18,9 @@ local loadAddon = dofile(here .. "/loader.lua")
 
 -- Addon sources, TOC load order (libs are mocked, not loaded).
 local SOURCES = {
-    "Compat.lua", "Locale.lua", "Database.lua", "DebugLog.lua",
-    "TeleportSpells.lua", "WhatGroup.lua", "WhatGroup_Settings.lua",
-    "WhatGroup_Frame.lua",
+    "core/Compat.lua", "core/Database.lua", "core/DebugLog.lua",
+    "core/WhatGroup.lua", "defaults/TeleportSpells.lua", "locales/enUS.lua",
+    "settings/Schema.lua", "settings/Panel.lua", "modules/Frame.lua",
 }
 
 -- Non-executing inventory mode (§5): `lua tests/run.lua --list` loads every
