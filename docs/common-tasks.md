@@ -173,7 +173,7 @@ When the user does ask, the version sites are:
 | Site | Where |
 |---|---|
 | `## Version:` | `WhatGroup.toc` line 5 |
-| `WhatGroup.VERSION` | `WhatGroup.lua` line 32 |
+| `WhatGroup.VERSION` | `WhatGroup.lua` line 34 |
 | README badge | `README.md` (look for the version-shield URL) |
 | README "Version History" table | `README.md` |
 | Settings parent panel subtitle | derived from `WhatGroup.VERSION` at runtime — no hard-coded copy |
