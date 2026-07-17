@@ -105,7 +105,7 @@ Find the `mapID`:
 
 - Stand at the dungeon's entrance (or inside it) and run `/dump select(8, GetInstanceInfo())` — that returns the `instanceMapID`.
 - Or look it up on Wowhead's instance page (the URL pattern is `wowhead.com/zone=<mapID>` for the instance).
-- Or `/wg debug` and apply to a real LFG group for the dungeon — the `activity table OK: mapID=…` log line shows what the LFG API hands us.
+- Or `/wg debug` and apply to a real LFG group for the dungeon — the `[Apply]` log line (`id=… captured "…" (activity=… map=…)`) shows the `mapID` the LFG API hands us.
 
 For the spell ID, the primary source is the Warcraft Wiki: every "Path of …" page (e.g. [`Path of the Corrupted Foundry`](https://warcraft.wiki.gg/wiki/Path_of_the_Corrupted_Foundry)) lists the canonical spell ID and destination in its infobox. Browse [`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities) to find the page for the dungeon you need. Wowhead (URL pattern `wowhead.com/spell=<id>`) is a reasonable cross-check. For an in-game lookup, hover the spell in the spellbook with a tooltip-id addon active, or `/dump C_Spell.GetSpellInfo("Path of …")` if you know the localized name.
 
@@ -130,7 +130,7 @@ When Blizzard ships a new M+ season or a patch that adds/changes dungeon telepor
    - spellID: from the wiki spell page (preferred). Wowhead is a reasonable cross-check.
 4. **Add the row** under the appropriate `===== <Expansion> =====` section, with a trailing comment giving the dungeon name (e.g. `-- The Stonevault`). Keep entries sorted by mapID within each expansion for easy diffing.
 5. **Check old dungeons that have been re-issued.** Sometimes Blizzard adds a *new* spellID for an existing dungeon (e.g. a Midnight-prepatch refresh — Skyreach picked up `1254557` alongside the original `159898`). If you find a second wiki spell page that points at a mapID already in the table, change the value from a single number to a `{ original, new }` list — the lookup resolves to whichever the player knows.
-6. **Verify in-game.** With `/wg debug` on, apply to one group per new dungeon and confirm the debug log shows `GetTeleportSpell HIT mapID=… spellID=…` for the right value, then click the popup's teleport icon and confirm the cast fires (or reports "you don't know that spell" if you haven't learned it — that's also success).
+6. **Verify in-game.** With `/wg debug` on, apply to one group per new dungeon, open the popup, and confirm the `[Frame]` log line (`teleport spellID=… known=… (activity=… map=…)`) shows the right spell for that `mapID`, then click the popup's teleport icon and confirm the cast fires (or reports "you don't know that spell" if you haven't learned it — that's also success).
 
 The bottom of `TeleportSpells.lua` keeps a "Pending in-game mapID verification" comment block plus commented-out placeholder rows (e.g. raid teleports whose spell exists on the wiki but whose mapID hasn't been captured in-game yet). When you encounter one of those instances in the wild and capture its mapID via `/wg debug`, replace the placeholder line with an active row and remove the comment.
 
