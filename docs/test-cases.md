@@ -15,12 +15,15 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - database: RunMigrations is idempotent
 - database: RunMigrations re-seeds a missing schemaVersion
 
-### test_settings.lua (6)
+### test_settings.lua (9)
 - settings: BuildDefaults threads profile + global defaults
 - settings: debug is not a persisted schema row (WG-12)
 - settings: ValidateSchema reports zero errors
 - settings: Get/Set round-trips through db.profile
 - settings: RestoreDefaults resets a changed value
+- settings: RestoreDefaults prunes orphaned profile keys (F1)
+- settings: RestoreDefaults deep-copies table defaults (F2)
+- settings: RestoreDefaults skips per-row onChange (F3)
 - settings: enabled=false onChange wipes capture
 
 ### test_labels.lua (9)
@@ -65,8 +68,8 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 | --- | --- |
 | test_compat.lua | 6 |
 | test_database.lua | 3 |
-| test_settings.lua | 6 |
+| test_settings.lua | 9 |
 | test_labels.lua | 9 |
 | test_capture.lua | 4 |
 | test_debuglog.lua | 17 |
-| **Total** | **45** |
+| **Total** | **48** |

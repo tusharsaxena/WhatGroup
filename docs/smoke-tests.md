@@ -69,7 +69,7 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.8a | `/wg debug on` then `/wg debug off` | Each prints `[WG] debug logging ON`/`OFF` in chat with the state word **colour-coded** (ON green `40ff40`, OFF red `ff4040`, matching the title-bar toggle) **and** appends a `[Debug] logging enabled`/`disabled` line inside the console. `on` also appends one `[Init]` line right after the bracket — `WhatGroup v<ver>, schema v1, profile '<name>'` followed by the current runtime state (`enabled`, `notify.delay`, `autoShow`, `inGroup`, `hasPending`). |
 | 2.8b | Click the `Debug: OFF`/`ON` toggle in the console title bar | Flips logging state (green ON / red OFF) with the same chat ack + console bracket line as `/wg debug on\|off`. `Copy` opens a highlight-ready plain-text buffer; `Clear` wipes both views. |
 | 2.8c | With debug on: `/wg set notify.delay 3.0` | Console shows **one** `[Set] notify.delay = 3` line. Restore with `/wg set notify.delay 1.5` (another single `[Set]`). |
-| 2.8d | With debug on: `/wg reset` → **Yes** | Console shows **one** coalesced `[Reset] restored N settings to defaults` line — **not** one `[Set]` per row. |
+| 2.8d | With debug on: `/wg reset` → **Yes** | Console shows **one** coalesced `[Reset] restored N settings to defaults (profile wiped)` line — **not** one `[Set]` per row. |
 | 2.9 | `/wg show` (no group, no pendingInfo) | Prints "No group info available. Use `/wg test` to preview." |
 | 2.10 | `/wg test` | Synthetic chat notification + popup fire (full coverage in §4). |
 | 2.11 | `/wg show` (right after 2.10) | Re-opens the same popup. |

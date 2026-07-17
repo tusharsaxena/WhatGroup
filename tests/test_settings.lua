@@ -39,6 +39,46 @@ test("settings: RestoreDefaults resets a changed value", function()
     assertEqual(H.Get("notify.delay"), 1.5)
 end)
 
+test("settings: RestoreDefaults prunes orphaned profile keys (F1)", function()
+    local NS = T.bootAddon()
+    local H = NS.addon.Settings.Helpers
+    -- Simulate a key left behind by a removed/renamed schema row or a
+    -- hand-edited SavedVariables file, both at the top level and nested.
+    NS.addon.db.profile.legacyOrphan = "stale"
+    NS.addon.db.profile.notify.oldKey = 42
+    H.RestoreDefaults()
+    assertNil(NS.addon.db.profile.legacyOrphan)
+    assertNil(NS.addon.db.profile.notify.oldKey)
+    -- Known keys are still restored to their defaults.
+    assertEqual(H.Get("notify.delay"), 1.5)
+    assertEqual(H.Get("enabled"), true)
+end)
+
+test("settings: RestoreDefaults deep-copies table defaults (F2)", function()
+    local NS = T.bootAddon()
+    local H = NS.addon.Settings.Helpers
+    local S = NS.addon.Settings.Schema
+    local template = { nested = { a = 1 } }
+    S[#S + 1] = { section = "x", group = "X", path = "tableRow",
+                  type = "bool", label = "t", default = template }
+    H.RestoreDefaults()
+    -- Mutating the profile copy must not reach back into the schema default.
+    H.Get("tableRow").nested.a = 999
+    assertEqual(template.nested.a, 1)
+end)
+
+test("settings: RestoreDefaults skips per-row onChange (F3)", function()
+    local NS = T.bootAddon()
+    local H = NS.addon.Settings.Helpers
+    local S = NS.addon.Settings.Schema
+    local calls = 0
+    S[#S + 1] = { section = "x", group = "X", path = "probe",
+                  type = "bool", label = "p", default = true,
+                  onChange = function() calls = calls + 1 end }
+    H.RestoreDefaults()
+    assertEqual(calls, 0)
+end)
+
 test("settings: enabled=false onChange wipes capture", function()
     local NS = T.bootAddon()
     NS.addon.pendingInfo = { title = "x" }

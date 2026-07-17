@@ -11,7 +11,7 @@ A single flat array `WhatGroup.Settings.Schema` declares every option. One row d
 | `/wg get <path>` | `Helpers.FindSchema(path)` + format using `def.fmt` for numbers |
 | `/wg set <path> <value>` | type-aware parse → `Helpers.Set(path, value)` (orchestrated: writes value, logs one `[Set]` line, fires `onChange`, runs `RefreshAll` in one call) |
 | AceDB defaults | `Settings.BuildDefaults()` walks the schema, threads each row's `default` into the right slot under `profile.*` |
-| `/wg reset` + Defaults button | `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreDefaults()` (orchestrated `Set` per row with `{skipRefresh = true}`, then one final `RefreshAll`) |
+| `/wg reset` + Defaults button | `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreDefaults()` (wipe `db.profile` to prune orphans, re-thread each row's `default` via `Set` with `{skipRefresh, skipLog, skipOnChange}`, then one final `RefreshAll`) |
 
 The schema is settings-only — non-setting actions (the "Test" button) render via `afterGroup` callbacks in `Settings.Register`, not as schema rows. See [Action buttons](#action-buttons-aftergroup).
 
@@ -26,7 +26,7 @@ The schema is settings-only — non-setting actions (the "Test" button) render v
     label, tooltip,
     default,
     min, max, step, fmt,    -- numbers only (fmt is %s-style for /wg get formatting)
-    onChange,               -- optional fn(value) called by panel widget, /wg set, RestoreDefaults
+    onChange,               -- optional fn(value) called by panel widget + /wg set (NOT by RestoreDefaults — reset skips onChange)
     solo,                   -- if true, render alone in the left half of its own row (right half empty)
 }
 ```
@@ -59,10 +59,10 @@ All schema reads and writes go through a private `Resolve(path)` helper that wal
 |---|---|
 | `Helpers.Get(path)` | Resolve dotted path; read. When `NS.State.debug` is on, debug-logs `[Schema] Get: no path -> <path>` for typo'd paths so schema-key mistakes surface in the trace. |
 | `Helpers.RawSet(path, value)` | Side-effect-free write — resolve dotted path, write, return. No `onChange`, no `RefreshAll`. Reserved for callers that genuinely need raw writes (none today); prefer `Helpers.Set` for everything else. |
-| `Helpers.Set(path, value, opts)` | **Orchestrated single write-path.** Calls `RawSet`, logs one `[Set] <path> = <value>` console line (the canonical settings-change trace, debug-logging-§10), then runs the row's `onChange` (in pcall), then runs `RefreshAll`. Every existing caller — CLI (`/wg set`), panel widget callbacks, `RestoreDefaults` — routes through here so the side effects can't drift out of sync. `opts.skipOnChange`, `opts.skipRefresh`, and `opts.skipLog` are escape hatches; `RestoreDefaults` uses `skipRefresh` (refresh once after the loop) **and** `skipLog` (suppress per-row `[Set]` spam so one coalesced `[Reset]` summary stands in, debug-logging-§9). |
+| `Helpers.Set(path, value, opts)` | **Orchestrated single write-path.** Calls `RawSet`, logs one `[Set] <path> = <value>` console line (the canonical settings-change trace, debug-logging-§10), then runs the row's `onChange` (in pcall), then runs `RefreshAll`. Every existing caller — CLI (`/wg set`), panel widget callbacks, `RestoreDefaults` — routes through here so the side effects can't drift out of sync. `opts.skipOnChange`, `opts.skipRefresh`, and `opts.skipLog` are escape hatches; `RestoreDefaults` uses all three — `skipRefresh` (refresh once after the loop), `skipLog` (suppress per-row `[Set]` spam so one coalesced `[Reset]` summary stands in, debug-logging-§9), and `skipOnChange` (the default baseline is already reconciled, so per-row side effects are neither needed nor fired). |
 | `Helpers.FindSchema(path)` | linear scan of `Schema` for `def.path == path` |
 | `Helpers.ValidateSchema()` | walk Schema and chat-print errors for missing `path`, unknown `type`, non-string `section`/`group`/`label`. Non-fatal. Runs once at registration. |
-| `Helpers.RestoreDefaults()` | For each schema row: `Helpers.Set(def.path, def.default, { skipRefresh = true, skipLog = true })` (orchestrated `Set` runs `onChange` in pcall, skips per-row refresh and per-row `[Set]` log). After the loop, emits one coalesced `[Reset] restored N settings to defaults` line (debug-logging-§9), then one `RefreshAll()`. Caller (`StaticPopup` OnAccept, slash command) handles confirmation. |
+| `Helpers.RestoreDefaults()` | Two steps for a *pristine* reset. **1.** `wipe(db.profile)` drops any orphaned key a key-by-key overwrite would leave behind (a value from a removed/renamed row, or one hand-edited into SavedVariables); in-game this clears AceDB's raw overrides while its defaults metatable stays intact. **2.** For each schema row: `Helpers.Set(def.path, deepcopy(def.default), { skipRefresh = true, skipLog = true, skipOnChange = true })` — table defaults are deep-copied so the profile never aliases the schema's canonical default, and per-row `onChange` is skipped. After the loop, emits one coalesced `[Reset] restored N settings to defaults (profile wiped)` line (debug-logging-§9), then one `RefreshAll()` — the single post-reset reconcile. `db.global` (schemaVersion) is left untouched. Caller (`StaticPopup` OnAccept, slash command) handles confirmation. |
 | `Helpers.RefreshAll()` | Iterate `Settings._refresherOrder` in schema (= panel render) order; for each `def.path`, look up the closure in `Settings._refreshers` and run it under `pcall`. |
 
 `Settings._refreshers[def.path]` is set when a checkbox / slider widget is created — a closure that re-syncs the widget against `Helpers.Get(def.path)`. `Settings._refresherOrder` is a parallel array tracking the registration order; `RefreshAll` iterates the array (rather than `pairs(_refreshers)`) so the iteration order is deterministic — matching the schema source order, which is also the panel render order.

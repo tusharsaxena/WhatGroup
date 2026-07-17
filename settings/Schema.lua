@@ -42,6 +42,17 @@ local function pout(...)
     print(...)
 end
 
+-- Deep-copy a value so table-valued schema defaults are never aliased into
+-- the live profile: a shared reference would let a later profile mutation
+-- corrupt the schema's canonical default. Scalars (every current row) pass
+-- straight through, so this is a no-op until a table default is added.
+local function deepcopy(v)
+    if type(v) ~= "table" then return v end
+    local c = {}
+    for k, val in pairs(v) do c[k] = deepcopy(val) end
+    return c
+end
+
 -- ---------------------------------------------------------------------------
 -- Schema
 -- ---------------------------------------------------------------------------
@@ -316,29 +327,48 @@ function Settings.BuildDefaults()
                 parent[segs[i]] = parent[segs[i]] or {}
                 parent = parent[segs[i]]
             end
-            parent[segs[#segs]] = def.default
+            parent[segs[#segs]] = deepcopy(def.default)
         end
     end
     return out
 end
 
--- Reset every schema row to its declared default, fire onChange on each,
--- then refresh open panel widgets. Both the Defaults button and `/wg
--- reset` route through this — the StaticPopup confirm step lives in
--- the caller (WHATGROUP_RESET_ALL OnAccept), so callers that want a
--- silent reset (none today) could still bypass the popup.
+-- Reset the active profile to the schema's declared defaults, then refresh
+-- open panel widgets. Both the Defaults button and `/wg reset` route through
+-- this — the StaticPopup confirm step lives in the caller (WHATGROUP_RESET_ALL
+-- OnAccept), so callers that want a silent reset (none today) could still
+-- bypass the popup.
+--
+-- Two steps, so a reset yields a *pristine* profile rather than merely
+-- default-valued known keys:
+--   1. wipe(db.profile) drops any orphaned key a plain key-by-key overwrite
+--      would leave behind — a value from a removed or renamed schema row, or
+--      one hand-edited into SavedVariables. In-game this clears AceDB's raw
+--      overrides while leaving its defaults metatable intact; the loop then
+--      re-materialises the current defaults on top.
+--   2. thread each current schema row's default back in. Table defaults are
+--      deep-copied so the profile never aliases the schema's canonical default.
+--
+-- Per-row onChange is skipped (skipOnChange): the default baseline is already
+-- the reconciled state, so firing N side effects mid-reset is wasteful and
+-- asymmetric. The single RefreshAll below is the one post-reset reconcile that
+-- re-syncs widgets. db.global (schemaVersion) is intentionally left untouched.
 function Helpers.RestoreDefaults()
+    if WhatGroup.db and WhatGroup.db.profile then
+        wipe(WhatGroup.db.profile)
+    end
     local n = 0
     for _, def in ipairs(Schema) do
         if def.path then
             -- skipRefresh inside the loop; one RefreshAll at the end avoids N
             -- refreshes for an N-row schema. skipLog suppresses the per-row
             -- [Set] spam — one [Reset] summary is emitted below instead (debug-logging-§9).
-            Helpers.Set(def.path, def.default, { skipRefresh = true, skipLog = true })
+            Helpers.Set(def.path, deepcopy(def.default),
+                        { skipRefresh = true, skipLog = true, skipOnChange = true })
             n = n + 1
         end
     end
-    NS.Debug("Reset", "restored " .. n .. " settings to defaults")
+    NS.Debug("Reset", "restored " .. n .. " settings to defaults (profile wiped)")
     Helpers.RefreshAll()
 end
 
