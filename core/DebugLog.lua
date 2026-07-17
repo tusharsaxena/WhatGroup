@@ -240,6 +240,11 @@ function D:Toggle()
     if f:IsShown() then f:Hide() else f:Show() end
 end
 
+-- Is the console window currently visible? Drives the Settings panel's
+-- "Debug console" checkbox, which toggles window visibility only. False
+-- before the frame is ever created (no EnsureFrame side effect here).
+function D:IsShown() return (frame and frame:IsShown()) and true or false end
+
 -- Single seam for changing debug state. The slash command and the header toggle
 -- both call this so the chat ack and the header label stay consistent.
 -- Session-only (debug-logging-§5).

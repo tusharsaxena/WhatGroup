@@ -360,22 +360,33 @@ local function applyWidth(widget, relativeWidth)
     else                   widget:SetFullWidth(true) end
 end
 
+-- `def.get` / `def.set` override the default db.profile path binding, so a
+-- non-schema "virtual" row (e.g. the session-only Debug console toggle) can
+-- drive arbitrary state instead of a saved key. Such a row carries no `path`,
+-- so it registers its refresher under `def.refreshKey` instead; a row with
+-- neither key simply skips refresher registration.
 local function makeCheckbox(ctx, def, parent, relativeWidth)
     parent = parent or ensureScroll(ctx)
     local cb = AceGUI:Create("CheckBox")
     cb:SetLabel(def.label or def.path)
     applyWidth(cb, relativeWidth)
-    cb:SetValue(Helpers.Get(def.path) and true or false)
 
+    local get = def.get or function() return Helpers.Get(def.path) end
+    local set = def.set or function(v) Helpers.Set(def.path, v) end
+
+    cb:SetValue(get() and true or false)
     cb:SetCallback("OnValueChanged", function(_, _, value)
-        Helpers.Set(def.path, value and true or false)
+        set(value and true or false)
     end)
 
-    if not Settings._refreshers[def.path] then
-        Settings._refresherOrder[#Settings._refresherOrder + 1] = def.path
-    end
-    Settings._refreshers[def.path] = function()
-        cb:SetValue(Helpers.Get(def.path) and true or false)
+    local key = def.path or def.refreshKey
+    if key then
+        if not Settings._refreshers[key] then
+            Settings._refresherOrder[#Settings._refresherOrder + 1] = key
+        end
+        Settings._refreshers[key] = function()
+            cb:SetValue(get() and true or false)
+        end
     end
 
     attachTooltip(cb, def.label, def.tooltip)
@@ -452,11 +463,16 @@ end
 --
 -- afterGroup is { [groupName] = function(ctx) ... end }. The callback
 -- runs once, immediately after the last schema row of that group is
--- rendered (and before the next group's section header). One-shot —
--- removed from the table after firing so a second sweep wouldn't
--- re-render it.
+-- rendered (and before the next group's section header) — used for
+-- full-width action buttons that sit *below* the grid. One-shot.
+--
+-- pairExtras is { [groupName] = { <def>, ... } } — non-schema rows (custom
+-- get/set, no db path) that pack into the SAME two-column grid as the group's
+-- real rows, so a session-only checkbox can pair with the group's last schema
+-- widget. Rendered right after the group's schema rows and before afterGroup.
+-- Also one-shot.
 
-function Helpers.RenderSchema(ctx, afterGroup)
+function Helpers.RenderSchema(ctx, afterGroup, pairExtras)
     local scroll = ensureScroll(ctx)
     local pendingRow, pendingCount = nil, 0
 
@@ -475,6 +491,16 @@ function Helpers.RenderSchema(ctx, afterGroup)
         return row
     end
 
+    -- Pack one field into the two-column grid, flushing on `solo` or when the
+    -- row fills. Shared by real schema rows and pairExtras so both pair alike.
+    local function addToGrid(def)
+        if def.solo and pendingCount > 0 then flushRow() end
+        if not pendingRow then pendingRow = startRow() end
+        Helpers.RenderField(ctx, def, pendingRow, 0.5)
+        pendingCount = pendingCount + 1
+        if def.solo or pendingCount >= 2 then flushRow() end
+    end
+
     for i, def in ipairs(Schema) do
         if def.group and def.group ~= ctx.lastGroup then
             flushRow()
@@ -482,21 +508,23 @@ function Helpers.RenderSchema(ctx, afterGroup)
             ctx.lastGroup = def.group
         end
 
-        if def.solo and pendingCount > 0 then flushRow() end
-
-        if not pendingRow then pendingRow = startRow() end
-        Helpers.RenderField(ctx, def, pendingRow, 0.5)
-        pendingCount = pendingCount + 1
-
-        if def.solo or pendingCount >= 2 then flushRow() end
+        addToGrid(def)
 
         local nextDef = Schema[i + 1]
-        if afterGroup and def.group
-           and (not nextDef or nextDef.group ~= def.group)
-           and afterGroup[def.group] then
+        if def.group and (not nextDef or nextDef.group ~= def.group) then
+            -- Grid-participating extras first, so they can pair with the
+            -- group's last real row before it's flushed onto its own line.
+            if pairExtras and pairExtras[def.group] then
+                for _, extra in ipairs(pairExtras[def.group]) do
+                    addToGrid(extra)
+                end
+                pairExtras[def.group] = nil
+            end
             flushRow()
-            afterGroup[def.group](ctx)
-            afterGroup[def.group] = nil
+            if afterGroup and afterGroup[def.group] then
+                afterGroup[def.group](ctx)
+                afterGroup[def.group] = nil
+            end
         end
     end
     flushRow()
@@ -688,62 +716,52 @@ function Settings.Register()
         C_Timer.After(0, function()
             if generalRendered then return end
             generalRendered = true
-            Helpers.RenderSchema(generalCtx, {
-                ["General"] = function(ctxRef)
-                    -- Session-only "Debug console" toggle (WG-12 /
-                    -- debug-logging-§5). Deliberately NOT a schema row: it
-                    -- reflects and drives NS.State.debug, which is session-only
-                    -- and OFF at every login, so it must never persist to
-                    -- SavedVariables. Bound straight to the DebugLog seam
-                    -- (SetEnabled + Show/Hide) rather than Helpers.Get/Set,
-                    -- which would write db.profile. The checkbox is
-                    -- authoritative over both logging state and console
-                    -- visibility; a HookScript below re-syncs its value on
-                    -- every panel open (state can change via `/wg debug` or the
-                    -- console's own title-bar toggle while the panel is closed).
-                    local scroll = ensureScroll(ctxRef)
-                    local dbgRow = AceGUI:Create("SimpleGroup")
-                    dbgRow:SetLayout("Flow")
-                    dbgRow:SetFullWidth(true)
-
-                    local dbgCB = AceGUI:Create("CheckBox")
-                    dbgCB:SetLabel("Debug console")
-                    dbgCB:SetRelativeWidth(0.5)
-                    dbgCB:SetValue(NS.State and NS.State.debug or false)
-                    dbgCB:SetCallback("OnValueChanged", function(_, _, value)
-                        local on = value and true or false
-                        if NS.DebugLog then
-                            NS.DebugLog:SetEnabled(on)
-                            if on then NS.DebugLog:Show() else NS.DebugLog:Hide() end
-                        end
-                    end)
-                    attachTooltip(dbgCB, "Debug console",
-                        "Show the on-screen debug console and enable debug logging for this session. Session-only — resets to off on every login or /reload; never saved to your profile.")
-                    dbgRow:AddChild(dbgCB)
-                    scroll:AddChild(dbgRow)
-                    addSpacer(scroll, ROW_VSPACER)
-                    generalCtx._debugCB = dbgCB
-
-                    Helpers.InlineButton(ctxRef, {
-                        text    = "Test",
-                        tooltip = "Inject synthetic group info and run the full notification + popup flow. Useful for previewing changes to the chat-output toggles without joining a real group.",
-                        onClick = function()
-                            if WhatGroup.RunTest then WhatGroup:RunTest() end
-                        end,
-                    })
-                end,
-            })
+            Helpers.RenderSchema(generalCtx,
+                {   -- afterGroup: full-width action buttons, below the grid.
+                    ["General"] = function(ctxRef)
+                        Helpers.InlineButton(ctxRef, {
+                            text    = "Test",
+                            tooltip = "Inject synthetic group info and run the full notification + popup flow. Useful for previewing changes to the chat-output toggles without joining a real group.",
+                            onClick = function()
+                                if WhatGroup.RunTest then WhatGroup:RunTest() end
+                            end,
+                        })
+                    end,
+                },
+                {   -- pairExtras: session-only checkbox packed into the grid so
+                    -- it pairs with "Print to Chat". Deliberately NOT a schema
+                    -- row (WG-12 / debug-logging-§5) — it toggles ONLY the
+                    -- console window's visibility (Show/Hide), never the debug
+                    -- logging flag (NS.State.debug), and never writes
+                    -- db.profile, so nothing about it persists.
+                    ["General"] = {
+                        {
+                            label      = "Debug console",
+                            type       = "bool",
+                            refreshKey = "_debugConsoleVisible",
+                            tooltip    = "Show or hide the on-screen debug console window. This only toggles the window's visibility — it does not turn debug logging on or off (use `/wg debug` or the console's own toggle for that). Session-only; never saved.",
+                            get = function()
+                                return NS.DebugLog and NS.DebugLog:IsShown()
+                            end,
+                            set = function(v)
+                                if not NS.DebugLog then return end
+                                if v then NS.DebugLog:Show() else NS.DebugLog:Hide() end
+                            end,
+                        },
+                    },
+                })
         end)
     end)
 
     -- Re-sync the session-only Debug console checkbox each time General is
-    -- shown: NS.State.debug can flip via `/wg debug` or the console's own
-    -- title-bar toggle while this panel is closed. The build is deferred
-    -- (C_Timer.After), so the checkbox may not exist yet on the first show —
-    -- guarded. SetValue does not fire OnValueChanged, so this can't loop.
+    -- shown: the console window can be closed via its own X / ESC (or opened
+    -- by `/wg debug`) while this panel is closed, and its visibility isn't
+    -- tied to any settings write. Re-run its refresher, which re-reads the
+    -- window's shown state. The build is deferred (C_Timer.After), so the
+    -- refresher may not exist yet on the first show — guarded.
     generalCtx.panel:HookScript("OnShow", function()
-        local cb = generalCtx._debugCB
-        if cb then cb:SetValue(NS.State and NS.State.debug or false) end
+        local r = Settings._refreshers["_debugConsoleVisible"]
+        if r then r() end
     end)
 
     local generalSub = _G.Settings.RegisterCanvasLayoutSubcategory(

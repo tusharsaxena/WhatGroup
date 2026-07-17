@@ -122,20 +122,26 @@ Verifies AceGUI rendering, schema-driven widget refresh, and the Defaults flow.
 
 **Expected:** Same flow as `/wg test` — chat notification + popup. Confirms the Test button shares the `WhatGroup:RunTest()` code path with the slash command.
 
-### 3.6 Debug console checkbox (session-only, WG-12 / debug-logging-§5)
+### 3.6 Debug console checkbox — visibility only, session-only (WG-12 / debug-logging-§5)
 
-1. Fresh login (or `/reload`). `/wg config` → **General**.
-2. Confirm the **Debug console** checkbox is **unchecked** — debug state is off at every login.
-3. Check it.
-4. Uncheck it.
-5. Check it again, then **log out fully and back in** (not just `/reload` if you want to also prove it's not in SavedVariables); re-open `/wg config` → **General**.
-6. Cross-check with the console's own title-bar toggle: check the panel box, then click the console's `Debug: ON` toggle off, close and re-open the Settings panel.
+Layout check first: `/wg config` → **General**. The grid should read:
 
-**Expected:**
-- Step 3: the debug console window opens and `[WG] debug logging ON` (green) prints, exactly like `/wg debug on`.
-- Step 4: the console hides and `[WG] debug logging OFF` (red) prints.
-- Step 5: after the relog the checkbox is **unchecked again** — the state never persisted. `/wg list` never shows a `debug` key; there is no `debug` field in `WhatGroupDB`.
-- Step 6: re-opening the panel shows the checkbox re-synced to the console toggle's current state (the `OnShow` HookScript). **Guards against:** the checkbox being wired as a persisted schema row (it must not write `db.profile`) and against panel/console state drift.
+```
+[Enable]         [Auto Show]
+[Print to Chat]  [Debug console]
+[Test]
+```
+
+i.e. **Debug console** pairs on the right of **Print to Chat**, and **Test** sits on its own row below.
+
+1. Fresh login (or `/reload`). `/wg config` → **General**. Confirm **Debug console** is **unchecked** (the window is hidden at login).
+2. Check it → the debug console **window appears**.
+3. Uncheck it → the window **hides**.
+4. Confirm it does **not** touch logging state: with the box unchecked, `/wg debug on` (logging ON), then check the box — the window shows but there is **no** `debug logging OFF/ON` chat line from the checkbox, and `/wg debug` state is unchanged (the console header still reads `Debug: ON`). Unchecking hides the window while logging stays ON.
+5. Close the console via its own **×** (or ESC) while the Settings panel is open, then reopen `/wg config` → **General**: the checkbox has re-synced to **unchecked** (the `OnShow` refresher reads live window visibility).
+6. Check the box, then **log out fully and back in**; reopen the panel.
+
+**Expected:** step 4 proves the checkbox toggles *only* window visibility, never the logging flag. Step 6: after relog the box is **unchecked** — nothing persisted. `/wg list` never shows a `debug` key; there is no `debug` field in `WhatGroupDB`. **Guards against:** the checkbox being wired as a persisted schema row (must not write `db.profile`), it wrongly flipping debug logging, and panel/console visibility drift.
 
 ---
 
