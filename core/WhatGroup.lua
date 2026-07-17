@@ -84,10 +84,16 @@ WhatGroup._print = p
 -- path; DebugLog.lua (loaded earlier) uses it for its enable/disable acks.
 NS.Print = p
 
--- Monospace font for the debug console (debug-logging-§2). Vendored under
--- media/fonts/ (JetBrains Mono, OFL) and registered with LibSharedMedia so it
--- also shows up in any media picker; NS.FONT_MONO is the addon-relative path
--- DebugLog.lua feeds straight to SetFont.
+-- WG-20 (debug-logging-§2 — Blizzard-default-only accepted deviation): the
+-- on-screen debug console MUST render in a monospace font, but retail WoW
+-- ships no guaranteed monospace face — so a non-Blizzard TTF (JetBrains Mono,
+-- OFL) is vendored under media/fonts/ to satisfy §2. This is the ONLY
+-- non-Blizzard default font in the addon; every other FontString uses a
+-- GameFont* object. It's a deviation from the addon's Blizzard-default-only
+-- baseline, not from the standard (which requires the monospace face).
+-- Registered with LibSharedMedia so it also shows up in any media picker;
+-- NS.FONT_MONO is the addon-relative path DebugLog.lua feeds straight to
+-- SetFont.
 NS.FONT_MONO = "Interface\\AddOns\\WhatGroup\\media\\fonts\\JetBrainsMono-Regular.ttf"
 do
     local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)

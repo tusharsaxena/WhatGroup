@@ -512,6 +512,14 @@ end
 -- ScrollFrame the General sub-page uses. Result: one scrollbar style
 -- across both pages, AceGUI font hooks pick up theme changes for free.
 
+-- WG-21 (Blizzard-default-only — accepted deviation): the settings landing
+-- page shows the addon's own brand logo, a vendored TGA under media/logos/.
+-- It's the only non-Blizzard default texture in the addon — every other
+-- texture/border is Blizzard-shipped (WHITE8X8, UI-Tooltip-Border, the
+-- Options_HorizontalDivider atlas, spell icons). Branding art, analogous to
+-- the TOC IconTexture; no Blizzard asset could substitute. No standards
+-- section mandates Blizzard-only textures, so this is a deviation from the
+-- addon's own Blizzard-default-only baseline, not from the standard.
 local MAIN_LOGO_TEXTURE   = "Interface\\AddOns\\WhatGroup\\media\\logos\\whatgroup.logo.tga"
 local MAIN_LOGO_SIZE      = 300
 local MAIN_GAP_AFTER_LOGO = 8
