@@ -690,6 +690,40 @@ function Settings.Register()
             generalRendered = true
             Helpers.RenderSchema(generalCtx, {
                 ["General"] = function(ctxRef)
+                    -- Session-only "Debug console" toggle (WG-12 /
+                    -- debug-logging-§5). Deliberately NOT a schema row: it
+                    -- reflects and drives NS.State.debug, which is session-only
+                    -- and OFF at every login, so it must never persist to
+                    -- SavedVariables. Bound straight to the DebugLog seam
+                    -- (SetEnabled + Show/Hide) rather than Helpers.Get/Set,
+                    -- which would write db.profile. The checkbox is
+                    -- authoritative over both logging state and console
+                    -- visibility; a HookScript below re-syncs its value on
+                    -- every panel open (state can change via `/wg debug` or the
+                    -- console's own title-bar toggle while the panel is closed).
+                    local scroll = ensureScroll(ctxRef)
+                    local dbgRow = AceGUI:Create("SimpleGroup")
+                    dbgRow:SetLayout("Flow")
+                    dbgRow:SetFullWidth(true)
+
+                    local dbgCB = AceGUI:Create("CheckBox")
+                    dbgCB:SetLabel("Debug console")
+                    dbgCB:SetRelativeWidth(0.5)
+                    dbgCB:SetValue(NS.State and NS.State.debug or false)
+                    dbgCB:SetCallback("OnValueChanged", function(_, _, value)
+                        local on = value and true or false
+                        if NS.DebugLog then
+                            NS.DebugLog:SetEnabled(on)
+                            if on then NS.DebugLog:Show() else NS.DebugLog:Hide() end
+                        end
+                    end)
+                    attachTooltip(dbgCB, "Debug console",
+                        "Show the on-screen debug console and enable debug logging for this session. Session-only — resets to off on every login or /reload; never saved to your profile.")
+                    dbgRow:AddChild(dbgCB)
+                    scroll:AddChild(dbgRow)
+                    addSpacer(scroll, ROW_VSPACER)
+                    generalCtx._debugCB = dbgCB
+
                     Helpers.InlineButton(ctxRef, {
                         text    = "Test",
                         tooltip = "Inject synthetic group info and run the full notification + popup flow. Useful for previewing changes to the chat-output toggles without joining a real group.",
@@ -700,6 +734,16 @@ function Settings.Register()
                 end,
             })
         end)
+    end)
+
+    -- Re-sync the session-only Debug console checkbox each time General is
+    -- shown: NS.State.debug can flip via `/wg debug` or the console's own
+    -- title-bar toggle while this panel is closed. The build is deferred
+    -- (C_Timer.After), so the checkbox may not exist yet on the first show —
+    -- guarded. SetValue does not fire OnValueChanged, so this can't loop.
+    generalCtx.panel:HookScript("OnShow", function()
+        local cb = generalCtx._debugCB
+        if cb then cb:SetValue(NS.State and NS.State.debug or false) end
     end)
 
     local generalSub = _G.Settings.RegisterCanvasLayoutSubcategory(

@@ -68,7 +68,7 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.8 | `/wg debug` | **Opens the debug console window** (`Ka0s WhatGroup — Debug`, 700×344, monospace). Run again to close it. State is untouched — the header toggle still reads `Debug: OFF`. |
 | 2.8a | `/wg debug on` then `/wg debug off` | Each prints `[WG] debug logging ON`/`OFF` in chat with the state word **colour-coded** (ON green `40ff40`, OFF red `ff4040`, matching the title-bar toggle) **and** appends a `[Debug] logging enabled`/`disabled` line inside the console. `on` also appends one `[Init]` line right after the bracket — `WhatGroup v<ver>, schema v1, profile '<name>'` followed by the current runtime state (`enabled`, `notify.delay`, `autoShow`, `inGroup`, `hasPending`). |
 | 2.8b | Click the `Debug: OFF`/`ON` toggle in the console title bar | Flips logging state (green ON / red OFF) with the same chat ack + console bracket line as `/wg debug on\|off`. `Copy` opens a highlight-ready plain-text buffer; `Clear` wipes both views. |
-| 2.8c | With debug on: `/wg set notify.delay 3.0` | Console shows **one** `[Set] notify.delay = 3` line. Restore with `/wg set notify.delay 1.5` (another single `[Set]`). |
+| 2.8c | With debug on: `/wg set notify.delay 3.0` | Console shows **one** `[Set] notify.delay = 3` line. Restore with `/wg set notify.delay 0` (another single `[Set]`). |
 | 2.8d | With debug on: `/wg reset` → **Yes** | Console shows **one** coalesced `[Reset] restored N settings to defaults (profile wiped)` line — **not** one `[Set]` per row. |
 | 2.9 | `/wg show` (no group, no pendingInfo) | Prints "No group info available. Use `/wg test` to preview." |
 | 2.10 | `/wg test` | Synthetic chat notification + popup fire (full coverage in §4). |
@@ -122,6 +122,21 @@ Verifies AceGUI rendering, schema-driven widget refresh, and the Defaults flow.
 
 **Expected:** Same flow as `/wg test` — chat notification + popup. Confirms the Test button shares the `WhatGroup:RunTest()` code path with the slash command.
 
+### 3.6 Debug console checkbox (session-only, WG-12 / debug-logging-§5)
+
+1. Fresh login (or `/reload`). `/wg config` → **General**.
+2. Confirm the **Debug console** checkbox is **unchecked** — debug state is off at every login.
+3. Check it.
+4. Uncheck it.
+5. Check it again, then **log out fully and back in** (not just `/reload` if you want to also prove it's not in SavedVariables); re-open `/wg config` → **General**.
+6. Cross-check with the console's own title-bar toggle: check the panel box, then click the console's `Debug: ON` toggle off, close and re-open the Settings panel.
+
+**Expected:**
+- Step 3: the debug console window opens and `[WG] debug logging ON` (green) prints, exactly like `/wg debug on`.
+- Step 4: the console hides and `[WG] debug logging OFF` (red) prints.
+- Step 5: after the relog the checkbox is **unchecked again** — the state never persisted. `/wg list` never shows a `debug` key; there is no `debug` field in `WhatGroupDB`.
+- Step 6: re-opening the panel shows the checkbox re-synced to the console toggle's current state (the `OnShow` HookScript). **Guards against:** the checkbox being wired as a persisted schema row (it must not write `db.profile`) and against panel/console state drift.
+
 ---
 
 ## 4. Synthetic flow smoke — `/wg test` (~1 min)
@@ -155,6 +170,7 @@ Exercises the notify + popup pipeline end-to-end without needing a real LFG appl
 - If learned: cast initiates (or fails for in-combat / wrong zone — that's still success: the secure click reached `CastSpellByID`).
 - If not learned: nothing happens (button is `EnableMouse(false)`).
 - **No `ADDON_ACTION_FORBIDDEN` line in chat.** This is the secure-button regression test.
+- With `/wg debug on` first: the console shows **one** `[Frame] teleport button pressed → /cast <Spell> (spellID=<N>, button=<btn>)` line per press (gated to the down edge, so exactly one line even though the button registers both click edges).
 
 ### 4.2 Chat link round-trip
 
@@ -192,7 +208,7 @@ The end-to-end test. Requires an active LFG and at least one group leader willin
 **Expected debug trace in the console (order may vary slightly), each line `HH:MM:SS | [Tag] …`:**
 
 ```
-<ts> | [Init] WhatGroup v1.3.0, schema v1, profile 'Default' (enabled=true, notify.delay=1.5s, autoShow=true, inGroup=false, hasPending=false)
+<ts> | [Init] WhatGroup v1.3.0, schema v1, profile 'Default' (enabled=true, notify.delay=0s, autoShow=true, inGroup=false, hasPending=false)
 <ts> | [Apply] id=<N> captured "<title>" (activity=<A> map=<M> m+=true)
 <ts> | [LFG] appID=<N> status=applied
 <ts> | [LFG] appID=<N> status=invited            (some flows skip this)
@@ -252,7 +268,7 @@ Tests the FIFO `captureQueue` + `pendingApplications[appID]` pairing.
 
 **Expected:** Still `4.5s`. WhatGroup uses a single account-shared profile (`AceDB:New("WhatGroupDB", defaults, true)` — third arg `true`).
 
-6. `/wg set notify.delay 1.5` to restore the default.
+6. `/wg set notify.delay 0` to restore the default.
 
 ---
 

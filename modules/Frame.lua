@@ -222,12 +222,25 @@ local function buildFrame()
                 GameTooltip:Show()
             end)
             btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+            -- Material-effect trace (debug-logging-§10): log the actual press.
+            -- The button registers both click edges (AnyUp/AnyDown), so gate
+            -- on the down edge to emit exactly one line per press. PreClick is
+            -- non-secure work that runs alongside the secure /cast, so it's
+            -- taint-free even in combat.
+            btn:SetScript("PreClick", function(_, mouseButton, down)
+                if down then
+                    NS.Debug("Frame", "teleport button pressed \226\134\146 /cast "
+                        .. spellName .. " (spellID=" .. tostring(spellID)
+                        .. ", button=" .. tostring(mouseButton) .. ")")
+                end
+            end)
         else
             btn:SetAttribute("type", nil)
             btn:SetAttribute("macrotext", nil)
             btn:EnableMouse(false)
             btn:SetScript("OnEnter", nil)
             btn:SetScript("OnLeave", nil)
+            btn:SetScript("PreClick", nil)
         end
 
         btn:Show()

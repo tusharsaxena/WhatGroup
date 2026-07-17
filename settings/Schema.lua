@@ -116,7 +116,11 @@ add{
 -- Debug is intentionally NOT a schema row: it's session-only runtime
 -- state (NS.State.debug), toggled via `/wg debug`, never persisted to
 -- SavedVariables (WG-12 / debug-logging-§5). Keeping it out of the schema keeps it
--- off the panel and out of BuildDefaults / `/wg list`.
+-- out of BuildDefaults / `/wg list` / the saved profile. The General panel
+-- does surface a "Debug console" checkbox, but as a session-only non-schema
+-- affordance (settings/Panel.lua) bound straight to NS.State.debug via the
+-- DebugLog seam — it never round-trips db.profile, so the WG-12 invariant
+-- (debug never persists) still holds.
 
 -- Notify — `solo = true` makes each row span the left half on its own
 -- line, so the section reads as a vertical checklist of "include this
@@ -128,7 +132,7 @@ add{
     path    = "notify.delay",  type = "number",
     label   = "Notification Delay",
     tooltip = "Seconds to wait after joining before printing the notification and showing the popup. Lets the zone-in settle.",
-    default = 1.5,
+    default = 0,
     min = 0, max = 10, step = 0.5, fmt = "%.1fs",
     solo    = true,
 }

@@ -35,6 +35,8 @@ The schema is settings-only — non-setting actions (the "Test" button) render v
 
 Non-setting affordances live outside the schema. `Helpers.RenderSchema(ctx, afterGroup)` accepts a `{ [groupName] = function(ctx) ... end }` map; the callback fires once, immediately after the last schema row of that group, and before the next group's section header.
 
+The **General** group's callback renders two such affordances: the **Test** button (`Helpers.InlineButton` → `WhatGroup:RunTest()`) and a session-only **Debug console** checkbox. The checkbox is deliberately not a schema row — it reflects and drives `NS.State.debug` straight through the `NS.DebugLog` seam (`SetEnabled` + `Show`/`Hide`), never `Helpers.Get`/`Set`, so it stays out of `db.profile` and off `/wg list` while still giving the panel a visible toggle. A `HookScript("OnShow")` re-syncs the checkbox's value each time the panel opens, since `NS.State.debug` can change via `/wg debug` or the console's own title-bar toggle while the panel is closed. Because the state is session-only and off at every login, the checkbox always starts unchecked (WG-12 / debug-logging-§5).
+
 The "Test" button is the only afterGroup affordance today, attached to the `"General"` group:
 
 ```lua
@@ -212,7 +214,7 @@ profile = {
   frame   = { autoShow = true },
   notify  = {
     enabled       = true,
-    delay         = 1.5,
+    delay         = 0,
     showInstance  = true,
     showType      = true,
     showLeader    = true,
@@ -224,7 +226,7 @@ profile = {
 global = { schemaVersion = 1 }   -- seeded here; read by NS:RunMigrations (Database.lua)
 ```
 
-There is **no `debug` key** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). Capture / pending state (`captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [capture-pipeline.md](./capture-pipeline.md#state) for why.
+There is **no `debug` key** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). The General panel's "Debug console" checkbox drives that session state directly (see [Action buttons](#action-buttons-aftergroup)); it is not backed by a profile key. Capture / pending state (`captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [capture-pipeline.md](./capture-pipeline.md#state) for why.
 
 ## Current schema rows
 
@@ -235,7 +237,7 @@ Order matches panel render order — `add{}` calls in source order. Layout colum
 | general | `enabled` | bool | true | (paired) | **Master switch.** When false, `OnApplyToGroup` short-circuits — no capture, no notification, no popup. `/wg test` and `/wg show` bypass this gate. |
 | frame | `frame.autoShow` | bool | true | (paired) | Auto-open the popup on group join. With this off, the chat notification still prints and the user can re-open via the chat link or `/wg show`. |
 | notify | `notify.enabled` | bool | true | (paired) | Print the chat summary on group join. |
-| notify | `notify.delay` | number | 1.5 | solo | Seconds (0–10, step 0.5) between joining and notifying. Lets the zone-in settle. |
+| notify | `notify.delay` | number | 0 | solo | Seconds (0–10, step 0.5) between joining and notifying. Default 0 = notify immediately; raise it to let the zone-in settle. |
 | notify | `notify.showInstance` | bool | true | solo | Include the Instance line in chat. |
 | notify | `notify.showType` | bool | true | solo | Include the Type line in chat. |
 | notify | `notify.showLeader` | bool | true | solo | Include the Leader line in chat. |

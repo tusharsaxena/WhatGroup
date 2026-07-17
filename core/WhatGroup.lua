@@ -445,7 +445,7 @@ function WhatGroup:_TryFireJoinNotify(reason)
     local thisGen = notifyGen
     local capturedInfo = self.pendingInfo
     local delay = (self.db and self.db.profile and self.db.profile.notify
-                   and self.db.profile.notify.delay) or 1.5
+                   and self.db.profile.notify.delay) or 0
     local autoShow = not (self.db and self.db.profile and self.db.profile.frame
                           and self.db.profile.frame.autoShow == false)
     NS.Debug("Notify", "scheduling in " .. tostring(delay) .. "s (" .. reason .. ")")

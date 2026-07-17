@@ -166,7 +166,7 @@ test("debuglog: InitSummary leads with the debug-logging-§5 identity fields, th
     assertEqual(s:sub(1, #("WhatGroup v" .. NS.addon.VERSION .. ", schema v1, profile 'Default'")),
         "WhatGroup v" .. NS.addon.VERSION .. ", schema v1, profile 'Default'")
     -- Runtime state appended on the same one line.
-    for _, frag in ipairs({ "enabled=true", "notify.delay=1.5s", "autoShow=true",
+    for _, frag in ipairs({ "enabled=true", "notify.delay=0s", "autoShow=true",
                             "inGroup=false", "hasPending=false" }) do
         assertTrue(s:find(frag, 1, true) ~= nil, "summary carries " .. frag)
     end
