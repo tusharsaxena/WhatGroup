@@ -76,7 +76,10 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.12 | `/wg config` | Settings panel opens on the **Ka0s WhatGroup** landing page; the **General** subcategory is visible/expanded in the sidebar. |
 | 2.13 | `/wg reset` | StaticPopup confirm appears. **Yes** resets all settings; **No** cancels. |
 | 2.14 | `/wg gibberish` | Prints `unknown command 'gibberish'` followed by the help index. |
-| 2.15 | `/wg config` while in combat | Prints "Cannot open the settings panel during combat. Try again after combat ends." (Pull a target dummy first to enter combat.) |
+| 2.15 | `/wg config` while in combat | Prints the grey notice `[WG] cannot open settings during combat — Blizzard's category-switch is protected` and does **not** open the panel (WG-25). (Pull a target dummy first to enter combat.) |
+| 2.16 | `/wg version` | Prints `[WG] v<version>` on its own line, matching the TOC `## Version` (WG-29). |
+| 2.17 | `/wg help` | The header line ends with `…/wg)` — **no** trailing colon (WG-19) — and lists a `/wg version` row. |
+| 2.18 | Move the popup (`/wg test`, drag it) and the debug console (`/wg debug`, drag it), then `/reload` and reopen each | Each window reopens at the spot you left it, not re-centred (WG-26). |
 
 ---
 

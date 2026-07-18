@@ -13,11 +13,16 @@ Everything hangs off the shared namespace (`local addonName, NS = ...`):
 
 - **`NS.Debug(tag, fmt, ...)`** — the global sink. Zero-allocation when debug is
   off (the `NS.State.debug` gate is the first line; no `format`/concat before
-  it). The **tag is the first argument** so every call site self-documents its
-  category: `NS.Debug("Capture", "title=%s", title)`. Appends to the console —
-  it never `print()`s to chat.
+  it). Secret-safe when on: it `pcall`s `string.format` and, on failure,
+  rebuilds the line from `NS.SafeToString`'d args so a combat-protected value
+  yields `<secret>` instead of raising (events-frames-taint-§8 / WG-22). The
+  **tag is the first argument** so every call site self-documents its category:
+  `NS.Debug("Capture", "title=%s", title)`. Appends to the console — it never
+  `print()`s to chat.
 - **`NS.DebugLog`** (`= D`) — the console object:
-  - `D:Show()` / `D:Hide()` / `D:Toggle()` — window visibility.
+  - `D:Show()` / `D:Hide()` / `D:Toggle()` — window visibility. The window
+    persists its position across reloads via `NS.Windows` (saved on drag-stop,
+    restored on build; default `CENTER, 220, -80`, WG-26).
   - `D:SetEnabled(on)` — the **single state seam** (see below).
   - `D:RefreshHeader()` — re-render the header toggle label/colour.
   - `D:Add(tag, msg)` — raw append (bypasses the flag gate; used for the

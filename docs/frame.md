@@ -14,12 +14,12 @@ The pattern is borrowed from a similar reference addon that demonstrates the sam
 |---|---|
 | Frame name | `WhatGroupFrame` (globally accessible) |
 | Size | 420 × 260 |
-| Anchor | `CENTER` of UIParent, offset up by 25% of UIParent's height |
+| Anchor | `CENTER` of UIParent, offset up by 25% of UIParent's height — the default; a position saved from a previous drag is restored over it on build (`NS.Windows.Restore("popup", …)`, WG-26) |
 | Strata | `DIALOG` |
 | Template | `BackdropTemplate` |
 | Background | dark grey `0.08, 0.08, 0.08, 0.95` |
 | Border | 1px grey `0.3, 0.3, 0.3, 1.0` |
-| Drag handle | top-30px title bar; `StartMoving` / `StopMovingOrSizing` |
+| Drag handle | top-30px title bar; `StartMoving` / `StopMovingOrSizing` (position persisted on drag-stop via `NS.Windows.Save("popup", …)`, WG-26) |
 | Clamping | `SetClampedToScreen(true)` |
 | ESC-to-close | `tinsert(UISpecialFrames, "WhatGroupFrame")` |
 

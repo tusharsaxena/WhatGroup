@@ -674,8 +674,9 @@ function Settings.Register()
     -- execute chain, and creating AceGUI frames synchronously inside
     -- that chain trips ADDON_ACTION_FORBIDDEN. Running the build on the
     -- next frame moves it out of the protected context entirely.
-    -- (Raw C_Timer.After, not AceTimer-3.0 — deliberate; see the WG-17
-    -- note in WhatGroup.lua and docs/ARCHITECTURE.md → "Timers".)
+    -- (This is a 0-delay secure-defer hop, not a delayed timer, so it stays
+    -- raw C_Timer.After rather than AceTimer — AceTimer's 0.01s clamp + embed
+    -- indirection buy nothing here. Delayed timers do use AceTimer, WG-17.)
     local mainRendered, mainScheduled = false, false
     mainCtx.panel:SetScript("OnShow", function()
         if mainRendered or mainScheduled then return end
@@ -708,7 +709,8 @@ function Settings.Register()
     -- Same deferral as the main panel — keep the synchronous OnShow body
     -- a no-op so it can't ever do work inside Blizzard's secure-execute
     -- chains. The build runs on the next frame in a clean context.
-    -- (Raw C_Timer.After, not AceTimer-3.0 — deliberate; see WG-17.)
+    -- (A 0-delay secure-defer hop, deliberately raw C_Timer.After — not a
+    -- delayed timer; delayed timers use AceTimer, WG-17.)
     local generalRendered, generalScheduled = false, false
     generalCtx.panel:SetScript("OnShow", function()
         if generalRendered or generalScheduled then return end

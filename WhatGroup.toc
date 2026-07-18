@@ -18,25 +18,28 @@ libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
 libs\AceAddon-3.0\AceAddon-3.0.lua
 libs\AceEvent-3.0\AceEvent-3.0.lua
 libs\AceConsole-3.0\AceConsole-3.0.lua
+libs\AceTimer-3.0\AceTimer-3.0.lua
 libs\AceDB-3.0\AceDB-3.0.lua
 libs\AceGUI-3.0\AceGUI-3.0.xml
 libs\LibSharedMedia-3.0\lib.xml
 
+# Locales
+locales\enUS.lua
+
 # Core
+core\Util.lua
 core\Compat.lua
 core\Database.lua
 core\DebugLog.lua
 core\WhatGroup.lua
 
 # Defaults
+defaults\Profile.lua
 defaults\TeleportSpells.lua
 
-# Locales
-locales\enUS.lua
+# Modules
+modules\Frame.lua
 
 # Settings
 settings\Schema.lua
 settings\Panel.lua
-
-# Modules
-modules\Frame.lua

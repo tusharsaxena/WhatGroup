@@ -18,8 +18,8 @@ luacheck .             # must report 0 warnings / 0 errors (config in .luacheckr
 
 `tests/run.lua` loads every source in TOC order under a WoW mock
 (`tests/wow_mock.lua` + `tests/loader.lua`) and runs the pure-logic suites
-(`test_compat`, `test_database`, `test_settings`, `test_labels`,
-`test_capture`, `test_debuglog`). Frame/panel rendering and taint are **not**
+(`test_util`, `test_compat`, `test_database`, `test_settings`, `test_slash`,
+`test_labels`, `test_capture`, `test_debuglog`). Frame/panel rendering and taint are **not**
 covered here — those stay in the manual [smoke-test checklist](./smoke-tests.md).
 The **GameMenu → Logout taint check** is the critical in-game one.
 

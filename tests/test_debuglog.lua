@@ -121,6 +121,19 @@ test("debuglog: disabling still appends a '[Debug] logging disabled' line", func
         "disabling should log '[Debug] logging disabled'")
 end)
 
+test("debuglog: NS.Debug survives an unsafe format arg without raising (WG-22)", function()
+    local NS = T.newAddon()
+    NS.State.debug = true
+    -- `%d` with a table raises in string.format in every Lua version, exactly
+    -- as a combat-protected secret would; the sink must catch it and still land
+    -- a line with "<secret>" instead of freezing the caller.
+    local ok = pcall(function() NS.Debug("Capture", "n=%d", {}) end)
+    assertTrue(ok, "NS.Debug must not propagate a format error")
+    local last = NS.DebugLog.buffer[#NS.DebugLog.buffer]
+    assertTrue(last and last:find("<secret>", 1, true) ~= nil,
+        "the unsafe value degrades to <secret> in the logged line")
+end)
+
 test("debuglog: NS.Debug is a no-op (no console write) when debug is off", function()
     local NS = T.newAddon()
     NS.State.debug = false

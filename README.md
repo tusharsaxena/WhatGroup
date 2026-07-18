@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW%20Addon%20Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-48%2F48_passing-green)
+![Tests](https://img.shields.io/badge/Tests-61%2F61_passing-green)
 
 ![alt text](https://media.forgecdn.net/attachments/1794/926/whatgroup-logo-png.png)
 
@@ -37,6 +37,7 @@ Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Set
 | `/wg show` | Re-open the last group popup (while you're still in that group) |
 | `/wg test` | Preview the chat message and popup with sample data — also a **Test** button in the Settings panel |
 | `/wg config` | Open the Settings panel |
+| `/wg version` | Print the addon version |
 | `/wg list` | Show every setting and its current value |
 | `/wg get <name>` | Show one setting's current value |
 | `/wg set <name> <value>` | Change a setting. On/off settings accept `on`, `off`, or `toggle`; number settings stay within their allowed range |

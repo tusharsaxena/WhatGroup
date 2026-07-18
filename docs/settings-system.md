@@ -88,7 +88,7 @@ All schema reads and writes go through a private `Resolve(path)` helper that wal
 
 ## `BuildDefaults`
 
-Walks `Schema` and threads each row's `default` into the right slot under `profile.*`:
+Default *values* live in `defaults/Profile.lua` as the nested `NS.C` table (the single place a profile default is hardcoded, savedvariables-§2 / WG-24); each schema row references its value via `default = C.<path>`. `BuildDefaults` walks `Schema` and threads each row's `default` into the right slot under `profile.*` (deep-copying table defaults):
 
 ```lua
 function Settings.BuildDefaults()
@@ -228,7 +228,12 @@ profile = {
     showTeleport  = true,
   },
 }
-global = { schemaVersion = 1 }   -- seeded here; read by NS:RunMigrations (Database.lua)
+global = {
+  schemaVersion = 1,   -- seeded here; read by NS:RunMigrations (Database.lua)
+  windows = {          -- persisted standalone-window geometry (WG-26); each entry
+    -- [name] = { point, relPoint, x, y }   written on drag-stop, restored on show
+  },
+}
 ```
 
 There is **no `debug` key** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). The General panel's "Debug console" checkbox toggles the console *window's* visibility only (see [Action buttons](#action-buttons-aftergroup)); it drives neither a profile key nor the debug logging flag. Capture / pending state (`captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [capture-pipeline.md](./capture-pipeline.md#state) for why.

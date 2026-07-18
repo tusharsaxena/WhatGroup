@@ -35,6 +35,7 @@ local COMMANDS = {
     {"show",   "Show the last group info dialog",             handler},
     {"test",   "Inject synthetic group info and run …",       handler},
     {"config", "Open the Ka0s WhatGroup Settings panel",      handler},
+    {"version","Print the addon version",                     handler},
     {"list",   "List every setting and its current value",    handler},
     {"get",    "Print a setting's current value …",            handler},
     {"set",    "Set a setting …",                              handler},
@@ -51,18 +52,19 @@ Forward declarations at the top of the dispatch section let the table reference 
 
 ```lua
 local printHelp, listSettings, getSetting, setSetting
-local runReset, runShow, runTest, runConfig, runDebug
+local runReset, runShow, runTest, runConfig, runDebug, runVersion
 ```
 
 ## Help output convention
 
 ```
-[WG] v1.3.0 slash commands (/whatgroup is an alias for /wg):
+[WG] v1.3.0 slash commands (/whatgroup is an alias for /wg)
   /wg help — List available commands
   /wg show — …
 ```
 
 - Cyan `[WG]` chat prefix on every line.
+- No trailing colon on any printed line (slash-commands-§4 / WG-19).
 - Yellow (`|cffFFFF00`) for slash commands.
 - White (`|cffFFFFFF`) for explanatory text.
 - One line per command.
@@ -76,7 +78,8 @@ local runReset, runShow, runTest, runConfig, runDebug
 | `/wg help` | `printHelp` | Print help. |
 | `/wg show` | `runShow` | Open the popup if `pendingInfo` is set. Otherwise print a hint pointing at `/wg test`. |
 | `/wg test` | `runTest` → `WhatGroup:RunTest()` | Inject synthetic `pendingInfo` (Mythic+ Stonevault) and run `ShowNotification()` + `ShowFrame()`. Mirrors the panel's Test button via the same `RunTest()` method, so the two affordances stay in lockstep. |
-| `/wg config` | `runConfig` | Refuses during `InCombatLockdown()` (Settings UI is taint-protected). Otherwise calls `Settings.OpenToCategory(self._parentSettingsCategory:GetID())` then `pcall`s into `SettingsPanel:GetCategoryList():GetCategoryEntry(parent):SetExpanded(true)` — opens the addon-landing page and unfolds the subcategory tree so General is one click away. The pcall protects against patch-day shifts in the private CategoryList internals: if the path breaks, the panel still opens, the tree just doesn't auto-unfold. |
+| `/wg config` | `runConfig` | Refuses during `InCombatLockdown()` (Settings UI is taint-protected) with the canonical grey notice *"cannot open settings during combat — Blizzard's category-switch is protected"* (options-ui-§2 / WG-25) — refuse-and-return, no defer-replay. Otherwise calls `Settings.OpenToCategory(self._parentSettingsCategory:GetID())` then `pcall`s into `SettingsPanel:GetCategoryList():GetCategoryEntry(parent):SetExpanded(true)` — opens the addon-landing page and unfolds the subcategory tree so General is one click away. The pcall protects against patch-day shifts in the private CategoryList internals: if the path breaks, the panel still opens, the tree just doesn't auto-unfold. |
+| `/wg version` | `runVersion` | Print `<[WG]> v<version>` on its own line (slash-commands-§3 / WG-29). Reads the version from TOC metadata via `C_AddOns.GetAddOnMetadata("WhatGroup", "Version")`, falling back to the in-code `WhatGroup.VERSION` constant. |
 | `/wg list` | `listSettings` | Group `Schema` by `section`, print `path = formattedValue` for every row. Coloured per slash-commands-§5: header green (`33ff99`), `[section]` group headers azure (`3399ff`), and each `key = value` through the shared `FormatKV` (key gold `ffff00`, value white). |
 | `/wg get <path>` | `getSetting` | `Helpers.FindSchema(path)` + format using `def.fmt` for numbers (e.g. `"%.1fs"` → `1.5s`), echoed through the same `FormatKV` so `key = value` reads identically to `/wg list` and the `/wg set` echo. Prints "Setting not found" for unknown paths. |
 | `/wg set <path> <value>` | `setSetting` → `applyFromText` | Type-aware parse: bool accepts `true / false / on / off / 1 / 0 / yes / no / toggle`; number coerces via `tonumber` and clamps to `min / max` if set. Calls `Helpers.Set(path, value)` — the orchestrated single write-path that internally writes the value, fires the row's `onChange`, then refreshes panel widgets — and echoes the new value. |

@@ -1,5 +1,6 @@
 -- locales/enUS.lua
--- Localization shell. Loaded early (after Compat) so every later file can
+-- Localization shell. Loaded first among the addon files (the `# Locales`
+-- section precedes `# Core`, toc-file-§5 / WG-14) so every later file can
 -- route its user-facing literals through NS.L[...].
 --
 -- English-only is a deliberate project stance (see docs/scope.md), but the
@@ -81,6 +82,6 @@ L["No group info available. Use |cffFFFF00/wg test|r to preview."] =
     "No group info available. Use |cffFFFF00/wg test|r to preview."
 L["Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."] =
     "Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."
-L["Cannot open the settings panel during combat. Try again after combat ends."] =
-    "Cannot open the settings panel during combat. Try again after combat ends."
+L["cannot open settings during combat — Blizzard's category-switch is protected"] =
+    "cannot open settings during combat — Blizzard's category-switch is protected"
 L["Popup deferred until combat ends."] = "Popup deferred until combat ends."

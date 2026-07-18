@@ -19,7 +19,7 @@ WhatGroup needs to associate the group-info table read at apply time with the pl
 
 ## State
 
-Five module-locals in `WhatGroup.lua` plus one field on the addon table:
+Four module-locals in `WhatGroup.lua` plus two fields on the addon table:
 
 | State | Shape | Lifetime |
 |---|---|---|
@@ -27,10 +27,10 @@ Five module-locals in `WhatGroup.lua` plus one field on the addon table:
 | `pendingApplications` | `{ [appID] = capture }` | session; wiped on group-leave (via `WipeCapture`), master-switch off-flip, or after `inviteaccepted` |
 | `wasInGroup` | bool | session; tracks `IsInGroup()`, seeded in `OnEnable` |
 | `notifiedFor` | the `pendingInfo` table reference that already triggered notify+popup | session; cleared on `inviteaccepted` (new pendingInfo) and on group-leave / master-switch off-flip |
-| `notifyGen` | integer counter | session; bumped by `WipeCapture` so any in-flight `C_Timer.After` notify callback bails on fire |
+| `self.notifyTimer` | AceTimer handle (or nil) | session; the scheduled one-shot notify; `WipeCapture` `CancelTimer`s it so a scheduled callback can't fire after the capture is gone |
 | `WhatGroup.pendingInfo` | single capture table (the active one) | session; cleared on group-leave / master-switch off-flip |
 
-None of these are persisted — capture state is recomputed from live LFG events every session. `WhatGroup:WipeCapture()` is the consolidated reset: it nils `pendingInfo`, nils `notifiedFor`, bumps `notifyGen`, and wipes both queues. Both the `GROUP_ROSTER_UPDATE` leave-branch and the `enabled` schema row's `onChange` (when flipped to `false`) route through it.
+None of these are persisted — capture state is recomputed from live LFG events every session. `WhatGroup:WipeCapture()` is the consolidated reset: it nils `pendingInfo`, nils `notifiedFor`, `self:CancelTimer(self.notifyTimer)`s any in-flight notify (AceTimer-3.0, WG-17), and wipes both queues. Both the `GROUP_ROSTER_UPDATE` leave-branch and the `enabled` schema row's `onChange` (when flipped to `false`) route through it.
 
 ## Flow
 
@@ -71,24 +71,25 @@ GROUP_ROSTER_UPDATE  (transition: inGroup ∧ ¬wasInGroup)
         ├─ skip if notifiedFor == pendingInfo (already fired for this join)
         ├─ skip if not IsInGroup()
         ├─ notifiedFor = pendingInfo
-        ├─ notifyGen += 1; thisGen = notifyGen; capturedInfo = pendingInfo
-        └─ C_Timer.After(notify.delay, function()
-              ├─ bail if notifyGen ~= thisGen   (WipeCapture / leave / master-switch off)
+        ├─ capturedInfo = pendingInfo
+        ├─ CancelTimer(self.notifyTimer)   if one is already pending
+        └─ self.notifyTimer = self:ScheduleTimer(function()   (AceTimer-3.0)
+              ├─ self.notifyTimer = nil
               ├─ bail if pendingInfo ~= capturedInfo   (replaced by a newer apply)
               ├─ ShowNotification()                always (gated internally on notify.enabled)
               └─ if frame.autoShow then ShowFrame() end
-           end)
+           end, notify.delay)
         │
         ▼
 GROUP_ROSTER_UPDATE  ¬inGroup
         └─ self:WipeCapture()
               ├─ pendingInfo = nil
               ├─ notifiedFor = nil
-              ├─ notifyGen  += 1   (cancels any in-flight notify timer)
+              ├─ CancelTimer(self.notifyTimer)   (cancels any in-flight notify timer)
               └─ wipe(captureQueue) + wipe(pendingApplications)
 
   Master-switch off-flip (enabled.onChange with v=false):
-        └─ self:WipeCapture()   (same five-way reset)
+        └─ self:WipeCapture()   (same reset)
 ```
 
 ## Why a queue, not a single slot

@@ -15,9 +15,10 @@
 -- shared across every source file via the second load vararg. AceAddon
 -- mixes its methods (RegisterChatCommand / RegisterEvent / db / …) directly
 -- INTO `NS`, so `NS` IS the addon object and `NS.addon` aliases it. Earlier
--- files (Compat, Database) have already hung NS.Compat / NS:RunMigrations on
--- this same table; NewAddon preserves those fields. NS.L is NOT set yet —
--- locales/enUS.lua loads after this file (layout load order), so L strings are
+-- files have already hung their fields on this same table — locales/enUS.lua
+-- (NS.L; the `# Locales` section now precedes `# Core`, WG-14), core/Util.lua
+-- (NS.Util / NS.SafeToString / NS.Windows), Compat (NS.Compat), Database
+-- (NS:RunMigrations) — and NewAddon preserves them. L strings are still
 -- referenced as NS.L[...] at runtime, never captured at file scope here.
 --
 -- No `_G.WhatGroup` — the addon exposes no public global (WG-01). Downstream
@@ -29,7 +30,7 @@
 local addonName, NS = ...
 local WhatGroup = LibStub("AceAddon-3.0"):NewAddon(
     NS, addonName,
-    "AceConsole-3.0", "AceEvent-3.0")
+    "AceConsole-3.0", "AceEvent-3.0", "AceTimer-3.0")
 NS.addon = WhatGroup
 WhatGroup.VERSION = "1.3.0"
 
@@ -38,8 +39,8 @@ WhatGroup.VERSION = "1.3.0"
 NS.State = NS.State or {}
 NS.State.debug = false
 
--- Single shared chat prefix (slash-commands-§4). NS.PREFIX is the one source of truth;
--- `CHAT_PREFIX` below is a file-local alias for the many print call sites.
+-- Single shared chat prefix (slash-commands-§4). NS.PREFIX is the one source of
+-- truth; the secret-safe printer (core/Util.lua) prepends it to every line.
 NS.PREFIX = "|cff00FFFF[WG]|r"
 
 -- Direct `hooksecurefunc` post-hooks installed at file-load (NOT in
@@ -66,22 +67,20 @@ hooksecurefunc("SetItemRef", function(linkArg, text, button, ...)
     end
 end)
 
-local CHAT_PREFIX = NS.PREFIX
-
 -- Session-only state. Cleared on group leave; never persisted.
 local captureQueue        = {}   -- FIFO: captures awaiting their appID assignment
 local pendingApplications = {}   -- [appID] -> capturedInfo (set when "applied" fires)
 local wasInGroup          = false
 local notifiedFor         = nil  -- pendingInfo identity that already fired notify+popup
-local notifyGen           = 0    -- bumped by any wipe; in-flight C_Timer.After
-                                 -- callbacks check it and bail if superseded
 
-local function p(...)
-    print(CHAT_PREFIX, ...)
-end
+-- Single secret-safe chat seam (slash-commands-§4, WG-22). Every user-facing
+-- line funnels through NS.Util.print (core/Util.lua), which prepends NS.PREFIX
+-- and stringifies each arg via NS.SafeToString — so a combat-protected value
+-- can never raise in the chat path. `p` is the file-local alias for the many
+-- call sites; NS.Print / _print expose the same one seam to other files
+-- (DebugLog.lua, loaded earlier, uses NS.Print for its enable/disable acks).
+local p = NS.Util.print
 WhatGroup._print = p
--- Shared chat printer seam (slash-commands-§4). NS.Print is the single user-facing chat
--- path; DebugLog.lua (loaded earlier) uses it for its enable/disable acks.
 NS.Print = p
 
 -- WG-20 (debug-logging-§2 — Blizzard-default-only accepted deviation): the
@@ -340,24 +339,28 @@ function WhatGroup:ShowNotification()
     local gold      = "FFD700"
     local clickLink = colorize(link("WhatGroup:show", NS.L["[Click here to view details]"]), "00FF7F")
 
-    print(CHAT_PREFIX .. " " .. NS.L["You have joined a group!"])
-    print(CHAT_PREFIX .. "   - " .. colorize(NS.L["Group:"], gold) .. " " .. tostring(info.title or NS.L["Unknown"]))
+    -- Every line routes through the single secret-safe printer `p` (WG-23):
+    -- the label (a constant colour-coded string) and the value are passed as
+    -- SEPARATE args, so the LFG-sourced values are stringified by the seam
+    -- rather than pre-concatenated through `..`/tostring at the call site.
+    p(NS.L["You have joined a group!"])
+    p("   - " .. colorize(NS.L["Group:"], gold), info.title or NS.L["Unknown"])
 
     if n.showInstance then
-        print(CHAT_PREFIX .. "   - " .. colorize(NS.L["Instance:"], gold)
-              .. " " .. (info.fullName ~= "" and info.fullName or NS.L["Unknown"]))
+        p("   - " .. colorize(NS.L["Instance:"], gold),
+          info.fullName ~= "" and info.fullName or NS.L["Unknown"])
     end
     if n.showType then
         local typeStr = info.shortName ~= "" and info.shortName or Labels.GetGroupTypeLabel(info)
-        print(CHAT_PREFIX .. "   - " .. colorize(NS.L["Type:"], gold) .. " " .. typeStr)
+        p("   - " .. colorize(NS.L["Type:"], gold), typeStr)
     end
     if n.showLeader then
-        print(CHAT_PREFIX .. "   - " .. colorize(NS.L["Leader:"], gold) .. " " .. info.leaderName)
+        p("   - " .. colorize(NS.L["Leader:"], gold), info.leaderName)
     end
     if n.showPlaystyle then
         local playStyle = Labels.GetPlaystyleLabel(info)
         if playStyle ~= "" then
-            print(CHAT_PREFIX .. "   - " .. colorize(NS.L["Playstyle:"], gold) .. " " .. playStyle)
+            p("   - " .. colorize(NS.L["Playstyle:"], gold), playStyle)
         end
     end
     if n.showTeleport then
@@ -366,11 +369,11 @@ function WhatGroup:ShowNotification()
             local spellLink = NS.Compat.GetSpellLink(spellID)
                               or ("|cff71d5ff[Spell " .. spellID .. "]|r")
             local note  = known and "" or (" |cff888888" .. NS.L["(not learned)"] .. "|r")
-            print(CHAT_PREFIX .. "   - " .. colorize(NS.L["Teleport:"], gold) .. " " .. spellLink .. note)
+            p("   - " .. colorize(NS.L["Teleport:"], gold), spellLink .. note)
         end
     end
     if n.showClickLink then
-        print(CHAT_PREFIX .. "   - " .. clickLink)
+        p("   - " .. clickLink)
     end
 end
 
@@ -441,37 +444,39 @@ function WhatGroup:_TryFireJoinNotify(reason)
     if not IsInGroup() then return end
 
     notifiedFor = self.pendingInfo
-    notifyGen = notifyGen + 1
-    local thisGen = notifyGen
     local capturedInfo = self.pendingInfo
     local delay = (self.db and self.db.profile and self.db.profile.notify
                    and self.db.profile.notify.delay) or 0
     local autoShow = not (self.db and self.db.profile and self.db.profile.frame
                           and self.db.profile.frame.autoShow == false)
+    -- Cancel any still-pending notify before scheduling a fresh one so a rapid
+    -- re-fire can't leave two timers racing to the same popup.
+    if self.notifyTimer then self:CancelTimer(self.notifyTimer) end
     NS.Debug("Notify", "scheduling in " .. tostring(delay) .. "s (" .. reason .. ")")
-    -- WG-17 (library-stack-§1 SHOULD): AceTimer-3.0 is the mandated timer lib, but this
-    -- addon deliberately uses raw C_Timer.After. The generation-counter
-    -- cancel below (notifyGen / thisGen) already gives us the one thing
-    -- AceTimer would add (cancellable one-shots); vendoring AceTimer to
-    -- wrap a single fire-and-forget delay is churn without benefit. See
-    -- docs/ARCHITECTURE.md → "Timers".
-    C_Timer.After(delay, function()
-        -- Cancel if a wipe (group-leave, master-switch off) bumped the
-        -- generation, or if a newer notify replaced the pending info.
-        if notifyGen ~= thisGen or self.pendingInfo ~= capturedInfo then
+    -- WG-17 (library-stack-§1): the one-shot notify delay runs through
+    -- AceTimer-3.0 (the mandated timer lib). The handle is stashed in
+    -- self.notifyTimer and cancelled by WipeCapture (group-leave, master-switch
+    -- off) via CancelTimer; the in-callback identity check below still guards a
+    -- same-tick replacement of pendingInfo. (The next-frame C_Timer.After(0, …)
+    -- secure-defer hops in the panel/frame are a distinct taint-avoidance idiom,
+    -- not delayed timers, so they stay raw.)
+    self.notifyTimer = self:ScheduleTimer(function()
+        self.notifyTimer = nil
+        -- Cancel if a newer notify replaced the pending info before we fired.
+        if self.pendingInfo ~= capturedInfo then
             NS.Debug("Notify", "cancelled (superseded)")
             return
         end
         NS.Debug("Notify", "fired")
         self:ShowNotification()
         if autoShow then self:ShowFrame() end
-    end)
+    end, delay)
 end
 
 -- Capture-state wipe used by group-leave (GROUP_ROSTER_UPDATE) and by
--- the master-switch off-flip (enabled.onChange). Bumps notifyGen so any
--- still-scheduled notify callback becomes a no-op when it eventually fires.
--- `reason` (optional) turns on a one-line material-effect log (debug-logging-§10): only the
+-- the master-switch off-flip (enabled.onChange). Cancels any in-flight notify
+-- timer so a scheduled callback can't fire after the capture it belonged to is
+-- gone. `reason` (optional) turns on a one-line material-effect log (debug-logging-§10): only the
 -- caller that wipes for a *reason the reader can't infer from context* (the
 -- master-switch off-flip) passes one, and only when something was actually in
 -- flight. Group-leave passes nothing — the [Roster] line already tells that story.
@@ -480,7 +485,10 @@ function WhatGroup:WipeCapture(reason)
         or next(captureQueue) ~= nil or next(pendingApplications) ~= nil
     self.pendingInfo = nil
     notifiedFor      = nil
-    notifyGen        = notifyGen + 1
+    if self.notifyTimer then
+        self:CancelTimer(self.notifyTimer)
+        self.notifyTimer = nil
+    end
     wipe(captureQueue)
     wipe(pendingApplications)
     if reason and hadInFlight then
@@ -600,7 +608,7 @@ end
 -- Forward declarations so the COMMANDS table can reference handlers
 -- before they're defined below.
 local printHelp, listSettings, getSetting, setSetting
-local runReset, runShow, runTest, runConfig, runDebug
+local runReset, runShow, runTest, runConfig, runDebug, runVersion
 
 local COMMANDS = {
     {"help",   "List available commands",
@@ -611,6 +619,8 @@ local COMMANDS = {
         function(self) runTest(self) end},
     {"config", "Open the Ka0s WhatGroup Settings panel",
         function(self) runConfig(self) end},
+    {"version", "Print the addon version",
+        function(self) runVersion(self) end},
     {"list",   "List every setting and its current value",
         function(self) listSettings(self) end},
     {"get",    "Print a setting's current value — `/wg get <path>`",
@@ -632,9 +642,9 @@ end
 
 function printHelp(self)
     -- slash-commands-§4 shape: "<tag> v<ver> slash commands (<alias> is an alias for
-    -- <slash>):" — the [WG] tag is prepended by p().
+    -- <slash>)" — the [WG] tag is prepended by p(); no trailing colon (WG-19).
     p("v" .. WhatGroup.VERSION .. " " .. NS.L["slash commands"]
-      .. " (|cffFFFF00/whatgroup|r is an alias for |cffFFFF00/wg|r):")
+      .. " (|cffFFFF00/whatgroup|r is an alias for |cffFFFF00/wg|r)")
     for _, entry in ipairs(COMMANDS) do
         p(("  |cffFFFF00/wg %s|r — |cffFFFFFF%s|r"):format(entry[1], NS.L[entry[2]]))
     end
@@ -825,11 +835,23 @@ end
 
 function runTest(self) self:RunTest() end
 
+function runVersion(self)
+    -- slash-commands-§3: standalone `version` verb prints "<tag> v<version>" on
+    -- its own line, reading the version from TOC metadata (GetAddOnMetadata)
+    -- with the in-code constant as fallback. p() prepends the [WG] tag and
+    -- secret-stringifies the arg.
+    local ver = C_AddOns and C_AddOns.GetAddOnMetadata
+                and C_AddOns.GetAddOnMetadata(addonName, "Version")
+    if not ver or ver == "" then ver = WhatGroup.VERSION end
+    p("v" .. ver)
+end
+
 function runConfig(self)
-    -- Settings UI uses secure templates protected during combat;
-    -- opening it mid-combat can taint. Refuse and print a hint.
+    -- Settings UI uses secure templates protected during combat; opening it
+    -- mid-combat can taint. Refuse and return (no defer-and-replay) with the
+    -- canonical grey notice (options-ui-§2, WG-25).
     if InCombatLockdown() then
-        return p(NS.L["Cannot open the settings panel during combat. Try again after combat ends."])
+        return p("|cff888888" .. NS.L["cannot open settings during combat — Blizzard's category-switch is protected"] .. "|r")
     end
 
     -- Settings registration normally happens at login (OnEnable), so the panel

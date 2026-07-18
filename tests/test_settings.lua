@@ -12,6 +12,23 @@ test("settings: BuildDefaults threads profile + global defaults", function()
     assertEqual(d.global.schemaVersion, 1)
 end)
 
+test("settings: defaults source from NS.C (defaults/Profile.lua, WG-24)", function()
+    local NS = T.newAddon()
+    assertEqual(type(NS.C), "table")
+    assertEqual(NS.C.enabled, true)
+    assertEqual(NS.C.notify.delay, 0)
+    -- BuildDefaults threads the NS.C values through unchanged.
+    local d = NS.addon.Settings.BuildDefaults()
+    assertEqual(d.profile.enabled, NS.C.enabled)
+    assertEqual(d.profile.notify.delay, NS.C.notify.delay)
+end)
+
+test("settings: BuildDefaults seeds an empty global.windows table (WG-26)", function()
+    local NS = T.newAddon()
+    local d = NS.addon.Settings.BuildDefaults()
+    assertEqual(type(d.global.windows), "table")
+end)
+
 test("settings: debug is not a persisted schema row (WG-12)", function()
     local NS = T.newAddon()
     local d = NS.addon.Settings.BuildDefaults()

@@ -18,6 +18,11 @@
 local addonName, NS = ...
 local WhatGroup = NS.addon
 local L         = NS.L
+-- Default VALUES live in defaults/Profile.lua as NS.C (savedvariables-§2); each
+-- schema row references its value via `default = C.<path>` so the schema stays
+-- the single source of settings STRUCTURE (architecture-§5) without also being
+-- the place the value is hardcoded. Loaded before this file (see .toc).
+local C         = NS.C
 
 WhatGroup.Settings = WhatGroup.Settings or {}
 local Settings    = WhatGroup.Settings
@@ -82,11 +87,11 @@ add{
     path    = "enabled",  type = "bool",
     label   = "Enable",
     tooltip = "Master switch. When off, WhatGroup ignores group applications entirely — no capture, no notification, no popup. Re-enable to resume tracking on your next /lfg apply.",
-    default = true,
+    default = C.enabled,
     -- Off-flip wipes any in-flight capture so a pre-toggle apply can't
     -- still surface a notify/popup after the user has explicitly
-    -- disabled the addon. WipeCapture also bumps notifyGen, cancelling
-    -- any C_Timer.After callback already scheduled.
+    -- disabled the addon. WipeCapture also CancelTimers any notify
+    -- callback already scheduled (AceTimer, self.notifyTimer).
     onChange = function(v)
         -- Pass a reason so WipeCapture emits the material-effect log (debug-logging-§10):
         -- the [Set] line already shows `enabled = false`; WipeCapture logs the
@@ -102,7 +107,7 @@ add{
     path    = "frame.autoShow",  type = "bool",
     label   = "Auto Show",
     tooltip = "Open the group-info popup automatically when joining. With this off, the chat notification still prints and you can re-open the popup with /wg show or the chat link.",
-    default = true,
+    default = C.frame.autoShow,
 }
 
 add{
@@ -110,7 +115,7 @@ add{
     path    = "notify.enabled",  type = "bool",
     label   = "Print to Chat",
     tooltip = "Print the group-details summary to chat after joining a group.",
-    default = true,
+    default = C.notify.enabled,
 }
 
 -- Debug is intentionally NOT a schema row: it's session-only runtime
@@ -132,7 +137,7 @@ add{
     path    = "notify.delay",  type = "number",
     label   = "Notification Delay",
     tooltip = "Seconds to wait after joining before printing the notification and showing the popup. Lets the zone-in settle.",
-    default = 0,
+    default = C.notify.delay,
     min = 0, max = 10, step = 0.5, fmt = "%.1fs",
     solo    = true,
 }
@@ -142,7 +147,7 @@ add{
     path    = "notify.showInstance",  type = "bool",
     label   = "Show Instance",
     tooltip = "Include the Instance line in the chat notification.",
-    default = true,
+    default = C.notify.showInstance,
     solo    = true,
 }
 
@@ -151,7 +156,7 @@ add{
     path    = "notify.showType",  type = "bool",
     label   = "Show Type",
     tooltip = "Include the Type line (Mythic+, Raid, Dungeon, …) in the chat notification.",
-    default = true,
+    default = C.notify.showType,
     solo    = true,
 }
 
@@ -160,7 +165,7 @@ add{
     path    = "notify.showLeader",  type = "bool",
     label   = "Show Leader",
     tooltip = "Include the Leader line in the chat notification.",
-    default = true,
+    default = C.notify.showLeader,
     solo    = true,
 }
 
@@ -169,7 +174,7 @@ add{
     path    = "notify.showPlaystyle",  type = "bool",
     label   = "Show Playstyle",
     tooltip = "Include the Playstyle line (Learning / Fun (Relaxed) / Fun (Serious) / Expert) in the chat notification.",
-    default = true,
+    default = C.notify.showPlaystyle,
     solo    = true,
 }
 
@@ -178,7 +183,7 @@ add{
     path    = "notify.showClickLink",  type = "bool",
     label   = "Show \"Click here to view details\" link",
     tooltip = "Include the clickable chat link that re-opens the popup. Disable if you only want the chat summary.",
-    default = true,
+    default = C.notify.showClickLink,
     solo    = true,
 }
 
@@ -187,7 +192,7 @@ add{
     path    = "notify.showTeleport",  type = "bool",
     label   = "Show Teleport spell",
     tooltip = "Include a Teleport line with the dungeon's teleport spell link (and a \"not learned\" tag if you don't have it). Skipped silently when the dungeon has no known teleport.",
-    default = true,
+    default = C.notify.showTeleport,
     solo    = true,
 }
 
@@ -318,8 +323,11 @@ end
 function Settings.BuildDefaults()
     -- `global.schemaVersion` seeds AceDB's account-wide store so a fresh
     -- install lands at the current version; Database.lua's RunMigrations
-    -- reads it (WG-08).
-    local out = { profile = {}, global = { schemaVersion = NS.SCHEMA_VERSION or 1 } }
+    -- reads it (WG-08). `global.windows` holds persisted standalone-window
+    -- geometry (WG-26); an empty table so NS.Windows.Save/Restore never index
+    -- a nil.
+    local out = { profile = {},
+                  global = { schemaVersion = NS.SCHEMA_VERSION or 1, windows = {} } }
     for _, def in ipairs(Schema) do
         if def.path then
             local segs = {}

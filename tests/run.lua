@@ -18,9 +18,12 @@ local loadAddon = dofile(here .. "/loader.lua")
 
 -- Addon sources, TOC load order (libs are mocked, not loaded).
 local SOURCES = {
-    "core/Compat.lua", "core/Database.lua", "core/DebugLog.lua",
-    "core/WhatGroup.lua", "defaults/TeleportSpells.lua", "locales/enUS.lua",
-    "settings/Schema.lua", "settings/Panel.lua", "modules/Frame.lua",
+    "locales/enUS.lua",
+    "core/Util.lua", "core/Compat.lua", "core/Database.lua", "core/DebugLog.lua",
+    "core/WhatGroup.lua",
+    "defaults/Profile.lua", "defaults/TeleportSpells.lua",
+    "modules/Frame.lua",
+    "settings/Schema.lua", "settings/Panel.lua",
 }
 
 -- Non-executing inventory mode (testing-§5): `lua tests/run.lua --list` loads every
@@ -105,8 +108,8 @@ _G.WHATGROUP_TEST = {
 -- ---- suites ---------------------------------------------------------------
 
 local SUITES = {
-    "test_compat", "test_database", "test_settings",
-    "test_labels", "test_capture", "test_debuglog",
+    "test_util", "test_compat", "test_database", "test_settings",
+    "test_slash", "test_labels", "test_capture", "test_debuglog",
 }
 
 if not listMode then

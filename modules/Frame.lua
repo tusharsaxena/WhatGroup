@@ -43,6 +43,11 @@ local function buildFrame()
     f:SetMovable(true)
     f:EnableMouse(true)
     f:SetClampedToScreen(true)
+    -- Restore the saved position over the default centre if the player has moved
+    -- the popup before (WG-26; no-op on a fresh profile). Anchored offsets for
+    -- the secure teleport button below are computed relative to f, so they stay
+    -- aligned wherever f ends up.
+    NS.Windows.Restore("popup", f)
     f:Hide()
 
     f:SetBackdrop({
@@ -63,7 +68,10 @@ local function buildFrame()
     titleBar:SetHeight(30)
     titleBar:EnableMouse(true)
     titleBar:SetScript("OnMouseDown", function() f:StartMoving() end)
-    titleBar:SetScript("OnMouseUp",   function() f:StopMovingOrSizing() end)
+    titleBar:SetScript("OnMouseUp",   function()
+        f:StopMovingOrSizing()
+        NS.Windows.Save("popup", f)   -- persist geometry (WG-26)
+    end)
 
     local titleText = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     titleText:SetPoint("CENTER", titleBar, "CENTER", 0, -2)

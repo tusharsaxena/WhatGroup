@@ -82,7 +82,10 @@ local function EnsureFrame()
     titleBar:EnableMouse(true)
     titleBar:RegisterForDrag("LeftButton")
     titleBar:SetScript("OnDragStart", function() frame:StartMoving() end)
-    titleBar:SetScript("OnDragStop", function() frame:StopMovingOrSizing() end)
+    titleBar:SetScript("OnDragStop", function()
+        frame:StopMovingOrSizing()
+        NS.Windows.Save("debug", frame)   -- persist geometry (WG-26)
+    end)
 
     local title = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     title:SetPoint("CENTER")
@@ -136,6 +139,10 @@ local function EnsureFrame()
     applySkin(frame)
     frame:HookScript("OnShow", function() D:RefreshHeader() end)
     D:RefreshHeader()
+
+    -- Restore the saved position over the default CENTER,220,-80 if the player
+    -- has moved the console before (WG-26; no-op on a fresh profile).
+    NS.Windows.Restore("debug", frame)
 
     frame:Hide()
     if type(UISpecialFrames) == "table" then
@@ -285,6 +292,25 @@ end
 -- its category: NS.Debug("Capture", "title=%s", title).
 function NS.Debug(tag, fmt, ...)
     if not (NS.State and NS.State.debug) then return end
-    local msg = select("#", ...) > 0 and fmt:format(...) or fmt
+    local msg
+    if select("#", ...) > 0 then
+        -- Secret-safe (WG-22 / events-frames-taint-§8): a combat-protected value
+        -- passed to string.format raises, and on the notify path that freezes
+        -- the feature until /reload. pcall the format so the raise is caught;
+        -- on failure, rebuild the line from SafeToString'd args so it still
+        -- lands with "<secret>" in place of the offending value.
+        local ok, out = pcall(string.format, fmt, ...)
+        if ok then
+            msg = out
+        else
+            local parts = { fmt }
+            for i = 1, select("#", ...) do
+                parts[#parts + 1] = NS.SafeToString((select(i, ...)))
+            end
+            msg = table.concat(parts, " ")
+        end
+    else
+        msg = fmt
+    end
     D:Add(tag, msg)
 end
