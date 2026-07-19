@@ -15,6 +15,15 @@ WhatGroup remembers the details of any group you join through the Premade Group 
 
 Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Settings panel, or with the `/wg` commands below.
 
+## What's new in 1.3.0
+
+*   The **Ka0s WhatGroup** page now shows up in the game's AddOns settings list the moment you log in — you no longer have to run `/wg config` first to make it appear.
+*   The chat message and popup now appear **instantly** when you join a group. Prefer a short pause? Set a delay under **Notify**.
+*   A new **on-screen debug window** — open or close it with `/wg debug` (or the **Debug console** box in **General**). Debug output goes there instead of cluttering your chat.
+*   Output from `/wg list`, `/wg get`, and `/wg set` is now **colour-coded** and easier to read at a glance.
+*   The **Defaults** button now does a full, clean reset — no leftover settings survive it.
+*   Updated for game patch **12.0.7**.
+
 ## Screenshots
 
 **_Popup Dialog_**
@@ -93,7 +102,7 @@ All bugs, feature requests, and outstanding work are tracked at [https://github.
 
 | Version | Date | Highlights |
 |---|---|---|
-| 1.3.0 | 2026-07-12 | Debug logging now resets to off each login and is toggled with `/wg debug` instead of a Settings checkbox.<br>Updated for game patch 12.0.7. |
+| 1.3.0 | 2026-07-12 | The Settings page now appears in the AddOns list as soon as you log in.<br>The chat message and popup appear instantly on join (add a delay under Notify if you prefer).<br>New on-screen debug window, toggled with `/wg debug`; debug output no longer goes to chat.<br>Colour-coded `/wg list`, `/wg get`, and `/wg set` output.<br>The Defaults button now performs a full, clean reset.<br>Updated for game patch 12.0.7. |
 | 1.2.0 | 2026-05-03 | Added the Settings panel and the `/wg` slash commands.<br>Added a teleport button to the popup, grayed out until you learn the spell.<br>Fixed a logout error, stale notification timers, and the wrong teleport spell and playstyle showing on real group joins. |
 | 1.1.0 | 2026-04-24 | Updated for a new game patch. |
 | 1.0.0 | 2026-03-19 | Initial release: a chat message and popup whenever you join a group through the Premade Group Finder. |
