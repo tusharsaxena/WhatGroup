@@ -142,6 +142,25 @@ test("debuglog: NS.Debug is a no-op (no console write) when debug is off", funct
     assertEqual(#NS.DebugLog.buffer, before)
 end)
 
+test("debuglog: §11 scrollbar + line-counter sync is a safe no-op under the mock", function()
+    -- Anti-pattern #41 failure mode: the sync raises on first open (e.g. by
+    -- calling the nil C getters GetNumLinesDisplayed / GetCurrentScroll). The
+    -- mock's stub frame returns non-numbers from the scroll getters, so the
+    -- guarded mixin path MUST no-op rather than throw. Building the frame (Show)
+    -- and driving it via Add/Clear exercises every sync call site.
+    local NS = T.newAddon()
+    assertTrue(type(NS.DebugLog.UpdateScrollBar) == "function", "UpdateScrollBar must exist")
+    assertTrue(type(NS.DebugLog.UpdateStatus) == "function", "UpdateStatus must exist")
+    local ok = pcall(function()
+        NS.DebugLog:Show()                -- builds the §11 scrollbar + status bar + initial sync
+        NS.DebugLog:UpdateScrollBar()
+        NS.DebugLog:UpdateStatus()
+        NS.DebugLog:Add("Test", "a line")
+        NS.DebugLog:Clear()
+    end)
+    assertTrue(ok, "the §11 sync path must not raise under the headless mock")
+end)
+
 -- ── message coverage / coalescing (debug-logging-§8/§9/§10) ────────────────
 
 -- Count buffer lines containing a literal fragment (plain-text buffer, no colours).
