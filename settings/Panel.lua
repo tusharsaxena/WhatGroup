@@ -108,20 +108,68 @@ local function buildHeader(panel, title, opts)
     -- the gold tracks any future theme retune.
     divider:SetVertexColor(titleFS:GetTextColor())
 
-    local defaultsBtn
-    if opts.defaultsButton then
-        defaultsBtn = AceGUI:Create("Button")
-        defaultsBtn:SetText("Defaults")
-        defaultsBtn:SetWidth(DEFAULTS_W)
-        defaultsBtn.frame:SetParent(panel)
-        defaultsBtn.frame:ClearAllPoints()
-        defaultsBtn.frame:SetPoint("TOPRIGHT", panel, "TOPRIGHT",
-                                   -PADDING_X, -HEADER_TOP)
-        defaultsBtn.frame:Show()
-        attachTooltip(defaultsBtn, "Defaults", opts.defaultsTooltip)
-    end
+    -- The Defaults button is only *recorded* here, never built — buildHeader
+    -- runs inside Settings.Register (PLAYER_LOGIN), which is far too early to
+    -- create an AceGUI widget. See ensureDefaultsButton below for why.
+    panel.wantsDefaultsButton = opts.defaultsButton and true or false
+    panel.defaultsTooltip     = opts.defaultsTooltip
 
-    return titleFS, divider, defaultsBtn
+    return titleFS, divider
+end
+
+-- ---------------------------------------------------------------------------
+-- Lazy Defaults button — built once, on the panel's first OnShow.
+-- ---------------------------------------------------------------------------
+--
+-- options-ui-§5 requires this to be an AceGUI Button (not a raw
+-- UIPanelButtonTemplate parented onto the canvas), but *when* it is created
+-- matters just as much as *what* creates it. AceGUI is a shared library:
+-- UI-skinning addons (ElvUI, AddOnSkins, and friends) restyle its widgets by
+-- hooking `AceGUI.RegisterAsWidget`. Any widget created *before* that hook is
+-- installed keeps Blizzard's stock `UI-Panel-Button-Up` art — the red stone
+-- button — for the whole session, while everything created after it comes out
+-- skinned.
+--
+-- Settings.Register runs at PLAYER_LOGIN, i.e. still inside the load sequence,
+-- so building the button there is a straight race against every other addon's
+-- load order. WhatGroup currently wins that race only because "WhatGroup"
+-- happens to sort/load after the skinner — rename the folder, or add a skin,
+-- and the identical code renders the red button instead. Deferring creation to
+-- the first OnShow removes the race entirely: by the time a user opens the
+-- settings panel, every addon has loaded and every hook is in place.
+--
+-- Do NOT "simplify" this back into buildHeader / Settings.Register. It is the
+-- same lazy-build rule the panel body already follows, for a related reason.
+--
+-- CALL IT FROM INSIDE THE C_Timer.After(0, …) HOP, never from the synchronous
+-- OnShow body. This creates an AceGUI frame, and WhatGroup keeps OnShow itself
+-- a no-op precisely because Blizzard's GameMenu / Logout flow can dispatch it
+-- inside a secure-execute chain, where CreateFrame trips
+-- ADDON_ACTION_FORBIDDEN (the panel body defers for the same reason). Building
+-- on the next frame satisfies both rules at once: out of the load-order race,
+-- and out of the protected context.
+-- Idempotent: safe to call on every build pass.
+local function ensureDefaultsButton(panel)
+    if not panel or panel.defaultsBtn or not panel.wantsDefaultsButton then return end
+
+    local btn = AceGUI:Create("Button")
+    if not (btn and btn.frame) then return end
+
+    btn:SetText("Defaults")
+    btn:SetWidth(DEFAULTS_W)
+    btn.frame:SetParent(panel)
+    btn.frame:ClearAllPoints()
+    btn.frame:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -PADDING_X, -HEADER_TOP)
+    btn.frame:Show()
+    attachTooltip(btn, "Defaults", panel.defaultsTooltip)
+
+    panel.defaultsBtn = btn
+
+    -- Registration happens before the button exists, so the click handler is
+    -- parked on the panel (panel.defaultsOnClick) and wired up here.
+    if panel.defaultsOnClick then
+        btn:SetCallback("OnClick", panel.defaultsOnClick)
+    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -137,10 +185,9 @@ function Helpers.CreatePanel(name, title, opts)
     panel.name = title
     panel:Hide()
 
-    local titleFS, divider, defaultsBtn = buildHeader(panel, title, opts)
-    panel.title       = titleFS
-    panel.divider     = divider
-    panel.defaultsBtn = defaultsBtn
+    local titleFS, divider = buildHeader(panel, title, opts)
+    panel.title   = titleFS
+    panel.divider = divider
 
     local body = CreateFrame("Frame", nil, panel)
     body:SetPoint("TOPLEFT",     panel, "TOPLEFT",     0, -(HEADER_HEIGHT + 8))
@@ -684,6 +731,7 @@ function Settings.Register()
         C_Timer.After(0, function()
             if mainRendered then return end
             mainRendered = true
+            ensureDefaultsButton(mainCtx.panel)
             Helpers.BuildMainContent(mainCtx)
         end)
     end)
@@ -699,11 +747,11 @@ function Settings.Register()
         { panelKey = "general", defaultsButton = true,
           defaultsTooltip = "Reset every WhatGroup setting to its default. Asks for confirmation." })
 
-    if generalCtx.panel.defaultsBtn then
-        generalCtx.panel.defaultsBtn:SetCallback("OnClick", function()
-            Settings.EnsureResetPopup()
-            StaticPopup_Show("WHATGROUP_RESET_ALL")
-        end)
+    -- Parked, not wired: the button itself doesn't exist until the panel's
+    -- first OnShow (ensureDefaultsButton), which is where this gets attached.
+    generalCtx.panel.defaultsOnClick = function()
+        Settings.EnsureResetPopup()
+        StaticPopup_Show("WHATGROUP_RESET_ALL")
     end
 
     -- Same deferral as the main panel — keep the synchronous OnShow body
@@ -718,6 +766,7 @@ function Settings.Register()
         C_Timer.After(0, function()
             if generalRendered then return end
             generalRendered = true
+            ensureDefaultsButton(generalCtx.panel)
             Helpers.RenderSchema(generalCtx,
                 {   -- afterGroup: full-width action buttons, below the grid.
                     ["General"] = function(ctxRef)

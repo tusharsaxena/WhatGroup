@@ -78,7 +78,7 @@ All schema reads and writes go through a private `Resolve(path)` helper that wal
 
 | Helper | Purpose |
 |---|---|
-| `Helpers.CreatePanel(name, title, opts)` | Build a Frame with the unified header (breadcrumb-prefixed `GameFontNormalHuge` title + `Options_HorizontalDivider`-tinted divider + optional Defaults button at top-right). Returns a `ctx = { panel, body, scroll, refreshers, lastGroup, panelKey }`. `opts.isMain` skips the `"Ka0s WhatGroup <atlas-chevron> "` breadcrumb prefix (separator is the inline atlas `\|A:common-icon-forwardarrow:16:16\|a` — a real texture, not a font glyph, so it renders the same regardless of the FontString font / locale fallback); `opts.defaultsButton` adds the top-right button. |
+| `Helpers.CreatePanel(name, title, opts)` | Build a Frame with the unified header (breadcrumb-prefixed `GameFontNormalHuge` title + `Options_HorizontalDivider`-tinted divider + optional Defaults button at top-right). Returns a `ctx = { panel, body, scroll, refreshers, lastGroup, panelKey }`. `opts.isMain` skips the `"Ka0s WhatGroup <atlas-chevron> "` breadcrumb prefix (separator is the inline atlas `\|A:common-icon-forwardarrow:16:16\|a` — a real texture, not a font glyph, so it renders the same regardless of the FontString font / locale fallback); `opts.defaultsButton` *records* that the page wants the top-right button (`panel.wantsDefaultsButton`) — the widget itself is built later, on the panel's first show, by `ensureDefaultsButton`. |
 | `Helpers.PatchAlwaysShowScrollbar(scroll)` | Rebind an AceGUI ScrollFrame's `FixScroll` so the scrollbar (and its 20-px gutter) stays visible even when content fits — keeps left/right margins symmetric across short and long pages. Restores stock `FixScroll` / `OnRelease` on widget release so the shared AceGUI pool returns clean. |
 | `Helpers.Section(ctx, label)` | AceGUI `Heading` widget at `GameFontNormalLarge` with 10 px above and 6 px below. |
 | `Helpers.RenderField(ctx, def, parent, relativeWidth)` | Dispatch a single schema row to the right widget maker (`bool` → CheckBox, `number` → Slider). |
@@ -147,6 +147,7 @@ ctx.panel:SetScript("OnShow", function()
     C_Timer.After(0, function()
         if rendered then return end
         rendered = true
+        ensureDefaultsButton(ctx.panel)   -- the header button builds here too
         -- parent: Helpers.BuildMainContent(ctx)
         -- general: Helpers.RenderSchema(ctx, { ["General"] = ... })
     end)
@@ -154,6 +155,8 @@ end)
 ```
 
 The `C_Timer.After(0, …)` deferral matters because Blizzard's GameMenu / Logout flows can dispatch our OnShow inside a secure-execute chain (e.g. when the Logout button's callback iterates registered Settings categories). Creating AceGUI frames synchronously inside that protected chain trips `ADDON_ACTION_FORBIDDEN ... 'callback()'`. Returning from OnShow immediately and running the build one frame later moves the frame creation out of the protected context.
+
+The **header's Defaults button is built in that same hop**, for two reasons at once. It is an AceGUI frame, so it is subject to the taint rule above — calling `ensureDefaultsButton` from the synchronous OnShow body would put `CreateFrame` straight back inside the protected chain. And it must not be built at registration time either: AceGUI is a *shared* library, UI skins restyle its widgets by hooking `RegisterAsWidget`, and a widget created during load — before those hooks exist — keeps Blizzard's stock red `UI-Panel-Button-Up` art for the session. `Settings.Register` runs at `PLAYER_LOGIN`, so building it there is a race against every other addon's load order that WhatGroup only wins by loading late (options-ui-§5). Its click handler is therefore parked at registration as `panel.defaultsOnClick` and wired by the builder.
 
 `ensureScroll` (called by every render path) hooks the AceGUI ScrollFrame's `OnSizeChanged` and forwards the size into AceGUI:
 

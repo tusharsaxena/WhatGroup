@@ -114,6 +114,9 @@ Verifies AceGUI rendering, schema-driven widget refresh, and the Defaults flow.
 
 ### 3.4 Defaults button
 
+0. The button appears one frame after the page first opens (it is built in the panel's
+   secure-defer hop, not at login). It must look like every other button on the page —
+   Blizzard's red stone button means it was created before a UI skin hooked AceGUI.
 1. Make several changes via the panel.
 2. Click **Defaults**.
 3. **Yes** in the confirm popup.
