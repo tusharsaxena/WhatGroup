@@ -34,23 +34,6 @@ function Compat.GetSpellName(spellID)
     return nil
 end
 
---- Basic spell info collapsed to the fields the addon needs. Currently
---- only `name` is consumed anywhere; kept as a full shim for parity with
---- the standard Compat surface and for future callers. Returns nil when
---- the spell is unknown.
--- @return name, iconID, castTime, minRange, maxRange, returnedSpellID
-function Compat.GetSpellInfo(spellID)
-    if C_Spell and C_Spell.GetSpellInfo then
-        local i = C_Spell.GetSpellInfo(spellID)
-        if not i then return nil end
-        return i.name, i.iconID, i.castTime, i.minRange, i.maxRange, i.spellID
-    end
-    if GetSpellInfo then
-        return GetSpellInfo(spellID)
-    end
-    return nil
-end
-
 --- File ID of the spell's icon texture, or nil when unavailable. Callers
 --- supply their own default (the popup uses 134400, the question-mark
 --- icon) so a nil return stays visible rather than blank.

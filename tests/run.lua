@@ -95,6 +95,17 @@ local function bootAddon()
     return NS, env, mock
 end
 
+-- Fresh addon that has run the FULL in-game lifecycle: OnInitialize
+-- (ADDON_LOADED) then OnEnable (PLAYER_LOGIN). OnEnable is what registers the
+-- events and the Settings canvas category, so suites that exercise the panel
+-- or the event wiring start here rather than calling Settings.Register by hand
+-- — that way the test drives the same entry point the client does.
+local function enableAddon()
+    local NS, env, mock = bootAddon()
+    NS.addon:OnEnable()
+    return NS, env, mock
+end
+
 _G.WHATGROUP_TEST = {
     test         = test,
     assertEqual  = assertEqual,
@@ -103,13 +114,15 @@ _G.WHATGROUP_TEST = {
     assertNil    = assertNil,
     newAddon     = newAddon,
     bootAddon    = bootAddon,
+    enableAddon  = enableAddon,
 }
 
 -- ---- suites ---------------------------------------------------------------
 
 local SUITES = {
     "test_util", "test_compat", "test_database", "test_settings",
-    "test_slash", "test_labels", "test_capture", "test_debuglog",
+    "test_slash", "test_labels", "test_capture", "test_notify",
+    "test_frame", "test_panel", "test_lifecycle", "test_debuglog",
 }
 
 if not listMode then

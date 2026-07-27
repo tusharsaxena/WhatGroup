@@ -35,3 +35,82 @@ test("compat: GetActivityInfoTable passes the table through", function()
     mock.activities[500] = { mapID = 2652, fullName = "The Stonevault" }
     assertEqual(NS.Compat.GetActivityInfoTable(500).mapID, 2652)
 end)
+
+-- ---------------------------------------------------------------------------
+-- Legacy fallbacks — every shim must degrade rather than throw when the
+-- modern C_Spell namespace is missing or returns nil. Simulated by removing
+-- C_Spell from the mock env, which is exactly what an older client looks like.
+-- ---------------------------------------------------------------------------
+
+test("compat: GetSpellName falls back to the legacy GetSpellInfo global", function()
+    local NS, env = T.newAddon()
+    env.C_Spell = nil
+    env.GetSpellInfo = function(id) return "Legacy " .. id end
+    assertEqual(NS.Compat.GetSpellName(5), "Legacy 5")
+end)
+
+test("compat: GetSpellName falls through when the modern API returns nil", function()
+    local NS, env = T.newAddon()
+    env.C_Spell = { GetSpellName = function() return nil end }
+    env.GetSpellInfo = function(id) return "Legacy " .. id end
+    assertEqual(NS.Compat.GetSpellName(5), "Legacy 5",
+        "a nil from the modern API is not an answer")
+end)
+
+test("compat: GetSpellName returns nil when no API exists at all", function()
+    local NS, env = T.newAddon()
+    env.C_Spell = nil
+    env.GetSpellInfo = nil
+    assertNil(NS.Compat.GetSpellName(5))
+end)
+
+test("compat: GetSpellTexture falls back to the legacy global", function()
+    local NS, env = T.newAddon()
+    env.C_Spell = nil
+    env.GetSpellTexture = function() return 999 end
+    assertEqual(NS.Compat.GetSpellTexture(1), 999)
+end)
+
+test("compat: GetSpellTexture returns nil with no API (the caller supplies a default)", function()
+    local NS, env = T.newAddon()
+    env.C_Spell = nil
+    env.GetSpellTexture = nil
+    assertNil(NS.Compat.GetSpellTexture(1))
+end)
+
+test("compat: GetSpellLink returns nil with no API (the caller renders plain text)", function()
+    local NS, env = T.newAddon()
+    env.C_Spell = nil
+    assertNil(NS.Compat.GetSpellLink(1))
+end)
+
+test("compat: IsSpellKnown normalises to a plain boolean", function()
+    local NS, env = T.newAddon()
+    env.IsSpellKnown = function() return 1 end   -- a truthy non-boolean
+    assertEqual(NS.Compat.IsSpellKnown(1), true)
+end)
+
+test("compat: IsSpellKnown returns false when the API is missing", function()
+    local NS, env = T.newAddon()
+    env.IsSpellKnown = nil
+    assertEqual(NS.Compat.IsSpellKnown(1), false)
+end)
+
+test("compat: GetActivityInfoTable returns nil for an unknown activity", function()
+    local NS = T.newAddon()
+    assertNil(NS.Compat.GetActivityInfoTable(999999))
+end)
+
+test("compat: GetActivityInfoTable returns nil when C_LFGList is absent", function()
+    local NS, env = T.newAddon()
+    env.C_LFGList = nil
+    assertNil(NS.Compat.GetActivityInfoTable(500))
+end)
+
+test("compat: Compat is the sole namespace the addon reads variant APIs through", function()
+    local NS = T.newAddon()
+    for _, fn in ipairs({ "GetSpellName", "GetSpellTexture",
+                          "GetSpellLink", "IsSpellKnown", "GetActivityInfoTable" }) do
+        assertEqual(type(NS.Compat[fn]), "function", "NS.Compat." .. fn .. " is missing")
+    end
+end)

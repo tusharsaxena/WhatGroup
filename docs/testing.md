@@ -17,11 +17,37 @@ luacheck .             # must report 0 warnings / 0 errors (config in .luacheckr
 ```
 
 `tests/run.lua` loads every source in TOC order under a WoW mock
-(`tests/wow_mock.lua` + `tests/loader.lua`) and runs the pure-logic suites
-(`test_util`, `test_compat`, `test_database`, `test_settings`, `test_slash`,
-`test_labels`, `test_capture`, `test_debuglog`). Frame/panel rendering and taint are **not**
-covered here — those stay in the manual [smoke-test checklist](./smoke-tests.md).
-The **GameMenu → Logout taint check** is the critical in-game one.
+(`tests/wow_mock.lua` + `tests/loader.lua`) and runs every suite: `test_util`,
+`test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
+`test_capture`, `test_notify`, `test_frame`, `test_panel`, `test_lifecycle`,
+`test_debuglog`.
+
+Coverage extends past pure logic into the UI and event layers — the popup's
+field rendering and secure-teleport-button states (`test_frame`), the settings
+panel's deferred build and widget write-back (`test_panel`), the delayed
+join-notify pipeline (`test_notify`), and the event/hook wiring
+(`test_lifecycle`). What genuinely **cannot** be reproduced headlessly stays in
+the manual [smoke-test checklist](./smoke-tests.md): real frame layout and
+skinning, and above all taint — the **GameMenu → Logout taint check** is the
+critical in-game one. The headless suites assert the *structural* half of the
+taint contract (nothing protected is created at load; the popup, its
+`UISpecialFrames` entry, the `StaticPopupDialogs` write and every AceGUI widget
+are all built lazily) but only the client can prove the taint itself is gone.
+
+### Mock fidelity
+
+Four pieces of `tests/wow_mock.lua` deliberately model real client behaviour
+instead of no-op'ing it, and each is the sole reason a class of bug is
+catchable at all — the header comment in that file explains why. In short:
+frame **visibility** and **geometry** are real state (otherwise "the window
+closed" and "the position was saved" are unassertable); the **AceTimer queue**
+is fireable and honours cancellation (otherwise the notify delay, its supersede
+check, and `WipeCapture`'s `CancelTimer` are all invisible); and
+**`CreateFontString` returns a distinct object** per call (otherwise every
+popup row shares one `SetText` sink). `env._G` also points back at the mock env,
+because `settings/Panel.lua` reads `_G.Settings` explicitly — without it
+`Settings.Register` silently early-returns and the whole panel merely *looks*
+untestable.
 
 ## Current status & the case inventory (testing-§5)
 
@@ -31,7 +57,7 @@ drift from the suite. That file is produced by a non-executing `--list` mode of
 the runner and MUST NOT be hand-edited:
 
 ```sh
-lua tests/run.lua --list > docs/test-cases.md
+lua tests/run.lua --list | sed 's/$/\r/' > docs/test-cases.md
 ```
 
 `--list` loads every suite, stamps each registered case with its origin
@@ -55,18 +81,20 @@ change**, never as a deferred follow-up (testing-§5).
 Regenerate, then verify it is in lockstep:
 
 ```sh
-lua tests/run.lua --list > docs/test-cases.md
-git diff --exit-code -- docs/test-cases.md    # clean (exit 0) = in sync
+lua tests/run.lua --list | sed 's/$/\r/' > docs/test-cases.md
+diff <(lua tests/run.lua --list) <(tr -d '\r' < docs/test-cases.md)   # silent = in sync
 ```
 
 > **CRLF note.** This repo's `.gitattributes` stores every text file — `.md`
 > included — as **CRLF on disk** (WoW client expectation), while `--list`
-> emits LF. Use the git-native `git diff --exit-code` check above (git
-> normalizes to LF in the index, so it compares correctly). The raw
-> `diff <(lua tests/run.lua --list) docs/test-cases.md` reports a spurious
-> whole-file diff here because it compares LF process output against the
-> CRLF working copy; if you want a process-only check, strip CR first:
-> `diff <(lua tests/run.lua --list) <(tr -d '\r' < docs/test-cases.md)`.
+> emits LF. The `sed` on the way out writes CRLF; the `tr -d '\r'` on the way
+> back in strips it, so the comparison is LF-vs-LF and a clean suite is silent.
+>
+> **Do not** use `git diff --exit-code -- docs/test-cases.md` as the lockstep
+> check. It compares the file against **HEAD**, not against regenerated output
+> — so the moment the suite legitimately changes, a correctly-regenerated
+> inventory reports as drift. It only ever means "in sync" when the inventory
+> is already committed, which is not when you need the check.
 
 ## In-game smoke tests
 
