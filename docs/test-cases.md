@@ -59,7 +59,7 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - capture: enabled queues so pendingInfo survives a nil fresh fetch
 - capture: master switch off means nothing is queued
 
-### test_debuglog.lua (18)
+### test_debuglog.lua (19)
 - debuglog: FONT_MONO points at the vendored JetBrains Mono TTF
 - debuglog: FormatPlain wraps the tag in brackets, single-space separators
 - debuglog: FormatPlain tolerates a nil tag
@@ -74,6 +74,7 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - debuglog: disabling still appends a '[Debug] logging disabled' line
 - debuglog: NS.Debug survives an unsafe format arg without raising (WG-22)
 - debuglog: NS.Debug is a no-op (no console write) when debug is off
+- debuglog: §11 scrollbar + line-counter sync is a safe no-op under the mock
 - debuglog: settings change logs one [Set] line at the write seam (debug-logging-§10)
 - debuglog: RestoreDefaults coalesces to one [Reset], zero [Set] (debug-logging-§9)
 - debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state
@@ -90,5 +91,5 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 | test_slash.lua | 3 |
 | test_labels.lua | 9 |
 | test_capture.lua | 4 |
-| test_debuglog.lua | 18 |
-| **Total** | **61** |
+| test_debuglog.lua | 19 |
+| **Total** | **62** |

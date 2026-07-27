@@ -23,11 +23,18 @@ Everything hangs off the shared namespace (`local addonName, NS = ...`):
   - `D:Show()` / `D:Hide()` / `D:Toggle()` — window visibility. The window
     persists its position across reloads via `NS.Windows` (saved on drag-stop,
     restored on build; default `CENTER, 220, -80`, WG-26).
+  - `D:IsShown()` — is the console window currently visible? Deliberately has
+    **no `EnsureFrame` side effect** (false before the frame is ever built), so
+    the Settings panel's session-only "Debug console" checkbox can read it
+    without forcing the console into existence.
   - `D:SetEnabled(on)` — the **single state seam** (see below).
   - `D:RefreshHeader()` — re-render the header toggle label/colour.
   - `D:Add(tag, msg)` — raw append (bypasses the flag gate; used for the
     enable/disable bracket lines).
   - `D:Clear()` / `D:ShowCopy()` — Clear and Copy actions.
+  - `D:UpdateScrollBar()` / `D:UpdateStatus()` — re-sync the §11 scrollbar thumb
+    and the line counter. Called on every `Add`, on `Clear`, and on wheel-scroll;
+    both no-op until the frame exists.
   - `D.FormatPlain(ts, tag, msg)` / `D.FormatColored(ts, tag, msg)` — the two
     pure formatters (frame-free, unit-tested in `tests/test_debuglog.lua`).
   - `D.buffer` — the plain-text mirror (capped at 500 lines) the Copy window reads.
@@ -53,9 +60,31 @@ Everything hangs off the shared namespace (`local addonName, NS = ...`):
     it flips logging through `D:SetEnabled`.
   - **Right:** `Copy`, `Clear`, `×` (close).
 - Log surface: a `ScrollingMessageFrame`, `SetMaxLines(500)`, mouse-wheel scroll,
-  monospace `NS.FONT_MONO` at 10pt, `SetJustifyH("LEFT")`, fading off.
+  monospace `NS.FONT_MONO` at 10pt, `SetJustifyH("LEFT")`, fading off. Its
+  TOPLEFT/BOTTOMRIGHT anchors inset by `BAR_W` on the right and `STATUS_H` at the
+  bottom to clear the scrollbar gutter and the status bar below.
+- **Scrollbar** (debug-logging-§11 MUST): a `ScrollingMessageFrame` has no native
+  scrollbar, so a thin flat vertical `Slider` on the right edge drives its scroll
+  offset. **Always shown** — going inert (`EnableMouse(false)`, thumb parked)
+  rather than hiding when the whole log fits, so the gutter stays a constant
+  width, matching the options panel's always-shown scrollbar (options-ui-§10).
+  Synced both ways: dragging the thumb scrolls the log, wheeling the log moves
+  the thumb, with a `frame._syncing` re-entrancy guard between them. Vertical
+  Sliders run value 0 = top = **oldest** while the message-frame offset runs
+  0 = **newest**, so the two are related by `offset = maxOffset - value`. Driven
+  **only** by the Lua mixin API (`GetMaxScrollRange` / `GetScrollOffset` /
+  `SetScrollOffset`) — the old C getters (`GetNumLinesDisplayed` /
+  `GetCurrentScroll`) are nil on this mixin and MUST NOT be used
+  (anti-pattern #41). Type-guarded, so the headless mock is a clean no-op.
+- **Status bar**: a 1px divider plus a right-aligned `N / 500 lines` counter in
+  the log's own monospace font, updated on every append and reset by `Clear`.
+  `N` is `#D.buffer`, capped in lock-step with the log's `SetMaxLines`.
 - **Frames are lazy** — `EnsureFrame()` / `EnsureCopyFrame()` build them on first
-  `Add`/`Show`, so a session that never opens the console pays nothing.
+  `Add`/`Show`, so a session that never opens the console pays nothing. The
+  initial scrollbar/counter sync runs **last** in the window build — after the
+  header, `RefreshHeader`, and the `UISpecialFrames` insert — so a frame-API
+  surprise inside the sync can never leave a blank header or an unregistered
+  ESC-to-close.
 
 ## Line format
 
@@ -95,7 +124,10 @@ MUSTs in the standard's `debug-logging` section.
 
 - **Session-only**: default off, held in `NS.State.debug` (never in
   SavedVariables), reset to off on every `/reload` and fresh login. It is **not**
-  a schema row (WG-12) — there is no `/wg set debug` and no panel checkbox.
+  a schema row (WG-12) — there is no `/wg set debug`. The General panel's "Debug
+  console" checkbox is a session-only, non-schema affordance that toggles the
+  **window's visibility** only (`D:Show` / `D:Hide` via `D:IsShown`); it never
+  touches `NS.State.debug` and never writes `db.profile`.
 - **Logging and the window are independent** — capture runs even with the console
   closed, so a bug can be reproduced first and the log opened after.
 - **Single write path**: `D:SetEnabled(on)` sets the flag → `RefreshHeader` →
@@ -153,5 +185,7 @@ log each settings change once at the `Helpers.Set` seam (debug-logging-§10).
 
 `tests/test_debuglog.lua` covers the pure formatters, the `NS.FONT_MONO`
 constant, the window-vs-flag `/wg debug` semantics, the header-toggle flip, the
-enable/disable bracket lines, and the zero-write-when-off contract. Run with
-`lua tests/run.lua`.
+enable/disable bracket lines, the zero-write-when-off contract, and that the §11
+scrollbar/counter sync stays a safe no-op under the mock. Run with
+`lua tests/run.lua`. The in-game scrollbar and counter behaviour itself is a
+manual check — [smoke-tests.md](./smoke-tests.md) row 2.8b-i.

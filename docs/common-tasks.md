@@ -166,14 +166,14 @@ After bumping, run the [Patch-day smoke](./smoke-tests.md#7-patch-day-smoke--5-m
 
 ## Bump the addon version
 
-**Don't do this without an explicit instruction from the user** — release versioning is the user's call. See `CLAUDE.md` Hard Rules.
+**Don't do this without an explicit instruction from the user** — release versioning is the user's call. See [agent-context.md → Hard rules](./agent-context.md#hard-rules).
 
 When the user does ask, the version sites are:
 
 | Site | Where |
 |---|---|
 | `## Version:` | `WhatGroup.toc` line 5 |
-| `WhatGroup.VERSION` | `WhatGroup.lua` line 34 |
+| `WhatGroup.VERSION` | `core/WhatGroup.lua` line 35 |
 | README badge | `README.md` (look for the version-shield URL) |
 | README "Version History" table | `README.md` |
 | Settings parent panel subtitle | derived from `WhatGroup.VERSION` at runtime — no hard-coded copy |

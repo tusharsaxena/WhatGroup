@@ -40,7 +40,7 @@ table with the grand total), and exits **without running any test**. Default
 `lua tests/run.lua` behaviour is unchanged.
 
 The README's `tests` badge is a **static, hand-maintained** shields.io X/Y
-(`img.shields.io/badge/tests-<X>%2F<Y>_passing-brightgreen`) — no CI, no
+(`img.shields.io/badge/Tests-<X>%2F<Y>_passing-green`) — no CI, no
 dynamic/endpoint badge, no GitHub Action (testing-§5). Its number is the grand
 total from `docs/test-cases.md`.
 
