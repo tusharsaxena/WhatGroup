@@ -52,8 +52,8 @@ Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Set
 | `/wg config` | Open the Settings panel |
 | `/wg version` | Print the addon version |
 | `/wg list` | Show every setting and its current value |
-| `/wg get <name>` | Show one setting's current value |
-| `/wg set <name> <value>` | Change a setting. On/off settings accept `on`, `off`, or `toggle`; number settings stay within their allowed range |
+| `/wg get name` | Show one setting's current value |
+| `/wg set name value` | Change a setting. On/off settings accept `on`, `off`, or `toggle`; number settings stay within their allowed range |
 | `/wg reset` | Reset every setting to its default |
 | `/wg debug` | Open or close the on-screen debug window |
 | `/wg debug on` / `/wg debug off` | Turn debug logging on or off (resets to off each login) |
