@@ -53,8 +53,11 @@ Everything hangs off the shared namespace (`local addonName, NS = ...`):
 
 - `WhatGroupDebugWindow` — a `BackdropTemplate` frame on **`DIALOG`** strata
   (above the main popup), **700×344**, movable, clamped, registered in
-  `UISpecialFrames` (ESC closes). Skinned to match `WhatGroupFrame` (bg
-  `0.08,0.08,0.08,0.95`, border `0.3,0.3,0.3`).
+  `UISpecialFrames` (ESC closes). Skinned through `NS.ApplySkin`, which paints
+  the shared `NS.SKIN` colours (bg `0.08,0.08,0.08,0.95`, border `0.3,0.3,0.3`)
+  over this file's own backdrop table — so the console reads like
+  `WhatGroupFrame` while keeping its heavier 12px `UI-Tooltip-Border` frame
+  where the popup uses a 1px hairline (WG-28).
 - Title bar: draggable, titled `Ka0s WhatGroup — Debug`, 1px divider.
   - **Left:** the `Debug: ON` (green) / `Debug: OFF` (red) state toggle — clicking
     it flips logging through `D:SetEnabled`.

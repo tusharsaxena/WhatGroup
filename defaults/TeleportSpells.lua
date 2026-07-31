@@ -110,13 +110,13 @@ NS.TeleportSpells = {
     [2830] = 1237215,             -- Eco-Dome Al'dani
     [2769] = 1226482,             -- Liberation of Undermine (raid)
     [2810] = 1239155,             -- Manaforge Omega (raid)
-    -- [xxxx] = yyyyyyy,             -- Nerub-ar Palace (raid) (spell does not exist, adding as placeholder for now)
+    -- [xxxx] = yyyyyyy,             -- Nerub-ar Palace (raid) — no teleport spell exists; slot reserved
 
     -- ===== Midnight =====
     [2805] = 1254400,             -- Windrunner Spire
     [2811] = 1254572,             -- Magisters' Terrace
     [2874] = 1254559,             -- Maisara Caverns
-    -- [xxxx] = yyyyyyy,             -- The Dreamrift (raid) (spell does not exist, adding as placeholder for now)
-    -- [xxxx] = yyyyyyy,             -- The Voidspire (raid) (spell does not exist, adding as placeholder for now)
-    -- [xxxx] = yyyyyyy,             -- March on Quel'Danas (raid) (spell does not exist, adding as placeholder for now)
+    -- [xxxx] = yyyyyyy,             -- The Dreamrift (raid) — no teleport spell exists; slot reserved
+    -- [xxxx] = yyyyyyy,             -- The Voidspire (raid) — no teleport spell exists; slot reserved
+    -- [xxxx] = yyyyyyy,             -- March on Quel'Danas (raid) — no teleport spell exists; slot reserved
 }

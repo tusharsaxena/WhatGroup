@@ -48,6 +48,7 @@
 local function build()
     local mock = {
         searchResults = {},   -- [id] -> C_LFGList.GetSearchResultInfo table
+        applications  = {},   -- [appID] -> searchResultID (GetApplicationInfo)
         activities    = {},   -- [id] -> C_LFGList.GetActivityInfoTable table
         knownSpells   = {},   -- [spellID] -> true when learned
         spellNames    = {},   -- [spellID] -> localized name (optional override)
@@ -489,6 +490,14 @@ local function build()
         ApplyToGroup         = noop,
         GetSearchResultInfo  = function(id) return mock.searchResults[id] end,
         GetActivityInfoTable = function(id) return mock.activities[id] end,
+        -- F-004: the documented appID → searchResultID bridge. Returns the
+        -- mapped id (multi-return, like retail) or nothing when unmapped, so a
+        -- test can exercise the fall-back-to-appID branch by leaving it empty.
+        GetApplicationInfo   = function(appID)
+            local id = mock.applications[appID]
+            if id == nil then return nil end
+            return id, "applied", nil, 0, nil
+        end,
     }
 
     env.Enum = {

@@ -50,7 +50,10 @@ local function buildFrame()
     NS.Windows.Restore("popup", f)
     f:Hide()
 
-    f:SetBackdrop({
+    -- The 1px hairline border is the popup's own look; the panel colours come
+    -- from the shared NS.SKIN so a re-skin is one edit (WG-28). The debug
+    -- console keeps its heavier tooltip border and the same colours.
+    NS.ApplySkin(f, {
         bgFile   = "Interface\\Buttons\\WHITE8X8",
         edgeFile = "Interface\\Buttons\\WHITE8X8",
         tile     = false,
@@ -58,8 +61,6 @@ local function buildFrame()
         edgeSize = 1,
         insets   = { left = 1, right = 1, top = 1, bottom = 1 },
     })
-    f:SetBackdropColor(0.08, 0.08, 0.08, 0.95)
-    f:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
 
     -- Title bar (drag handle)
     local titleBar = CreateFrame("Frame", nil, f)

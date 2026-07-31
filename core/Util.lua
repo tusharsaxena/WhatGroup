@@ -11,6 +11,8 @@
 --     WhatGroup._print by core/WhatGroup.lua).
 --   * NS.Windows — standalone-window geometry persistence (store the anchor
 --     point into db.global.windows on drag-stop, restore it on show).
+--   * NS.SKIN / NS.ApplySkin — the shared dark-panel colours every standalone
+--     window paints itself with, so a re-skin is one edit (WG-28).
 --
 -- Loaded first among the addon files, so NS.PREFIX / NS.addon / NS.db are not
 -- set yet at this file's load time. Nothing here reads them at load — every
@@ -103,4 +105,36 @@ function NS.Windows.Restore(name, frame)
     frame:ClearAllPoints()
     frame:SetPoint(saved.point, UIParent, saved.relPoint, saved.x, saved.y)
     return true
+end
+
+-- ---------------------------------------------------------------------------
+-- Shared window skin (WG-28)
+-- ---------------------------------------------------------------------------
+--
+-- The addon's standalone windows (the popup in modules/Frame.lua, the debug
+-- console + copy window in core/DebugLog.lua) all read as the same dark panel.
+-- The COLOURS live here so a re-skin is one edit rather than a hunt across
+-- files.
+--
+-- SHOULD-justification for not sharing the backdrop TABLE too, which is what
+-- audit WG-28's design literally asked for: the two windows deliberately carry
+-- different border geometry — the popup a 1px hairline (WHITE8X8, edgeSize 1,
+-- insets 1), the console a 12px tooltip frame (UI-Tooltip-Border, edgeSize 12,
+-- insets 3). Folding them into one table would restyle one of the two windows,
+-- which is a visual change and not the de-duplication WG-28 is after. So
+-- ApplySkin takes the caller's backdrop and owns only the colours — the part
+-- that was genuinely duplicated.
+NS.SKIN = {
+    bg     = { 0.08, 0.08, 0.08, 0.95 },
+    border = { 0.3, 0.3, 0.3, 1 },
+}
+
+-- Apply the shared colours over the caller's own backdrop table. A clean no-op
+-- on a frame without SetBackdrop (the headless mock, or a frame built without
+-- BackdropTemplate).
+function NS.ApplySkin(frame, backdrop)
+    if not (frame and frame.SetBackdrop) then return end
+    if backdrop then frame:SetBackdrop(backdrop) end
+    frame:SetBackdropColor(unpack(NS.SKIN.bg))
+    frame:SetBackdropBorderColor(unpack(NS.SKIN.border))
 end

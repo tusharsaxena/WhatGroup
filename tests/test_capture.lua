@@ -272,3 +272,77 @@ test("capture: re-enabling the master switch resumes capturing", function()
     addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 10, "inviteaccepted")
     assertTrue(addon.pendingInfo ~= nil, "captures flow again once re-enabled")
 end)
+
+-- ---------------------------------------------------------------------------
+-- F-004: appID -> searchResultID via C_LFGList.GetApplicationInfo
+-- ---------------------------------------------------------------------------
+
+test("capture: inviteaccepted resolves the searchResultID via GetApplicationInfo", function()
+    local NS, _, mock = T.bootAddon()
+    local addon = NS.addon
+    -- appID 100 was made against search result 900 — the two differ, which is
+    -- exactly what the old appID-as-searchResultID shortcut could not express.
+    mock.applications[100] = 900
+    mock.searchResults[900] = baseInfo({ name = "Resolved", activityIDs = { 501 } })
+    mock.activities[501] = { fullName = "R", mapID = 222 }
+
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+
+    assertEqual(addon.pendingInfo.title, "Resolved")
+    assertEqual(addon.pendingInfo.mapID, 222)
+end)
+
+test("capture: GetApplicationInfo may return a table; the id is read off it", function()
+    local NS, env, mock = T.bootAddon()
+    local addon = NS.addon
+    env.C_LFGList.GetApplicationInfo = function() return { searchResultID = 901 } end
+    mock.searchResults[901] = baseInfo({ name = "TableShape", activityIDs = { 501 } })
+    mock.activities[501] = { fullName = "T", mapID = 333 }
+
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+
+    assertEqual(addon.pendingInfo.title, "TableShape")
+    assertEqual(addon.pendingInfo.mapID, 333)
+end)
+
+test("capture: an unmapped application falls back to treating appID as the id", function()
+    local NS, _, mock = T.bootAddon()
+    local addon = NS.addon
+    -- mock.applications left empty -> GetApplicationInfo yields nothing.
+    mock.searchResults[100] = baseInfo({ name = "Fallback", activityIDs = { 501 } })
+    mock.activities[501] = { fullName = "F", mapID = 444 }
+
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+
+    assertEqual(addon.pendingInfo.title, "Fallback")
+    assertEqual(addon.pendingInfo.mapID, 444)
+end)
+
+test("capture: a missing GetApplicationInfo degrades to the appID path", function()
+    local NS, env, mock = T.bootAddon()
+    local addon = NS.addon
+    env.C_LFGList.GetApplicationInfo = nil
+    mock.searchResults[100] = baseInfo({ name = "Degraded", activityIDs = { 501 } })
+    mock.activities[501] = { fullName = "D", mapID = 555 }
+
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+
+    assertEqual(addon.pendingInfo.title, "Degraded")
+    assertEqual(addon.pendingInfo.mapID, 555)
+end)
+
+test("capture: a raising GetApplicationInfo is caught and falls back", function()
+    local NS, env, mock = T.bootAddon()
+    local addon = NS.addon
+    env.C_LFGList.GetApplicationInfo = function() error("forbidden") end
+    mock.searchResults[100] = baseInfo({ name = "Raised", activityIDs = { 501 } })
+    mock.activities[501] = { fullName = "X", mapID = 666 }
+
+    local ok = pcall(function()
+        addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+    end)
+
+    assertTrue(ok, "the raise is contained inside CaptureGroupInfoFromApplication")
+    assertEqual(addon.pendingInfo.title, "Raised")
+    assertEqual(addon.pendingInfo.mapID, 666)
+end)

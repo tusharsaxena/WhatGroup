@@ -55,7 +55,7 @@ LFG_LIST_APPLICATION_STATUS_UPDATED  status = "invited"   no-op (waits for accep
         │
         ▼
 LFG_LIST_APPLICATION_STATUS_UPDATED  status = "inviteaccepted"
-        ├─ fresh = CaptureGroupInfo(appID)        re-fetch fresh from LFG API
+        ├─ fresh = CaptureGroupInfoFromApplication(appID)   re-fetch fresh from LFG API
         ├─ WhatGroup.pendingInfo = fresh ?? pendingApplications[appID]
         ├─ notifiedFor = nil                       new pendingInfo → eligible to fire
         ├─ wipe(captureQueue) + wipe(pendingApplications)
@@ -102,13 +102,15 @@ The queue is FIFO because the LFG API fires `applied` in apply-order. Each `appl
 
 `CaptureGroupInfo` is called once at apply time, but `C_LFGList.GetActivityInfoTable` can return nil or partial data at that point — keystone groups in particular sometimes don't have their activity-info table fully populated until the invite is on the way. That makes `mapID`, `fullName`, `shortName`, and the `isMythicPlus` / `isCurrentRaid` flags silently default to nil/empty, which surfaces as "popup shows the group title and leader but the teleport icon is missing."
 
-To make the activity-derived fields reliable, the `inviteaccepted` branch re-runs `CaptureGroupInfo` against the same id (the event's first arg, which for the player's own application is the same value as the searchResultID — feeding it back into `GetSearchResultInfo` works). By that point the activity table is reliably populated. The queued capture from `pendingApplications` becomes the safety-net fallback only used if the fresh re-capture itself returns nil.
+To make the activity-derived fields reliable, the `inviteaccepted` branch re-captures via `CaptureGroupInfoFromApplication(appID)`. The event hands us an *application* id, but `CaptureGroupInfo` wants a *searchResultID*, so that wrapper resolves one to the other through `C_LFGList.GetApplicationInfo(appID)` — whose first return is the search-result id the application was made against — and feeds the result into `CaptureGroupInfo`. By that point the activity table is reliably populated.
+
+Historically the appID was passed straight to `GetSearchResultInfo`, which works only because for the player's own application `appID == searchResultID`. That equality is undocumented and could be decoupled by any patch, so the documented `GetApplicationInfo` hop is now the primary path (F-004). The old behaviour survives as the fallback: if `GetApplicationInfo` is absent, raises, or yields no id, the wrapper passes the `appID` through unchanged and logs a `[Capture]` line saying so, so capture degrades rather than going dark. The queued capture from `pendingApplications` becomes the safety-net fallback only used if the fresh re-capture itself returns nil.
 
 The merge isn't a flat "fresh wins" — it picks the more-complete capture:
 
 ```lua
 local queued = pendingApplications[appID]
-local fresh  = self:CaptureGroupInfo(appID)
+local fresh  = self:CaptureGroupInfoFromApplication(appID)
 local final
 if     fresh  and fresh.mapID  then final = fresh        -- fresh is most current AND has the field that drives the teleport icon
 elseif queued and queued.mapID then final = queued       -- fresh re-capture missed mapID; queued had it

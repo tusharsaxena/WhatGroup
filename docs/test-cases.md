@@ -180,7 +180,7 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - teleport: the FIRST known spell in a candidate list wins
 - teleport: the shipped mapping table is keyed by numbers only
 
-### test_capture.lua (20)
+### test_capture.lua (25)
 - capture: inviteaccepted prefers FRESH when both have mapID
 - capture: inviteaccepted falls back to QUEUED when fresh lacks mapID
 - capture: enabled queues so pendingInfo survives a nil fresh fetch
@@ -201,6 +201,11 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - capture: 'applied' with nothing queued is a harmless no-op
 - capture: accepting with no data anywhere leaves pendingInfo nil
 - capture: re-enabling the master switch resumes capturing
+- capture: inviteaccepted resolves the searchResultID via GetApplicationInfo
+- capture: GetApplicationInfo may return a table; the id is read off it
+- capture: an unmapped application falls back to treating appID as the id
+- capture: a missing GetApplicationInfo degrades to the appID path
+- capture: a raising GetApplicationInfo is caught and falls back
 
 ### test_notify.lua (42)
 - notify: no pendingInfo schedules no timer
@@ -392,10 +397,10 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 | test_settings.lua | 40 |
 | test_slash.lua | 43 |
 | test_labels.lua | 31 |
-| test_capture.lua | 20 |
+| test_capture.lua | 25 |
 | test_notify.lua | 42 |
 | test_frame.lua | 31 |
 | test_panel.lua | 43 |
 | test_lifecycle.lua | 35 |
 | test_debuglog.lua | 19 |
-| **Total** | **356** |
+| **Total** | **361** |

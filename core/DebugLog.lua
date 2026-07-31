@@ -26,8 +26,10 @@ local MAX_BUFFER = 500
 local STATUS_H = 16   -- window-bottom band for the line-counter status bar
 local BAR_W    = 8    -- right-edge scrollbar (Slider) track width
 
--- Backdrop shared by the console + copy windows so they read like the addon's
--- own main frame (modules/Frame.lua uses the same colours).
+-- Backdrop shared by the console + copy windows. The tooltip-border geometry is
+-- this file's own (the popup in modules/Frame.lua deliberately uses a 1px
+-- hairline instead); the COLOURS come from NS.SKIN via NS.ApplySkin, the one
+-- place a re-skin has to touch (WG-28).
 local BACKDROP = {
     bgFile = "Interface\\Buttons\\WHITE8x8",
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -35,10 +37,7 @@ local BACKDROP = {
     insets = { left = 3, right = 3, top = 3, bottom = 3 },
 }
 local function applySkin(f)
-    if not f.SetBackdrop then return end
-    f:SetBackdrop(BACKDROP)
-    f:SetBackdropColor(0.08, 0.08, 0.08, 0.95)
-    f:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+    NS.ApplySkin(f, BACKDROP)
 end
 
 -- Small flat text button for the title bar (Copy / Clear).

@@ -250,6 +250,49 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
     return captured
 end
 
+-- Re-capture from an *application* id (F-004).
+--
+-- CaptureGroupInfo above takes a searchResultID, but the LFG status events hand
+-- us an appID. C_LFGList.GetApplicationInfo(appID) is the documented bridge:
+-- its first return is the search-result id the application was made against.
+-- Older code fed the appID straight into GetSearchResultInfo, which only works
+-- because for the player's own application appID == searchResultID —
+-- undocumented behaviour a patch could decouple at any time.
+--
+-- The appID path stays as the fallback rather than being deleted: it is what
+-- shipped and is known to work at retail 120000-120007, so if
+-- GetApplicationInfo is missing, raises, or yields nothing usable, capture
+-- degrades to the old behaviour instead of going dark. Both returns shapes are
+-- accepted — the multi-return form (id, appStatus, …) and a table, in case a
+-- future patch converts it like it did GetActivityInfoTable.
+function WhatGroup:CaptureGroupInfoFromApplication(appID)
+    local resultID = appID
+    local getAppInfo = C_LFGList and C_LFGList.GetApplicationInfo
+
+    if getAppInfo then
+        local ok, res = pcall(getAppInfo, appID)
+        if not ok then
+            NS.Debug("Capture", "GetApplicationInfo raised for appID=%s; falling back to appID",
+                NS.SafeToString(appID))
+        else
+            if type(res) == "table" then
+                res = res.searchResultID or res.id
+            end
+            if res then
+                resultID = res
+            else
+                NS.Debug("Capture", "GetApplicationInfo gave no id for appID=%s; falling back to appID",
+                    NS.SafeToString(appID))
+            end
+        end
+    else
+        NS.Debug("Capture", "GetApplicationInfo unavailable; falling back to appID=%s",
+            NS.SafeToString(appID))
+    end
+
+    return self:CaptureGroupInfo(resultID)
+end
+
 -- Resolve a TeleportSpells value (number OR list) to (spellID, isKnown).
 -- For lists, prefer the first one the player has learned via
 -- IsSpellKnown; if none are known (player never learned the spell),
@@ -534,14 +577,10 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
         -- AND the one that drives the teleport icon. If both have
         -- mapID, fresh wins (most current data).
         local queued = pendingApplications[appID]
-        -- TODO(F-004): C_LFGList.GetSearchResultInfo is documented to
-        -- accept a searchResultID; passing appID works today only
-        -- because for the player's own application appID == searchResultID
-        -- (undocumented Blizzard behaviour, see docs/capture-pipeline.md).
-        -- Migration plan: introduce CaptureGroupInfoFromApplication that
-        -- routes through C_LFGList.GetApplicationInfo → lfgListID, once
-        -- verified in-game at retail interface 120000-120005.
-        local fresh  = self:CaptureGroupInfo(appID)
+        -- Re-fetch through the application id, not by feeding appID to
+        -- GetSearchResultInfo directly (F-004) — see
+        -- CaptureGroupInfoFromApplication and docs/capture-pipeline.md.
+        local fresh  = self:CaptureGroupInfoFromApplication(appID)
         local final, source
         if fresh and fresh.mapID then
             final, source = fresh, "fresh"

@@ -1,0 +1,46 @@
+# Pending-item ledger
+
+The record of what has been decided about every pending item found in this
+addon — TODO/FIXME markers, unexecuted audit and review plan steps, doc open
+questions, open GitHub issues, and recorded-but-unacted Claude memory.
+
+Maintained by **`/wow-addon:pending-audit`**. Each run sweeps the repo afresh,
+matches what it finds against the rows below on **ID + evidence hash**, and uses
+the match to decide whether to ask about an item again:
+
+- a `done` or `wont-do` row with a matching hash → the item is closed and is not
+  raised again
+- a `deferred` row → the item stays on the books but is not re-interviewed; it
+  shows up as a collapsed count
+- a row whose ID matches but whose **hash differs** → the evidence changed since
+  the decision, so the item is raised again with its history attached
+
+The evidence hash is the first 8 characters of `sha1` over the item's verbatim
+evidence text. That is what makes a reworded TODO or an edited plan row
+correctly re-surface instead of hiding behind a stale decision.
+
+## Legend
+
+| Marker | Value | Meaning | Re-surfaces? |
+|---|---|---|---|
+| 🟢 | `done` | Implemented this run | No — closed |
+| 🔵 | `wont-do` | Decided it will never be done | No — closed |
+| 🟡 | `deferred` | Not now; still on the books | Yes, as a collapsed count |
+
+Both the marker and the word are always written: the word is the data (and what
+`grep wont-do` finds), the marker is the affordance. There is deliberately no
+red — nothing in this file is an error state.
+
+## Decisions
+
+| ID | Evidence hash | Source | Decision | Date | Rationale |
+|---|---|---|---|---|---|
+| PLAN-01 | `03f76c5e` | audit 2026-07-18 · WG-09 (`WhatGroup.toc`) | 🔵 wont-do | 2026-07-31 | Declined both adding an `X-Wago-ID` and recording a Curse-only accepted deviation. The TOC keeps no note, so the MUST stays visible only in the frozen audit bundle. *(Reason inferred — no explanation given.)* |
+| ISS-01 | `2921308d` | GitHub issue #3 | 🟢 done | 2026-07-31 | Fixed by the move to eager `Settings.Register()` at `OnEnable` + lazy widget build; the issue's own text had gone stale. Commented and closed on GitHub. |
+| CODE-01 | `61950cbc` | `core/WhatGroup.lua:537` · review 2026-05-02 F-004 | 🟢 done | 2026-07-31 | Migration implemented now rather than left as a TODO. `CaptureGroupInfoFromApplication` routes appID → searchResultID through the documented `C_LFGList.GetApplicationInfo`, keeping the old appID path as a logged fallback. |
+| PLAN-02 | `9f608077` | audit 2026-07-18 · WG-28 | 🟢 done | 2026-07-31 | Shared the colours only, not the backdrop table: the audit's design assumed both windows had the same border, but the popup uses a 1px hairline and the console a 12px tooltip border, so one shared table would have restyled a window. `NS.SKIN` + `NS.ApplySkin(frame, backdrop)` in `core/Util.lua`, with the divergence justified in-code. |
+| ISS-02 | `adb8df35` | GitHub issue #2 | 🟡 deferred | 2026-07-31 | Validating mapIDs/spellIDs and handling mega dungeons needs in-game data that can't be verified from the repo; not worth guessing at IDs. Stays open on GitHub. |
+| CODE-02 | `71717ee7` | `defaults/TeleportSpells.lua:113,119-121` | 🟢 done | 2026-07-31 | Kept the four raid placeholders as a checklist but rewrote the comments to state the real constraint ("no teleport spell exists; slot reserved") so they stop reading as unfinished work. Blocked on Blizzard, not on us. |
+| CODE-03 | `f4d850e3` | `defaults/TeleportSpells.lua:98` | 🟡 deferred | 2026-07-31 | Same work as ISS-02 — the Uldaman mapID can't be sourced from here. Resolve both together when game data is available. |
+| ISS-03 | `b16fc5b1` | GitHub issue #1 | 🟡 deferred | 2026-07-31 | "Add role to the pop" is a one-line spec for real feature work (capture the role, add a popup row, add a schema toggle); needs scoping before it can be built. Stays open on GitHub. |
+| MEM-01 | `5012941c` | `memory/feedback_standards_adherence.md` | 🟢 done | 2026-07-31 | The rule was correct but its pointers had drifted. Updated to `standards/STANDARDS.md`, dropped the dead `§0` cross-ref, repointed at `docs/audits/2026-07-18/`, and fixed the `CLAUDE.md` section name to "Standards compliance (read first)". |
