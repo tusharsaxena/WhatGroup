@@ -101,9 +101,11 @@ NS.DebugLog = lib:New({
     isEnabled  = function() return (NS.State and NS.State.debug) and true or false end,
     setEnabled = function(on) if NS.State then NS.State.debug = on end end,
 
-    -- Thin call-time forwarders, never captured references (debug-logging-§1). Both are published
-    -- by core/CoreSetup.lua, and freezing either at load would mean acknowledging through whatever
-    -- happened to exist at that instant.
+    -- Thin call-time forwarders, never captured references (debug-logging-§1). Freezing either at
+    -- load would mean acknowledging through whatever happened to exist at that instant — and
+    -- NS.Print in particular is not final until core/WhatGroup.lua:84 reclaims the name from
+    -- AceConsole's embed (core/CoreSetup.lua publishes NS.Util.print, deliberately out of its
+    -- reach; anti-patterns #36).
     print        = function(line) NS.Print(line) end,
     safeToString = function(v) return NS.SafeToString(v) end,
 
@@ -133,7 +135,7 @@ NS.DebugLog = lib:New({
     -- the library draws is the library's — a host must not push its own onto it.
 })
 
--- The global gated sink (debug-logging-§4), published under the name the addon's ~20 existing call
+-- The global gated sink (debug-logging-§4), published under the name the addon's 26 existing call
 -- sites already use. Bound BARE rather than wrapped: it is a plain function precisely so
 -- `NS.Debug("Set", "%s = %s", path, value)` keeps working.
 NS.Debug = NS.DebugLog.Debug

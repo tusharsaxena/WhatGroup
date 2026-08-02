@@ -1,19 +1,23 @@
 # Settings system
 
-A single flat array `WhatGroup.Settings.Schema` declares every option. One row drives six surfaces simultaneously, so adding a setting is a single-row diff. The schema rows and helpers live in `settings/Schema.lua`; the canvas panel renderer lives in `settings/Panel.lua`.
+A single flat array `WhatGroup.Settings.Schema` declares every option. One row drives six surfaces simultaneously, so adding a setting is a single-row diff.
+
+The schema rows and the data seams that read and write them live in `settings/Schema.lua` — that half is genuinely this addon's. The panel *machinery* is not: the canvas factory, the header and breadcrumb, the lazy Defaults button, the AceGUI ScrollFrame, the widget makers, the two-column flow engine, the page registry and the refresh fan-out are `LibKa0s-Options-1.0`'s, wired up in `settings/OptionsSetup.lua`. `settings/Panel.lua` keeps only the landing page's body, the one action button the library's makers cannot express, and the General page's registration.
 
 ## Six surfaces, one row
 
 | Surface | Mechanism |
 |---|---|
-| Settings panel widget | `Helpers.RenderSchema()` → `Helpers.RenderField()` → `makeCheckbox` / `makeSlider`; widgets register a refresher closure in `Settings._refreshers` keyed by `def.path` |
-| `/wg list` | groups schema by `section`, prints `path = formattedValue` per row |
-| `/wg get <path>` | `Helpers.FindSchema(path)` + format using `def.fmt` for numbers |
-| `/wg set <path> <value>` | type-aware parse → `Helpers.Set(path, value)` (orchestrated: writes value, logs one `[Set]` line, fires `onChange`, runs `RefreshAll` in one call) |
+| Settings panel widget | `Helpers.RenderSchema(ctx, "general", AFTER_GROUP, PAIR_WITH)` → `Helpers.RenderRows` → `Helpers.RenderField` → the library's CheckBox / Slider makers; each maker appends a refresher closure to **`ctx.refreshers`** (per panel, not a global registry) |
+| `/wg list` | `Sl:CliList()` (`LibKa0s-Slash-1.0`) groups the schema by `section` — this addon's `groupKey`, because these rows carry no `page` — and prints `path = formattedValue` per row |
+| `/wg get <path>` | `Sl:CliGet` → `Helpers.FindSchema(path)` → `lib.FormatValue`, which honours `def.fmt` for numbers |
+| `/wg set <path> <value>` | `Sl:CliSet` → type-aware parse → `Helpers.Set(path, value)` (orchestrated: writes value, logs one `[Set]` line, fires `onChange`, runs `RefreshAll` in one call) |
 | AceDB defaults | `Settings.BuildDefaults()` walks the schema, threads each row's `default` into the right slot under `profile.*` |
-| `/wg reset` + Defaults button | `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreDefaults()` (wipe `db.profile` to prune orphans, re-thread each row's `default` via `Set` with `{skipRefresh, skipLog, skipOnChange}`, then one final `RefreshAll`) |
+| `/wg reset <path>`, `/wg resetall` + Defaults button | **One row:** `Sl:CliReset` → `Helpers.ApplyDefault(row)` — the ordinary `Set` path, no confirmation. **Everything:** `/wg resetall` and the Defaults button both `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreAllDefaults()` (wipe `db.profile` to prune orphans, re-thread each row's `default` via `Set` with `{skipRefresh, skipLog, skipOnChange}`, then one final `RefreshAll`) |
 
-The schema is settings-only — non-setting actions (the "Test" button) render via `afterGroup` callbacks in `Settings.Register`, not as schema rows. See [Action buttons](#action-buttons-aftergroup).
+`/wg reset` taking a path is a **breaking change** — it used to be the confirmation-gated global wipe, which is now `/wg resetall`. A bare `/wg reset` prints a deprecation naming both replacements rather than a usage error, because the old form still parses as something. See [slash-dispatch.md](./slash-dispatch.md).
+
+The schema is settings-only — non-setting actions (the "Test" button, the Debug console checkbox) render through the `AFTER_GROUP` / `PAIR_WITH` hook tables in `settings/Panel.lua`, not as schema rows. See [Action buttons](#action-buttons-aftergroup).
 
 ## Row format
 
@@ -26,65 +30,91 @@ The schema is settings-only — non-setting actions (the "Test" button) render v
     label, tooltip,
     default,
     min, max, step, fmt,    -- numbers only (fmt is %s-style for /wg get formatting)
-    onChange,               -- optional fn(value) called by panel widget + /wg set (NOT by RestoreDefaults — reset skips onChange)
+    onChange,               -- optional fn(value) called by panel widget + /wg set (NOT by RestoreAllDefaults — reset skips onChange)
     solo,                   -- if true, render alone in the left half of its own row (right half empty)
 }
 ```
 
+Number rows render as a slider that **commits on release** — the library's maker writes from `OnMouseUp`, snapping to `step` relative to `min`. Its opt-in live-commit path (`row.commitOn = "change"`, throttled through the descriptor's `scheduleTimer`) is not used here: nothing in this addon previews a delay while you drag it, and no `scheduleTimer` is passed.
+
 ### Action buttons (afterGroup)
 
-Non-setting affordances live outside the schema. `Helpers.RenderSchema(ctx, afterGroup)` accepts a `{ [groupName] = function(ctx) ... end }` map; the callback fires once, immediately after the last schema row of that group, and before the next group's section header.
+Non-setting affordances live outside the schema. `Helpers.RenderSchema(ctx, pageKey, afterGroup, pairWith)` takes two hook tables, and the **General** group uses both:
 
-The **General** group carries two kinds of non-schema affordance:
+- **`afterGroup`** — `{ [groupName] = function(ctx) ... end }`. Fires once per render, after the group's last schema row is flushed, so the widget starts on a fresh line *below* the grid. Here: the **Test** button (`Helpers.InlineButton` → `WhatGroup:RunTest()`).
+- **`pairWith`** — `{ [path] = function(ctx, rowGroup) ... end }`. Attaches a non-schema widget as the **right half of a named path's row**, and only while that path is still the lone widget on its row. Here: the session-only **Debug console** checkbox, keyed on `"notify.enabled"` so it lands beside **Print to Chat**.
 
-- **afterGroup** — full-width action buttons rendered *below* the grid. Here: the **Test** button (`Helpers.InlineButton` → `WhatGroup:RunTest()`).
-- **pairExtras** — `{ [groupName] = { <def>, ... } }`, non-schema rows (custom `get`/`set`, no `path`) that pack into the *same* two-column grid as the group's real rows via the shared `addToGrid`, so they pair with the group's last schema widget. Here: the session-only **Debug console** checkbox, which lands beside **Print to Chat**.
+Both tables are hoisted to file-scope constants (`AFTER_GROUP`, `PAIR_WITH` in `settings/Panel.lua`). That is safe because the library's one-shot bookkeeping is *call-local* — it never consumes the caller's entries — so a re-render draws the button and the paired checkbox again instead of silently dropping them.
 
-The Debug console checkbox is deliberately not a schema row. It toggles **only the console window's visibility** — `get` reads `NS.DebugLog:IsShown()`, `set` calls `NS.DebugLog:Show()`/`Hide()`. It does **not** change the debug logging flag (`NS.State.debug`) and never touches `db.profile`, so it stays off `/wg list` and never persists. Its refresher is keyed by `def.refreshKey` (`"_debugConsoleVisible"`) since it has no path; a `HookScript("OnShow")` re-runs that refresher each time the panel opens, because the window can be closed via its own X/ESC (or opened by `/wg debug`) while the panel is closed. The window is hidden at every login, so the checkbox always starts unchecked (WG-12 / debug-logging-§5).
+The Debug console checkbox is deliberately not a schema row. It toggles **only the console window's visibility**, never the debug logging flag (`NS.State.debug`) and never `db.profile`, so it stays off `/wg list` and never persists. The spec is not restated here: `NS.DebugLog:ConsoleCheckbox()` returns the label, tooltip and `get`/`set` from the module that owns the window, and `Helpers.SessionCheckbox` — the library's maker for a checkbox wired to caller-supplied `get`/`set` instead of a settings path — renders it and registers a refresher on the ctx like any other widget.
 
-The "Test" button is the only afterGroup affordance today, attached to the `"General"` group:
+Re-sync is push, not poll: the console can be closed with its own × or ESC (or opened by `/wg debug`) while the panel is open, so `core/DebugLogSetup.lua` passes an `onVisibilityChanged` hook that calls `Helpers.RefreshAll()`. If the panel is on screen the checkbox moves immediately; if it is hidden the page is flagged dirty and re-renders on its next `OnShow`. The window is hidden at every login, so the checkbox always starts unchecked (WG-12 / debug-logging-§5).
+
+The "Test" button is the only `afterGroup` affordance today:
 
 ```lua
-Helpers.RenderSchema(generalCtx, {
-    ["General"] = function(ctxRef)
-        Helpers.InlineButton(ctxRef, {
+local AFTER_GROUP = {
+    ["General"] = function(ctx)
+        Helpers.InlineButton(ctx, {
             text    = "Test",
             tooltip = "...",
             onClick = function() WhatGroup:RunTest() end,
         })
     end,
-})
+}
 ```
 
-`Helpers.InlineButton` renders a single 160-px button left-aligned in a full-width Flow row. `WhatGroup:RunTest()` is the same code path `/wg test` invokes, so the two affordances stay in lockstep.
+`Helpers.InlineButton` is host-owned and the only widget maker that is: the library's `InlineButtonPair` lays *two* buttons across one Flow row at `BUTTON_PAIR_REL` each, and passing it a single spec renders this button at half the panel width. A fixed 160-px left-aligned control is not expressible there, so declining was the smaller change (`LIBKA0S-09` in [docs/pending/LEDGER.md](./pending/LEDGER.md)). It still reads `Helpers.AceGUI`, `Helpers.EnsureScroll`, `Helpers.AttachTooltip`, `Helpers.AddSpacer` and `Helpers.ROW_VSPACER` off the instance rather than restating any of them — a host copy of a library constant is the copy that goes stale.
+
+`WhatGroup:RunTest()` is the same code path `/wg test` invokes, so the two affordances stay in lockstep.
 
 ## Helpers
+
+**`Settings.Helpers` *is* the `LibKa0s-Options-1.0` instance.** `settings/Schema.lua` runs first and hangs its data seams (`Get` / `Set` / `RawSet` / `FindSchema` / `ValidateSchema` / `ApplyDefault` / `RestoreAllDefaults` / `RefreshAll`) on a plain table; `settings/OptionsSetup.lua` then calls `lib:New(...)`, copies those members **onto the instance**, and publishes the instance as `Settings.Helpers`. So one table answers both halves, and `Helpers.X` resolves to the library's `X` unless this addon supplied one.
+
+The direction matters. Copying the library's members onto the host's table would look equivalent and is not: `RenderRows` resolves `RenderField` from the instance at call time, so a test that swapped a member on a copy-across table would be spying on a function nobody calls. `settings/Schema.lua`'s file-local `Helpers` upvalue still points at the pre-move table — harmless, because the members are the same function objects and no state lives on either table.
+
+The copy is unconditional, and the one collision is deliberate: **`Helpers.RestoreAllDefaults` overrides the library's member of the same name** (`LIBKA0S-08`). Copying only where the instance was nil silently handed every caller the library's row-by-row form, and the suite said so. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched — nothing calls it today, because this addon's Defaults button is confirmation-gated and goes through the popup instead.
 
 All schema reads and writes go through a private `Resolve(path)` helper that walks dotted paths into `db.profile` and returns `(parent, key)` so the caller can read `parent[key]` or write `parent[key] = value`. If any intermediate segment is missing, `Resolve` creates an empty table at that segment so writes don't error on first-use paths. Public callers go through `Helpers.Get` / `Helpers.Set`.
 
 | Helper | Purpose |
 |---|---|
-| `Helpers.Get(path)` | Resolve dotted path; read. When `NS.State.debug` is on, debug-logs `[Schema] Get: no path -> <path>` for typo'd paths so schema-key mistakes surface in the trace. |
+| `Helpers.Get(path)` | Resolve dotted path; read. When `Resolve` cannot even reach a parent table — `db.profile` not built yet, or an empty path — it debug-logs `[Schema] Get: no path -> <path>` and returns nil. A *typo'd* path is not caught here: `Resolve` creates the missing intermediates and hands back a live parent, so a misspelled leaf reads as a silent nil. `ValidateSchema` is the seam that catches a bad `path`. |
 | `Helpers.RawSet(path, value)` | Side-effect-free write — resolve dotted path, write, return. No `onChange`, no `RefreshAll`. Reserved for callers that genuinely need raw writes (none today); prefer `Helpers.Set` for everything else. |
-| `Helpers.Set(path, value, opts)` | **Orchestrated single write-path.** Calls `RawSet`, logs one `[Set] <path> = <value>` console line (the canonical settings-change trace, debug-logging-§10), then runs the row's `onChange` (in pcall), then runs `RefreshAll`. Every existing caller — CLI (`/wg set`), panel widget callbacks, `RestoreDefaults` — routes through here so the side effects can't drift out of sync. `opts.skipOnChange`, `opts.skipRefresh`, and `opts.skipLog` are escape hatches; `RestoreDefaults` uses all three — `skipRefresh` (refresh once after the loop), `skipLog` (suppress per-row `[Set]` spam so one coalesced `[Reset]` summary stands in, debug-logging-§9), and `skipOnChange` (the default baseline is already reconciled, so per-row side effects are neither needed nor fired). |
+| `Helpers.Set(path, value, opts)` | **Orchestrated single write-path.** Calls `RawSet`, logs one `[Set] <path> = <value>` console line (the canonical settings-change trace, debug-logging-§10), then runs the row's `onChange` (in pcall), then runs `RefreshAll`. Every caller — the CLI (`/wg set`), the library's widget makers via the descriptor's `set`, `ApplyDefault`, `RestoreAllDefaults` — routes through here so the side effects can't drift out of sync. It is two-argument by construction from the library's side: the third parameter is an options table the library never passes. `opts.skipOnChange`, `opts.skipRefresh`, and `opts.skipLog` are escape hatches; `RestoreAllDefaults` uses all three — `skipRefresh` (refresh once after the loop), `skipLog` (suppress per-row `[Set]` spam so one coalesced `[Reset]` summary stands in, debug-logging-§9), and `skipOnChange` (the default baseline is already reconciled, so per-row side effects are neither needed nor fired). |
 | `Helpers.FindSchema(path)` | linear scan of `Schema` for `def.path == path` |
-| `Helpers.ValidateSchema()` | walk Schema and chat-print errors for missing `path`, unknown `type`, non-string `section`/`group`/`label`. Non-fatal. Runs once at registration. |
-| `Helpers.RestoreDefaults()` | Two steps for a *pristine* reset. **1.** `wipe(db.profile)` drops any orphaned key a key-by-key overwrite would leave behind (a value from a removed/renamed row, or one hand-edited into SavedVariables); in-game this clears AceDB's raw overrides while its defaults metatable stays intact. **2.** For each schema row: `Helpers.Set(def.path, deepcopy(def.default), { skipRefresh = true, skipLog = true, skipOnChange = true })` — table defaults are deep-copied so the profile never aliases the schema's canonical default, and per-row `onChange` is skipped. After the loop, emits one coalesced `[Reset] restored N settings to defaults (profile wiped)` line (debug-logging-§9), then one `RefreshAll()` — the single post-reset reconcile. `db.global` (schemaVersion) is left untouched. Caller (`StaticPopup` OnAccept, slash command) handles confirmation. |
-| `Helpers.RefreshAll()` | Iterate `Settings._refresherOrder` in schema (= panel render) order; for each `def.path`, look up the closure in `Settings._refreshers` and run it under `pcall`. |
+| `Helpers.ValidateSchema()` | walk Schema and chat-print errors for missing `path`, unknown `type`, non-string `section`/`group`/`label`. Non-fatal. Runs once, as the descriptor's `validate`, before the page builders. |
+| `Helpers.ApplyDefault(row)` | Restore one row: `Helpers.Set(row.path, deepcopy(row.default))`. The single-row reset therefore takes the same write path a `/wg set` does — same `[Set]` line, same `onChange`, same refresh. Reached from `/wg reset <path>`, as the slash descriptor's `applyDefault`. It is also the options descriptor's `applyDefault` — the seam the library's `RestoreDefaults` / `RestoreAllDefaults` would call — but neither of those verbs is on a live path here (see below). |
+| `Helpers.RestoreAllDefaults()` | Two steps for a *pristine* reset. **1.** `wipe(db.profile)` drops any orphaned key a key-by-key overwrite would leave behind (a value from a removed/renamed row, or one hand-edited into SavedVariables); in-game this clears AceDB's raw overrides while its defaults metatable stays intact. **2.** For each schema row: `Helpers.Set(def.path, deepcopy(def.default), { skipRefresh = true, skipLog = true, skipOnChange = true })` — table defaults are deep-copied so the profile never aliases the schema's canonical default, and per-row `onChange` is skipped. After the loop, emits one coalesced `[Reset] restored N settings to defaults (profile wiped)` line (debug-logging-§9), then one `RefreshAll()` — the single post-reset reconcile. `db.global` (schemaVersion) is left untouched. Caller (`StaticPopup` OnAccept, `/wg resetall`) handles confirmation. Overrides the library member of the same name; both the wipe and the coalescing are why. |
+| `Helpers.RefreshAll()` | The host's refresh *name*, kept because the write seam above calls it on every `Set` and the seam file loads first. `settings/OptionsSetup.lua` redefines it as a one-liner onto `RefreshScalars` — writing a value does not change which rows exist, so a rebuild per checkbox click would be waste. What survives in `settings/Schema.lua` is the degraded path: with no panels, a reset must still not raise. |
 
-`Settings._refreshers[def.path]` is set when a checkbox / slider widget is created — a closure that re-syncs the widget against `Helpers.Get(def.path)`. `Settings._refresherOrder` is a parallel array tracking the registration order; `RefreshAll` iterates the array (rather than `pairs(_refreshers)`) so the iteration order is deterministic — matching the schema source order, which is also the panel render order.
+### Two refresh tiers
+
+There is no `Settings._refreshers`, no `_refresherOrder` and no `_panels`. The registry is the library's and it is **per-ctx**: every widget maker appends its updater closure to the `ctx.refreshers` array of the panel it rendered into, and `ClearScroll` *reassigns* that array on a re-render, so a released widget's closure cannot survive it. Tests reach a live ctx through `Helpers.__panelFor("general")`.
+
+| Tier | What it does |
+|---|---|
+| `Helpers.RefreshScalars()` | **In place.** Runs each panel's refreshers, so widgets re-read their values without a rebuild. What a plain value write needs — and what `Helpers.RefreshAll` now is. |
+| `Helpers.RefreshAllPanels()` | **Structural.** Re-runs each page's declared renderer, so rows that appeared or disappeared are drawn. This addon's schema is fixed, so nothing calls it directly; the library's own `RestoreAllDefaults` would, and that one is overridden. |
+
+Either tier skips a page that is **not on screen** — it flags the ctx dirty and the page re-renders on its next `OnShow`. That is what keeps the Debug console checkbox honest across a panel that was closed while the console was toggled.
 
 ### Panel infrastructure helpers
 
+All library members except the last two, which are this addon's (see `settings/Panel.lua`).
+
 | Helper | Purpose |
 |---|---|
-| `Helpers.CreatePanel(name, title, opts)` | Build a Frame with the unified header (breadcrumb-prefixed `GameFontNormalHuge` title + `Options_HorizontalDivider`-tinted divider + optional Defaults button at top-right). Returns a `ctx = { panel, body, scroll, refreshers, lastGroup, panelKey }`. `opts.isMain` skips the `"Ka0s WhatGroup <atlas-chevron> "` breadcrumb prefix (separator is the inline atlas `\|A:common-icon-forwardarrow:16:16\|a` — a real texture, not a font glyph, so it renders the same regardless of the FontString font / locale fallback); `opts.defaultsButton` *records* that the page wants the top-right button (`panel.wantsDefaultsButton`) — the widget itself is built later, on the panel's first show, by `ensureDefaultsButton`. |
+| `Helpers.CreatePanel(name, title, opts)` | Build a Frame with the unified header (breadcrumb-prefixed `GameFontNormalHuge` title + `Options_HorizontalDivider`-tinted divider + optional Defaults button at top-right) and the three Blizzard canvas callbacks. Returns a `ctx = { panel, body, scroll, refreshers, lastGroup, pageKey }`. `opts.isMain` skips the `"Ka0s WhatGroup <atlas-chevron> "` breadcrumb prefix; `opts.defaultsButton` *records* that the page wants the top-right button (`panel.wantsDefaultsButton`) — the widget itself is built later, on the panel's first show, by `EnsureDefaultsButton`. `panel.OnDefault` **forwards** to `panel.defaultsOnClick` at call time rather than aliasing it, so the Settings window's own footer Defaults control and the header button are one implementation; the page parks its handler after `CreatePanel` returns, so an alias would capture nil forever. |
+| `Helpers.EnsureScroll(ctx)` / `Helpers.ClearScroll(ctx)` | Create the page's lazy AceGUI `ScrollFrame` (once), or release its children and reset `ctx.lastGroup` + `ctx.refreshers` for a re-render. The same ScrollFrame is reused. |
 | `Helpers.PatchAlwaysShowScrollbar(scroll)` | Rebind an AceGUI ScrollFrame's `FixScroll` so the scrollbar (and its 20-px gutter) stays visible even when content fits — keeps left/right margins symmetric across short and long pages. Restores stock `FixScroll` / `OnRelease` on widget release so the shared AceGUI pool returns clean. |
-| `Helpers.Section(ctx, label)` | AceGUI `Heading` widget at `GameFontNormalLarge` with 10 px above and 6 px below. |
+| `Helpers.Section(ctx, label)` | AceGUI `Heading` widget at `GameFontNormalLarge`, with `SECTION_TOP_SPACER` above (skipped for the first group, where a leading gap reads as a broken top margin) and `SECTION_BOTTOM_SPACER` below. |
 | `Helpers.RenderField(ctx, def, parent, relativeWidth)` | Dispatch a single schema row to the right widget maker (`bool` → CheckBox, `number` → Slider). |
-| `Helpers.InlineButton(ctx, spec)` | Standalone action button rendered into the page's scroll. `spec = { text, tooltip, onClick, width? }`. |
-| `Helpers.RenderSchema(ctx, afterGroup?)` | Walk the schema, emit Section headings on group transitions, pair widgets into 50/50 Flow rows, fire `afterGroup` callbacks at group boundaries. |
-| `Helpers.BuildMainContent(ctx)` | Render the addon-landing-page body (logo + TOC notes + Slash Commands heading + per-command Labels) as AceGUI widgets in `ctx.scroll`. |
+| `Helpers.SessionCheckbox(ctx, parent, relativeWidth, spec)` | A checkbox wired to `spec.get` / `spec.set` instead of a settings path, for runtime-only state that must never become a saved setting. Registers a refresher like any other widget. |
+| `Helpers.RenderSchema(ctx, pageKey, afterGroup?, pairWith?)` | Thin wrapper over `RenderRows` for the rows of one page: emit Section headings on group transitions, pair widgets into 50/50 Flow rows, fire the two hook tables. Each row renders under its own `pcall`, so one corrupt saved value costs that row rather than the rest of the page. |
+| `Helpers.InlineButton(ctx, spec)` | **Host.** One fixed-width (160 px default) action button left-aligned in a full-width Flow row. `spec = { text, tooltip, onClick, width? }`. |
+| `Helpers.BuildMainContent(ctx)` | **Host.** Render the addon-landing-page body (logo + TOC notes + Slash Commands heading + per-command Labels) as AceGUI widgets in `ctx.scroll`. Handed to the library as the descriptor's `buildMain`, so the library still owns *when* it draws. |
 
 ## `BuildDefaults`
 
@@ -92,7 +122,9 @@ Default *values* live in `defaults/Profile.lua` as the nested `NS.C` table (the 
 
 ```lua
 function Settings.BuildDefaults()
-    local out = { profile = {} }
+    -- global seeds schemaVersion (WG-08) and the windows table (WG-26)
+    local out = { profile = {},
+                  global = { schemaVersion = NS.SCHEMA_VERSION or 1, windows = {} } }
     for _, def in ipairs(Schema) do
         if def.path then
             -- split def.path on "." into segments
@@ -110,55 +142,66 @@ Because `BuildDefaults` runs at every login, **a new schema row appears with its
 
 ## Panel renderer
 
-The General sub-page renders the schema as a two-column AceGUI Flow layout (50/50 per row) inside an always-visible AceGUI `ScrollFrame`. The renderer is `Helpers.RenderSchema(ctx, afterGroup)` in `settings/Panel.lua` — closely modeled on KickCD's `Helpers.RenderSchema`.
+The General sub-page renders the schema as a two-column AceGUI Flow layout (50/50 per row) inside an always-visible AceGUI `ScrollFrame`. The flow engine is the library's `RenderRows`; the page declares its renderer as
+
+```lua
+Helpers.SetRenderer(ctx, function(c)
+    Helpers.ClearScroll(c)
+    Helpers.RenderSchema(c, "general", AFTER_GROUP, PAIR_WITH)
+end)
+```
 
 Pairing rules:
 
-- **Default**: widgets pair into rows, two per row. The renderer maintains a `pendingRow` and `pendingCount`; when `pendingCount` hits 2, it flushes.
-- **`solo = true`**: flushes the in-progress row first, then forces the widget onto its own row (left half occupied via `SetRelativeWidth(0.5)`, right half empty), then flushes again.
-- **`group` transition**: flushes the in-progress row, calls `Helpers.Section` (10 px spacer above the heading if not the first group, then the heading at `GameFontNormalLarge`, then 6 px below), and the next widget starts a fresh row.
-- **`afterGroup[def.group]`**: at the final row of a group (last one in source order, or the next row's group differs), flushes the in-progress row and invokes the callback. One-shot — removed from the table after firing.
+- **Default**: widgets pair into rows, two per row. The engine maintains a `pendingRow` and `pendingCount`; when `pendingCount` hits 2, it flushes.
+- **`solo = true`**: flushes the in-progress row first, then forces the widget onto its own row (left half occupied at 0.5 relative width, right half empty), then flushes again.
+- **`group` transition**: flushes the in-progress row, calls `Helpers.Section`, and the next widget starts a fresh row.
+- **`pairWith[def.path]`**: renders the non-schema widget as the right half of that path's row — only while that row is still the lone widget on its line, since a third widget would break the 50/50 split for the rest of the page.
+- **`afterGroup[def.group]`**: at the final row of a group (last one in source order, or the next row's group differs), flushes the in-progress row and invokes the callback.
 
-Layout constants live at the top of `settings/Panel.lua`:
+Both hooks fire **once per render**, and the library tracks that in call-local sets rather than by consuming the caller's table — which is why `AFTER_GROUP` and `PAIR_WITH` can be file-scope constants and still survive a re-render.
 
-```lua
-local PADDING_X     = 16
-local HEADER_TOP    = 20
-local HEADER_HEIGHT = 54
-local DEFAULTS_W    = 110
+Layout constants are the library's (`lib.LAYOUT`: `PADDING_X`, `HEADER_TOP`, `HEADER_HEIGHT`, `DEFAULTS_W`, `ROW_VSPACER`, `SECTION_TOP_SPACER`, `SECTION_BOTTOM_SPACER`, `SECTION_HEADING_H`, `BUTTON_PAIR_REL`), and three of them are re-published on the instance for host use (`Helpers.ROW_VSPACER`, `Helpers.SECTION_HEADING_H`, `Helpers.BUTTON_PAIR_REL`). There is deliberately **no host copy of any of them** — options-ui-§8, because a host copy is the copy that goes stale. The only constants in `settings/Panel.lua` are the landing page's own: `MAIN_LOGO_TEXTURE`, `MAIN_LOGO_SIZE` and its three gaps.
 
-local SECTION_TOP_SPACER    = 10
-local SECTION_BOTTOM_SPACER = 6
-local SECTION_HEADING_H     = 26
-local ROW_VSPACER           = 8
-```
+### Landing page body
+
+`Helpers.BuildMainContent` draws the logo (WG-21 — the one non-Blizzard-default texture in the addon), the TOC `Notes` one-liner, a `Slash Commands` heading via the library's own `Section`, and one Label per command. Those rows come from `NS.SlashCommands:LandingRows()` — `LibKa0s-Slash-1.0`'s single command-row formatter, walking the same `WhatGroup.COMMANDS` table `/wg help` walks. `Sl:HelpRows()` is the identical rows with a two-space indent, so the panel and the chat help cannot drift. It re-`ClearScroll`s first, because the library re-runs a renderer when a dirty hidden page is shown again.
 
 ## Lazy panel build
 
 AceGUI widgets must render against a non-zero panel width. `Settings.RegisterCanvasLayoutSubcategory` parents the panel into the Settings UI, but the panel doesn't get a width until Blizzard sizes it on first show.
 
-So both pages defer their body build to `OnShow`, and the OnShow body itself wraps the actual build in `C_Timer.After(0, …)` so it runs on the next frame in a clean execution context:
+**The library owns *when* a page draws.** `Helpers.SetRenderer(ctx, fn)` records the renderer and installs the page's `OnShow`, which builds the Defaults button, refuses (and closes the Settings window, so the refusal is legible) under `InCombatLockdown`, and then renders — on first show, and again when a refresh marked the page dirty while it was hidden. Those are the two moments only the page registry can see. The main page goes through the same seam, with `BuildMainContent` as its renderer.
+
+**This addon adds one more frame hop**, and `settings/OptionsSetup.lua` is where. The library calls the renderer and `EnsureDefaultsButton` *synchronously* inside that `OnShow`; WhatGroup wraps both **on the instance** so the actual work runs on the next frame:
 
 ```lua
-local rendered, scheduled = false, false
-ctx.panel:SetScript("OnShow", function()
-    if rendered or scheduled then return end
-    scheduled = true
-    C_Timer.After(0, function()
-        if rendered then return end
-        rendered = true
-        ensureDefaultsButton(ctx.panel)   -- the header button builds here too
-        -- parent: Helpers.BuildMainContent(ctx)
-        -- general: Helpers.RenderSchema(ctx, { ["General"] = ... })
+function O.EnsureDefaultsButton(panel)
+    if not panel or panel.defaultsBtn or not panel.wantsDefaultsButton then return end
+    if panel.__wgDefaultsScheduled then return end
+    panel.__wgDefaultsScheduled = true
+    C_Timer.After(0, function() baseEnsureDefaultsBtn(panel) end)
+end
+
+function O.SetRenderer(ctx, fn)
+    baseSetRenderer(ctx, function(c)
+        C_Timer.After(0, function()
+            local ok, err = pcall(fn, c)
+            ...
+        end)
     end)
-end)
+end
 ```
 
-The `C_Timer.After(0, …)` deferral matters because Blizzard's GameMenu / Logout flows can dispatch our OnShow inside a secure-execute chain (e.g. when the Logout button's callback iterates registered Settings categories). Creating AceGUI frames synchronously inside that protected chain trips `ADDON_ACTION_FORBIDDEN ... 'callback()'`. Returning from OnShow immediately and running the build one frame later moves the frame creation out of the protected context.
+The `C_Timer.After(0, …)` deferral matters because Blizzard's GameMenu / Logout flows can dispatch our OnShow inside a secure-execute chain (e.g. when the Logout button's callback iterates registered Settings categories). Creating AceGUI frames synchronously inside that protected chain trips `ADDON_ACTION_FORBIDDEN ... 'callback()'`. Returning from OnShow immediately and running the build one frame later moves the frame creation out of the protected context. `tests/test_panel.lua` has pinned that contract since the fix landed.
 
-The **header's Defaults button is built in that same hop**, for two reasons at once. It is an AceGUI frame, so it is subject to the taint rule above — calling `ensureDefaultsButton` from the synchronous OnShow body would put `CreateFrame` straight back inside the protected chain. And it must not be built at registration time either: AceGUI is a *shared* library, UI skins restyle its widgets by hooking `RegisterAsWidget`, and a widget created during load — before those hooks exist — keeps Blizzard's stock red `UI-Panel-Button-Up` art for the session. `Settings.Register` runs at `PLAYER_LOGIN`, so building it there is a race against every other addon's load order that WhatGroup only wins by loading late (options-ui-§5). Its click handler is therefore parked at registration as `panel.defaultsOnClick` and wired by the builder.
+Two details are load-bearing. Both members are wrapped **on the instance**, because the library resolves them from `O` at call time — a host-side helper sitting beside them would be bypassed by every page the shell draws. And the render is `pcall`'d **in the wrapper**: the library flipped `_rendered` / `_dirty` and returned from its own `pcall` before this hop runs, so without it a raising builder would surface as a bare Lua error with no page named.
 
-`ensureScroll` (called by every render path) hooks the AceGUI ScrollFrame's `OnSizeChanged` and forwards the size into AceGUI:
+This stayed host-local (`LIBKA0S-07`): options-ui-§9 explicitly sanctions the library's synchronous form, so the extra hop is this addon keeping a belt it had already fastened, not a standards requirement. If a second host wants it, it becomes an additive descriptor field upstream.
+
+The **header's Defaults button is built in that same hop**, for two reasons at once. It is an AceGUI frame, so it is subject to the taint rule above. And it must not be built at registration time either: AceGUI is a *shared* library, UI skins restyle its widgets by hooking `RegisterAsWidget`, and a widget created during load — before those hooks exist — keeps Blizzard's stock red `UI-Panel-Button-Up` art for the session. `Settings.Register` runs at `PLAYER_LOGIN`, so building it there is a race against every other addon's load order that WhatGroup only wins by loading late (options-ui-§5). Its click handler is therefore parked at page-build time as `panel.defaultsOnClick` and wired by the builder.
+
+`Helpers.EnsureScroll` (called by every render path) hooks the AceGUI ScrollFrame's `OnSizeChanged` and forwards the size into AceGUI:
 
 ```lua
 scroll.frame:SetScript("OnSizeChanged", function(_, w, h)
@@ -175,9 +218,9 @@ See [wow-quirks.md](./wow-quirks.md#lazy-acegui-panel-build) for the broader rul
 
 ## `Settings.Register()`
 
-Idempotent (`WhatGroup._settingsRegistered` guard). Validates the schema first (chat-prints typos, non-fatal), then registers two categories.
+Idempotent (`WhatGroup._settingsRegistered` guard), and thin: it delegates to `Helpers.CreateOptionsPanel()`, which resolves AceGUI, runs the descriptor's `validate` (this addon's `ValidateSchema` — chat-prints typos, non-fatal), registers the main canvas with its landing-page renderer, then drains the page-builder queue. The General page put itself in that queue at file load with `Helpers.RegisterOptionsPage("general", "General", buildGeneralPage)`. Each builder is `pcall`'d separately, so one raising page can't leave a half-registered tree with nothing naming the culprit. `CreateOptionsPanel` is idempotent in its own right — a second call would otherwise register a second Blizzard category and permanently double the refresh fan-out.
 
-**Combat-guarded.** After the idempotent guard, `Settings.Register()` self-checks `InCombatLockdown()` and refuses with a `[WG] Cannot register settings panel during combat.` chat hint if it's mid-combat. The slash handler `runConfig` already refuses on the same condition; the in-`Register` guard is defense-in-depth so any future caller that bypasses `runConfig` doesn't reintroduce the GameMenu taint that registering Settings categories during combat causes.
+**Combat-guarded.** After the idempotent guard, `Settings.Register()` self-checks `InCombatLockdown()` and refuses with a `[WG] Cannot register settings panel during combat.` chat hint if it's mid-combat. Opening is refused separately, inside `Helpers.OpenOptionsPanel`; this one guards *registering*, which taints the GameMenu callback chain if it happens during combat. Defense in depth, so a future caller that bypasses the slash path can't reintroduce it.
 
 **Called at login** — from `OnEnable` (PLAYER_LOGIN), so the panel is in the Settings → AddOns list from the moment the player logs in, and again as an idempotent no-op from `runConfig`. This matches every other Ka0s addon: registering a canvas Settings category at login is taint-safe. (An earlier revision deferred this to first `/wg config`, believing the registration tainted GameMenu — a misdiagnosis confounded with the since-removed AceHook closures; see [wow-quirks.md](./wow-quirks.md).) WhatGroup's genuine boot-taint sources — the secure teleport button and `UISpecialFrames` insert — stay deferred in `modules/Frame.lua`.
 
@@ -185,32 +228,40 @@ Idempotent (`WhatGroup._settingsRegistered` guard). Validates the schema first (
 
 ```
 Ka0s WhatGroup        ← parent canvas-layout category — landing page (logo, notes, slash list)
-└── General            ← subcategory — every schema widget + the Test button (afterGroup)
+└── General            ← subcategory — every schema widget, the paired Debug console
+                          checkbox (pairWith) and the Test button (afterGroup)
 ```
 
 Both pages share the same header layout (gold title + tinted divider) and the same always-visible AceGUI scrollbar. The parent's title reads `Ka0s WhatGroup` (no breadcrumb because `opts.isMain = true`); the General sub-page reads `Ka0s WhatGroup <atlas-chevron> General` (separator is the inline atlas `|A:common-icon-forwardarrow:16:16|a` — a real texture, not a font glyph, so it renders identically across font / locale fallback) and carries a Defaults button at top-right.
 
-Defaults button → `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreDefaults()`. `/wg reset` shows the same popup, so both paths share one OnAccept body.
+Defaults button → `panel.defaultsOnClick` → `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreAllDefaults()`. `/wg resetall` shows the same popup, and the Settings window's own footer Defaults control forwards through `panel.OnDefault` to the same handler, so all three share one OnAccept body.
 
-`WhatGroup._parentSettingsCategory` and `WhatGroup._settingsCategory` (the General subcategory) are the two handles. `/wg config` opens the **parent** and unfolds the sidebar tree by reaching into the same path the expand-arrow click handler uses:
+`WhatGroup._parentSettingsCategory` and `WhatGroup._settingsCategory` (the General subcategory) are the two handles the page build records; the open path does not use them. `/wg config` calls `Helpers.OpenOptionsPanel()`, which holds the main category's own ID, refuses under `InCombatLockdown()` — the gate lives *there* so every caller is refused, not just this verb — opens the parent, and then unfolds the sidebar tree by reaching into the same path the expand-arrow click handler uses:
 
 ```lua
-Settings.OpenToCategory(self._parentSettingsCategory:GetID())
+Settings.OpenToCategory(mainCategoryID)
 
 pcall(function()
-    if not SettingsPanel then return end
     local list = SettingsPanel.GetCategoryList
         and SettingsPanel:GetCategoryList()
         or SettingsPanel.CategoryList
     if not (list and list.GetCategoryEntry) then return end
-    local entry = list:GetCategoryEntry(self._parentSettingsCategory)
+    local entry = list:GetCategoryEntry(mainCategory)
     if entry and entry.SetExpanded then
         entry:SetExpanded(true)
     end
 end)
 ```
 
-The integer `GetID()` is auto-assigned by the API. Don't overwrite `category.ID` with a string — it breaks the lookup. The expansion traversal targets the **CategoryEntry widget** (the visible row), not the category model — that's the object whose `SetExpanded` actually drives the tree redraw. The whole call is `pcall`-wrapped because `CategoryList` / `GetCategoryEntry` / `CategoryEntry:SetExpanded` are private Blizzard internals; if a future patch refactors any of them, the panel still opens, just without the auto-unfold. The slash command also refuses to open during `InCombatLockdown()`.
+The integer `GetID()` is auto-assigned by the API. Don't overwrite `category.ID` with a string — it breaks the lookup. The expansion traversal targets the **CategoryEntry widget** (the visible row), not the category model — that's the object whose `SetExpanded` actually drives the tree redraw. The whole call is `pcall`-wrapped because `CategoryList` / `GetCategoryEntry` / `CategoryEntry:SetExpanded` are private Blizzard internals; if a future patch refactors any of them, the panel still opens, just without the auto-unfold.
+
+The combat refusal is not deferred-and-replayed: Blizzard's category switch is protected, so calling it under lockdown taints the panel for the session, and a panel that opens itself the instant combat drops would steal focus during recovery. The user re-runs the command. The page's own `OnShow` carries the same guard, because the Blizzard AddOns sidebar reaches a panel without going through `OpenOptionsPanel` at all.
+
+### When `LibKa0s-Options-1.0` is absent
+
+`settings/OptionsSetup.lua` installs a stub and returns. It is **the one seam in this addon whose stub no-ops instead of printing an honest line per member**, and the reason is timing: this addon's load-time use of the options surface is empty — `settings/Schema.lua` builds the whole schema from `defaults/Profile.lua`, and `settings/Panel.lua` reaches the instance only inside `Settings.Register` and its page builder, both of which run at `PLAYER_LOGIN`. `tests/test_libka0s.lua` pins that by loading with the library absent and comparing the schema row count against a full load.
+
+Two entry points do announce, once each: `CreateOptionsPanel` (reached automatically from `OnEnable`) and `OpenOptionsPanel` (reached by `/wg config`) — separate tokens, because a single shared one would always be spent at login and leave the command a silent no-op for the rest of the session. Nothing in the stub copies a widget maker, the flow engine, the header or a layout constant.
 
 ## Persisted shape — `WhatGroupDB`
 
@@ -265,7 +316,7 @@ Rendered panel layout:
 ```
 --- General ---
 [Enable]        | [Auto Show]
-[Print to Chat] |
+[Print to Chat] | [Debug console]   ← pairWith["notify.enabled"], session-only
   <Test button (160 px, left-aligned, afterGroup)>
 
 --- Notify ---

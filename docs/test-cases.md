@@ -1,8 +1,68 @@
 # Test Cases
 
-_Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > docs/test-cases.md`._
+The full inventory of every headless test case in this repo, grouped by the suite file it
+lives in. The `## Totals` table below is the **authoritative pass count** — the README test
+badge and any count quoted in the docs must agree with it.
+
+**Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
+
+### test_harness.lua (7)
+
+- harness: the runner is on the shared kit and reports its revision
+- harness: the addon's load list is DERIVED from the TOC, in TOC order (testing-§9)
+- harness: every derived addon path exists on disk
+- harness: no libs/ path leaked into the derived addon list
+- harness: the explicit LibKa0s list matches LibKa0s.xml, in XML order (anti-patterns #48)
+- harness: every LibKa0s file the runner loads exists on disk
+- harness: the libraries load BEFORE the addon's own files
+
+### test_libka0s.lua (42)
+
+- libka0s: every vendored major registers under LibStub
+- libka0s: MODULES names every file of every major, at a positive integer minor
+- core: the published seams ARE the library's, not a lookalike
+- core: the printer emits <prefix><space><body> as one line
+- core: the prefix is read at CALL time, not captured at load
+- core: the sink is the Lua global print, so the harness can see chat output
+- debuglog: the console is the library's instance, and the sink is bound bare
+- debuglog: the descriptor keeps the frame globals the old console used
+- debuglog: the composed window title is unchanged
+- debuglog: the flag stays the addon's — the library never keeps a copy
+- debuglog: the [Init] summary is the addon's, reached through the descriptor
+- debuglog: the console's user-visible strings resolve to prose, not to their own keys
+- debuglog: the gated sink survives a format its arguments cannot satisfy (WG-22)
+- options: Settings.Helpers IS the library instance, decorated in place
+- options: the host's data seams survived the move onto the instance
+- options: the host's RestoreAllDefaults deliberately overrides the library's
+- options: a panel write takes the addon's single write seam
+- options: no layout constant is restated in this addon's own source
+- options: the panel body still builds on the NEXT frame, not inside OnShow
+- slash: the help header is the library's, with this addon's alias sentence
+- slash: a help row is the one command-row formatter, indented two spaces
+- slash: the landing page renders the SAME rows, un-indented (convergence #2)
+- slash: the landing page draws those rows and nothing of its own
+- slash: `list` renders through the shared key/value formatter
+- slash: a number row still renders through its schema `fmt`
+- slash: `toggle` survived the adoption, through the descriptor's parse adapter
+- slash: the descriptor's L overrides exactly one string and nothing else
+- slash: every user-visible CLI string resolves to prose, not to its own key
+- degraded: the addon loads with LibKa0s absent
+- degraded: the cause clause is published on BOTH paths
+- degraded: the printer announces the absence exactly ONCE, then prints normally
+- degraded: the fallback printer still degrades a secret in place
+- degraded: every DebugLog member the addon calls still answers
+- degraded: the console stub copies NO library formatter
+- degraded: the schema loads WHOLE with the options library absent (options-ui-§1)
+- degraded: the settings stub carries no widget maker and no layout constant
+- degraded: the settings panel explains itself once at load and once per config
+- degraded: `/wg debug on` still moves the flag and explains the missing window ONCE
+- libka0s: the L-trap matcher flags the table and the `or` spelling, not the `and` one
+- libka0s: no seam file hands a descriptor this addon's locale table (the L trap)
+- libka0s: Core has no STRINGS and reads no descriptor L (tripwire)
+- libka0s: Options reads no descriptor L (tripwire)
 
 ### test_util.lua (26)
+
 - util: SafeToString handles nil / booleans / strings / numbers
 - util: SafeToString yields <secret> for a value that raises in concat
 - util: IsConcatSafe true for scalars, false for a raising value
@@ -31,6 +91,7 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - util: a Save/Restore round trip survives through the real frame stub
 
 ### test_compat.lua (17)
+
 - compat: GetSpellName returns the C_Spell name
 - compat: GetSpellTexture is non-nil (caller supplies default)
 - compat: GetSpellLink returns a hyperlink for the spell
@@ -50,6 +111,7 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - compat: Compat is the sole namespace the addon reads variant APIs through
 
 ### test_database.lua (9)
+
 - database: fresh DB lands at schemaVersion 1
 - database: RunMigrations is idempotent
 - database: RunMigrations re-seeds a missing schemaVersion
@@ -60,17 +122,18 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - database: migrations run before any profile read (OnInitialize order)
 - database: the profile is untouched by a migration pass
 
-### test_settings.lua (40)
+### test_settings.lua (41)
+
 - settings: BuildDefaults threads profile + global defaults
 - settings: defaults source from NS.C (defaults/Profile.lua, WG-24)
 - settings: BuildDefaults seeds an empty global.windows table (WG-26)
 - settings: debug is not a persisted schema row (WG-12)
 - settings: ValidateSchema reports zero errors
 - settings: Get/Set round-trips through db.profile
-- settings: RestoreDefaults resets a changed value
-- settings: RestoreDefaults prunes orphaned profile keys (F1)
-- settings: RestoreDefaults deep-copies table defaults (F2)
-- settings: RestoreDefaults skips per-row onChange (F3)
+- settings: RestoreAllDefaults resets a changed value
+- settings: RestoreAllDefaults prunes orphaned profile keys (F1)
+- settings: RestoreAllDefaults deep-copies table defaults (F2)
+- settings: RestoreAllDefaults skips per-row onChange (F3)
 - settings: enabled=false onChange wipes capture
 - settings: every schema row declares the fields the panel and CLI need
 - settings: schema paths are unique
@@ -92,17 +155,19 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - settings: a throwing onChange is caught and reported, not propagated
 - settings: Set on a path with no schema row still writes
 - settings: FindSchema matches on the exact path
-- settings: RestoreDefaults restores every schema row
-- settings: RestoreDefaults leaves db.global untouched
-- settings: RefreshAll runs refreshers in registration order
-- settings: a throwing refresher is reported and the rest still run
+- settings: RestoreAllDefaults restores every schema row
+- settings: RestoreAllDefaults leaves db.global untouched
+- settings: RefreshAll runs every refresher on the open page, in registration order
+- settings: a throwing refresher does not abort the sweep
+- settings: a hidden page is not refreshed — it is flagged dirty (options-ui-§11)
 - settings: Set skipRefresh suppresses the widget re-sync
-- settings: RestoreDefaults refreshes once, not once per row
+- settings: RestoreAllDefaults refreshes once, not once per row
 - settings: EnsureResetPopup is idempotent
 - settings: the reset dialog is a blocking, escapable confirmation
 - settings: accepting the reset dialog acknowledges in chat
 
 ### test_slash.lua (43)
+
 - slash: COMMANDS has a standalone version verb (WG-29)
 - slash: /wg version prints [WG] v<version> on its own line (WG-29)
 - slash: help header has no trailing colon (WG-19)
@@ -148,6 +213,7 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - slash: /wg debug on does not open the window
 
 ### test_labels.lua (31)
+
 - labels: GetGroupTypeLabel Mythic+
 - labels: GetGroupTypeLabel Dungeon by categoryID
 - labels: GetGroupTypeLabel Raid by player count
@@ -181,6 +247,7 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - teleport: the shipped mapping table is keyed by numbers only
 
 ### test_capture.lua (25)
+
 - capture: inviteaccepted prefers FRESH when both have mapID
 - capture: inviteaccepted falls back to QUEUED when fresh lacks mapID
 - capture: enabled queues so pendingInfo survives a nil fresh fetch
@@ -208,6 +275,7 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - capture: a raising GetApplicationInfo is caught and falls back
 
 ### test_notify.lua (42)
+
 - notify: no pendingInfo schedules no timer
 - notify: out of a group schedules no timer even with pendingInfo
 - notify: in a group with pendingInfo schedules exactly one timer
@@ -252,6 +320,7 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - notify: a secret-like title degrades in place instead of raising
 
 ### test_frame.lua (31)
+
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
 - frame: buildFrame is one-shot — a second show reuses the same frame
@@ -284,7 +353,8 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - frame: dragging the title bar persists the popup position
 - frame: a saved position is restored on the next build
 
-### test_panel.lua (43)
+### test_panel.lua (45)
+
 - panel: OnEnable registers the parent category and the General subcategory
 - panel: the parent category is added to the AddOns list
 - panel: Register is idempotent — a second call registers nothing more
@@ -312,15 +382,17 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - panel: the Debug console checkbox renders as a non-schema extra
 - panel: ticking Debug console shows the window without touching db.profile
 - panel: unticking Debug console hides the window
+- panel: opening the console while General is OPEN moves the checkbox
 - panel: re-opening General re-syncs the Debug console checkbox
 - panel: ticking a checkbox writes through to db.profile
 - panel: a checkbox coerces its value to a real boolean
-- panel: dragging the slider writes through to db.profile
+- panel: releasing the slider writes through to db.profile
+- panel: the slider snaps its committed value to the schema step
 - panel: unticking Enable fires the master-switch onChange
-- panel: rendering registers one refresher per schema row
-- panel: refreshers are ordered in schema (render) order
+- panel: rendering registers one refresher per rendered widget
+- panel: a re-render REPLACES the refresher list rather than growing it
 - panel: a /wg set re-syncs the open widget
-- panel: RestoreDefaults re-syncs every open widget once
+- panel: RestoreAllDefaults re-syncs every open widget once
 - panel: a throwing refresher does not abort the remaining ones
 - panel: the scroll container is patched to always show its scrollbar
 - panel: the patch is one-shot per widget
@@ -329,7 +401,8 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - panel: the landing page shows the TOC Notes line
 - panel: the landing page renders the Slash Commands heading and the logo
 
-### test_lifecycle.lua (35)
+### test_lifecycle.lua (37)
+
 - lifecycle: the addon exposes no public global (WG-01)
 - lifecycle: NS IS the addon object (AceAddon mixes into the namespace)
 - lifecycle: earlier files' fields survive NewAddon
@@ -363,10 +436,13 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - lifecycle: /wg test fires immediately, without the notify delay
 - lifecycle: /wg show opens the popup when a capture exists
 - lifecycle: /wg show with no capture prints a hint and opens nothing
-- lifecycle: /wg reset asks for confirmation rather than resetting outright
-- lifecycle: /wg reset and the Defaults button share one OnAccept body
+- lifecycle: /wg reset <path> resets one setting, with no confirmation
+- lifecycle: a bare /wg reset explains the change rather than resetting or erroring
+- lifecycle: /wg resetall asks for confirmation rather than resetting outright
+- lifecycle: /wg resetall and the Defaults button share one OnAccept body
 
 ### test_debuglog.lua (19)
+
 - debuglog: FONT_MONO points at the vendored JetBrains Mono TTF
 - debuglog: FormatPlain wraps the tag in brackets, single-space separators
 - debuglog: FormatPlain tolerates a nil tag
@@ -383,24 +459,26 @@ _Generated — do not hand-edit, regenerate with `lua tests/run.lua --list > doc
 - debuglog: NS.Debug is a no-op (no console write) when debug is off
 - debuglog: §11 scrollbar + line-counter sync is a safe no-op under the mock
 - debuglog: settings change logs one [Set] line at the write seam (debug-logging-§10)
-- debuglog: RestoreDefaults coalesces to one [Reset], zero [Set] (debug-logging-§9)
+- debuglog: RestoreAllDefaults coalesces to one [Reset], zero [Set] (debug-logging-§9)
 - debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state
 - debuglog: enable ack is colour-coded green/red matching the header (debug-logging-§5)
 
 ## Totals
 
-| Suite | Count |
-| --- | --- |
+| Suite | Cases |
+|-------|------:|
+| test_harness.lua | 7 |
+| test_libka0s.lua | 42 |
 | test_util.lua | 26 |
 | test_compat.lua | 17 |
 | test_database.lua | 9 |
-| test_settings.lua | 40 |
+| test_settings.lua | 41 |
 | test_slash.lua | 43 |
 | test_labels.lua | 31 |
 | test_capture.lua | 25 |
 | test_notify.lua | 42 |
 | test_frame.lua | 31 |
-| test_panel.lua | 43 |
-| test_lifecycle.lua | 35 |
+| test_panel.lua | 45 |
+| test_lifecycle.lua | 37 |
 | test_debuglog.lua | 19 |
-| **Total** | **361** |
+| **Total** | **415** |

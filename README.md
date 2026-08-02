@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-361%2F361_passing-green)
+![Tests](https://img.shields.io/badge/Tests-415%2F415_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1794/926/whatgroup-logo-png.png)
 
@@ -54,7 +54,8 @@ Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Set
 | `/wg list` | Show every setting and its current value |
 | `/wg get name` | Show one setting's current value |
 | `/wg set name value` | Change a setting. On/off settings accept `on`, `off`, or `toggle`; number settings stay within their allowed range |
-| `/wg reset` | Reset every setting to its default |
+| `/wg reset name` | Reset one setting to its default |
+| `/wg resetall` | Reset every setting to its default, after a confirmation |
 | `/wg debug` | Open or close the on-screen debug window |
 | `/wg debug on` / `/wg debug off` | Turn debug logging on or off (resets to off each login) |
 | `/whatgroup` | Long-form alias for `/wg` |
@@ -75,7 +76,11 @@ Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Set
 
 When you click **Apply** in the Premade Group Finder, WhatGroup quietly notes the group's details. It keeps track of your application so the right group info is waiting for you when you join — even if you've applied to several groups at once. When you join, the chat message prints and the popup opens — instantly by default, or after the delay you set under **Notify** if you'd rather let the zone-in settle first.
 
-The group info is only remembered for your current play session and clears when you leave the group. Only your settings are saved between sessions (plus where you've dragged the popup and debug windows). For the technical details, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+The group info is only remembered for your current play session and clears when you leave the group. Only your settings are saved between sessions, plus where you've dragged the popup. For the technical details, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Bundled libraries
+
+Everything this addon needs ships inside it — nothing else has to be installed. Alongside Ace3 and LibSharedMedia-3.0, it bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.5.0 (MIT), the shared Ka0s library behind the chat printer, the debug console, the `/wg` command line and the settings panel. Its licence travels with the code at `libs/LibKa0s/LICENSE`.
 
 ## FAQ
 

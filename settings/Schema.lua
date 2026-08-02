@@ -69,7 +69,7 @@ end
 --
 --   --- General ---
 --   [Enable]        | [Auto Show]
---   [Print to Chat]
+--   [Print to Chat] | [Debug console]   <- pairWith, a session-only non-schema row
 --     <afterGroup: Test button (160 px, left-aligned)>
 --
 --   --- Notify ---

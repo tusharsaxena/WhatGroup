@@ -61,31 +61,34 @@ The callback fires once, immediately after the last schema row of the named grou
 
 ## Add a slash command
 
-One row to `COMMANDS` in `WhatGroup.lua`. Help output and dispatcher both update automatically.
+One row to `COMMANDS` in `settings/Slash.lua`. The dispatcher, `/wg help` and the settings landing page all iterate that one table, so all three update automatically.
+
+Rows are **positional triples** — `{ name, description, handler }` — and the handler takes `rest` **alone**. That is the shape `LibKa0s-Slash-1.0` reads (`entry[1]` / `[2]` / `[3]`); a table of named fields is silently invisible to it, and a handler written `function(self, rest)` receives the *rest string* as `self`.
 
 ```lua
 local COMMANDS = {
     -- … existing rows …
-    {"clear", "Forget the captured group info so /wg show is empty",
-        function(self) runClear(self) end},
+    {"clear",    L["Forget the captured group info so /wg show is empty"],
+        function() runClear() end},
 }
 
--- … add the handler near the other action commands …
+-- … add the handler near the other host verbs, at the bottom of the file …
 
-local function runClear(self)
+function runClear()
     WhatGroup.pendingInfo = nil
-    p("group info cleared")
+    NS.Print("group info cleared")
 end
 ```
 
-If your handler is defined further down the file, add the local to the forward-declaration block at the top of the dispatch section:
+If your handler is defined below the table, add it to the forward-declaration line above it:
 
 ```lua
-local printHelp, listSettings, getSetting, setSetting
-local runReset, runShow, runTest, runConfig, runDebug, runClear   -- ← add yours
+local runShow, runTest, runConfig, runDebug, runReset, runResetAll, runClear   -- ← add yours
 ```
 
-The order in `COMMANDS` is also the order in `/wg help` output. Pick a slot that reads sensibly.
+Route the description through `NS.L[...]` at declaration, as the existing rows do — the library renders the table verbatim, so wrapping it later is not an option, and the metatable fallback makes it behaviour-preserving today (localization-§1). Add the key to `locales/enUS.lua` alongside the others.
+
+The order in `COMMANDS` is the order in `/wg help` **and** on the landing page. Pick a slot that reads sensibly.
 
 ## Add a dungeon teleport spell mapping
 
@@ -140,17 +143,31 @@ The wiki's [`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wik
 
 ## Refresh embedded libs
 
-`libs/` is vendored verbatim from Ka0s KickCD. To refresh:
+Two different jobs, with two different rules.
+
+**The Ace3 stack** is vendored verbatim from Ka0s KickCD:
 
 ```bash
-# from the WhatGroup root
-rm -rf libs/
-cp -r /mnt/d/Profile/Users/Tushar/Documents/GIT/KickCD/libs/ libs/
+# from the WhatGroup root — Ace3 + LibStub + CallbackHandler + LibSharedMedia only
+cp -r /mnt/d/Profile/Users/Tushar/Documents/GIT/KickCD/libs/AceAddon-3.0/ libs/
+# … and so on per directory. Do NOT `rm -rf libs/` — that takes libs/LibKa0s with it.
 ```
 
-Then verify `WhatGroup.toc`'s lib block still matches the directory layout — file paths there must point at the actual `.lua` and `.xml` files in the vendored tree. If KickCD has added or removed an Ace3 module since the last refresh, update the TOC accordingly. AceGUI's `.xml` always loads last in the lib block (it pulls in `widgets/` internally).
+Then verify `WhatGroup.toc`'s lib block still matches the directory layout. If KickCD has added or removed an Ace3 module since the last refresh, update the TOC accordingly. AceGUI's `.xml` loads late in the block (it pulls in `widgets/` internally); `LibKa0s.xml` loads after it, last.
 
-After refresh, run the [Lib-refresh smoke](./smoke-tests.md#8-lib-refresh-smoke--2-min) section.
+**`libs/LibKa0s/` is a sync, not a copy.** It and `tests/_kit/` are whole-folder copies of `../LibKa0s`'s two ship folders, and the rule is byte-identity:
+
+```bash
+cp -r ../LibKa0s/LibKa0s/. libs/LibKa0s/
+cp -r ../LibKa0s/testkit/. tests/_kit/
+```
+
+- **Copy the WHOLE folder, never one file.** Four of the five majors return before `LibStub:NewLibrary` when `Core.lua` is missing or older than their floor, so a partial copy makes a module *absent* rather than half-wired — the addon loads, works badly, and says nothing (anti-patterns #48).
+- **Never edit either tree.** A library problem is a finding to fix in `../LibKa0s` and re-vendor. A local patch is a fork nobody knows about, and the next re-vendor silently reverts it.
+- **Run the vendor gate afterwards** — all four diffs in [testing.md](./testing.md) — because nothing else can see a stale copy: the library's suite passes against the library and this addon's passes against a stale copy that still works, so both repos stay green while they diverge (anti-patterns #45).
+- **Move the README provenance line in the same commit**, so "which LibKa0s does this ship?" stays answerable without grepping eight minor constants out of the vendored source.
+
+After either refresh, run the [Lib-refresh smoke](./smoke-tests.md#8-lib-refresh-smoke--2-min) section — and after a LibKa0s one, §9 and §11 as well.
 
 ## Bump the Interface version
 
@@ -218,7 +235,8 @@ The Settings panel's Test button runs the same code path — both invoke `WhatGr
 Debug output routes to an **on-screen console** (`WhatGroupDebugWindow`), styled
 like the main popup, in a monospace font — **not** the chat frame. This is the
 standard's requirement for any addon that ships a main window (debug-logging-§7);
-the console lives in `DebugLog.lua`. Each line is `HH:MM:SS | [Tag] message`. Full
+the console is `LibKa0s-DebugLog-1.0`'s, wired in `core/DebugLogSetup.lua`. Each line is
+`HH:MM:SS | [Tag] message`. Full
 detail in [debug-console.md](./debug-console.md).
 
 `NS.State.debug` is session-only (default off, never persisted, off again on the
@@ -254,7 +272,7 @@ autoShow=…, inGroup=…, hasPending=…)` — so a pasted log is self-identify
   `WhatGroup.TeleportSpells`. **`[ChatLink]`** / **`[Test]`** mark the chat-link
   click and `/wg test` entry points.
 - **`[Set]`** → one line per settings change (`<path> = <value>`) at the
-  `Helpers.Set` seam; **`[Reset]`** → one coalesced summary for `/wg reset`;
+  `Helpers.Set` seam; **`[Reset]`** → one coalesced summary for `/wg resetall`;
   **`[Schema]`** → an internal path-lookup miss.
 
 To add a new debug line, call `NS.Debug("Tag", "fmt", …)` — it self-gates on
