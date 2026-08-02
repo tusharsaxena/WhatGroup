@@ -63,6 +63,104 @@ test("libka0s: MODULES names every file of every major, at a positive integer mi
 end)
 
 -- ---------------------------------------------------------------------------
+-- Core (core/CoreSetup.lua)
+-- ---------------------------------------------------------------------------
+
+test("core: the published seams ARE the library's, not a lookalike", function()
+    -- Identity, not behaviour. Two implementations that agree today is exactly the drift the
+    -- extraction exists to end, and a behavioural assertion cannot tell them apart.
+    local NS, env = T.newAddon()
+    local core = env.LibStub("LibKa0s-Core-1.0", true)
+    assertEqual(NS.SafeToString, core.SafeToString)
+    assertEqual(NS.IsConcatSafe, core.IsConcatSafe)
+    assertEqual(NS.SKIN, core.SKIN, "the skin table is shared, never copied")
+    assertEqual(NS.ApplySkin, core.ApplySkin)
+    assertEqual(NS.MakeCloseButton, core.MakeCloseButton)
+end)
+
+test("core: the printer emits <prefix><space><body> as one line", function()
+    -- The byte-level half of the formatter handover. The old seam called
+    -- `print(NS.PREFIX, body)` and let the client join the two; Core composes the line itself and
+    -- hands it to the sink, so this pins that the composed bytes are the same.
+    local NS, _, mock = T.newAddon()
+    NS.Print("   - Group:", "My Group")
+    assertEqual(mock.prints[#mock.prints], NS.PREFIX .. " " .. "   - Group: My Group")
+end)
+
+test("core: the prefix is read at CALL time, not captured at load", function()
+    -- core/CoreSetup.lua loads before core/WhatGroup.lua defines NS.PREFIX, so the string form
+    -- would have captured nil forever. Move the constant and the next line must move with it.
+    local NS, _, mock = T.newAddon()
+    NS.PREFIX = "|cff00FF00[XX]|r"
+    NS.Print("after")
+    assertEqual(mock.prints[#mock.prints], "|cff00FF00[XX]|r after")
+end)
+
+test("core: the sink is the Lua global print, so the harness can see chat output", function()
+    -- Core defaults to DEFAULT_CHAT_FRAME:AddMessage. This addon has always printed through the
+    -- global, and the mock captures the global — without the explicit `sink` every chat assertion
+    -- in this suite would go silent while still passing.
+    local NS, _, mock = T.newAddon()
+    local before = #mock.prints
+    NS.Print("routed")
+    assertEqual(#mock.prints, before + 1, "the line landed in the global-print capture")
+end)
+
+-- ---------------------------------------------------------------------------
+-- The degraded install — the library genuinely absent
+-- ---------------------------------------------------------------------------
+--
+-- Loaded with the file MISSING, never by hand-stubbing the namespace member under test
+-- (testing-§8). Core.lua absent means every other major returns before LibStub:NewLibrary too, so
+-- this is the whole-library-missing scenario as well as the Core one.
+
+local NO_LIBKA0S = {
+    "libs/LibKa0s/Core.lua", "libs/LibKa0s/DebugLog.lua", "libs/LibKa0s/Slash.lua",
+    "libs/LibKa0s/Options.lua", "libs/LibKa0s/OptionsWidgets.lua",
+    "libs/LibKa0s/OptionsScroll.lua", "libs/LibKa0s/Perf.lua", "libs/LibKa0s/PerfPanel.lua",
+}
+
+test("degraded: the addon loads with LibKa0s absent", function()
+    local NS, env = T.newAddon{ skip = NO_LIBKA0S }
+    assertNil(env.LibStub("LibKa0s-Core-1.0", true), "the library really is absent")
+    assertEqual(type(NS.Print), "function", "the printer still answers")
+    assertEqual(type(NS.SafeToString), "function", "the stringifier still answers")
+end)
+
+test("degraded: the cause clause is published on BOTH paths", function()
+    -- Every later seam appends its own consequence to this one sentence, so it has to exist even
+    -- when the library is present.
+    local withLib = T.newAddon()
+    local withOut = T.newAddon{ skip = NO_LIBKA0S }
+    assertEqual(withLib.LIBKA0S_MISSING, withOut.LIBKA0S_MISSING)
+    assertTrue(withLib.LIBKA0S_MISSING:find("LibKa0s", 1, true) ~= nil, "it names the library")
+    assertTrue(withLib.LIBKA0S_MISSING:find("libs/LibKa0s", 1, true) ~= nil,
+        "and where it was expected")
+end)
+
+test("degraded: the printer announces the absence exactly ONCE, then prints normally", function()
+    local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
+    NS.Print("first")
+    NS.Print("second")
+    NS.Print("third")
+    local notices = 0
+    for _, line in ipairs(mock.prints) do
+        if line:find("running on reduced built-in fallbacks", 1, true) then notices = notices + 1 end
+    end
+    assertEqual(notices, 1, "one notice, not one per line and not none")
+    assertTrue(mock.prints[1]:find(NS.LIBKA0S_MISSING, 1, true) ~= nil,
+        "the notice carries the shared cause clause verbatim")
+    assertTrue(mock.prints[#mock.prints]:find("third", 1, true) ~= nil,
+        "and the line the user asked for still lands")
+end)
+
+test("degraded: the fallback printer still degrades a secret in place", function()
+    local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
+    NS.Print("value:", {})
+    assertTrue(mock.prints[#mock.prints]:find("<secret>", 1, true) ~= nil)
+end)
+
+-- ---------------------------------------------------------------------------
 -- The `L` trap — the source guard
 -- ---------------------------------------------------------------------------
 --

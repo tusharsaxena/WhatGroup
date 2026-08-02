@@ -1,83 +1,33 @@
 -- core/Util.lua
--- Shared low-level seams loaded before every other addon file (see .toc):
---   * NS.IsConcatSafe / NS.SafeToString — the secret-safe stringifier
---     (events-frames-taint-§8): a combat-protected "secret" value raises when
---     concatenated or formatted, so every chat/debug line runs its arguments
---     through SafeToString first, yielding "<secret>" instead of an error that
---     would freeze the notify/popup path until /reload.
---   * NS.Util.print — the single secret-safe chat printer (slash-commands-§4):
---     prepends NS.PREFIX and joins SafeToString(arg) for each argument. Every
---     user-facing line funnels through this one seam (exposed as NS.Print /
---     WhatGroup._print by core/WhatGroup.lua).
---   * NS.Windows — standalone-window geometry persistence (store the anchor
---     point into db.global.windows on drag-stop, restore it on show).
---   * NS.SKIN / NS.ApplySkin — the shared dark-panel colours every standalone
---     window paints itself with, so a re-skin is one edit (WG-28).
+-- Standalone-window geometry persistence (WG-26) — the one low-level seam in this addon that has
+-- no LibKa0s equivalent.
 --
--- Loaded first among the addon files, so NS.PREFIX / NS.addon / NS.db are not
--- set yet at this file's load time. Nothing here reads them at load — every
--- function reads them at call time, by which point the later files have run.
+-- Everything else that used to live here is now the library's and is wired up in
+-- core/CoreSetup.lua, which loads immediately before this file:
+--   * NS.IsConcatSafe / NS.SafeToString — LibKa0s-Core-1.0's secret-safe stringifier
+--     (events-frames-taint-§8, anti-patterns #35)
+--   * NS.Util.print                     — its prefixed, secret-safe chat printer
+--     (slash-commands-§4)
+--   * NS.SKIN / NS.ApplySkin            — its shared window chrome (standalone-windows)
+--
+-- Nothing here reads NS.PREFIX / NS.addon / NS.db at load — every function reads them at call
+-- time, by which point the later files have run.
 
 local addonName, NS = ...
-
-NS.Util = NS.Util or {}
-
--- ---------------------------------------------------------------------------
--- Secret-safe stringifier (events-frames-taint-§8, anti-pattern #35)
--- ---------------------------------------------------------------------------
-
--- Probe whether a value can be stringified without raising. The probe is
--- `table.concat` (NOT `..`): concatenating a combat-protected value raises the
--- same forbidden-access error, but table.concat lets us catch it in one pcall
--- across all value types. nil and booleans are NOT concat-safe on their own, so
--- SafeToString handles them explicitly before ever probing.
-function NS.IsConcatSafe(v)
-    return (pcall(table.concat, { v }))
-end
-
--- nil -> "nil", booleans -> tostring, concat-safe (string/number) -> tostring,
--- anything else (a protected "secret", or a raw table) -> "<secret>". This is
--- the reference form from events-frames-taint-§8: the guarantee is that no value
--- routed through here can raise in a downstream `..` / string.format /
--- table.concat, "even if never handed a secret today."
-function NS.SafeToString(v)
-    if v == nil then return "nil" end
-    if type(v) == "boolean" then return tostring(v) end
-    if NS.IsConcatSafe(v) then return tostring(v) end
-    return "<secret>"
-end
-
--- ---------------------------------------------------------------------------
--- Single secret-safe chat printer (slash-commands-§4)
--- ---------------------------------------------------------------------------
-
--- The one user-facing chat path. Prepends NS.PREFIX (the shared [WG] tag) and
--- stringifies every argument through SafeToString, so call sites pass label and
--- value as SEPARATE args (never pre-concatenated through `..`/tostring) and a
--- protected value can never raise here. core/WhatGroup.lua aliases this to the
--- file-local `p`, NS.Print, and WhatGroup._print.
-function NS.Util.print(...)
-    local n = select("#", ...)
-    local parts = {}
-    for i = 1, n do
-        parts[i] = NS.SafeToString((select(i, ...)))
-    end
-    print(NS.PREFIX, table.concat(parts, " "))
-end
 
 -- ---------------------------------------------------------------------------
 -- Standalone-window geometry persistence (standalone-windows, WG-26)
 -- ---------------------------------------------------------------------------
 --
--- Windows persist only their anchor POINT (all standalone windows here are
--- fixed-size). Saved under db.global.windows[name]; guarded on the db being
--- ready so a pre-login show (in theory) is a harmless no-op rather than a nil
--- index. Frame wiring: capture on OnDragStop, restore on the show path.
+-- Windows persist only their anchor POINT (all standalone windows here are fixed-size). Saved
+-- under db.global.windows[name]; guarded on the db being ready so a pre-login show (in theory) is a
+-- harmless no-op rather than a nil index. Frame wiring: capture on OnDragStop, restore on the show
+-- path.
 
 NS.Windows = NS.Windows or {}
 
--- Read a frame's primary anchor into a plain, persistable table, or nil if the
--- frame has no point yet.
+-- Read a frame's primary anchor into a plain, persistable table, or nil if the frame has no point
+-- yet.
 function NS.Windows.PointOf(frame)
     if not (frame and frame.GetPoint) then return nil end
     local point, _, relPoint, x, y = frame:GetPoint(1)
@@ -95,8 +45,8 @@ function NS.Windows.Save(name, frame)
     db.global.windows[name] = pt
 end
 
--- Restore a saved point onto the frame. Returns true if a saved point was
--- applied, false if none exists (caller keeps its default point).
+-- Restore a saved point onto the frame. Returns true if a saved point was applied, false if none
+-- exists (caller keeps its default point).
 function NS.Windows.Restore(name, frame)
     if not (frame and frame.SetPoint and frame.ClearAllPoints) then return false end
     local db = NS.addon and NS.addon.db
@@ -105,36 +55,4 @@ function NS.Windows.Restore(name, frame)
     frame:ClearAllPoints()
     frame:SetPoint(saved.point, UIParent, saved.relPoint, saved.x, saved.y)
     return true
-end
-
--- ---------------------------------------------------------------------------
--- Shared window skin (WG-28)
--- ---------------------------------------------------------------------------
---
--- The addon's standalone windows (the popup in modules/Frame.lua, the debug
--- console + copy window in core/DebugLog.lua) all read as the same dark panel.
--- The COLOURS live here so a re-skin is one edit rather than a hunt across
--- files.
---
--- SHOULD-justification for not sharing the backdrop TABLE too, which is what
--- audit WG-28's design literally asked for: the two windows deliberately carry
--- different border geometry — the popup a 1px hairline (WHITE8X8, edgeSize 1,
--- insets 1), the console a 12px tooltip frame (UI-Tooltip-Border, edgeSize 12,
--- insets 3). Folding them into one table would restyle one of the two windows,
--- which is a visual change and not the de-duplication WG-28 is after. So
--- ApplySkin takes the caller's backdrop and owns only the colours — the part
--- that was genuinely duplicated.
-NS.SKIN = {
-    bg     = { 0.08, 0.08, 0.08, 0.95 },
-    border = { 0.3, 0.3, 0.3, 1 },
-}
-
--- Apply the shared colours over the caller's own backdrop table. A clean no-op
--- on a frame without SetBackdrop (the headless mock, or a frame built without
--- BackdropTemplate).
-function NS.ApplySkin(frame, backdrop)
-    if not (frame and frame.SetBackdrop) then return end
-    if backdrop then frame:SetBackdrop(backdrop) end
-    frame:SetBackdropColor(unpack(NS.SKIN.bg))
-    frame:SetBackdropBorderColor(unpack(NS.SKIN.border))
 end

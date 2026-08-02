@@ -27,7 +27,9 @@ libs\LibKa0s\LibKa0s.xml
 # Locales
 locales\enUS.lua
 
-# Core
+# Core (CoreSetup first: it publishes the printer every later file reads, and
+# core\WhatGroup.lua takes it as a file-scope upvalue)
+core\CoreSetup.lua
 core\Util.lua
 core\Compat.lua
 core\Database.lua
