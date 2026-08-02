@@ -171,13 +171,15 @@ After either refresh, run the [Lib-refresh smoke](./smoke-tests.md#8-lib-refresh
 
 ## Bump the Interface version
 
-When a major WoW patch ships, the `## Interface:` line in `WhatGroup.toc` needs to include the new build number(s):
+When a major WoW patch ships, the `## Interface:` line in `WhatGroup.toc` moves to the new build number:
 
 ```
-## Interface: 120000,120001,120005,120100
+## Interface: 120007
 ```
 
-Comma-separated, no spaces. The full list of supported builds — Blizzard rejects the addon at load if the live client's build number isn't in the list (or the user has to opt in via the AddOns "Load out-of-date" checkbox).
+**One number, never a comma-separated list.** This addon is Retail-only (toc-file-§3, [scope.md](./scope.md)), so there is exactly one supported build at a time and a multi-build list is anti-pattern #15 — it is the shape an addon carries when it also ships Classic, which this one deliberately does not. Blizzard rejects the addon at load if the live client's build number is not the one named (or the user opts in via the AddOns "Load out-of-date" checkbox), which is the intended signal on patch day: the addon goes quiet until someone has actually checked the API surface still holds.
+
+`/wow-addon:bump-interface` does this and tells you the current Live value.
 
 **Move the README `[wow]` badge in the same change** (documentation-§1 / toc-file-§3). The static `WoW-<Expansion>_<X.Y.Z>-purple` badge and `## Interface:` MUST show the same patch and travel together — it renders fixed text, so it goes stale silently if deferred to a follow-up.
 
