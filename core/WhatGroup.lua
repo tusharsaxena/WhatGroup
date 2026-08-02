@@ -814,7 +814,7 @@ end
 
 function runReset(self)
     local H = helpers()
-    if not (H and H.RestoreDefaults) then
+    if not (H and H.RestoreAllDefaults) then
         return p("Settings layer not ready yet")
     end
     -- Route through the same popup the Defaults button uses so both
@@ -825,7 +825,7 @@ function runReset(self)
         self.Settings.EnsureResetPopup()
         StaticPopup_Show("WHATGROUP_RESET_ALL")
     else
-        H.RestoreDefaults()
+        H.RestoreAllDefaults()
         p(NS.L["all settings reset to defaults"])
     end
 end
@@ -886,13 +886,6 @@ function runVersion(self)
 end
 
 function runConfig(self)
-    -- Settings UI uses secure templates protected during combat; opening it
-    -- mid-combat can taint. Refuse and return (no defer-and-replay) with the
-    -- canonical grey notice (options-ui-§2, WG-25).
-    if InCombatLockdown() then
-        return p("|cff888888" .. NS.L["cannot open settings during combat — Blizzard's category-switch is protected"] .. "|r")
-    end
-
     -- Settings registration normally happens at login (OnEnable), so the panel
     -- is already in the AddOns list by the time the player runs this. This call
     -- is an idempotent fallback (the `_settingsRegistered` guard no-ops it) that
@@ -902,28 +895,18 @@ function runConfig(self)
         self.Settings.Register()
     end
 
-    local parent = self._parentSettingsCategory
-    if not (Settings and Settings.OpenToCategory and parent) then
+    local H = self.Settings and self.Settings.Helpers
+    if not (H and H.OpenOptionsPanel) then
         return p("Settings panel is not available.")
     end
-    Settings.OpenToCategory(parent:GetID())
 
-    -- Unfold the parent in the sidebar tree so every subcategory is
-    -- one click away. Reaches into SettingsPanel.CategoryList →
-    -- CategoryEntry — private Blizzard internals — so wrap in pcall:
-    -- if a future patch refactors the tree, the panel still opens
-    -- and we just lose the auto-unfold instead of throwing.
-    pcall(function()
-        if not SettingsPanel then return end
-        local list = SettingsPanel.GetCategoryList
-            and SettingsPanel:GetCategoryList()
-            or SettingsPanel.CategoryList
-        if not (list and list.GetCategoryEntry) then return end
-        local entry = list:GetCategoryEntry(parent)
-        if entry and entry.SetExpanded then
-            entry:SetExpanded(true)
-        end
-    end)
+    -- The combat refusal and the sidebar-tree unfold both live inside the
+    -- library's OpenOptionsPanel (options-ui-§2). The gate belongs THERE rather
+    -- than in this dispatcher so every caller is refused — this verb, a /run
+    -- script, a future internal caller — and a host must not wire a second,
+    -- un-gated open path around it. The refusal is the canonical grey notice,
+    -- printed through NS.Print so it still carries the [WG] tag.
+    H.OpenOptionsPanel()
 end
 
 function runDebug(self, rest)

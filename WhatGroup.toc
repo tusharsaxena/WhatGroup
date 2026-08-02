@@ -45,4 +45,5 @@ modules\Frame.lua
 
 # Settings
 settings\Schema.lua
+settings\OptionsSetup.lua
 settings\Panel.lua

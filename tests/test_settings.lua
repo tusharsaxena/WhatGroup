@@ -48,22 +48,22 @@ test("settings: Get/Set round-trips through db.profile", function()
     assertEqual(H.Get("notify.delay"), 3.0)
 end)
 
-test("settings: RestoreDefaults resets a changed value", function()
+test("settings: RestoreAllDefaults resets a changed value", function()
     local NS = T.bootAddon()
     local H = NS.addon.Settings.Helpers
     H.Set("notify.delay", 7.0)
-    H.RestoreDefaults()
+    H.RestoreAllDefaults()
     assertEqual(H.Get("notify.delay"), 0)
 end)
 
-test("settings: RestoreDefaults prunes orphaned profile keys (F1)", function()
+test("settings: RestoreAllDefaults prunes orphaned profile keys (F1)", function()
     local NS = T.bootAddon()
     local H = NS.addon.Settings.Helpers
     -- Simulate a key left behind by a removed/renamed schema row or a
     -- hand-edited SavedVariables file, both at the top level and nested.
     NS.addon.db.profile.legacyOrphan = "stale"
     NS.addon.db.profile.notify.oldKey = 42
-    H.RestoreDefaults()
+    H.RestoreAllDefaults()
     assertNil(NS.addon.db.profile.legacyOrphan)
     assertNil(NS.addon.db.profile.notify.oldKey)
     -- Known keys are still restored to their defaults.
@@ -71,20 +71,20 @@ test("settings: RestoreDefaults prunes orphaned profile keys (F1)", function()
     assertEqual(H.Get("enabled"), true)
 end)
 
-test("settings: RestoreDefaults deep-copies table defaults (F2)", function()
+test("settings: RestoreAllDefaults deep-copies table defaults (F2)", function()
     local NS = T.bootAddon()
     local H = NS.addon.Settings.Helpers
     local S = NS.addon.Settings.Schema
     local template = { nested = { a = 1 } }
     S[#S + 1] = { section = "x", group = "X", path = "tableRow",
                   type = "bool", label = "t", default = template }
-    H.RestoreDefaults()
+    H.RestoreAllDefaults()
     -- Mutating the profile copy must not reach back into the schema default.
     H.Get("tableRow").nested.a = 999
     assertEqual(template.nested.a, 1)
 end)
 
-test("settings: RestoreDefaults skips per-row onChange (F3)", function()
+test("settings: RestoreAllDefaults skips per-row onChange (F3)", function()
     local NS = T.bootAddon()
     local H = NS.addon.Settings.Helpers
     local S = NS.addon.Settings.Schema
@@ -92,7 +92,7 @@ test("settings: RestoreDefaults skips per-row onChange (F3)", function()
     S[#S + 1] = { section = "x", group = "X", path = "probe",
                   type = "bool", label = "p", default = true,
                   onChange = function() calls = calls + 1 end }
-    H.RestoreDefaults()
+    H.RestoreAllDefaults()
     assertEqual(calls, 0)
 end)
 
@@ -300,73 +300,90 @@ end)
 -- RestoreDefaults / RefreshAll
 -- ---------------------------------------------------------------------------
 
-test("settings: RestoreDefaults restores every schema row", function()
+test("settings: RestoreAllDefaults restores every schema row", function()
     local NS = T.bootAddon()
     local H = NS.addon.Settings.Helpers
     for _, def in ipairs(NS.addon.Settings.Schema) do
         H.Set(def.path, def.type == "bool" and not def.default or 9)
     end
-    H.RestoreDefaults()
+    H.RestoreAllDefaults()
     for _, def in ipairs(NS.addon.Settings.Schema) do
         assertEqual(H.Get(def.path), def.default, def.path .. " was not restored")
     end
 end)
 
-test("settings: RestoreDefaults leaves db.global untouched", function()
+test("settings: RestoreAllDefaults leaves db.global untouched", function()
     local NS = T.bootAddon()
     NS.addon.db.global.windows.popup = { point = "CENTER", relPoint = "CENTER", x = 1, y = 2 }
-    NS.addon.Settings.Helpers.RestoreDefaults()
+    NS.addon.Settings.Helpers.RestoreAllDefaults()
     assertEqual(NS.addon.db.global.schemaVersion, 1)
     assertTrue(NS.addon.db.global.windows.popup ~= nil,
         "window geometry is account-wide and survives a profile reset")
 end)
 
-test("settings: RefreshAll runs refreshers in registration order", function()
-    local NS = T.bootAddon()
-    local S = NS.addon.Settings
+-- The refresher registry is LibKa0s-Options-1.0's now, and PER-CTX rather than per-addon: every
+-- widget maker appends its updater closure to the ctx it drew into, and a re-render reassigns the
+-- list so a released widget's closure cannot outlive it (options-ui-§11). A probe pushed onto a
+-- live ctx.refreshers is therefore exactly what a rendered widget looks like to RefreshScalars.
+--
+-- The page has to be SHOWN. The library refuses to refresh an off-screen page and flags it dirty
+-- instead, which is the whole point of the two-tier split — so `panel:Show()` (which fires OnShow
+-- the way the client does) is part of the setup rather than an incidental detail.
+local function probedPanel()
+    local NS, _, mock = T.enableAddon()
+    local panel = mock.frames["WhatGroupGeneralPanel"]
+    panel:Show()
+    mock.fireCTimers()
+    local ctx = NS.addon.Settings.Helpers.__panelFor("general")
+    local runs = { n = 0 }
+    ctx.refreshers[#ctx.refreshers + 1] = function() runs.n = runs.n + 1 end
+    return NS, ctx, mock, runs
+end
+
+test("settings: RefreshAll runs every refresher on the open page, in registration order", function()
+    local NS, ctx, _, runs = probedPanel()
     local order = {}
     for _, key in ipairs({ "a", "b", "c" }) do
-        S._refresherOrder[#S._refresherOrder + 1] = key
-        S._refreshers[key] = function() order[#order + 1] = key end
+        ctx.refreshers[#ctx.refreshers + 1] = function() order[#order + 1] = key end
     end
     NS.addon.Settings.Helpers.RefreshAll()
     assertEqual(table.concat(order, ","), "a,b,c")
+    assertEqual(runs.n, 1)
 end)
 
-test("settings: a throwing refresher is reported and the rest still run", function()
-    local NS, _, mock = T.bootAddon()
-    local S = NS.addon.Settings
+test("settings: a throwing refresher does not abort the sweep", function()
+    -- Each refresher is pcall'd individually, so one dead widget cannot take the rest of the UI
+    -- down with it.
+    local NS, ctx = probedPanel()
     local ran = false
-    S._refresherOrder = { "bad", "good" }
-    S._refreshers = {
-        bad  = function() error("refresher exploded") end,
-        good = function() ran = true end,
-    }
+    ctx.refreshers[#ctx.refreshers + 1] = function() error("refresher exploded") end
+    ctx.refreshers[#ctx.refreshers + 1] = function() ran = true end
     NS.addon.Settings.Helpers.RefreshAll()
     assertTrue(ran, "a broken refresher must not abort the sweep")
-    assertTrue(mock.prints[#mock.prints]:find("refresher failed", 1, true) ~= nil)
+end)
+
+test("settings: a hidden page is not refreshed — it is flagged dirty (options-ui-§11)", function()
+    -- The other half of the two-tier split, and the reason RefreshAll is cheap: refreshing pages
+    -- nobody is looking at is what anti-patterns #39 is about.
+    local NS, ctx, _, runs = probedPanel()
+    ctx.panel:Hide()
+    NS.addon.Settings.Helpers.RefreshAll()
+    assertEqual(runs.n, 0, "an off-screen page runs no refreshers")
+    assertTrue(ctx._dirty, "it is marked dirty instead, to re-render on its next show")
 end)
 
 test("settings: Set skipRefresh suppresses the widget re-sync", function()
-    local NS = T.bootAddon()
-    local S = NS.addon.Settings
-    local runs = 0
-    S._refresherOrder = { "probe" }
-    S._refreshers = { probe = function() runs = runs + 1 end }
+    local NS, _, _, runs = probedPanel()
     NS.addon.Settings.Helpers.Set("notify.delay", 1, { skipRefresh = true })
-    assertEqual(runs, 0)
+    assertEqual(runs.n, 0)
     NS.addon.Settings.Helpers.Set("notify.delay", 2)
-    assertEqual(runs, 1)
+    assertEqual(runs.n, 1)
 end)
 
-test("settings: RestoreDefaults refreshes once, not once per row", function()
-    local NS = T.bootAddon()
-    local S = NS.addon.Settings
-    local runs = 0
-    S._refresherOrder = { "probe" }
-    S._refreshers = { probe = function() runs = runs + 1 end }
-    NS.addon.Settings.Helpers.RestoreDefaults()
-    assertEqual(runs, 1, "one reconcile after the loop, not N")
+test("settings: RestoreAllDefaults refreshes once, not once per row", function()
+    local NS, _, _, runs = probedPanel()
+    NS.addon.Settings.Helpers.RestoreAllDefaults()
+    assertEqual(runs.n, 1, "one reconcile after the loop, not N")
 end)
 
 -- ---------------------------------------------------------------------------

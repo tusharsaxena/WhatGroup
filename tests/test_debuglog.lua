@@ -181,11 +181,11 @@ test("debuglog: settings change logs one [Set] line at the write seam (debug-log
     assertTrue(countLines(NS, "notify.delay = 3") >= 1, "line shows path = value")
 end)
 
-test("debuglog: RestoreDefaults coalesces to one [Reset], zero [Set] (debug-logging-§9)", function()
+test("debuglog: RestoreAllDefaults coalesces to one [Reset], zero [Set] (debug-logging-§9)", function()
     local NS = T.bootAddon()
     NS.State.debug = true
     local setBefore = countLines(NS, "[Set]")
-    NS.addon.Settings.Helpers.RestoreDefaults()
+    NS.addon.Settings.Helpers.RestoreAllDefaults()
     assertEqual(countLines(NS, "[Set]") - setBefore, 0, "per-row [Set] suppressed")
     assertEqual(countLines(NS, "[Reset]"), 1, "one [Reset] summary")
     assertTrue(countLines(NS, "settings to defaults") >= 1, "summary names the count")

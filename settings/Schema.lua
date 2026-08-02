@@ -27,15 +27,18 @@ local C         = NS.C
 WhatGroup.Settings = WhatGroup.Settings or {}
 local Settings    = WhatGroup.Settings
 Settings.Schema   = {}
-Settings.Helpers  = {}
-Settings._refreshers = {}
--- Order array kept alongside the hash so RefreshAll iterates in schema
--- (= panel render) order, not pairs() hash order. Matters once any row
--- has a refresher that depends on another row's already-refreshed state.
-Settings._refresherOrder = {}
-Settings._panels = Settings._panels or {}
+Settings.Helpers  = Settings.Helpers or {}
+
+-- The refresher registry and the panel list used to live here. They are now
+-- LibKa0s-Options-1.0's, per-ctx rather than per-addon: every widget maker
+-- appends its own updater closure to the ctx it rendered into, and a re-render
+-- REASSIGNS that list so a released widget's closure cannot survive it
+-- (options-ui-§11).
 
 local Schema  = Settings.Schema
+-- The table settings/OptionsSetup.lua moves onto the library instance a moment
+-- later. This upvalue keeps pointing at the pre-move table on purpose: the
+-- members are the same function objects, and no state lives on either table.
 local Helpers = Settings.Helpers
 
 -- Single chat-out routed through WhatGroup._print so the cyan [WG] prefix
@@ -345,11 +348,27 @@ function Settings.BuildDefaults()
     return out
 end
 
--- Reset the active profile to the schema's declared defaults, then refresh
--- open panel widgets. Both the Defaults button and `/wg reset` route through
+-- Reset the active profile to the schema's declared defaults, then refresh open
+-- panel widgets. Both the Defaults button and the slash reset route through
 -- this — the StaticPopup confirm step lives in the caller (WHATGROUP_RESET_ALL
 -- OnAccept), so callers that want a silent reset (none today) could still
 -- bypass the popup.
+--
+-- It is named for, and DELIBERATELY OVERRIDES, LibKa0s-Options-1.0's own
+-- RestoreAllDefaults (docs/pending/LEDGER.md, LIBKA0S-08). The library's form is
+-- row-by-row over every row; this one wipes first and coalesces, and both halves
+-- of that are load-bearing:
+--
+--   * the wipe is what makes a reset yield a PRISTINE profile rather than
+--     default-valued known keys — a row-by-row overwrite leaves a value from a
+--     removed or renamed schema row, or one hand-edited into SavedVariables,
+--     sitting in the profile forever;
+--   * the coalescing is what keeps one [Reset] summary in the console instead of
+--     N [Set] lines in a 500-line buffer (debug-logging-§9).
+--
+-- The library's per-page `RestoreDefaults(pageKey, ctx)` is untouched and still
+-- reachable; nothing calls it today because this addon's Defaults button is
+-- confirmation-gated and goes through the popup instead.
 --
 -- Two steps, so a reset yields a *pristine* profile rather than merely
 -- default-valued known keys:
@@ -365,7 +384,7 @@ end
 -- the reconciled state, so firing N side effects mid-reset is wasteful and
 -- asymmetric. The single RefreshAll below is the one post-reset reconcile that
 -- re-syncs widgets. db.global (schemaVersion) is intentionally left untouched.
-function Helpers.RestoreDefaults()
+function Helpers.RestoreAllDefaults()
     if WhatGroup.db and WhatGroup.db.profile then
         wipe(WhatGroup.db.profile)
     end
@@ -384,19 +403,26 @@ function Helpers.RestoreDefaults()
     Helpers.RefreshAll()
 end
 
--- Re-sync every panel widget against the current db.profile value. Called
--- after a reset, after `/wg set`, and after profile switches (none today
--- but the hook is here if AceDBOptions is ever added).
+-- Re-sync every open panel widget against the current db.profile value. Called
+-- after a reset, after `/wg set`, and after profile switches (none today but the
+-- hook is here if AceDBOptions is ever added).
+--
+-- The body is LibKa0s-Options-1.0's RefreshScalars, installed over this stub by
+-- settings/OptionsSetup.lua. What survives here is the NAME, because the write
+-- seam above calls it on every Set and the seam file loads later; and the
+-- degraded path, where there are no panels and a reset must still not raise.
 function Helpers.RefreshAll()
-    for _, path in ipairs(Settings._refresherOrder) do
-        local refresher = Settings._refreshers[path]
-        if refresher then
-            local ok, err = pcall(refresher)
-            if not ok then
-                pout("refresher failed: " .. tostring(err))
-            end
-        end
-    end
+    local H = Settings.Helpers
+    if H and H.RefreshScalars then H.RefreshScalars() end
+end
+
+-- Restore one row to its declared default. The library's per-page Defaults
+-- button and (once it is wired) the schema CLI's `reset` both come through here,
+-- so a single-row reset takes the same write path a `/wg set` does — same
+-- [Set] line, same onChange, same refresh.
+function Helpers.ApplyDefault(row)
+    if not (row and row.path) then return end
+    Helpers.Set(row.path, deepcopy(row.default))
 end
 
 -- ---------------------------------------------------------------------------
@@ -427,7 +453,7 @@ function Settings.EnsureResetPopup()
         whileDead    = true,
         hideOnEscape = true,
         OnAccept     = function()
-            Helpers.RestoreDefaults()
+            Helpers.RestoreAllDefaults()
             pout(L["all settings reset to defaults"])
         end,
     }

@@ -199,6 +199,111 @@ test("debuglog: the gated sink survives a format its arguments cannot satisfy (W
 end)
 
 -- ---------------------------------------------------------------------------
+-- Options (settings/OptionsSetup.lua)
+-- ---------------------------------------------------------------------------
+
+test("options: Settings.Helpers IS the library instance, decorated in place", function()
+    -- Identity, not resemblance, and this is the case options-ui-§1 exists for. RenderRows resolves
+    -- O.RenderField from the INSTANCE at call time, so a host table that merely copied the
+    -- library's members across would give a test a member nobody calls.
+    -- red under: build a fresh table in settings/OptionsSetup.lua and copy the library's members
+    -- into it instead of moving the host's onto the instance.
+    local NS, _, mock = T.enableAddon()
+    local H = NS.addon.Settings.Helpers
+    local seen = 0
+    local realRenderField = H.RenderField
+    H.RenderField = function(...) seen = seen + 1; return realRenderField(...) end
+    local panel = mock.frames["WhatGroupGeneralPanel"]
+    panel:Show()
+    mock.fireCTimers()
+    assertTrue(seen > 0,
+        "the flow engine did not go through the member on the published table")
+    assertEqual(seen, #NS.addon.Settings.Schema, "once per schema row")
+end)
+
+test("options: the host's data seams survived the move onto the instance", function()
+    local NS = T.enableAddon()
+    local H = NS.addon.Settings.Helpers
+    for _, member in ipairs({
+        "Get", "RawSet", "Set", "FindSchema", "ValidateSchema", "ApplyDefault",
+        "RestoreAllDefaults", "RefreshAll", "InlineButton", "BuildMainContent",
+    }) do
+        assertEqual(type(H[member]), "function", "lost the host member " .. member)
+    end
+    for _, member in ipairs({
+        "CreatePanel", "EnsureScroll", "ClearScroll", "Section", "AddSpacer", "AttachTooltip",
+        "RenderField", "RenderRows", "RenderSchema", "SessionCheckbox", "SetRenderer",
+        "RegisterOptionsPage", "CreateOptionsPanel", "OpenOptionsPanel", "RefreshScalars",
+        "RefreshAllPanels", "PatchAlwaysShowScrollbar", "__panelFor",
+    }) do
+        assertEqual(type(H[member]), "function", "the library member " .. member .. " is missing")
+    end
+end)
+
+test("options: the host's RestoreAllDefaults deliberately overrides the library's", function()
+    -- Both sides define the name and the HOST's has to win: it wipes db.profile before re-threading
+    -- (which is what drops an orphaned key) and coalesces the per-row [Set] lines into one [Reset].
+    -- Copying only where the instance was nil silently gave the library's, and the suite said so.
+    local NS = T.bootAddon()
+    NS.addon.db.profile.stale = "orphan"
+    NS.addon.Settings.Helpers.RestoreAllDefaults()
+    assertNil(NS.addon.db.profile.stale, "the library's row-by-row form would have left this")
+end)
+
+test("options: a panel write takes the addon's single write seam", function()
+    -- options-ui-§1: a checkbox must take exactly the path `/wg set` takes — same [Set] debug line,
+    -- same row onChange, same refresh — or there are two behaviours and only one gets tested.
+    local NS, _, mock = T.enableAddon()
+    NS.State.debug = true
+    local panel = mock.frames["WhatGroupGeneralPanel"]
+    panel:Show()
+    mock.fireCTimers()
+    local cb = mock.findWidget(function(w)
+        return w.type == "CheckBox" and w.labelText == "Show Leader"
+    end)
+    cb:Fire("OnValueChanged", false)
+    assertEqual(NS.addon.db.profile.notify.showLeader, false, "the value landed")
+    assertTrue(NS.DebugLog:FindLine("[Set] notify.showLeader = false") ~= nil,
+        "and it produced the same [Set] trace a slash write does")
+end)
+
+test("options: no layout constant is restated in this addon's own source", function()
+    -- options-ui-§8: a host copy of a library constant is the copy that goes stale. Where a bespoke
+    -- widget needs one, it is read off the instance (Helpers.ROW_VSPACER), never written down.
+    local NS = T.enableAddon()
+    local H = NS.addon.Settings.Helpers
+    assertEqual(H.ROW_VSPACER, 8)
+    assertEqual(H.SECTION_HEADING_H, 26)
+    assertEqual(H.BUTTON_PAIR_REL, 0.492)
+    for _, path in ipairs({ "settings/Panel.lua", "settings/OptionsSetup.lua" }) do
+        local src = readFile(path)
+        for _, name in ipairs({
+            "PADDING_X", "HEADER_TOP", "HEADER_HEIGHT", "DEFAULTS_W",
+            "SECTION_TOP_SPACER", "SECTION_BOTTOM_SPACER", "SECTION_HEADING_H", "ROW_VSPACER",
+        }) do
+            assertNil(src:match("local%s+" .. name .. "%s*="),
+                path .. " restates the library layout constant " .. name)
+        end
+    end
+end)
+
+test("options: the panel body still builds on the NEXT frame, not inside OnShow", function()
+    -- The one adapter this adoption needed. LibKa0s-Options-1.0's SetRenderer calls the renderer —
+    -- and EnsureDefaultsButton — synchronously inside its own OnShow; this addon wraps both on the
+    -- instance so neither creates an AceGUI frame inside a secure-execute chain, which is the fix
+    -- docs/wow-quirks.md records and the contract tests/test_panel.lua has pinned since.
+    -- red under: drop the C_Timer.After wrappers in settings/OptionsSetup.lua.
+    local _, _, mock = T.enableAddon()
+    local panel = mock.frames["WhatGroupGeneralPanel"]
+    panel:Show()
+    assertEqual(#mock.aceWidgets, 0,
+        "OnShow built nothing — not the page body and not the Defaults button")
+    assertTrue(#mock.timers > 0, "a next-frame hop is queued instead")
+    mock.fireCTimers()
+    assertTrue(#mock.aceWidgets > 0, "and the widgets appear on the next frame")
+end)
+
+-- ---------------------------------------------------------------------------
 -- The degraded install — the library genuinely absent
 -- ---------------------------------------------------------------------------
 --
@@ -278,6 +383,50 @@ test("degraded: the console stub copies NO library formatter", function()
     local src = readFile("core/DebugLogSetup.lua")
     assertNil(src:match("6f8faf"), "no console colour code may appear in the seam file")
     assertNil(src:match("c9a66b"), "nor the tag colour")
+end)
+
+test("degraded: the schema loads WHOLE with the options library absent (options-ui-§1)", function()
+    -- The MUST behind the load-completing stub, and it has to be MEASURED rather than reasoned
+    -- about: a page file that touched a helper inside a schema-row literal at file load would raise
+    -- with the member nil, its rows would never register, and a third of the schema would vanish —
+    -- taking list/get/set/reset and the profile defaults with it, silently.
+    local full    = T.newAddon()
+    local without = T.newAddon{ skip = NO_LIBKA0S }
+    assertTrue(#full.addon.Settings.Schema > 0, "there is a schema to compare")
+    assertEqual(#without.addon.Settings.Schema, #full.addon.Settings.Schema,
+        "the row count must be identical — this is the whole gate against a silent half-load")
+    for i, row in ipairs(full.addon.Settings.Schema) do
+        assertEqual(without.addon.Settings.Schema[i].path, row.path, "row " .. i .. " differs")
+    end
+end)
+
+test("degraded: the settings stub carries no widget maker and no layout constant", function()
+    -- options-ui-§1 forbids both outright: hand-copying the code whose drift the extraction ended
+    -- is anti-patterns #47, and a host copy of a library constant is the copy that goes stale.
+    local NS = T.newAddon{ skip = NO_LIBKA0S }
+    local H = NS.addon.Settings.Helpers
+    assertNil(H.ROW_VSPACER, "the stub must not carry the library's layout constants")
+    assertNil(H.SECTION_HEADING_H)
+    assertNil(H.BUTTON_PAIR_REL)
+    local src = readFile("settings/OptionsSetup.lua")
+    local stub = src:match("if not lib then(.-)\r?\nend\r?\n")
+    assertTrue(stub ~= nil, "the degraded branch is findable")
+    assertNil(stub:match("AceGUI"), "the stub creates no widget")
+    assertNil(stub:match("SetRelativeWidth"), "nor lays one out")
+end)
+
+test("degraded: the settings panel explains itself once at load and once per config", function()
+    local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
+    NS.addon:OnInitialize()
+    NS.addon:OnEnable()          -- CreateOptionsPanel: the load-time notice
+    NS.addon:OnSlashCommand("config")
+    NS.addon:OnSlashCommand("config")
+    local notices = 0
+    for _, line in ipairs(mock.prints) do
+        if line:find("settings panel is unavailable", 1, true) then notices = notices + 1 end
+    end
+    assertEqual(notices, 2,
+        "once at load, once for the verb the user actually typed — and never again")
 end)
 
 test("degraded: `/wg debug on` still moves the flag and explains the missing window ONCE", function()
