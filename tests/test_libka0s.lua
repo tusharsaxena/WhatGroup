@@ -107,6 +107,98 @@ test("core: the sink is the Lua global print, so the harness can see chat output
 end)
 
 -- ---------------------------------------------------------------------------
+-- DebugLog (core/DebugLogSetup.lua)
+-- ---------------------------------------------------------------------------
+
+test("debuglog: the console is the library's instance, and the sink is bound bare", function()
+    local NS = T.newAddon()
+    assertEqual(type(NS.DebugLog.SetEnabled), "function", "the instance surface is there")
+    assertEqual(NS.Debug, NS.DebugLog.Debug,
+        "NS.Debug must BE the instance's plain function, not a wrapper — ~20 call sites bind it")
+end)
+
+test("debuglog: the descriptor keeps the frame globals the old console used", function()
+    -- A rename here is invisible until a player's Esc stops closing the window or /framestack
+    -- attributes it to nobody.
+    local NS, _, mock = T.newAddon()
+    NS.DebugLog:Show()
+    assertTrue(mock.frames["WhatGroupDebugWindow"] ~= nil, "the console window keeps its name")
+    NS.DebugLog:ShowCopy()
+    assertTrue(mock.frames["WhatGroupDebugCopyWindow"] ~= nil, "and so does the copy window")
+    assertTrue(mock.frames["WhatGroupDebugCopyScroll"] ~= nil, "and its scroll frame")
+end)
+
+test("debuglog: the composed window title is unchanged", function()
+    -- The library appends its own " — Debug" to the descriptor's `title`, so this is the byte-level
+    -- check that the two halves still compose to what the hand-written console rendered.
+    local NS, _, mock = T.newAddon()
+    NS.DebugLog:Show()
+    assertEqual(mock.frames["WhatGroupDebugWindow"].titleText, "Ka0s WhatGroup \226\128\148 Debug")
+end)
+
+test("debuglog: the flag stays the addon's — the library never keeps a copy", function()
+    local NS = T.newAddon()
+    NS.State.debug = false
+    NS.DebugLog:SetEnabled(true)
+    assertTrue(NS.State.debug, "SetEnabled wrote through to NS.State.debug")
+    assertTrue(NS.DebugLog:IsEnabled(), "and IsEnabled reads the same flag")
+    NS.State.debug = false
+    assertFalse(NS.DebugLog:IsEnabled(), "a write straight to the flag is seen too")
+end)
+
+test("debuglog: the [Init] summary is the addon's, reached through the descriptor", function()
+    local NS = T.bootAddon()
+    NS.State.debug = false
+    NS.DebugLog:SetEnabled(true)
+    local last = NS.DebugLog.buffer[#NS.DebugLog.buffer]
+    assertEqual(last:find("[Init]", 1, true) ~= nil, true, "the enable path ends with [Init]")
+    assertTrue(last:find(NS.addon:InitSummary(), 1, true) ~= nil,
+        "and the line IS this addon's summary, not a library default")
+end)
+
+test("debuglog: the console's user-visible strings resolve to prose, not to their own keys", function()
+    -- The rendered half of the `L` trap, for the one adopted module that can express it and does
+    -- render a real library string. Reached through a REAL accessor: a case that guards on
+    -- `if label then` passes vacuously when the accessor does not exist.
+    --
+    -- red under: `L = { CHECKBOX_LABEL = "CHECKBOX_LABEL" }` on the descriptor. Note that
+    -- `L = NS.L` alone does NOT redden this one — DebugLog's resolver has used `rawget` since
+    -- minor 3, so a metatable-backed table falls through correctly and the trap is invisible from
+    -- the rendered end on this copy. The SOURCE guard above is what catches that spelling; this
+    -- case guards what the user actually sees, and would go red the day the resolver changed or
+    -- the accessor stopped answering.
+    local NS = T.newAddon()
+    local spec = NS.DebugLog:ConsoleCheckbox()
+    assertEqual(type(spec.label), "string", "ConsoleCheckbox really returns a label")
+    assertEqual(type(spec.tooltip), "string", "and a tooltip")
+    -- No English label is SCREAMING_SNAKE_CASE. A resolved string is prose; an unresolved one is
+    -- the key.
+    assertNil(spec.label:match("^[A-Z][A-Z0-9_]+$"), "label rendered as a raw key: " .. spec.label)
+    assertNil(spec.tooltip:match("^[A-Z][A-Z0-9_]+$"),
+        "tooltip rendered as a raw key: " .. spec.tooltip)
+    -- Non-vacuity: couple it to the library's own value, so the case fails if the accessor ever
+    -- stops answering rather than passing on an empty string.
+    local _, env = T.newAddon()
+    local lib = env.LibStub("LibKa0s-DebugLog-1.0", true)
+    assertEqual(spec.label, lib.STRINGS.CHECKBOX_LABEL)
+    assertTrue(spec.tooltip:find("/wg debug", 1, true) ~= nil,
+        "the tooltip is composed from the descriptor's own slash")
+end)
+
+test("debuglog: the gated sink survives a format its arguments cannot satisfy (WG-22)", function()
+    -- The library gained this at DebugLog minor 7, driven by this addon: `%d` handed the
+    -- stringified sentinel used to raise inside the sink. Pinned here as well as upstream, because
+    -- it is the behaviour WhatGroup's own hand-written sink guaranteed and would otherwise have
+    -- lost on adoption.
+    local NS = T.newAddon()
+    NS.State.debug = true
+    local ok = pcall(function() NS.Debug("Capture", "n=%d", {}) end)
+    assertTrue(ok, "NS.Debug must not propagate a format error")
+    local last = NS.DebugLog.buffer[#NS.DebugLog.buffer]
+    assertTrue(last:find("<secret>", 1, true) ~= nil, "and the value degrades to the sentinel")
+end)
+
+-- ---------------------------------------------------------------------------
 -- The degraded install — the library genuinely absent
 -- ---------------------------------------------------------------------------
 --
@@ -158,6 +250,56 @@ test("degraded: the fallback printer still degrades a secret in place", function
     local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
     NS.Print("value:", {})
     assertTrue(mock.prints[#mock.prints]:find("<secret>", 1, true) ~= nil)
+end)
+
+test("degraded: every DebugLog member the addon calls still answers", function()
+    -- The stub has to cover the whole surface, not the members that happened to be convenient:
+    -- `/wg debug`, the panel's console checkbox and every NS.Debug trace site reach it.
+    local NS = T.newAddon{ skip = NO_LIBKA0S }
+    for _, member in ipairs({
+        "Add", "Debug", "Clear", "Show", "Hide", "Toggle", "IsShown", "IsEnabled",
+        "RefreshHeader", "ShowCopy", "UpdateScrollBar", "UpdateStatus", "BufferSize",
+        "LastLine", "FindLine", "CopyText", "MakeCloseButton", "SetEnabled", "ConsoleCheckbox",
+        "Text",
+    }) do
+        assertEqual(type(NS.DebugLog[member]), "function", "the stub does not answer " .. member)
+    end
+    assertEqual(type(NS.DebugLog.buffer), "table", "and the buffer every test reads is present")
+    assertEqual(NS.Debug, NS.DebugLog.Debug, "the sink is still bound bare")
+end)
+
+test("degraded: the console stub copies NO library formatter", function()
+    -- debug-logging-§3: hand-copying the exact colour codes whose seven-way drift the extraction
+    -- exists to end is the one duplicate the standard most specifically forbids. The stub must not
+    -- carry FormatPlain/FormatColored at all.
+    local NS = T.newAddon{ skip = NO_LIBKA0S }
+    assertNil(NS.DebugLog.FormatPlain, "the stub must not reimplement the plain formatter")
+    assertNil(NS.DebugLog.FormatColored, "nor the coloured one")
+    local src = readFile("core/DebugLogSetup.lua")
+    assertNil(src:match("6f8faf"), "no console colour code may appear in the seam file")
+    assertNil(src:match("c9a66b"), "nor the tag colour")
+end)
+
+test("degraded: `/wg debug on` still moves the flag and explains the missing window ONCE", function()
+    -- The flag is ours, so it must keep working; the WINDOW is what is lost, and one announce per
+    -- entry point is what keeps `/wg debug` from going silent after `/wg debug on` spent the token.
+    local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
+    NS.addon:OnSlashCommand("debug on")
+    assertTrue(NS.State.debug, "the session flag still flips")
+    NS.addon:OnSlashCommand("debug on")
+    NS.addon:OnSlashCommand("debug")
+    NS.addon:OnSlashCommand("debug")
+    local notices = 0
+    for _, line in ipairs(mock.prints) do
+        if line:find("debug console window is unavailable", 1, true) then notices = notices + 1 end
+    end
+    assertEqual(notices, 2, "once for the enable path, once for the window path — never more")
+    for _, line in ipairs(mock.prints) do
+        if line:find("debug console window is unavailable", 1, true) then
+            assertTrue(line:find(NS.LIBKA0S_MISSING, 1, true) ~= nil,
+                "and each explains the absence through the shared cause clause")
+        end
+    end
 end)
 
 -- ---------------------------------------------------------------------------
