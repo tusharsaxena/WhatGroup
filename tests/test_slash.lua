@@ -5,7 +5,9 @@ local test, assertTrue, assertFalse = T.test, T.assertTrue, T.assertFalse
 
 local function runCmd(NS, name, rest)
     for _, c in ipairs(NS.addon.COMMANDS) do
-        if c[1] == name then return c[3](NS.addon, rest) end
+        -- Positional triples, and the handler takes `rest` ALONE: the library calls
+        -- entry[3](rest), never entry[3](self, rest).
+        if c[1] == name then return c[3](rest) end
     end
     error("no command: " .. tostring(name))
 end

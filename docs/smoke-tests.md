@@ -4,7 +4,7 @@ WhatGroup has a **headless test harness** (`lua tests/run.lua`) that covers pure
 
 - `/wow-addon:commit` of a non-trivial change
 - A WoW patch (Interface bump)
-- A `libs/` refresh from KickCD
+- A `libs/` refresh — from KickCD for Ace3, or from `../LibKa0s` for the shared library
 - Before tagging a release
 
 Each section lists steps, the expected outcome, and (when relevant) the bug it guards against. Times are wall-clock estimates assuming you're already logged in.
@@ -110,7 +110,7 @@ Verifies AceGUI rendering, schema-driven widget refresh, and the Defaults flow.
 6. `/wg set frame.autoShow on` → re-open Settings → checkbox is checked.
 7. Restore both to defaults.
 
-**Expected:** Panel widgets and slash-command get/set agree at every step. The schema-driven `_refreshers` keep the open panel in sync with `/wg set` writes.
+**Expected:** Panel widgets and slash-command get/set agree at every step. Each rendered widget registers a refresher closure on its page, and a `/wg set` re-runs them in place — no rebuild — so an open panel follows a slash write immediately.
 
 ### 3.4 Defaults button
 
@@ -303,17 +303,82 @@ If any Blizzard API broke (e.g. fields renamed on `C_LFGList.GetActivityInfoTabl
 
 ## 8. Lib-refresh smoke (~2 min)
 
-Run after re-copying `libs/` from KickCD (see [common-tasks.md → Refresh embedded libs](./common-tasks.md#refresh-embedded-libs)).
+Run after re-copying `libs/` (see [common-tasks.md → Refresh embedded libs](./common-tasks.md#refresh-embedded-libs)).
 
 1. `/reload` — confirm no boot errors.
 2. `/wg config` — confirm AceGUI widgets render normally.
 3. `/wg test` — confirm the pipeline still works end-to-end.
 
-If a new Ace3 module was added or removed in KickCD, also update `WhatGroup.toc`'s lib block to match the directory layout. AceGUI's `.xml` always loads last because it pulls in `widgets/`.
+If a new Ace3 module was added or removed in KickCD, also update `WhatGroup.toc`'s lib block to match the directory layout. AceGUI's `.xml` always loads last because it pulls in `widgets/`; `LibKa0s.xml` loads after it.
+
+After a **LibKa0s** re-vendor specifically, also run §10 and §11 — the two things no headless suite can reach.
 
 ---
 
-## 9. Quick reference checklist
+## 9. LibKa0s degraded-install smoke (~3 min)
+
+The four seam files (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `settings/OptionsSetup.lua`, `settings/Slash.lua`) each fall back when their major is absent. The headless suite drives that by loading with the files omitted; only the client can prove a *real* broken install behaves.
+
+1. Quit the game. Rename `Interface/AddOns/WhatGroup/libs/LibKa0s` to `libs/LibKa0s.off`.
+2. Launch, log in.
+3. `/wg list`
+4. `/wg config`
+5. `/wg config` again
+6. `/wg debug on`
+7. `/wg debug`
+8. `/wg debug`
+
+**Expected:**
+
+- **Zero Lua errors**, at load and at every step. This is the whole point — a missing library must degrade, not error.
+- Step 3 prints a **complete** listing of every setting. The schema loads whole even with the library gone; anything short here means a page file touched a helper at file load and took rows with it (options-ui-§1).
+- Every notice is one line, tagged `[WG]`, and every one of them **starts with the same sentence**: *"The LibKa0s library is missing from this installation of Ka0s WhatGroup (expected in libs/LibKa0s)"*. Only the tail differs — `…; running on reduced built-in fallbacks.` from the printer, `…, so the settings panel is unavailable.` from steps 4/5, `…, so the debug console window is unavailable.` from steps 6–8, `…, so the settings CLI is unavailable.` from a schema verb.
+- **Counted, not glanced at:** the printer's notice appears **exactly once** for the whole session. The settings notice appears **twice** — once at login, once for the first `/wg config` — and **not** on the second `/wg config`. The console notice appears **twice** — once for `/wg debug on`, once for the first bare `/wg debug` — and not on the second.
+- `/wg debug on` still reports the flag flipping. The flag is this addon's; only the *window* is lost.
+
+Rename the folder back and `/reload` before doing anything else.
+
+---
+
+## 10. The `L` trap — no raw keys on screen (~2 min)
+
+Every module that takes an `L` override resolves the descriptor's table first. Hand one an addon-wide locale table — whose metatable answers every key with the key itself — and the library's own English is never reached, so the UI renders `CHECKBOX_LABEL`, `ERR_BOOL`, `LIST_HEADER` and friends. It fails for every string at once, and **only in game**: a synthesised value is still a string, so no headless case sees it. The source guard and the rendered assertions in `tests/test_libka0s.lua` are both blind to what the client actually draws.
+
+1. `/wg config` — read the landing page top to bottom, then the **General** page top to bottom, including every widget label, every tooltip (hover each), the section headings and the **Defaults** button.
+2. `/wg debug` — read the console: its title, the `Debug: ON`/`Debug: OFF` toggle, the `Copy` and `Clear` buttons, the `N / 500 lines` counter. Click **Copy** and read that window's title too.
+3. `/wg help`, then `/wg list`, then `/wg set notify.showLeader nonsense`.
+
+**Expected:** not one `SCREAMING_SNAKE_CASE` string anywhere. Every label is prose. If you see one, a descriptor was handed `NS.L`.
+
+---
+
+## 11. Post-adoption parity — nothing moved (~4 min)
+
+Framed as *"nothing moved"*: anything that looks different from the previous build is the finding. Two exceptions are **expected** and listed below.
+
+1. `/wg config` — the landing page. Logo, the one-line notes, the **Slash Commands** heading, then one row per command.
+   **Expected:** rows read `/wg <verb> — <description>` with a **single** space either side of the dash. They used to have double spaces and a white-coloured dash; that change is deliberate (the panel and `/wg help` now share one formatter). Everything else about the page is unchanged.
+2. **General** page. Two-column grid, `Enable | Auto Show` on one line, `Print to Chat` paired with `Debug console`, the **Notify** section below with the delay slider and the show-* checkboxes each on their own line, the **Test** button under the General group, **Defaults** top-right.
+   **Expected:** identical layout to the previous build. The Debug console checkbox's **tooltip wording** now comes from the library and differs — expected.
+3. Drag the **Notification Delay** slider and watch the value.
+   **Expected:** the stored value commits when you **release**, not on every frame of the drag. Re-open the page and confirm it kept what you released on.
+4. Click **Defaults** → confirm → check that every setting is back to default.
+5. `/wg resetall` → confirm.
+   **Expected:** the *same* confirmation popup as step 4, and the same result. Both entry points must reach it — a suite that only clicks the button proves nothing about the verb.
+6. `/wg reset` with no argument.
+   **Expected:** a deprecation notice naming `/wg reset <path>` and `/wg resetall`. **Nothing is reset.**
+7. `/wg reset notify.delay`.
+   **Expected:** that one row goes back to its default, no confirmation, and nothing else moves.
+8. `/wg test` to open the popup, and `/wg debug` to open the console. Put them side by side.
+   **Expected:** both wear the **same** window edge — a hard 1px **black** outer border with a lighter grey line just inside it. The popup's border was grey and had no inner line before; that change is deliberate (both windows now read from the shared Ka0s skin). The console's border was a 12px tooltip frame; it is now the same 1px double edge.
+9. Drag the **popup** somewhere, `/reload`, `/wg show`.
+   **Expected:** it is where you left it.
+10. Drag the **console** somewhere, `/reload`, `/wg debug`.
+    **Expected:** it is back at its default position. The console no longer remembers where you put it — the library owns that window and offers no geometry hook. Deliberate, recorded at `LIBKA0S-05`; it is a **known loss**, not a regression to file.
+
+---
+
+## 12. Quick reference checklist
 
 For a fast pre-release pass, run at minimum:
 
@@ -324,5 +389,9 @@ For a fast pre-release pass, run at minimum:
 - [ ] §3.4 — Defaults button confirm flow
 - [ ] §4.1 — Click teleport button (no taint)
 - [ ] §5.1 — One real LFG apply → join
+- [ ] §10 — no `SCREAMING_SNAKE` string on any page, in the console, or in chat
+- [ ] §11.5 / §11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
+
+Run §9 (degraded install) and the rest of §11 after a LibKa0s re-vendor or any change to the four seam files.
 
 If all of those pass, the addon is in shippable shape for the 80% case. Run the full suite for releases tagged with feature work.

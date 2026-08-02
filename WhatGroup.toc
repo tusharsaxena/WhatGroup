@@ -22,16 +22,19 @@ libs\AceTimer-3.0\AceTimer-3.0.lua
 libs\AceDB-3.0\AceDB-3.0.lua
 libs\AceGUI-3.0\AceGUI-3.0.xml
 libs\LibSharedMedia-3.0\lib.xml
+libs\LibKa0s\LibKa0s.xml
 
 # Locales
 locales\enUS.lua
 
-# Core
+# Core (CoreSetup first: it publishes the printer every later file reads, and
+# core\WhatGroup.lua takes it as a file-scope upvalue)
+core\CoreSetup.lua
 core\Util.lua
 core\Compat.lua
 core\Database.lua
-core\DebugLog.lua
 core\WhatGroup.lua
+core\DebugLogSetup.lua
 
 # Defaults
 defaults\Profile.lua
@@ -42,4 +45,6 @@ modules\Frame.lua
 
 # Settings
 settings\Schema.lua
+settings\OptionsSetup.lua
 settings\Panel.lua
+settings\Slash.lua

@@ -30,14 +30,15 @@
 LICENSE     text eol=crlf
 .gitignore  text eol=crlf
 
-# SHOULD-justification (§0, accepted deviation): the repo-wide `eol=crlf`
-# above applies to `.md` too, including the generated `docs/test-cases.md`.
-# testing-§5's suggested sync check `diff <(lua tests/run.lua --list)
-# docs/test-cases.md` therefore reports a spurious whole-file diff (LF process
-# output vs CRLF working copy). Rather than exempting the one file to LF, the
-# inventory is regenerated to CRLF and compared with CR stripped back off:
-#   lua tests/run.lua --list | sed 's/$/\r/' > docs/test-cases.md
-#   diff <(lua tests/run.lua --list) <(tr -d '\r' < docs/test-cases.md)
+# The repo-wide `eol=crlf` above applies to `.md` too, including the generated
+# `docs/test-cases.md` — and that file needs no exemption and no pipeline. The
+# shared test kit's `--list` renderer writes CRLF itself, precisely because
+# these repos pin `*.md text eol=crlf`, a plain redirect writes LF, and a
+# regeneration command with a pipeline in it is one somebody eventually runs
+# without the pipeline. So both of these are CRLF and the check is silent when
+# in sync:
+#   lua tests/run.lua --list > docs/test-cases.md
+#   diff <(lua tests/run.lua --list) docs/test-cases.md
 # NOT `git diff --exit-code -- docs/test-cases.md`: that compares against HEAD
 # rather than against regenerated output, so a correctly-updated inventory
 # reports as drift every time. See docs/testing.md ("Keeping the inventory &

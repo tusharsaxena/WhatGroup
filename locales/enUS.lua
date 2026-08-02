@@ -76,8 +76,29 @@ L["Reset every WhatGroup setting to its default? The active profile is the only 
     "Reset every WhatGroup setting to its default? The active profile is the only one affected."
 L["all settings reset to defaults"] = "all settings reset to defaults"
 
+-- Slash command descriptions (settings/Slash.lua's COMMANDS table). The help
+-- HEADER is no longer routed through here: LibKa0s-Slash-1.0 composes it from
+-- the addon's version and its slash alias, and translating it would mean
+-- overriding the library's HELP_HEADER through a descriptor `L` — which is a
+-- decision for a translator to take, not a string this file can hold.
+L["List available commands"]  = "List available commands"
+L["Show the last group info dialog"] = "Show the last group info dialog"
+L["Inject synthetic group info and run the full notify + frame flow"] =
+    "Inject synthetic group info and run the full notify + frame flow"
+L["Open the Ka0s WhatGroup Settings panel"] = "Open the Ka0s WhatGroup Settings panel"
+L["Print the addon version"]  = "Print the addon version"
+L["List every setting and its current value"] = "List every setting and its current value"
+L["Print a setting's current value — `/wg get <path>`"] =
+    "Print a setting's current value — `/wg get <path>`"
+L["Set a setting — `/wg set <path> <value>` (try /wg list)"] =
+    "Set a setting — `/wg set <path> <value>` (try /wg list)"
+L["Reset one setting to its default — `/wg reset <path>`"] =
+    "Reset one setting to its default — `/wg reset <path>`"
+L["Reset every setting to defaults"] = "Reset every setting to defaults"
+L["Open/close the debug window — `/wg debug on|off` toggles logging"] =
+    "Open/close the debug window — `/wg debug on|off` toggles logging"
+
 -- Slash / hint messages
-L["slash commands"]           = "slash commands"
 L["No group info available. Use |cffFFFF00/wg test|r to preview."] =
     "No group info available. Use |cffFFFF00/wg test|r to preview."
 L["Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."] =

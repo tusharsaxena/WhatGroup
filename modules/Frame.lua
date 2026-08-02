@@ -50,17 +50,17 @@ local function buildFrame()
     NS.Windows.Restore("popup", f)
     f:Hide()
 
-    -- The 1px hairline border is the popup's own look; the panel colours come
-    -- from the shared NS.SKIN so a re-skin is one edit (WG-28). The debug
-    -- console keeps its heavier tooltip border and the same colours.
-    NS.ApplySkin(f, {
-        bgFile   = "Interface\\Buttons\\WHITE8X8",
-        edgeFile = "Interface\\Buttons\\WHITE8X8",
-        tile     = false,
-        tileSize = 0,
-        edgeSize = 1,
-        insets   = { left = 1, right = 1, top = 1, bottom = 1 },
-    })
+    -- The whole look — backdrop AND colours — now comes from LibKa0s-Core-1.0's shared SKIN
+    -- through NS.ApplySkin (standalone-windows: the Ka0s window edge is normative, and a window
+    -- MUST NOT draw one that diverges from it). The popup's own 1px hairline is what the shared
+    -- edge already is, so the geometry is unchanged; what it gains is the 1px grey inner highlight
+    -- ApplySkin synthesizes, and a black outer border in place of the old grey one.
+    --
+    -- `f.title` and `f.divider` are assigned first, below, because ApplySkin tints whichever of
+    -- them the frame carries and skips the ones it does not — which is why the call itself sits
+    -- after the header rather than here. The title's own |cffFFD700 span survives the tint (an
+    -- inline colour code wins over SetTextColor for its span), and the gold ApplySkin sets is the
+    -- colour GameFontNormalLarge already renders in, so the header reads exactly as before.
 
     -- Title bar (drag handle)
     local titleBar = CreateFrame("Frame", nil, f)
@@ -77,13 +77,18 @@ local function buildFrame()
     local titleText = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     titleText:SetPoint("CENTER", titleBar, "CENTER", 0, -2)
     titleText:SetText("|cffFFD700" .. L["WhatGroup"] .. "|r — " .. L["Group Info"])
+    f.title = titleText
 
-    -- Separator line under title
+    -- Separator line under title. The colour is set by ApplySkin below (0.24, 0.24, 0.27, 0.85 —
+    -- the normative Ka0s divider), so no literal here.
     local sep = f:CreateTexture(nil, "ARTWORK")
-    sep:SetColorTexture(0.4, 0.4, 0.4, 0.8)
     sep:SetHeight(1)
     sep:SetPoint("TOPLEFT",  f, "TOPLEFT",  14, -30)
     sep:SetPoint("TOPRIGHT", f, "TOPRIGHT", -14, -30)
+    f.divider = sep
+
+    -- Wear the shared skin, now that the two regions it tints exist.
+    NS.ApplySkin(f)
 
     -- Content frame (plain, no scroll)
     local content = CreateFrame("Frame", nil, f)

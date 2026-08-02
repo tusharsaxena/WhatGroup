@@ -35,6 +35,13 @@ choose. (See the frozen compliance snapshot in `docs/audits/2026-07-18/`.)
   don't justify a bump; mention it in the summary and leave the edit to the user.
 - **Observation-only, direct `hooksecurefunc` only. No AceHook** — its wrappers taint the
   secure-execute chain and break Logout. See the invariants in `docs/ARCHITECTURE.md`.
+- **Never edit `libs/` or `tests/_kit/`.** Both are whole-folder, byte-identical copies of
+  `../LibKa0s`'s ship folders. A library problem is a finding to fix **upstream** and
+  re-vendor — a local patch is a fork nobody knows about, and the next re-vendor silently
+  reverts it. The addon takes four of LibKa0s's five majors (Core, DebugLog, Options,
+  Slash) through the four seam files `core/CoreSetup.lua`, `core/DebugLogSetup.lua`,
+  `settings/OptionsSetup.lua` and `settings/Slash.lua`; **Perf is declined** on structural
+  grounds (`docs/pending/LEDGER.md`, `LIBKA0S-15`).
 
 ## Response style
 
@@ -52,5 +59,9 @@ This root file is a **stub** (documentation-§2). The real detail lives in `docs
   debug console, frame, WoW quirks, common tasks, smoke tests) sits alongside them.
 
 Green gate before every commit: `lua tests/run.lua` and `luacheck .` (0/0), plus the
+**vendor gate** — `diff -r --strip-trailing-cr` and plain `diff -r` of `../LibKa0s/LibKa0s`
+against `libs/LibKa0s` and of `../LibKa0s/testkit` against `tests/_kit`; a non-empty
+*content* diff is a real fork, a bytes-only one is a line-ending divergence
+([docs/testing.md](docs/testing.md)). Plus the
 in-game [smoke tests](docs/smoke-tests.md) before tagging a release, after an
 `## Interface:` bump, or after a `libs/` refresh.

@@ -252,7 +252,9 @@ end)
 
 local function runCmd(NS, name, rest)
     for _, c in ipairs(NS.addon.COMMANDS) do
-        if c[1] == name then return c[3](NS.addon, rest) end
+        -- Positional triples, and the handler takes `rest` ALONE: the library calls
+        -- entry[3](rest), never entry[3](self, rest).
+        if c[1] == name then return c[3](rest) end
     end
     error("no command: " .. tostring(name))
 end
@@ -332,18 +334,52 @@ end)
 -- /wg reset
 -- ---------------------------------------------------------------------------
 
-test("lifecycle: /wg reset asks for confirmation rather than resetting outright", function()
+-- `reset` takes a PATH now (convergence #1). The global wipe moved to `resetall`, which kept the
+-- confirmation the destructive path has always had — on BOTH entry points, since it and the panel's
+-- Defaults button reach one OnAccept body.
+
+test("lifecycle: /wg reset <path> resets one setting, with no confirmation", function()
+    local NS, _, mock = T.bootAddon()
+    local H = NS.addon.Settings.Helpers
+    H.Set("notify.delay", 5)
+    H.Set("notify.showLeader", false)
+    local before = #mock.popups
+    runCmd(NS, "reset", "notify.delay")
+    assertEqual(H.Get("notify.delay"), 0, "the named row went back to its default")
+    assertEqual(H.Get("notify.showLeader"), false, "and nothing else moved")
+    assertEqual(#mock.popups, before, "a one-row reset is not destructive enough to confirm")
+end)
+
+test("lifecycle: a bare /wg reset explains the change rather than resetting or erroring", function()
+    -- It ships with a deprecation message rather than silently: the old form still PARSES as
+    -- something, so "Usage: /wg reset <path>" would tell a user their syntax is wrong rather than
+    -- that the verb changed.
     local NS, _, mock = T.bootAddon()
     NS.addon.Settings.Helpers.Set("notify.delay", 5)
+    local mark = #mock.prints
     runCmd(NS, "reset")
+    assertEqual(NS.addon.Settings.Helpers.Get("notify.delay"), 5, "nothing was reset")
+    local said, pointed = false, false
+    for i = mark + 1, #mock.prints do
+        if mock.prints[i]:find("takes a setting PATH", 1, true) then said = true end
+        if mock.prints[i]:find("/wg resetall", 1, true) then pointed = true end
+    end
+    assertTrue(said, "it says what changed")
+    assertTrue(pointed, "and names the replacement for the old behaviour")
+end)
+
+test("lifecycle: /wg resetall asks for confirmation rather than resetting outright", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.Settings.Helpers.Set("notify.delay", 5)
+    runCmd(NS, "resetall")
     assertEqual(mock.popups[#mock.popups], "WHATGROUP_RESET_ALL")
     assertEqual(NS.addon.Settings.Helpers.Get("notify.delay"), 5)
 end)
 
-test("lifecycle: /wg reset and the Defaults button share one OnAccept body", function()
+test("lifecycle: /wg resetall and the Defaults button share one OnAccept body", function()
     local NS, env = T.bootAddon()
     NS.addon.Settings.Helpers.Set("notify.delay", 5)
-    runCmd(NS, "reset")
+    runCmd(NS, "resetall")
     env.StaticPopupDialogs["WHATGROUP_RESET_ALL"].OnAccept()
     assertEqual(NS.addon.Settings.Helpers.Get("notify.delay"), 0)
 end)

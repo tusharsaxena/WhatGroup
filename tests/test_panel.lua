@@ -15,10 +15,26 @@ local function panels(mock)
     return mock.frames["WhatGroupParentPanel"], mock.frames["WhatGroupGeneralPanel"]
 end
 
--- Open a panel the way the client does: OnShow, then the next frame.
+-- Open a panel the way the client does: Show it (which fires OnShow), then the
+-- next frame. `Show` rather than a bare `__fire("OnShow")`, because the library
+-- refuses to refresh a page whose panel does not report itself shown — so a
+-- panel driven by firing the handler alone would render once and then never
+-- re-sync (options-ui-§11).
 local function open(mock, panel)
-    panel.__fire("OnShow")
+    panel:Show()
     mock.fireCTimers()
+end
+
+-- The LAST widget matching a predicate. A re-render releases its widgets and
+-- builds new ones, so a search from the front keeps finding the stale copy.
+local function lastWidget(mock, widgetType, labelText)
+    local found
+    for _, w in ipairs(mock.aceWidgets) do
+        if w.type == widgetType and (w.labelText == labelText or w.text == labelText) then
+            found = w
+        end
+    end
+    return found
 end
 
 -- Build the General page and return (NS, env, mock).
@@ -271,16 +287,30 @@ test("panel: unticking Debug console hides the window", function()
     assertFalse(NS.DebugLog:IsShown())
 end)
 
+test("panel: opening the console while General is OPEN moves the checkbox", function()
+    -- The console's descriptor carries onVisibilityChanged, so a window opened by `/wg debug` (or
+    -- closed with Esc or its ×) repaints a panel that is already on screen — in place, through the
+    -- widget's own refresher, with no rebuild.
+    local NS, _, mock = openGeneral()
+    local cb = lastWidget(mock, "CheckBox", "Debug console")
+    assertEqual(cb:GetValue(), false)
+    NS.DebugLog:Show()
+    assertEqual(cb:GetValue(), true, "the checkbox followed the window")
+    NS.DebugLog:Hide()
+    assertEqual(cb:GetValue(), false, "and followed it back")
+end)
+
 test("panel: re-opening General re-syncs the Debug console checkbox", function()
     local NS, _, mock = openGeneral()
-    local cb = widget(mock, "CheckBox", "Debug console")
-    assertEqual(cb:GetValue(), false)
-    -- The console can be opened by `/wg debug` while the panel is closed, so
-    -- the checkbox must re-read the window state on every show.
-    NS.DebugLog:Show()
+    assertEqual(lastWidget(mock, "CheckBox", "Debug console"):GetValue(), false)
+    -- The console can be opened by `/wg debug` while the panel is CLOSED, in which case the
+    -- library flags the page dirty rather than refreshing it, and the re-render happens on the
+    -- next show. Either way the checkbox must read the window's live state once the page is up.
     local _, general = panels(mock)
-    general.__fire("OnShow")
-    assertEqual(cb:GetValue(), true)
+    general:Hide()
+    NS.DebugLog:Show()
+    open(mock, general)
+    assertEqual(lastWidget(mock, "CheckBox", "Debug console"):GetValue(), true)
 end)
 
 -- ---------------------------------------------------------------------------
@@ -299,10 +329,24 @@ test("panel: a checkbox coerces its value to a real boolean", function()
     assertEqual(NS.addon.db.profile.notify.showType, false)
 end)
 
-test("panel: dragging the slider writes through to db.profile", function()
+test("panel: releasing the slider writes through to db.profile", function()
+    -- The library's slider commits on RELEASE (OnMouseUp), not on every drag frame. A live commit
+    -- is opt-in per row (`commitOn = "change"`) or per descriptor (`sliderCommit`), and this addon
+    -- passes neither: the one number row is a notify delay, which nothing previews while dragging.
     local NS, _, mock = openGeneral()
-    widget(mock, "Slider", "Notification Delay"):Fire("OnValueChanged", 7.5)
+    local s = widget(mock, "Slider", "Notification Delay")
+    s:Fire("OnValueChanged", 7.5)
+    assertEqual(NS.addon.db.profile.notify.delay, 0, "a drag alone does not commit")
+    s:Fire("OnMouseUp", 7.5)
     assertEqual(NS.addon.db.profile.notify.delay, 7.5)
+end)
+
+test("panel: the slider snaps its committed value to the schema step", function()
+    -- Snapped relative to `min`, not to zero, so a step that does not divide min evenly cannot
+    -- commit a value the slider could never reach by dragging.
+    local NS, _, mock = openGeneral()
+    widget(mock, "Slider", "Notification Delay"):Fire("OnMouseUp", 3.3)
+    assertEqual(NS.addon.db.profile.notify.delay, 3.5, "step 0.5 from min 0")
 end)
 
 test("panel: unticking Enable fires the master-switch onChange", function()
@@ -312,20 +356,27 @@ test("panel: unticking Enable fires the master-switch onChange", function()
     assertNil(NS.addon.pendingInfo, "the capture is wiped through the schema onChange")
 end)
 
-test("panel: rendering registers one refresher per schema row", function()
+test("panel: rendering registers one refresher per rendered widget", function()
+    -- The registry is the library's and lives on the page's ctx, un-keyed — one closure per widget
+    -- it made, appended in render order. Every schema row plus the session-only console checkbox.
     local NS = openGeneral()
-    for _, def in ipairs(NS.addon.Settings.Schema) do
-        assertTrue(NS.addon.Settings._refreshers[def.path] ~= nil,
-            "no refresher for " .. def.path)
-    end
+    local ctx = NS.addon.Settings.Helpers.__panelFor("general")
+    assertTrue(ctx ~= nil, "the page's ctx is reachable through the library's test seam")
+    assertEqual(#ctx.refreshers, #NS.addon.Settings.Schema + 1,
+        "one per schema row, plus the Debug console session checkbox")
 end)
 
-test("panel: refreshers are ordered in schema (render) order", function()
-    local NS = openGeneral()
-    local order = NS.addon.Settings._refresherOrder
-    assertEqual(order[1], "enabled")
-    assertEqual(order[2], "frame.autoShow")
-    assertEqual(order[3], "notify.enabled")
+test("panel: a re-render REPLACES the refresher list rather than growing it", function()
+    -- Keeping the old closures would make every later write pcall an ever-growing pile of dead
+    -- ones, each still holding a released widget (options-ui-§11).
+    local NS, _, mock = openGeneral()
+    local ctx = NS.addon.Settings.Helpers.__panelFor("general")
+    local first = #ctx.refreshers
+    local _, general = panels(mock)
+    general:Hide()
+    NS.addon.Settings.Helpers.RefreshAllPanels()   -- flags the hidden page dirty
+    open(mock, general)                            -- which re-renders it on show
+    assertEqual(#ctx.refreshers, first, "the list was reassigned, not appended to")
 end)
 
 test("panel: a /wg set re-syncs the open widget", function()
@@ -336,20 +387,20 @@ test("panel: a /wg set re-syncs the open widget", function()
     assertEqual(cb:GetValue(), false, "RefreshAll pushed the new value into the widget")
 end)
 
-test("panel: RestoreDefaults re-syncs every open widget once", function()
+test("panel: RestoreAllDefaults re-syncs every open widget once", function()
     local NS, _, mock = openGeneral()
     NS.addon.Settings.Helpers.Set("notify.delay", 9)
     widget(mock, "CheckBox", "Show Leader"):Fire("OnValueChanged", false)
-    NS.addon.Settings.Helpers.RestoreDefaults()
+    NS.addon.Settings.Helpers.RestoreAllDefaults()
     assertEqual(widget(mock, "Slider", "Notification Delay"):GetValue(), 0)
     assertEqual(widget(mock, "CheckBox", "Show Leader"):GetValue(), true)
 end)
 
 test("panel: a throwing refresher does not abort the remaining ones", function()
     local NS, _, mock = openGeneral()
-    local S = NS.addon.Settings
-    S._refresherOrder[#S._refresherOrder + 1] = "_boom"
-    S._refreshers["_boom"] = function() error("refresher exploded") end
+    local ctx = NS.addon.Settings.Helpers.__panelFor("general")
+    -- Inserted FIRST, so a sweep that aborted on it would never reach the widget asserted below.
+    table.insert(ctx.refreshers, 1, function() error("refresher exploded") end)
     NS.addon.Settings.Helpers.Set("notify.showTeleport", false)
     assertEqual(widget(mock, "CheckBox", "Show Teleport spell"):GetValue(), false,
         "later refreshers still ran")
@@ -363,7 +414,11 @@ test("panel: the scroll container is patched to always show its scrollbar", func
     local _, _, mock = openGeneral()
     local scroll = mock.findWidget(function(w) return w.type == "ScrollFrame" end)
     assertTrue(scroll ~= nil, "the page renders inside a ScrollFrame")
-    assertTrue(scroll._wgAlwaysScrollbar, "the patch is applied")
+    -- `_ka0sAlwaysScrollbar`, not a per-addon marker: AceGUI pools ScrollFrames across every addon
+    -- in the session, so two addons carrying differently-named markers would each patch a widget
+    -- the other had already patched and stack two overrides on one FixScroll.
+    assertTrue(scroll._ka0sAlwaysScrollbar, "the patch is applied")
+    assertTrue(scroll.__stockFixScroll ~= nil, "and the stock implementation was preserved")
     assertTrue(scroll.scrollBarShown)
     assertTrue(scroll.scrollbar:IsShown())
 end)
@@ -380,7 +435,7 @@ test("panel: releasing the widget restores AceGUI's stock behaviour", function()
     local _, _, mock = openGeneral()
     local scroll = mock.findWidget(function(w) return w.type == "ScrollFrame" end)
     scroll:OnRelease()
-    assertNil(scroll._wgAlwaysScrollbar, "the pooled widget goes back clean")
+    assertNil(scroll._ka0sAlwaysScrollbar, "the pooled widget goes back clean")
     assertTrue(scroll.released, "the stock OnRelease still ran")
     assertTrue(scroll.scrollbar.__enabled, "the scrollbar is re-enabled for the next acquirer")
 end)

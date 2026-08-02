@@ -5,7 +5,7 @@ local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 
 local function debugCmd(NS, rest)
     for _, c in ipairs(NS.addon.COMMANDS) do
-        if c[1] == "debug" then return c[3](NS.addon, rest) end
+        if c[1] == "debug" then return c[3](rest) end
     end
     error("no debug command")
 end
@@ -181,11 +181,11 @@ test("debuglog: settings change logs one [Set] line at the write seam (debug-log
     assertTrue(countLines(NS, "notify.delay = 3") >= 1, "line shows path = value")
 end)
 
-test("debuglog: RestoreDefaults coalesces to one [Reset], zero [Set] (debug-logging-§9)", function()
+test("debuglog: RestoreAllDefaults coalesces to one [Reset], zero [Set] (debug-logging-§9)", function()
     local NS = T.bootAddon()
     NS.State.debug = true
     local setBefore = countLines(NS, "[Set]")
-    NS.addon.Settings.Helpers.RestoreDefaults()
+    NS.addon.Settings.Helpers.RestoreAllDefaults()
     assertEqual(countLines(NS, "[Set]") - setBefore, 0, "per-row [Set] suppressed")
     assertEqual(countLines(NS, "[Reset]"), 1, "one [Reset] summary")
     assertTrue(countLines(NS, "settings to defaults") >= 1, "summary names the count")
