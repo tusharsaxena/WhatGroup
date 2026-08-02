@@ -24,20 +24,33 @@ whether it should be:
 Do not resolve a standards conflict on your own — surface it and let the user
 choose. (See the frozen compliance snapshot in `docs/audits/2026-07-18/`.)
 
-This root file is a **stub** (documentation-§2). The full agent brief — hard rules (taint
-discipline, schema-first settings, slash-first commands, English-only, the
-private-`NS` namespace, no version bump / no auto-commit), the working
-environment notes, and the per-topic doc index — lives in **`docs/`**:
+## Hard rules
 
-- **[docs/agent-context.md](docs/agent-context.md)** — the complete working
-  notes: hard rules, invariants, and the topic-doc index. **Read this first
-  before touching code.**
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — design overview,
-  subsystem map, load order, and invariants.
-- Topic detail (capture pipeline, settings system, slash dispatch, frame,
-  WoW quirks, common tasks, smoke tests) lives alongside those under `docs/`.
+- **Never auto-stage, auto-commit, or auto-push.** Leave edits modified-but-unstaged and
+  describe them. Only an explicit instruction in the *current* turn authorizes `git add` /
+  `commit` / `push` — a prior approval does not carry forward. Invoking `/wow-addon:commit`
+  (or plainly saying "commit this") IS that instruction, for that turn only.
+- **Never bump the version** — TOC `## Version:`, `WhatGroup.VERSION`, the README badge or
+  Version History — without being told to in the current turn. Refactors and doc changes
+  don't justify a bump; mention it in the summary and leave the edit to the user.
+- **Observation-only, direct `hooksecurefunc` only. No AceHook** — its wrappers taint the
+  secure-execute chain and break Logout. See the invariants in `docs/ARCHITECTURE.md`.
 
-Verification: headless tests (`lua tests/run.lua`), lint (`luacheck .`), and
-the in-game smoke-test suite ([docs/smoke-tests.md](docs/smoke-tests.md)). Run
-before tagging a release, after an `## Interface:` bump, or after a `libs/`
-refresh.
+## Response style
+
+Terse — state the change, not the deliberation. Cite `file_path:line_number`. Don't write
+summaries the diff already shows, don't create docs or planning files unless asked, and
+only comment the non-obvious *why*.
+
+This root file is a **stub** (documentation-§2). The real detail lives in `docs/`:
+
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — what this addon is: design
+  overview, subsystem map, invariants, working environment, load order. **Read first.**
+- **[docs/testing.md](docs/testing.md)** — how to verify: the green gate, mock fidelity,
+  the generated `docs/test-cases.md` inventory and the README `tests` badge.
+- Topic detail (file index, scope, capture pipeline, settings system, slash dispatch,
+  debug console, frame, WoW quirks, common tasks, smoke tests) sits alongside them.
+
+Green gate before every commit: `lua tests/run.lua` and `luacheck .` (0/0), plus the
+in-game [smoke tests](docs/smoke-tests.md) before tagging a release, after an
+`## Interface:` bump, or after a `libs/` refresh.

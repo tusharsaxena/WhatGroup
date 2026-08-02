@@ -46,5 +46,5 @@ Decisions that were made during requirements review and the v1.0 / v1.1 launches
 ## Where the contract lives
 
 - User-facing behaviour: [README.md](../README.md) — slash commands, FAQ, troubleshooting.
-- Engineer working notes: [agent-context.md](./agent-context.md) — hard rules, response style, working environment. The root [`../CLAUDE.md`](../CLAUDE.md) is a stub that points here.
+- Agent hard rules + response style: the root [`../CLAUDE.md`](../CLAUDE.md) stub.
 - Module map + invariants: [ARCHITECTURE.md](./ARCHITECTURE.md).

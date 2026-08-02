@@ -162,11 +162,13 @@ When a major WoW patch ships, the `## Interface:` line in `WhatGroup.toc` needs 
 
 Comma-separated, no spaces. The full list of supported builds — Blizzard rejects the addon at load if the live client's build number isn't in the list (or the user has to opt in via the AddOns "Load out-of-date" checkbox).
 
+**Move the README `[wow]` badge in the same change** (documentation-§1 / toc-file-§3). The static `WoW-<Expansion>_<X.Y.Z>-purple` badge and `## Interface:` MUST show the same patch and travel together — it renders fixed text, so it goes stale silently if deferred to a follow-up.
+
 After bumping, run the [Patch-day smoke](./smoke-tests.md#7-patch-day-smoke--5-min) section. If a Blizzard API broke (e.g. `C_LFGList.GetActivityInfoTable` fields renamed), [capture-pipeline.md → Captured info](./capture-pipeline.md#captured-info) is the table that lists every field WhatGroup reads.
 
 ## Bump the addon version
 
-**Don't do this without an explicit instruction from the user** — release versioning is the user's call. See [agent-context.md → Hard rules](./agent-context.md#hard-rules).
+**Don't do this without an explicit instruction from the user** — release versioning is the user's call. See the root [`CLAUDE.md`](../CLAUDE.md).
 
 When the user does ask, the version sites are:
 

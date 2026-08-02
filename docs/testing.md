@@ -1,7 +1,7 @@
 # Testing — Ka0s WhatGroup
 
 How WhatGroup is verified. Design overview + invariants: [ARCHITECTURE.md](./ARCHITECTURE.md).
-Working notes: [agent-context.md](./agent-context.md). Root stub: [../CLAUDE.md](../CLAUDE.md).
+Root stub: [../CLAUDE.md](../CLAUDE.md).
 
 WhatGroup is validated on three levels — a headless harness, lint, and an
 in-game smoke-test suite. The first two are the **commit gate**; the third is
@@ -72,7 +72,7 @@ total from `docs/test-cases.md`.
 
 ## Keeping the inventory & badge in sync
 
-**Rule (Hard rule — see [agent-context.md](./agent-context.md#hard-rules)):**
+**Rule (hard rule):**
 whenever the suite changes — a case added, removed, or renamed, or the pass
 count moves (i.e. **whenever a failing test is resolved**) — regenerate
 `docs/test-cases.md` **and** update the README `tests` badge X/Y **in the same

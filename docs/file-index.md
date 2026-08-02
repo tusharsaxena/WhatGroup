@@ -20,9 +20,8 @@ Where each responsibility lives in the source tree. Pair this map with the actua
 | `modules/Frame.lua` | The 420×260 popup dialog. **Everything is lazy**: file-load runs only the AceAddon lookup, the layout constants (`FRAME_WIDTH`, `FRAME_HEIGHT`, `LABEL_WIDTH`, `yGap`), and the `WhatGroup:ShowFrame()` method assignment. Reads `WhatGroup.Labels.{GetGroupTypeLabel, PLAYSTYLE}` at popup-render time. The actual frame creation — `WhatGroupFrame` (BackdropTemplate skinned via `NS.ApplySkin` over the popup's own 1px-hairline backdrop table — WG-28, `DIALOG` strata, drag handle, `SetClampedToScreen`), the row layout via `MakeLabel`, `ConfigureTeleportButton`, the `SecureActionButtonTemplate` teleport button parented to the popup, and the `UISpecialFrames` ESC-to-close registration — all happen inside a `buildFrame()` function that fires on the first `ShowFrame()` call only. The popup persists its window position via `NS.Windows` (`Save` on drag-end, `Restore` over the default centre on build; WG-26). Same lazy-creation rationale as the Settings panel and reset popup. Close button + ESC are the only hide paths. |
 | `LICENSE` | MIT, current year, copyright add1kted2ka0s. |
 | `README.md` | User-facing manual. Covers what the addon does, install instructions, slash commands, FAQ, troubleshooting, version history, contributing guide. |
-| `CLAUDE.md` | Root agent **stub** (documentation-§2) — a short pointer that loads into every session's context: the standards-compliance rule and links into `docs/`. Never the full brief. |
-| `docs/agent-context.md` | The **full** agent brief: hard rules (taint discipline, schema-first, slash-first, English-only, private `NS`, no version bump / no auto-commit), working-environment notes, response style, and the topic-doc index. |
-| `docs/ARCHITECTURE.md` | High-level design overview: what-it-does blurb, subsystem diagram, subsystems table → `docs/*`, invariants, dependencies, load order. |
+| `CLAUDE.md` | Root agent **stub** (documentation-§2) — a short pointer that loads into every session's context: the standards-compliance rule, the agent hard rules (no auto-commit, no version bump, hook discipline), response style, and links into `docs/`. Never a full brief; the scaffolding pack is fetched at runtime and never stored here (documentation-§3, anti-pattern #49). |
+| `docs/ARCHITECTURE.md` | High-level design overview: what-it-does blurb, subsystem diagram, subsystems table → `docs/*`, invariants, working environment, dependencies, load order. |
 | `docs/*.md` | Topic-specific deep dives (this file is one of them). |
 
 ## Embedded libraries
@@ -53,8 +52,7 @@ Libs are copied as-is from Ka0s KickCD (`/mnt/d/Profile/Users/Tushar/Documents/G
 - [README.md](../README.md) — user-facing.
 - [CLAUDE.md](../CLAUDE.md) — root agent stub; points at `docs/`.
 - `docs/*.md` — the canonical trio plus topic chunks. Read on demand:
-  - [agent-context.md](./agent-context.md) — the full agent brief (hard rules + response style + doc index)
-  - [ARCHITECTURE.md](./ARCHITECTURE.md) — design overview + invariants + subsystem map
+  - [ARCHITECTURE.md](./ARCHITECTURE.md) — design overview + invariants + subsystem map + working environment
   - [scope.md](./scope.md) — in / out of scope + resolved decisions
   - [capture-pipeline.md](./capture-pipeline.md) — LFG state machine + FIFO + `hooksecurefunc` on `SetItemRef`
   - [settings-system.md](./settings-system.md) — schema, panel renderer, db.profile
