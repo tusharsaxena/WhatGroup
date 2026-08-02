@@ -5,7 +5,7 @@ local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 
 local function debugCmd(NS, rest)
     for _, c in ipairs(NS.addon.COMMANDS) do
-        if c[1] == "debug" then return c[3](NS.addon, rest) end
+        if c[1] == "debug" then return c[3](rest) end
     end
     error("no debug command")
 end

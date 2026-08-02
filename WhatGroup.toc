@@ -47,3 +47,4 @@ modules\Frame.lua
 settings\Schema.lua
 settings\OptionsSetup.lua
 settings\Panel.lua
+settings\Slash.lua

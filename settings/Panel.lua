@@ -135,12 +135,20 @@ function Helpers.BuildMainContent(ctx)
     Helpers.Section(ctx, "Slash Commands")
     Helpers.AddSpacer(scroll, MAIN_GAP_BELOW_HEAD)
 
-    -- One Label per command, pulled from WhatGroup.COMMANDS so the panel list stays in lockstep
-    -- with `/wg help` — adding a command surfaces here automatically.
-    for _, entry in ipairs(WhatGroup.COMMANDS or {}) do
+    -- One Label per command, rendered through LibKa0s-Slash-1.0's ONE command-row formatter
+    -- (convergence #2). This page used to carry a second formatter for the same data — double
+    -- spaces around the em dash, the dash explicitly white-wrapped and the description bare —
+    -- which is exactly the silent drift between a panel and its chat help that a shared renderer
+    -- exists to end. Un-indented, because a landing-page row is its own label; the chat form
+    -- (Sl:HelpRows) is the same rows with a two-space indent.
+    --
+    -- Still generated from WhatGroup.COMMANDS, so the list stays in lockstep with `/wg help`:
+    -- LandingRows walks the same table this page used to walk directly.
+    local Sl = NS.SlashCommands
+    for _, line in ipairs(Sl and Sl:LandingRows() or {}) do
         local row = AceGUI:Create("Label")
         row:SetFullWidth(true)
-        row:SetText(("|cffffff00/wg %s|r  |cffffffff—|r  %s"):format(entry[1], entry[2]))
+        row:SetText(line)
         if row.label and row.label.SetJustifyH then
             row.label:SetJustifyH("LEFT")
         end

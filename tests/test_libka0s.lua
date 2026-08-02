@@ -304,6 +304,117 @@ test("options: the panel body still builds on the NEXT frame, not inside OnShow"
 end)
 
 -- ---------------------------------------------------------------------------
+-- Slash (settings/Slash.lua)
+-- ---------------------------------------------------------------------------
+--
+-- Every case below asserts BYTES. Four formatters changed hands here — the help header, the
+-- command row, the `key = value` pair and the value renderer — and "does it still run" is exactly
+-- the question that cannot see a formatter drift.
+
+test("slash: the help header is the library's, with this addon's alias sentence", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon:OnSlashCommand("help")
+    assertEqual(mock.prints[1],
+        NS.PREFIX .. " v" .. NS.addon.VERSION ..
+        " \226\128\148 slash commands (|cFFFFFF00/whatgroup|r is an alias for |cFFFFFF00/wg|r)")
+end)
+
+test("slash: a help row is the one command-row formatter, indented two spaces", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon:OnSlashCommand("help")
+    local first = NS.addon.COMMANDS[1]
+    assertEqual(mock.prints[2],
+        NS.PREFIX .. "   |cFFFFFF00/wg " .. first[1] .. "|r \226\128\148 |cFFFFFFFF"
+        .. first[2] .. "|r")
+end)
+
+test("slash: the landing page renders the SAME rows, un-indented (convergence #2)", function()
+    -- The convergence itself. This panel used to carry a second formatter for the same data —
+    -- double spaces around the em dash, the dash white-wrapped, the description bare. Asserting
+    -- that the two differ by exactly the indent is what makes a future divergence impossible to
+    -- introduce quietly.
+    local NS = T.bootAddon()
+    local Sl = NS.SlashCommands
+    local help, landing = Sl:HelpRows(), Sl:LandingRows()
+    assertEqual(#help, #NS.addon.COMMANDS)
+    assertEqual(#landing, #help)
+    for i = 1, #help do
+        assertEqual(help[i], "  " .. landing[i], "row " .. i .. " differs by more than the indent")
+    end
+end)
+
+test("slash: the landing page draws those rows and nothing of its own", function()
+    local NS, _, mock = T.enableAddon()
+    local main = mock.frames["WhatGroupParentPanel"]
+    main:Show()
+    mock.fireCTimers()
+    for _, line in ipairs(NS.SlashCommands:LandingRows()) do
+        local found = mock.findWidget(function(w) return w.type == "Label" and w.text == line end)
+        assertTrue(found ~= nil, "the landing page is missing the row: " .. line)
+    end
+end)
+
+test("slash: `list` renders through the shared key/value formatter", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon:OnSlashCommand("get enabled")
+    assertEqual(mock.prints[#mock.prints],
+        NS.PREFIX .. " |cFFFFFF00enabled|r = |cFFFFFFFFtrue|r")
+end)
+
+test("slash: a number row still renders through its schema `fmt`", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.Settings.Helpers.Set("notify.delay", 2.5)
+    NS.addon:OnSlashCommand("get notify.delay")
+    assertEqual(mock.prints[#mock.prints],
+        NS.PREFIX .. " |cFFFFFF00notify.delay|r = |cFFFFFFFF2.5s|r")
+end)
+
+test("slash: `toggle` survived the adoption, through the descriptor's parse adapter", function()
+    -- The library's parseBool knows true/false/on/off/1/0/yes/no and nothing else. `toggle` is this
+    -- addon's own grammar and a shipped verb, so it is handled in a `parse` adapter
+    -- (slash-commands-§6) rather than dropped — and everything else still delegates, so the
+    -- clamping and the enum validation stay the library's.
+    local NS = T.bootAddon()
+    local H = NS.addon.Settings.Helpers
+    NS.addon:OnSlashCommand("set notify.showLeader toggle")
+    assertEqual(H.Get("notify.showLeader"), false)
+    NS.addon:OnSlashCommand("set notify.showLeader toggle")
+    assertEqual(H.Get("notify.showLeader"), true)
+end)
+
+test("slash: the descriptor's L overrides exactly one string and nothing else", function()
+    -- A PLAIN one-key table, and the rendered proof that it resolved: the library's own ERR_BOOL
+    -- lists yes/no, ours names `toggle`, and every OTHER string still comes from the library.
+    -- red under: drop the `L` table from the descriptor.
+    local NS, env, mock = T.bootAddon()
+    local lib = env.LibStub("LibKa0s-Slash-1.0", true)
+    local Sl = NS.SlashCommands
+    assertEqual(Sl:Text("ERR_BOOL"), "expected true/false/on/off/1/0/toggle")
+    assertTrue(Sl:Text("ERR_BOOL") ~= lib.STRINGS.ERR_BOOL, "the override really took")
+    assertEqual(Sl:Text("ERR_NUMBER"), lib.STRINGS.ERR_NUMBER, "and nothing else was overridden")
+    -- Reached through the real path, not just the accessor.
+    NS.addon:OnSlashCommand("set notify.showLeader maybe")
+    assertEqual(mock.prints[#mock.prints], NS.PREFIX .. "   expected true/false/on/off/1/0/toggle")
+end)
+
+test("slash: every user-visible CLI string resolves to prose, not to its own key", function()
+    -- The rendered half of the `L` trap for this module. No English message is
+    -- SCREAMING_SNAKE_CASE, so a key that reached the screen is a key that never resolved.
+    local NS, env = T.bootAddon()
+    local lib = env.LibStub("LibKa0s-Slash-1.0", true)
+    local Sl = NS.SlashCommands
+    local checked = 0
+    for key in pairs(lib.STRINGS) do
+        local rendered = Sl:Text(key)
+        assertEqual(type(rendered), "string", key .. " did not resolve to a string")
+        assertNil(rendered:match("^[A-Z][A-Z0-9_]+$"),
+            key .. " rendered as a raw key: " .. rendered)
+        checked = checked + 1
+    end
+    assertTrue(checked >= 20, "the whole string table was walked, not an empty one")
+end)
+
+-- ---------------------------------------------------------------------------
 -- The degraded install — the library genuinely absent
 -- ---------------------------------------------------------------------------
 --
@@ -466,9 +577,13 @@ end)
 -- the locale table unless the next token is `and`.
 
 local function offendingL(src)
-    for value in src:gmatch("[%s,{]L%s*=%s*([^\r\n]+)") do
-        local rest = value:match("^NS%.L%s*(.-)%s*$") or value:match("^L%s*(.-)%s*$")
-        if rest and not rest:match("^and%f[%W]") then return value end
+    for prefix, value in src:gmatch("([%w]*)%s-[%s,{]L%s*=%s*([^\r\n]+)") do
+        -- `local L = NS.L` is the file's own upvalue for the locale table, not a descriptor field.
+        -- Excluding it by the `local` keyword is what the reference sweep does too.
+        if prefix ~= "local" then
+            local rest = value:match("^NS%.L%s*(.-)%s*$") or value:match("^L%s*(.-)%s*$")
+            if rest and not rest:match("^and%f[%W]") then return value end
+        end
     end
     return nil
 end
@@ -483,6 +598,10 @@ test("libka0s: the L-trap matcher flags the table and the `or` spelling, not the
         "the `and` spelling evaluates to the plain table and is legitimate")
     assertNil(offendingL('local d = { L = { ERR_BOOL = "expected" } }'),
         "a plain literal table is the contract")
+    assertNil(offendingL("local L = NS.L\nlocal x = 1"),
+        "a file's own locale upvalue is not a descriptor field")
+    assertTrue(offendingL("local L = NS.L\nlocal d = { L = NS.L }") ~= nil,
+        "and excluding it must not hide a real offender in the same file")
 end)
 
 test("libka0s: no seam file hands a descriptor this addon's locale table (the L trap)", function()
