@@ -44,3 +44,20 @@ red — nothing in this file is an error state.
 | CODE-03 | `f4d850e3` | `defaults/TeleportSpells.lua:98` | 🟡 deferred | 2026-07-31 | Same work as ISS-02 — the Uldaman mapID can't be sourced from here. Resolve both together when game data is available. |
 | ISS-03 | `b16fc5b1` | GitHub issue #1 | 🟡 deferred | 2026-07-31 | "Add role to the pop" is a one-line spec for real feature work (capture the role, add a popup row, add a schema toggle); needs scoping before it can be built. Stays open on GitHub. |
 | MEM-01 | `5012941c` | `memory/feedback_standards_adherence.md` | 🟢 done | 2026-07-31 | The rule was correct but its pointers had drifted. Updated to `standards/STANDARDS.md`, dropped the dead `§0` cross-ref, repointed at `docs/audits/2026-07-18/`, and fixed the `CLAUDE.md` section name to "Standards compliance (read first)". |
+
+## LibKa0s adoption
+
+One row per decision taken while adopting `LibKa0s` (`docs/adoption-prompt.md` in
+that repo), written **when the call was made** rather than at the end. The rows
+that get lost are the decisions that felt obvious at the time — and an unrecorded
+decision is indistinguishable from a mistake to whoever finds it next.
+
+`Kind` says what the row is: **took** (adopted a library surface), **declined**
+(the surface exists and this addon deliberately kept its own), **gap** (the
+contract cannot express what this addon needs), or **change** (a library change
+this adoption drove).
+
+| ID | Kind | Module | Decision |
+|---|---|---|---|
+| LIBKA0S-01 | took | testkit | The harness moved onto the shared kit: `tests/run.lua` is `Kit.expose` + `Kit.run` over this repo's three lifecycle factories, `tests/loader.lua` became the isolated-instance factory over `Loader.makeEnv` / `Loader.tocFiles`, and `tests/wow_mock.lua` became an **extender** over `mock_base` rather than a swap. Taken FIRST, before any module: `mock_base` is the only source of a `LibStub` with a real `NewLibrary`, and without it every seam would have silently taken its degraded path while the suite stayed green. |
+| LIBKA0S-02 | declined | testkit | `mock_base`'s frame stub is not a drop-in and the host mock keeps ten overrides over it, each documented in `tests/wow_mock.lua`'s header. The load-bearing four are the kit's own documented divergence (`CreateFontString`/`CreateTexture` answer the frame itself — the popup collapses into one `SetText` sink), a `Hide` that fires `OnHide`, numeric `GetLeft/Right/Top/Bottom` (the secure teleport button's offsets are arithmetic over them), and an AceTimer queue **separate** from `C_Timer`'s, because the notify delay and the panel's secure-defer hop have to be fireable independently. |

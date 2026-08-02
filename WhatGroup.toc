@@ -22,6 +22,7 @@ libs\AceTimer-3.0\AceTimer-3.0.lua
 libs\AceDB-3.0\AceDB-3.0.lua
 libs\AceGUI-3.0\AceGUI-3.0.xml
 libs\LibSharedMedia-3.0\lib.xml
+libs\LibKa0s\LibKa0s.xml
 
 # Locales
 locales\enUS.lua
