@@ -28,7 +28,7 @@
 --
 --  2. FRAME GEOMETRY. Window position is persisted to SavedVariables and restored on the next
 --     login (WG-26). With GetPoint() handing back the frame, "we saved the position" and "we saved
---     garbage" are the same assertion. SetPoint's two overloads are both modelled because
+--     garbage" are the same assertion. SetPoint's two overloads are both modeled because
 --     modules/Frame.lua and NS.Windows.Restore use different ones. GetLeft/Right/Top/Bottom answer
 --     real NUMBERS because modules/Frame.lua derives the secure teleport button's offsets by
 --     subtracting them.
@@ -360,7 +360,7 @@ local function build()
     -- LibKa0s-Options-1.0 renders the entire schema through AceGUI, so a `Create` that returns a
     -- bare no-op frame makes the whole panel layer untestable. The base's recorder is close, but it
     -- lacks the `.label` FontString the Heading/Label font branches key off, the `Fire` alias this
-    -- repo's suites drive, and a ScrollFrame modelled richly enough for the always-shown-scrollbar
+    -- repo's suites drive, and a ScrollFrame modeled richly enough for the always-shown-scrollbar
     -- patch's enable/disable and OnRelease-restore paths to be reachable.
 
     local aceGUI = M.__libs["AceGUI-3.0"]
