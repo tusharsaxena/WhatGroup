@@ -104,7 +104,7 @@ badge and any count quoted in the docs must agree with it.
 - compat: GetSpellTexture falls back to the legacy global
 - compat: GetSpellTexture returns nil with no API (the caller supplies a default)
 - compat: GetSpellLink returns nil with no API (the caller renders plain text)
-- compat: IsSpellKnown normalises to a plain boolean
+- compat: IsSpellKnown normalizes to a plain boolean
 - compat: IsSpellKnown returns false when the API is missing
 - compat: GetActivityInfoTable returns nil for an unknown activity
 - compat: GetActivityInfoTable returns nil when C_LFGList is absent
@@ -263,7 +263,7 @@ badge and any count quoted in the docs must agree with it.
 - capture: the raid flags are carried through
 - capture: applications are matched to captures in FIFO order
 - capture: an 'invited' status changes nothing — it waits for the accept
-- capture: an unrecognised status is ignored
+- capture: an unrecognized status is ignored
 - capture: accepting clears the queue so a stale apply can't resurface
 - capture: 'applied' with nothing queued is a harmless no-op
 - capture: accepting with no data anywhere leaves pendingInfo nil
@@ -349,7 +349,7 @@ badge and any count quoted in the docs must agree with it.
 - frame: repeated in-combat shows queue exactly one wait frame
 - frame: once built, showing during combat is allowed
 - frame: reconfiguring the teleport button in combat stashes and replays it
-- frame: a fresh profile leaves the popup at its default centre anchor
+- frame: a fresh profile leaves the popup at its default center anchor
 - frame: dragging the title bar persists the popup position
 - frame: a saved position is restored on the next build
 
@@ -396,7 +396,7 @@ badge and any count quoted in the docs must agree with it.
 - panel: a throwing refresher does not abort the remaining ones
 - panel: the scroll container is patched to always show its scrollbar
 - panel: the patch is one-shot per widget
-- panel: releasing the widget restores AceGUI's stock behaviour
+- panel: releasing the widget restores AceGUI's stock behavior
 - panel: the landing page lists one row per slash command
 - panel: the landing page shows the TOC Notes line
 - panel: the landing page renders the Slash Commands heading and the logo
@@ -446,7 +446,7 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: FONT_MONO points at the vendored JetBrains Mono TTF
 - debuglog: FormatPlain wraps the tag in brackets, single-space separators
 - debuglog: FormatPlain tolerates a nil tag
-- debuglog: FormatColored colours timestamp + tag; pipe and content default
+- debuglog: FormatColored colors timestamp + tag; pipe and content default
 - debuglog: /wg debug on enables session state
 - debuglog: /wg debug off disables session state
 - debuglog: /wg debug (no arg) toggles the window, not the state
@@ -461,7 +461,7 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: settings change logs one [Set] line at the write seam (debug-logging-§10)
 - debuglog: RestoreAllDefaults coalesces to one [Reset], zero [Set] (debug-logging-§9)
 - debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state
-- debuglog: enable ack is colour-coded green/red matching the header (debug-logging-§5)
+- debuglog: enable ack is color-coded green/red matching the header (debug-logging-§5)
 
 ## Totals
 

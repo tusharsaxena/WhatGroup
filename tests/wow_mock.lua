@@ -16,7 +16,7 @@
 -- Mock fidelity is load-bearing
 -- ---------------------------------------------------------------------------
 --
--- Four pieces of this file model REAL client behaviour rather than no-op'ing it, and must not be
+-- Four pieces of this file model REAL client behavior rather than no-op'ing it, and must not be
 -- "simplified" back into blanket stubs — each one is the only reason a whole class of addon bug is
 -- catchable headlessly. All four are also why this is an extender rather than a swap: the kit's own
 -- README names the last of them as a divergence it deliberately keeps.
@@ -36,7 +36,7 @@
 --  3. THE ACETIMER QUEUE. `ScheduleTimer` as a no-op silently deletes the whole delayed-notify
 --     pipeline (_TryFireJoinNotify): the delay, the supersede check, and WipeCapture's CancelTimer
 --     all become untestable and a broken debounce looks exactly like a working one. AceTimer
---     handles land in their OWN fireable, cancellable queue — separate from the C_Timer queue the
+--     handles land in their OWN fireable, cancelable queue — separate from the C_Timer queue the
 --     panel's secure-defer hop uses, because a suite has to be able to fire one without the other.
 --
 --  4. FONT STRINGS AND TEXTURES ARE DISTINCT OBJECTS. The base answers CreateFontString /
@@ -63,7 +63,7 @@ local function build()
     mock.inGroup       = false
     mock.combat        = false
     mock.timers        = {}   -- queued C_Timer.After callbacks (fn list)
-    mock.aceTimers     = {}   -- queued AceTimer handles (fireable, cancellable)
+    mock.aceTimers     = {}   -- queued AceTimer handles (fireable, cancelable)
     mock.prints        = {}   -- captured chat output lines
     mock.hooks         = {}   -- [name] -> { fn, ... } recorded by hooksecurefunc
     mock.frames        = {}   -- every CreateFrame'd stub, creation order (+ keyed by name)
@@ -312,12 +312,12 @@ local function build()
             -- A REAL, fireable timer queue, separate from C_Timer's. AceTimer as a no-op deletes
             -- the entire delayed-notify pipeline from the test surface (fidelity note 3).
             obj.ScheduleTimer = function(_, callback, delay)
-                local handle = { callback = callback, delay = delay, cancelled = false }
+                local handle = { callback = callback, delay = delay, canceled = false }
                 mock.aceTimers[#mock.aceTimers + 1] = handle
                 return handle
             end
             obj.CancelTimer = function(_, handle)
-                if type(handle) == "table" then handle.cancelled = true end
+                if type(handle) == "table" then handle.canceled = true end
             end
 
             addons[name] = obj
@@ -326,14 +326,14 @@ local function build()
         GetAddon = function(_, name) return addons[name] end,
     }
 
-    -- Run every AceTimer scheduled so far. Cancelled handles are skipped (that is the whole point).
+    -- Run every AceTimer scheduled so far. Canceled handles are skipped (that is the whole point).
     -- Returns how many actually fired, so a test can prove N rapid joins produce exactly ONE notify.
     mock.fireAceTimers = function()
         local due = mock.aceTimers
         mock.aceTimers = {}
         local fired = 0
         for _, handle in ipairs(due) do
-            if not handle.cancelled then
+            if not handle.canceled then
                 fired = fired + 1
                 handle.callback()
             end

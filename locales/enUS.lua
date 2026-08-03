@@ -7,7 +7,7 @@
 -- Ka0s Standard (localization-§3) still mandates a locale MODULE so strings are never
 -- hardcoded at the call site and never sourced from Blizzard `_G` globals
 -- as a substitute. NS.L carries a fall-back metatable: any missing key
--- returns the key itself, so routing a literal through L[...] is behaviour-
+-- returns the key itself, so routing a literal through L[...] is behavior-
 -- preserving even before a translation exists. A future translator copies
 -- this file, changes the right-hand values, and gates it with
 -- `if GetLocale() ~= "<locale>" then return end`.

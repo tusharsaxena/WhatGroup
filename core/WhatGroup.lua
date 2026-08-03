@@ -257,12 +257,12 @@ end
 -- its first return is the search-result id the application was made against.
 -- Older code fed the appID straight into GetSearchResultInfo, which only works
 -- because for the player's own application appID == searchResultID —
--- undocumented behaviour a patch could decouple at any time.
+-- undocumented behavior a patch could decouple at any time.
 --
 -- The appID path stays as the fallback rather than being deleted: it is what
 -- shipped and is known to work at retail 120000-120007, so if
 -- GetApplicationInfo is missing, raises, or yields nothing usable, capture
--- degrades to the old behaviour instead of going dark. Both returns shapes are
+-- degrades to the old behavior instead of going dark. Both returns shapes are
 -- accepted — the multi-return form (id, appStatus, …) and a table, in case a
 -- future patch converts it like it did GetActivityInfoTable.
 function WhatGroup:CaptureGroupInfoFromApplication(appID)
@@ -383,7 +383,7 @@ function WhatGroup:ShowNotification()
     local clickLink = colorize(link("WhatGroup:show", NS.L["[Click here to view details]"]), "00FF7F")
 
     -- Every line routes through the single secret-safe printer `p` (WG-23):
-    -- the label (a constant colour-coded string) and the value are passed as
+    -- the label (a constant color-coded string) and the value are passed as
     -- SEPARATE args, so the LFG-sourced values are stringified by the seam
     -- rather than pre-concatenated through `..`/tostring at the call site.
     p(NS.L["You have joined a group!"])
@@ -498,7 +498,7 @@ function WhatGroup:_TryFireJoinNotify(reason)
     NS.Debug("Notify", "scheduling in " .. tostring(delay) .. "s (" .. reason .. ")")
     -- WG-17 (library-stack-§1): the one-shot notify delay runs through
     -- AceTimer-3.0 (the mandated timer lib). The handle is stashed in
-    -- self.notifyTimer and cancelled by WipeCapture (group-leave, master-switch
+    -- self.notifyTimer and canceled by WipeCapture (group-leave, master-switch
     -- off) via CancelTimer; the in-callback identity check below still guards a
     -- same-tick replacement of pendingInfo. (The next-frame C_Timer.After(0, …)
     -- secure-defer hops in the panel/frame are a distinct taint-avoidance idiom,
@@ -507,7 +507,7 @@ function WhatGroup:_TryFireJoinNotify(reason)
         self.notifyTimer = nil
         -- Cancel if a newer notify replaced the pending info before we fired.
         if self.pendingInfo ~= capturedInfo then
-            NS.Debug("Notify", "cancelled (superseded)")
+            NS.Debug("Notify", "canceled (superseded)")
             return
         end
         NS.Debug("Notify", "fired")

@@ -369,7 +369,7 @@ end)
 -- Geometry persistence (WG-26)
 -- ---------------------------------------------------------------------------
 
-test("frame: a fresh profile leaves the popup at its default centre anchor", function()
+test("frame: a fresh profile leaves the popup at its default center anchor", function()
     local NS, _, mock = T.bootAddon()
     NS.addon:ShowFrame()
     local point = popup(mock):GetPoint(1)

@@ -277,7 +277,7 @@ end
 -- Run once at panel-registration time. Catches missing `path`, unknown
 -- `type`, non-string `section` / `group` / `label`. Errors are PRINTED
 -- only — a broken row is an addon-author bug; the right user-visible
--- behaviour is "the option you wanted is missing AND a chat error tells
+-- behavior is "the option you wanted is missing AND a chat error tells
 -- you why," not "the entire settings panel refuses to register."
 
 local _validTypes = { bool = true, number = true }
@@ -376,7 +376,7 @@ end
 --      would leave behind — a value from a removed or renamed schema row, or
 --      one hand-edited into SavedVariables. In-game this clears AceDB's raw
 --      overrides while leaving its defaults metatable intact; the loop then
---      re-materialises the current defaults on top.
+--      re-materializes the current defaults on top.
 --   2. thread each current schema row's default back in. Table defaults are
 --      deep-copied so the profile never aliases the schema's canonical default.
 --

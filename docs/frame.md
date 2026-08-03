@@ -17,8 +17,8 @@ The pattern is borrowed from a similar reference addon that demonstrates the sam
 | Anchor | `CENTER` of UIParent, offset up by 25% of UIParent's height — the default; a position saved from a previous drag is restored over it on build (`NS.Windows.Restore("popup", …)`, WG-26) |
 | Strata | `DIALOG` |
 | Template | `BackdropTemplate` |
-| Background | dark grey `0.08, 0.08, 0.08, 0.95` — from the shared `NS.SKIN`, applied by `NS.ApplySkin` (WG-28) |
-| Border | 1px grey `0.3, 0.3, 0.3, 1.0`; the 1px `WHITE8X8` hairline geometry is the popup's own, deliberately unlike the debug console's 12px tooltip border |
+| Background | dark gray `0.08, 0.08, 0.08, 0.95` — from the shared `NS.SKIN`, applied by `NS.ApplySkin` (WG-28) |
+| Border | 1px gray `0.3, 0.3, 0.3, 1.0`; the 1px `WHITE8X8` hairline geometry is the popup's own, deliberately unlike the debug console's 12px tooltip border |
 | Drag handle | top-30px title bar; `StartMoving` / `StopMovingOrSizing` (position persisted on drag-stop via `NS.Windows.Save("popup", …)`, WG-26) |
 | Clamping | `SetClampedToScreen(true)` |
 | ESC-to-close | `tinsert(UISpecialFrames, "WhatGroupFrame")` |
@@ -36,7 +36,7 @@ A single content frame inset 14px from the title bar and 14px / 44px from the bo
 | 5 | `Playstyle:` | `info.playstyleString` (server-rendered) → `WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle]` → fallback dim em-dash |
 | 6 | `Teleport:` | 24×24 spell icon button (hidden when no spell mapped) |
 
-Labels use a fixed 72px column (`LABEL_WIDTH`) coloured gold (`|cffFFD700`); values are anchored 6px to the right of the label and use `GameFontHighlight` (white). The 18px row gap (`yGap`) gives a clean vertical rhythm. The content frame's size is fully determined by its TOPLEFT + BOTTOMRIGHT anchors against `f` (insets `14, -38` and `-14, 44`), so no explicit `SetHeight` is needed — the row stack just has to fit inside that natural extent.
+Labels use a fixed 72px column (`LABEL_WIDTH`) colored gold (`|cffFFD700`); values are anchored 6px to the right of the label and use `GameFontHighlight` (white). The 18px row gap (`yGap`) gives a clean vertical rhythm. The content frame's size is fully determined by its TOPLEFT + BOTTOMRIGHT anchors against `f` (insets `14, -38` and `-14, 44`), so no explicit `SetHeight` is needed — the row stack just has to fit inside that natural extent.
 
 ## `MakeLabel` helper
 

@@ -10,7 +10,7 @@ The schema rows and the data seams that read and write them live in `settings/Sc
 |---|---|
 | Settings panel widget | `Helpers.RenderSchema(ctx, "general", AFTER_GROUP, PAIR_WITH)` → `Helpers.RenderRows` → `Helpers.RenderField` → the library's CheckBox / Slider makers; each maker appends a refresher closure to **`ctx.refreshers`** (per panel, not a global registry) |
 | `/wg list` | `Sl:CliList()` (`LibKa0s-Slash-1.0`) groups the schema by `section` — this addon's `groupKey`, because these rows carry no `page` — and prints `path = formattedValue` per row |
-| `/wg get <path>` | `Sl:CliGet` → `Helpers.FindSchema(path)` → `lib.FormatValue`, which honours `def.fmt` for numbers |
+| `/wg get <path>` | `Sl:CliGet` → `Helpers.FindSchema(path)` → `lib.FormatValue`, which honors `def.fmt` for numbers |
 | `/wg set <path> <value>` | `Sl:CliSet` → type-aware parse → `Helpers.Set(path, value)` (orchestrated: writes value, logs one `[Set]` line, fires `onChange`, runs `RefreshAll` in one call) |
 | AceDB defaults | `Settings.BuildDefaults()` walks the schema, threads each row's `default` into the right slot under `profile.*` |
 | `/wg reset <path>`, `/wg resetall` + Defaults button | **One row:** `Sl:CliReset` → `Helpers.ApplyDefault(row)` — the ordinary `Set` path, no confirmation. **Everything:** `/wg resetall` and the Defaults button both `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreAllDefaults()` (wipe `db.profile` to prune orphans, re-thread each row's `default` via `Set` with `{skipRefresh, skipLog, skipOnChange}`, then one final `RefreshAll`) |

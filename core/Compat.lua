@@ -56,7 +56,7 @@ function Compat.GetSpellLink(spellID)
     return nil
 end
 
---- Whether the player has learned the spell. Normalised to a plain
+--- Whether the player has learned the spell. Normalized to a plain
 --- boolean so callers can use it directly in the teleport known/unknown
 --- branch. Returns false when the API is unavailable.
 function Compat.IsSpellKnown(spellID)

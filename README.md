@@ -20,7 +20,7 @@ Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Set
 *   The **Ka0s WhatGroup** page now shows up in the game's AddOns settings list the moment you log in — you no longer have to run `/wg config` first to make it appear.
 *   The chat message and popup now appear **instantly** when you join a group. Prefer a short pause? Set a delay under **Notify**.
 *   A new **on-screen debug window** — open or close it with `/wg debug` (or the **Debug console** box in **General**). Debug output goes there instead of cluttering your chat.
-*   Output from `/wg list`, `/wg get`, and `/wg set` is now **colour-coded** and easier to read at a glance.
+*   Output from `/wg list`, `/wg get`, and `/wg set` is now **color-coded** and easier to read at a glance.
 *   The **Defaults** button now does a full, clean reset — no leftover settings survive it.
 *   Updated for game patch **12.0.7**.
 
@@ -80,7 +80,7 @@ The group info is only remembered for your current play session and clears when 
 
 ## Bundled libraries
 
-Everything this addon needs ships inside it — nothing else has to be installed. Alongside Ace3 and LibSharedMedia-3.0, it bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.5.0 (MIT), the shared Ka0s library behind the chat printer, the debug console, the `/wg` command line and the settings panel. Its licence travels with the code at `libs/LibKa0s/LICENSE`.
+Everything this addon needs ships inside it — nothing else has to be installed. Alongside Ace3 and LibSharedMedia-3.0, it bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.5.0 (MIT), the shared Ka0s library behind the chat printer, the debug console, the `/wg` command line and the settings panel. Its license travels with the code at `libs/LibKa0s/LICENSE`.
 
 ## FAQ
 
@@ -115,7 +115,7 @@ All bugs, feature requests, and outstanding work are tracked at [https://github.
 
 | Version | Date | Highlights |
 |---|---|---|
-| 1.3.0 | 2026-07-12 | The Settings page now appears in the AddOns list as soon as you log in.<br>The chat message and popup appear instantly on join (add a delay under Notify if you prefer).<br>New on-screen debug window, toggled with `/wg debug`; debug output no longer goes to chat.<br>Colour-coded `/wg list`, `/wg get`, and `/wg set` output.<br>The Defaults button now performs a full, clean reset.<br>Updated for game patch 12.0.7. |
+| 1.3.0 | 2026-07-12 | The Settings page now appears in the AddOns list as soon as you log in.<br>The chat message and popup appear instantly on join (add a delay under Notify if you prefer).<br>New on-screen debug window, toggled with `/wg debug`; debug output no longer goes to chat.<br>Color-coded `/wg list`, `/wg get`, and `/wg set` output.<br>The Defaults button now performs a full, clean reset.<br>Updated for game patch 12.0.7. |
 | 1.2.0 | 2026-05-03 | Added the Settings panel and the `/wg` slash commands.<br>Added a teleport button to the popup, grayed out until you learn the spell.<br>Fixed a logout error, stale notification timers, and the wrong teleport spell and playstyle showing on real group joins. |
 | 1.1.0 | 2026-04-24 | Updated for a new game patch. |
 | 1.0.0 | 2026-03-19 | Initial release: a chat message and popup whenever you join a group through the Premade Group Finder. |

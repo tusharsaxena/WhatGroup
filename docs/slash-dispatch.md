@@ -1,6 +1,6 @@
 # Slash dispatch
 
-`/wg` and `/whatgroup` are aliases for the same command set. The dispatcher, the help renderer, the schema CLI and the type-aware value parser are **LibKa0s-Slash-1.0**'s (`libs/LibKa0s/Slash.lua`). `settings/Slash.lua` — last in the TOC — supplies the descriptor, owns the `COMMANDS` table, and implements the verbs whose behaviour is genuinely this addon's.
+`/wg` and `/whatgroup` are aliases for the same command set. The dispatcher, the help renderer, the schema CLI and the type-aware value parser are **LibKa0s-Slash-1.0**'s (`libs/LibKa0s/Slash.lua`). `settings/Slash.lua` — last in the TOC — supplies the descriptor, owns the `COMMANDS` table, and implements the verbs whose behavior is genuinely this addon's.
 
 ## Registration
 
@@ -49,7 +49,7 @@ local COMMANDS = {
 
 Each entry is a **positional triple** `{name, description, fn(rest)}` — the shape the library reads (`entry[1]` / `[2]` / `[3]`); a table of named fields is silently invisible to it. The handler takes `rest` **alone**, never `self` plus `rest`: `entry[3](rest)` is the only call the library makes. `findCommand` linear-scans by `entry[1]`; an unknown verb prints `unknown command '<name>'` and then the help index.
 
-Descriptions route through `NS.L` at **declaration** rather than at render, because the library renders the table verbatim. `NS.L`'s metatable answers an unknown key with the key itself, so this is behaviour-preserving today and the translator's surface tomorrow (localization-§1).
+Descriptions route through `NS.L` at **declaration** rather than at render, because the library renders the table verbatim. `NS.L`'s metatable answers an unknown key with the key itself, so this is behavior-preserving today and the translator's surface tomorrow (localization-§1).
 
 The order in the table is the order of both `/wg help` and the settings landing page — `Sl:HelpRows` / `Sl:LandingRows` walk it directly. So adding a command = one row, in whichever order reads sensibly.
 
@@ -75,24 +75,24 @@ local runShow, runTest, runConfig, runDebug, runReset, runResetAll
 - No trailing colon on any printed line (slash-commands-§4 / WG-19).
 - The version comes from `version()` in `settings/Slash.lua` — TOC metadata via `C_AddOns.GetAddOnMetadata` first so it cannot drift from the packaged manifest, falling back to the in-code `WhatGroup.VERSION`.
 
-## Command behaviour
+## Command behavior
 
 Library verbs delegate to the instance; host verbs are the file-local functions at the bottom of `settings/Slash.lua`.
 
-| Command | Handler | Behaviour |
+| Command | Handler | Behavior |
 |---|---|---|
 | `/wg` (no args) | `Sl:PrintHelp` (library) | Print the header + every command row. |
 | `/wg help` | `Sl:PrintHelp` (library) | Same. |
 | `/wg show` | `runShow` (host) | Open the popup if `pendingInfo` is set. Otherwise print a hint pointing at `/wg test`. |
 | `/wg test` | `runTest` → `WhatGroup:RunTest()` (host) | Inject synthetic `pendingInfo` (Mythic+ Stonevault) and run `ShowNotification()` + `ShowFrame()`. Mirrors the panel's Test button via the same `RunTest()` method, so the two affordances stay in lockstep. |
-| `/wg config` | `runConfig` (host) → `Helpers.OpenOptionsPanel` (library) | Calls the idempotent `Settings.Register()` fallback, then hands off. The combat refusal and the sidebar unfold both live inside `OpenOptionsPanel`, not in this dispatcher, so *every* caller is refused — the verb, a `/run` script, a future internal caller (options-ui-§2 / WG-25). Under `InCombatLockdown()` it prints the canonical grey notice *"cannot open settings during combat — Blizzard's category-switch is protected"* and returns; no defer-replay. Otherwise it opens the addon category and expands the subcategory tree so General is one click away. |
+| `/wg config` | `runConfig` (host) → `Helpers.OpenOptionsPanel` (library) | Calls the idempotent `Settings.Register()` fallback, then hands off. The combat refusal and the sidebar unfold both live inside `OpenOptionsPanel`, not in this dispatcher, so *every* caller is refused — the verb, a `/run` script, a future internal caller (options-ui-§2 / WG-25). Under `InCombatLockdown()` it prints the canonical gray notice *"cannot open settings during combat — Blizzard's category-switch is protected"* and returns; no defer-replay. Otherwise it opens the addon category and expands the subcategory tree so General is one click away. |
 | `/wg version` | `Sl:CliVersion` (library) | Print `[WG] v<version>` on its own line (slash-commands-§3 / WG-29), through the host's `version` seam. |
 | `/wg list` | `Sl:CliList` (library) | Green `Available settings` header, then rows grouped in **declaration order** under azure `[section]` headings — the descriptor's `groupKey` returns `row.section`, because these rows carry no `page` field the library's default would have read. Each row is `lib.FormatKV`: gold path, white value. |
 | `/wg get <path>` | `Sl:CliGet` (library) | `findRow` (→ `Helpers.FindSchema`) then the same `FormatKV` echo, so `key = value` reads identically to `/wg list` and the `/wg set` echo. Number rows render through the row's `fmt` (e.g. `"%.1fs"` → `1.5s`). Prints `Setting not found: <path>` for unknown paths, and `Usage: /wg get <path>` for none. |
 | `/wg set <path> <value>` | `Sl:CliSet` (library) | Type-aware parse (see the adapter below), then `Helpers.Set(path, value)` — the orchestrated single write-path that writes the value, fires the row's `onChange` and refreshes panel widgets. The echo **re-reads** the stored value rather than repeating what was parsed, so a clamped number is visible. Usage line is `Usage: /wg set <path> <value>  (try /wg list)`. |
 | `/wg reset <path>` | `runReset` (host) → `Sl:CliReset` (library) | Reset **one** row to its default via `Helpers.ApplyDefault`, no confirmation, and echo the restored value. A bare `/wg reset` prints the deprecation notice below instead. |
 | `/wg resetall` | `runResetAll` (host) → `StaticPopup_Show("WHATGROUP_RESET_ALL")` → `Helpers.RestoreAllDefaults()` | Show a confirm popup; on accept, wipe `db.profile` (prunes orphaned keys) then re-thread every row's `default`, and refresh panel widgets once. With no `StaticPopup_Show` or `Settings.EnsureResetPopup` (headless) it calls `Helpers.RestoreAllDefaults()` directly, unconfirmed. Per-row `onChange` is skipped — the default baseline is already the reconciled state. The Defaults button in the General sub-page header (and Blizzard's own footer control, which the library forwards to it) shows the same popup, so all paths share one OnAccept body. |
-| `/wg debug` / `/wg debug on\|off` | `runDebug` (host) | Bare `/wg debug` **toggles the on-screen debug console window** (`NS.DebugLog:Toggle()`), state untouched; `/wg debug on\|off` sets the session-only `NS.State.debug` flag through the single `NS.DebugLog:SetEnabled` seam (colour-coded chat ack + `[Debug] logging enabled/disabled` console line). The flag is off on every login, never persisted, and **not** a schema row (WG-12), so there's no `/wg set debug`. The General panel's "Debug console" checkbox is *not* a second toggle for it — that box is a session-only affordance that shows/hides the console **window** only. Debug output (`NS.Debug(tag, …)`) renders in the console, not chat — see [debug-console.md](./debug-console.md). |
+| `/wg debug` / `/wg debug on\|off` | `runDebug` (host) | Bare `/wg debug` **toggles the on-screen debug console window** (`NS.DebugLog:Toggle()`), state untouched; `/wg debug on\|off` sets the session-only `NS.State.debug` flag through the single `NS.DebugLog:SetEnabled` seam (color-coded chat ack + `[Debug] logging enabled/disabled` console line). The flag is off on every login, never persisted, and **not** a schema row (WG-12), so there's no `/wg set debug`. The General panel's "Debug console" checkbox is *not* a second toggle for it — that box is a session-only affordance that shows/hides the console **window** only. Debug output (`NS.Debug(tag, …)`) renders in the console, not chat — see [debug-console.md](./debug-console.md). |
 
 `Helpers.RestoreAllDefaults` deliberately **overrides** the library member of the same name (`settings/OptionsSetup.lua:194`, LIBKA0S-08): the library's is row-by-row with no profile wipe and no confirmation. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched.
 

@@ -86,7 +86,7 @@ If your handler is defined below the table, add it to the forward-declaration li
 local runShow, runTest, runConfig, runDebug, runReset, runResetAll, runClear   -- ← add yours
 ```
 
-Route the description through `NS.L[...]` at declaration, as the existing rows do — the library renders the table verbatim, so wrapping it later is not an option, and the metatable fallback makes it behaviour-preserving today (localization-§1). Add the key to `locales/enUS.lua` alongside the others.
+Route the description through `NS.L[...]` at declaration, as the existing rows do — the library renders the table verbatim, so wrapping it later is not an option, and the metatable fallback makes it behavior-preserving today (localization-§1). Add the key to `locales/enUS.lua` alongside the others.
 
 The order in `COMMANDS` is the order in `/wg help` **and** on the landing page. Pick a slot that reads sensibly.
 
@@ -267,7 +267,7 @@ autoShow=…, inGroup=…, hasPending=…)` — so a pasted log is self-identify
   for "the LFG sequence is misordered".
 - **`[Roster]`** → `inGroup / wasInGroup / hasPending` on in-group transitions
   only (no-op ticks suppressed) — for "notification fires at the wrong time".
-- **`[Notify]`** → `scheduling in Ns (reason)` → `fired` / `cancelled
+- **`[Notify]`** → `scheduling in Ns (reason)` → `fired` / `canceled
   (superseded)` / skip lines, and **`[Frame]`** → `popup shown "…"` /
   `teleport spellID=… known=…` — for "popup or chat link came up empty". A
   `teleport spellID=nil` with a non-nil `map=` means the dungeon needs a row in

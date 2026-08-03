@@ -43,24 +43,24 @@ local function buildFrame()
     f:SetMovable(true)
     f:EnableMouse(true)
     f:SetClampedToScreen(true)
-    -- Restore the saved position over the default centre if the player has moved
+    -- Restore the saved position over the default center if the player has moved
     -- the popup before (WG-26; no-op on a fresh profile). Anchored offsets for
     -- the secure teleport button below are computed relative to f, so they stay
     -- aligned wherever f ends up.
     NS.Windows.Restore("popup", f)
     f:Hide()
 
-    -- The whole look — backdrop AND colours — now comes from LibKa0s-Core-1.0's shared SKIN
+    -- The whole look — backdrop AND colors — now comes from LibKa0s-Core-1.0's shared SKIN
     -- through NS.ApplySkin (standalone-windows: the Ka0s window edge is normative, and a window
     -- MUST NOT draw one that diverges from it). The popup's own 1px hairline is what the shared
-    -- edge already is, so the geometry is unchanged; what it gains is the 1px grey inner highlight
-    -- ApplySkin synthesizes, and a black outer border in place of the old grey one.
+    -- edge already is, so the geometry is unchanged; what it gains is the 1px gray inner highlight
+    -- ApplySkin synthesizes, and a black outer border in place of the old gray one.
     --
     -- `f.title` and `f.divider` are assigned first, below, because ApplySkin tints whichever of
     -- them the frame carries and skips the ones it does not — which is why the call itself sits
     -- after the header rather than here. The title's own |cffFFD700 span survives the tint (an
-    -- inline colour code wins over SetTextColor for its span), and the gold ApplySkin sets is the
-    -- colour GameFontNormalLarge already renders in, so the header reads exactly as before.
+    -- inline color code wins over SetTextColor for its span), and the gold ApplySkin sets is the
+    -- color GameFontNormalLarge already renders in, so the header reads exactly as before.
 
     -- Title bar (drag handle)
     local titleBar = CreateFrame("Frame", nil, f)
@@ -79,7 +79,7 @@ local function buildFrame()
     titleText:SetText("|cffFFD700" .. L["WhatGroup"] .. "|r — " .. L["Group Info"])
     f.title = titleText
 
-    -- Separator line under title. The colour is set by ApplySkin below (0.24, 0.24, 0.27, 0.85 —
+    -- Separator line under title. The color is set by ApplySkin below (0.24, 0.24, 0.27, 0.85 —
     -- the normative Ka0s divider), so no literal here.
     local sep = f:CreateTexture(nil, "ARTWORK")
     sep:SetHeight(1)
@@ -164,7 +164,7 @@ local function buildFrame()
     -- leaving taint that surfaced on Logout. Deferring it to here
     -- means the entry only exists once the player has actually opened
     -- the popup, by which point Blizzard's GameMenu has already
-    -- initialised its button callbacks in a clean context.
+    -- initialized its button callbacks in a clean context.
     tinsert(UISpecialFrames, "WhatGroupFrame")
 
     fields = {

@@ -120,7 +120,7 @@ local O = lib:New({
 
     -- Runs once, before the page builders. settings/Schema.lua's own shape check, which PRINTS its
     -- errors rather than raising — a broken row is an addon-author bug, and the right user-visible
-    -- behaviour is "the option you wanted is missing AND a chat error tells you why".
+    -- behavior is "the option you wanted is missing AND a chat error tells you why".
     validate = function() host.ValidateSchema() end,
 
     -- The landing page's body — the logo, the TOC notes line and the command list — is the host's
@@ -131,8 +131,8 @@ local O = lib:New({
     -- absence:
     --
     --   colorDecode / colorEncode — the schema is bool and number only, so there is no stored
-    --     colour shape to declare.
-    --   getLSM / scheduleTimer    — no media pickers and no colour pickers, and the one slider is
+    --     color shape to declare.
+    --   getLSM / scheduleTimer    — no media pickers and no color pickers, and the one slider is
     --     release-only, so nothing reaches either.
     --   skipRestoreAll / afterRestoreAll — the global reset is host-owned (see below), so the
     --     library's row-by-row RestoreAllDefaults is not on the path.

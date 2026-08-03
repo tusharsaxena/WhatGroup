@@ -63,7 +63,7 @@ LootHistory reference; WhatGroup only needs to conform.
 | `Init` | `WhatGroup.lua` `OnEnable` + `WhatGroup:LogState` | `ready schemaVersion=1 enabled=true notify.delay=1.5s autoShow=true inGroup=false hasPending=false` |
 | `Migrate` | `Database.lua` `RunMigrations` (only if version changes) | `v1 -> v2` |
 | `Invite` | `WhatGroup.lua` inviteaccepted merge | `accepted appID=N → "<title>" map=M (source=fresh)` |
-| `Notify` | `WhatGroup.lua` `_TryFireJoinNotify` + timer | `scheduling in 1.5s (ROSTER transition)`; `fired`; `cancelled (superseded)` |
+| `Notify` | `WhatGroup.lua` `_TryFireJoinNotify` + timer | `scheduling in 1.5s (ROSTER transition)`; `fired`; `canceled (superseded)` |
 | `Frame` | `WhatGroup_Frame.lua` ShowFrame / teleport | `popup shown "<title>"`; `teleport spellID=445269 known=true` |
 | `Reset` | `WhatGroup_Settings.lua` RestoreDefaults | `restored 10 settings to defaults` |
 | `Test` | `WhatGroup.lua` `RunTest` | `synthetic capture injected "<title>"` |

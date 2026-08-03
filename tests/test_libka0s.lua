@@ -2,7 +2,7 @@
 -- registers, that each descriptor is well-formed, that the degraded install answers rather than
 -- errors, and the `L`-trap guards (testing-§8).
 --
--- The library's own behaviour is tested where it lives. What is pinned here is the WIRING, and
+-- The library's own behavior is tested where it lives. What is pinned here is the WIRING, and
 -- above all the two things nothing else can see: that the modules are really present (a seam
 -- measuring its own fallback stub is green and proves nothing), and that no descriptor was handed
 -- this addon's locale table.
@@ -67,8 +67,8 @@ end)
 -- ---------------------------------------------------------------------------
 
 test("core: the published seams ARE the library's, not a lookalike", function()
-    -- Identity, not behaviour. Two implementations that agree today is exactly the drift the
-    -- extraction exists to end, and a behavioural assertion cannot tell them apart.
+    -- Identity, not behavior. Two implementations that agree today is exactly the drift the
+    -- extraction exists to end, and a behavioral assertion cannot tell them apart.
     local NS, env = T.newAddon()
     local core = env.LibStub("LibKa0s-Core-1.0", true)
     assertEqual(NS.SafeToString, core.SafeToString)
@@ -188,7 +188,7 @@ end)
 test("debuglog: the gated sink survives a format its arguments cannot satisfy (WG-22)", function()
     -- The library gained this at DebugLog minor 7, driven by this addon: `%d` handed the
     -- stringified sentinel used to raise inside the sink. Pinned here as well as upstream, because
-    -- it is the behaviour WhatGroup's own hand-written sink guaranteed and would otherwise have
+    -- it is the behavior WhatGroup's own hand-written sink guaranteed and would otherwise have
     -- lost on adoption.
     local NS = T.newAddon()
     NS.State.debug = true
@@ -252,7 +252,7 @@ end)
 
 test("options: a panel write takes the addon's single write seam", function()
     -- options-ui-§1: a checkbox must take exactly the path `/wg set` takes — same [Set] debug line,
-    -- same row onChange, same refresh — or there are two behaviours and only one gets tested.
+    -- same row onChange, same refresh — or there are two behaviors and only one gets tested.
     local NS, _, mock = T.enableAddon()
     NS.State.debug = true
     local panel = mock.frames["WhatGroupGeneralPanel"]
@@ -485,15 +485,15 @@ test("degraded: every DebugLog member the addon calls still answers", function()
 end)
 
 test("degraded: the console stub copies NO library formatter", function()
-    -- debug-logging-§3: hand-copying the exact colour codes whose seven-way drift the extraction
+    -- debug-logging-§3: hand-copying the exact color codes whose seven-way drift the extraction
     -- exists to end is the one duplicate the standard most specifically forbids. The stub must not
     -- carry FormatPlain/FormatColored at all.
     local NS = T.newAddon{ skip = NO_LIBKA0S }
     assertNil(NS.DebugLog.FormatPlain, "the stub must not reimplement the plain formatter")
-    assertNil(NS.DebugLog.FormatColored, "nor the coloured one")
+    assertNil(NS.DebugLog.FormatColored, "nor the colored one")
     local src = readFile("core/DebugLogSetup.lua")
-    assertNil(src:match("6f8faf"), "no console colour code may appear in the seam file")
-    assertNil(src:match("c9a66b"), "nor the tag colour")
+    assertNil(src:match("6f8faf"), "no console color code may appear in the seam file")
+    assertNil(src:match("c9a66b"), "nor the tag color")
 end)
 
 test("degraded: the schema loads WHOLE with the options library absent (options-ui-§1)", function()

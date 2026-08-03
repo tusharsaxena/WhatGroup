@@ -30,7 +30,7 @@ handful of facts in the descriptor below.
   `NS.SafeToString` (`NS.SafeToString` is published by `core/CoreSetup.lua`;
   `NS.Print` is `core/WhatGroup.lua`'s reclaim of the printer CoreSetup publishes
   as `NS.Util.print`, which AceConsole's `:Print` mixin would otherwise clobber);
-  never captured references, so a later re-publish is honoured.
+  never captured references, so a later re-publish is honored.
 - `initSummary` — `WhatGroup:InitSummary()`. The library owns *when* it is
   emitted; only the addon knows what it says.
 - `onVisibilityChanged` — calls `Settings.Helpers.RefreshAll()` so the General
@@ -67,7 +67,7 @@ Everything hangs off the shared namespace (`local addonName, NS = ...`):
     frame** (false before it exists), so the Settings panel can read it on every
     refresh without forcing the console into existence.
   - `D:SetEnabled(on)` / `D:IsEnabled()` — the **single state seam** (see below).
-  - `D:RefreshHeader()` — re-render the header toggle label/colour.
+  - `D:RefreshHeader()` — re-render the header toggle label/color.
   - `D:Add(tag, msg)` — raw append, **ungated** (used for the enable/disable
     bracket lines). Routes `msg` through `safeToString`.
   - `D:Clear()` / `D:ShowCopy()` / `D:CopyText()` — Clear and Copy actions, plus
@@ -99,14 +99,14 @@ Everything hangs off the shared namespace (`local addonName, NS = ...`):
 
 ## The window
 
-The library builds it; this section records the behaviour a developer needs, not
+The library builds it; this section records the behavior a developer needs, not
 an implementation this repo owns.
 
 - `WhatGroupDebugWindow` — a `BackdropTemplate` frame on **`DIALOG`** strata
   (the same strata `WhatGroupFrame` uses), **700×344**, movable, clamped,
   registered in `UISpecialFrames` (ESC closes). Skinned with the shared
-  `LibKa0s-Core-1.0` skin: the flat 1px black border, the 1px grey inner
-  highlight, the gold title and the grey divider — the same edge
+  `LibKa0s-Core-1.0` skin: the flat 1px black border, the 1px gray inner
+  highlight, the gold title and the gray divider — the same edge
   `WhatGroupFrame` now wears.
 - **It does not remember its position.** The library owns the drag bar and
   exposes neither it nor a geometry hook, so `NS.Windows` (WG-26) has nothing to
@@ -146,10 +146,10 @@ an implementation this repo owns.
 
 Each line is `HH:MM:SS | [Tag] message`, in the library's format:
 
-- Console view: the timestamp and the `[tag]` carry the library's colour codes;
+- Console view: the timestamp and the `[tag]` carry the library's color codes;
   the `|` separator and the message stay default white.
-- Copy buffer (plain): identical text, **no colour codes**, so copied logs paste
-  clean. The two pure formatters keep the coloured and plain strings from
+- Copy buffer (plain): identical text, **no color codes**, so copied logs paste
+  clean. The two pure formatters keep the colored and plain strings from
   drifting.
 
 Tags currently in use:
@@ -161,7 +161,7 @@ Tags currently in use:
   `id=… captured "…" (activity=… map=… m+=…)`), `Capture` (no-op / wipe
   decisions), `LFG` (status events), `Invite` (accepted, with the winning
   `source=fresh|queued`), `Roster` (in-group transitions only), `Notify`
-  (`scheduling` / `fired` / `cancelled` / skip), `ChatLink`, `Test`.
+  (`scheduling` / `fired` / `canceled` / skip), `ChatLink`, `Test`.
 - **Frame** (`modules/Frame.lua`) — `Frame` (`popup shown …`, `teleport
   spellID=… known=…`).
 - **Settings** (`settings/Schema.lua`) — `Set` (the one canonical
@@ -194,7 +194,7 @@ and it is the addon's, not the library's:
 - **Logging and the window are independent** — capture runs even with the console
   closed, so a bug can be reproduced first and the log opened after.
 - **Single write path**: `D:SetEnabled(on)` writes the flag through the
-  descriptor's `setEnabled` → `RefreshHeader` → **colour-coded** chat ack through
+  descriptor's `setEnabled` → `RefreshHeader` → **color-coded** chat ack through
   the descriptor's `print`, i.e. `NS.Print` (`debug logging |cff40ff40ON|r` /
   `|cffff4040OFF|r` — ON green `40ff40`, OFF red `ff4040`, matching the title-bar
   toggle) → a `[Debug] logging enabled/disabled` **console** bracket line at both
@@ -238,7 +238,7 @@ Copy `EditBox`.
 
 `core/DebugLogSetup.lua` degrades rather than errors. The stub answers **every**
 member the addon calls, and the **flag still works** — `NS.State.debug` is this
-addon's, so `/wg debug on` still moves it and still prints the colour-coded ack.
+addon's, so `/wg debug on` still moves it and still prints the color-coded ack.
 What is lost is the window, and the stub says so once per entry point: enabling,
 asking for the window, and asking for the copy box each spend their own announce
 token, phrased as `NS.LIBKA0S_MISSING` plus the consequence. `ConsoleCheckbox()`
@@ -265,10 +265,10 @@ log each settings change once at the `Helpers.Set` seam (debug-logging-§10).
 
 ## Tests
 
-`tests/test_debuglog.lua` covers the behaviour, wherever it now lives: the pure
+`tests/test_debuglog.lua` covers the behavior, wherever it now lives: the pure
 formatters, the `NS.FONT_MONO` constant, the window-vs-flag `/wg debug`
 semantics, the header-toggle flip, the enable/disable bracket lines, the `[Init]`
-summary's content and its position after the bracket, the colour-coded ack, the
+summary's content and its position after the bracket, the color-coded ack, the
 zero-write-when-off contract, the `%d`-with-a-secret path, the one-`[Set]`-per-change
 and one-`[Reset]`-per-wipe content rules, and that the §11 scrollbar/counter sync
 stays a safe no-op under the mock.
@@ -280,5 +280,5 @@ composed window title are unchanged, that the flag stays the addon's, that
 prose rather than to their own keys, and that the degraded stub answers every
 member while copying no formatter.
 
-Run with `lua tests/run.lua`. The in-game scrollbar and counter behaviour itself
+Run with `lua tests/run.lua`. The in-game scrollbar and counter behavior itself
 is a manual check — [smoke-tests.md](./smoke-tests.md) row 2.8b-i.

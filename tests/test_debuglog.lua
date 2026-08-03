@@ -28,7 +28,7 @@ test("debuglog: FormatPlain tolerates a nil tag", function()
     assertEqual(NS.DebugLog.FormatPlain("15:04:43", nil, "hi"), "15:04:43 | [] hi")
 end)
 
-test("debuglog: FormatColored colours timestamp + tag; pipe and content default", function()
+test("debuglog: FormatColored colors timestamp + tag; pipe and content default", function()
     local NS = T.newAddon()
     assertEqual(NS.DebugLog.FormatColored("15:04:43", "Capture", "title=X"),
         "|cff6f8faf15:04:43|r || |cffc9a66b[Capture]|r title=X")
@@ -163,7 +163,7 @@ end)
 
 -- ── message coverage / coalescing (debug-logging-§8/§9/§10) ────────────────
 
--- Count buffer lines containing a literal fragment (plain-text buffer, no colours).
+-- Count buffer lines containing a literal fragment (plain-text buffer, no colors).
 local function countLines(NS, fragment)
     local n = 0
     for _, line in ipairs(NS.DebugLog.buffer) do
@@ -204,9 +204,9 @@ test("debuglog: InitSummary leads with the debug-logging-§5 identity fields, th
     end
 end)
 
-test("debuglog: enable ack is colour-coded green/red matching the header (debug-logging-§5)", function()
+test("debuglog: enable ack is color-coded green/red matching the header (debug-logging-§5)", function()
     -- The chat ack routes through NS.Print (prefixed). Assert the state word
-    -- carries the mandated colour codes: ON 40ff40, OFF ff4040.
+    -- carries the mandated color codes: ON 40ff40, OFF ff4040.
     local NS, _, mock = T.newAddon()
     NS.State.debug = false
     debugCmd(NS, "on")

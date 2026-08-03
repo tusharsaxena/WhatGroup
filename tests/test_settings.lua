@@ -155,7 +155,7 @@ end)
 test("settings: ValidateSchema counts each defect on a broken row", function()
     local NS, _, mock = T.newAddon()
     local S = NS.addon.Settings.Schema
-    S[#S + 1] = { type = "colour", label = 42 }   -- no path, bad type/section/group/label
+    S[#S + 1] = { type = "color", label = 42 }   -- no path, bad type/section/group/label
     local mark = #mock.prints
     assertEqual(NS.addon.Settings.Helpers.ValidateSchema(), 5,
         "path, type, section, group and label are each reported")
@@ -172,7 +172,7 @@ end)
 test("settings: a broken row does not stop the panel registering", function()
     local NS, _, mock = T.bootAddon()
     local S = NS.addon.Settings.Schema
-    S[#S + 1] = { type = "colour", label = 42 }
+    S[#S + 1] = { type = "color", label = 42 }
     NS.addon.Settings.Register()
     assertEqual(#mock.categories, 2,
         "a bad row is an author bug: report it, but still ship the panel")

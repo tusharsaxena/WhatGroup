@@ -365,7 +365,7 @@ test("lifecycle: a bare /wg reset explains the change rather than resetting or e
         if mock.prints[i]:find("/wg resetall", 1, true) then pointed = true end
     end
     assertTrue(said, "it says what changed")
-    assertTrue(pointed, "and names the replacement for the old behaviour")
+    assertTrue(pointed, "and names the replacement for the old behavior")
 end)
 
 test("lifecycle: /wg resetall asks for confirmation rather than resetting outright", function()

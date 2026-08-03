@@ -6,7 +6,7 @@
 -- list/get/set/reset schema verbs. What stayed: the COMMANDS table itself — a host owns its verbs,
 -- and the table crossing to the library as plain DATA is what keeps an options library and a slash
 -- library from having to resolve each other (slash-commands-§3) — plus the five verbs whose
--- behaviour is genuinely this addon's: `show`, `test`, `config`, `resetall` and `debug`.
+-- behavior is genuinely this addon's: `show`, `test`, `config`, `resetall` and `debug`.
 --
 -- TOC slot: last. It reads Settings.Helpers (settings/OptionsSetup.lua) and publishes
 -- WhatGroup.COMMANDS, which settings/Panel.lua's landing page renders — at render time, not at
@@ -40,7 +40,7 @@ local runShow, runTest, runConfig, runDebug, runReset, runResetAll
 --
 -- Descriptions route through NS.L at DECLARATION rather than at render, because the library renders
 -- the table verbatim. The metatable fallback answers each key with itself, so this is
--- behaviour-preserving today and the translator's surface tomorrow (localization-§1).
+-- behavior-preserving today and the translator's surface tomorrow (localization-§1).
 local COMMANDS = {
     {"help",     L["List available commands"],
         function() Sl:PrintHelp() end},

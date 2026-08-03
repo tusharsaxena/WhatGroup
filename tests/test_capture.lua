@@ -214,7 +214,7 @@ test("capture: an 'invited' status changes nothing — it waits for the accept",
     assertNil(addon.pendingInfo, "nothing is committed until the invite is accepted")
 end)
 
-test("capture: an unrecognised status is ignored", function()
+test("capture: an unrecognized status is ignored", function()
     local NS, _, mock = T.bootAddon()
     local addon = NS.addon
     mock.searchResults[10] = baseInfo({ activityIDs = { 500 } })

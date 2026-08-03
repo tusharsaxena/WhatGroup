@@ -110,7 +110,7 @@ NS.SafeToString = lib.SafeToString
 -- two-argument form let each window carry its own border geometry, which is precisely how the
 -- collection's five windows stopped reading as one suite of addons. Supersedes the WG-28 accepted
 -- deviation recorded in docs/pending/LEDGER.md (PLAN-02): the shared table now carries the backdrop
--- fields as well as the colours, so there is nothing left to justify keeping apart.
+-- fields as well as the colors, so there is nothing left to justify keeping apart.
 NS.SKIN            = lib.SKIN
 NS.ApplySkin       = lib.ApplySkin
 NS.MakeCloseButton = lib.MakeCloseButton

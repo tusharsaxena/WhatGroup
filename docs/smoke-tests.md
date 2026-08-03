@@ -66,9 +66,9 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.6 | `/wg set notify.delay 2.5` | Prints `notify.delay = 2.5s`. Re-running `/wg get notify.delay` confirms. |
 | 2.7 | `/wg set notify.enabled toggle` | Toggles bool — confirm with `/wg get notify.enabled`. Run twice to restore. |
 | 2.8 | `/wg debug` | **Opens the debug console window** (`Ka0s WhatGroup — Debug`, 700×344, monospace). Run again to close it. State is untouched — the header toggle still reads `Debug: OFF`. |
-| 2.8a | `/wg debug on` then `/wg debug off` | Each prints `[WG] debug logging ON`/`OFF` in chat with the state word **colour-coded** (ON green `40ff40`, OFF red `ff4040`, matching the title-bar toggle) **and** appends a `[Debug] logging enabled`/`disabled` line inside the console. `on` also appends one `[Init]` line right after the bracket — `WhatGroup v<ver>, schema v1, profile '<name>'` followed by the current runtime state (`enabled`, `notify.delay`, `autoShow`, `inGroup`, `hasPending`). |
+| 2.8a | `/wg debug on` then `/wg debug off` | Each prints `[WG] debug logging ON`/`OFF` in chat with the state word **color-coded** (ON green `40ff40`, OFF red `ff4040`, matching the title-bar toggle) **and** appends a `[Debug] logging enabled`/`disabled` line inside the console. `on` also appends one `[Init]` line right after the bracket — `WhatGroup v<ver>, schema v1, profile '<name>'` followed by the current runtime state (`enabled`, `notify.delay`, `autoShow`, `inGroup`, `hasPending`). |
 | 2.8b | Click the `Debug: OFF`/`ON` toggle in the console title bar | Flips logging state (green ON / red OFF) with the same chat ack + console bracket line as `/wg debug on\|off`. `Copy` opens a highlight-ready plain-text buffer; `Clear` wipes both views. |
-| 2.8b-i | Scrollbar + line counter (debug-logging-§11) | The console has a **thin scrollbar** on the log's right edge and a **`N / 500 lines`** counter in the bottom-right, in the log's monospace font. With debug on, spam lines (e.g. `/wg set notify.delay 1` a few times) until the log overflows: the counter climbs and the scrollbar thumb becomes draggable. **Drag the thumb** — the log scrolls; **mouse-wheel the log** — the thumb tracks it. Thumb **top = oldest**, **bottom = newest**. `Clear` resets the counter to `0 / 500` and parks/greys the thumb. On a short (fitting) log the bar is still shown but inert. **First open must NOT error** — a blank `Debug: ON/OFF` header or dead ESC-to-close means the initial sync threw (anti-pattern #41). |
+| 2.8b-i | Scrollbar + line counter (debug-logging-§11) | The console has a **thin scrollbar** on the log's right edge and a **`N / 500 lines`** counter in the bottom-right, in the log's monospace font. With debug on, spam lines (e.g. `/wg set notify.delay 1` a few times) until the log overflows: the counter climbs and the scrollbar thumb becomes draggable. **Drag the thumb** — the log scrolls; **mouse-wheel the log** — the thumb tracks it. Thumb **top = oldest**, **bottom = newest**. `Clear` resets the counter to `0 / 500` and parks/grays the thumb. On a short (fitting) log the bar is still shown but inert. **First open must NOT error** — a blank `Debug: ON/OFF` header or dead ESC-to-close means the initial sync threw (anti-pattern #41). |
 | 2.8c | With debug on: `/wg set notify.delay 3.0` | Console shows **one** `[Set] notify.delay = 3` line. Restore with `/wg set notify.delay 0` (another single `[Set]`). |
 | 2.8d | With debug on: `/wg reset` → **Yes** | Console shows **one** coalesced `[Reset] restored N settings to defaults (profile wiped)` line — **not** one `[Set]` per row. |
 | 2.9 | `/wg show` (no group, no pendingInfo) | Prints "No group info available. Use `/wg test` to preview." |
@@ -77,10 +77,10 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.12 | `/wg config` | Settings panel opens on the **Ka0s WhatGroup** landing page; the **General** subcategory is visible/expanded in the sidebar. |
 | 2.13 | `/wg reset` | StaticPopup confirm appears. **Yes** resets all settings; **No** cancels. |
 | 2.14 | `/wg gibberish` | Prints `unknown command 'gibberish'` followed by the help index. |
-| 2.15 | `/wg config` while in combat | Prints the grey notice `[WG] cannot open settings during combat — Blizzard's category-switch is protected` and does **not** open the panel (WG-25). (Pull a target dummy first to enter combat.) |
+| 2.15 | `/wg config` while in combat | Prints the gray notice `[WG] cannot open settings during combat — Blizzard's category-switch is protected` and does **not** open the panel (WG-25). (Pull a target dummy first to enter combat.) |
 | 2.16 | `/wg version` | Prints `[WG] v<version>` on its own line, matching the TOC `## Version` (WG-29). |
 | 2.17 | `/wg help` | The header line ends with `…/wg)` — **no** trailing colon (WG-19) — and lists a `/wg version` row. |
-| 2.18 | Move the popup (`/wg test`, drag it) and the debug console (`/wg debug`, drag it), then `/reload` and reopen each | Each window reopens at the spot you left it, not re-centred (WG-26). |
+| 2.18 | Move the popup (`/wg test`, drag it) and the debug console (`/wg debug`, drag it), then `/reload` and reopen each | Each window reopens at the spot you left it, not re-centered (WG-26). |
 
 ---
 
@@ -92,7 +92,7 @@ Verifies AceGUI rendering, schema-driven widget refresh, and the Defaults flow.
 
 1. `/wg config`
 
-**Expected:** Logo image renders. Notes one-liner is visible. "Slash Commands" heading + one row per `COMMANDS` entry. Scrollbar is visible (greyed out if content fits).
+**Expected:** Logo image renders. Notes one-liner is visible. "Slash Commands" heading + one row per `COMMANDS` entry. Scrollbar is visible (grayed out if content fits).
 
 ### 3.2 General subcategory
 
@@ -342,7 +342,7 @@ Rename the folder back and `/reload` before doing anything else.
 
 ## 10. The `L` trap — no raw keys on screen (~2 min)
 
-Every module that takes an `L` override resolves the descriptor's table first. Hand one an addon-wide locale table — whose metatable answers every key with the key itself — and the library's own English is never reached, so the UI renders `CHECKBOX_LABEL`, `ERR_BOOL`, `LIST_HEADER` and friends. It fails for every string at once, and **only in game**: a synthesised value is still a string, so no headless case sees it. The source guard and the rendered assertions in `tests/test_libka0s.lua` are both blind to what the client actually draws.
+Every module that takes an `L` override resolves the descriptor's table first. Hand one an addon-wide locale table — whose metatable answers every key with the key itself — and the library's own English is never reached, so the UI renders `CHECKBOX_LABEL`, `ERR_BOOL`, `LIST_HEADER` and friends. It fails for every string at once, and **only in game**: a synthesized value is still a string, so no headless case sees it. The source guard and the rendered assertions in `tests/test_libka0s.lua` are both blind to what the client actually draws.
 
 1. `/wg config` — read the landing page top to bottom, then the **General** page top to bottom, including every widget label, every tooltip (hover each), the section headings and the **Defaults** button.
 2. `/wg debug` — read the console: its title, the `Debug: ON`/`Debug: OFF` toggle, the `Copy` and `Clear` buttons, the `N / 500 lines` counter. Click **Copy** and read that window's title too.
@@ -357,7 +357,7 @@ Every module that takes an `L` override resolves the descriptor's table first. H
 Framed as *"nothing moved"*: anything that looks different from the previous build is the finding. Two exceptions are **expected** and listed below.
 
 1. `/wg config` — the landing page. Logo, the one-line notes, the **Slash Commands** heading, then one row per command.
-   **Expected:** rows read `/wg <verb> — <description>` with a **single** space either side of the dash. They used to have double spaces and a white-coloured dash; that change is deliberate (the panel and `/wg help` now share one formatter). Everything else about the page is unchanged.
+   **Expected:** rows read `/wg <verb> — <description>` with a **single** space either side of the dash. They used to have double spaces and a white-colored dash; that change is deliberate (the panel and `/wg help` now share one formatter). Everything else about the page is unchanged.
 2. **General** page. Two-column grid, `Enable | Auto Show` on one line, `Print to Chat` paired with `Debug console`, the **Notify** section below with the delay slider and the show-* checkboxes each on their own line, the **Test** button under the General group, **Defaults** top-right.
    **Expected:** identical layout to the previous build. The Debug console checkbox's **tooltip wording** now comes from the library and differs — expected.
 3. Drag the **Notification Delay** slider and watch the value.
@@ -370,7 +370,7 @@ Framed as *"nothing moved"*: anything that looks different from the previous bui
 7. `/wg reset notify.delay`.
    **Expected:** that one row goes back to its default, no confirmation, and nothing else moves.
 8. `/wg test` to open the popup, and `/wg debug` to open the console. Put them side by side.
-   **Expected:** both wear the **same** window edge — a hard 1px **black** outer border with a lighter grey line just inside it. The popup's border was grey and had no inner line before; that change is deliberate (both windows now read from the shared Ka0s skin). The console's border was a 12px tooltip frame; it is now the same 1px double edge.
+   **Expected:** both wear the **same** window edge — a hard 1px **black** outer border with a lighter gray line just inside it. The popup's border was gray and had no inner line before; that change is deliberate (both windows now read from the shared Ka0s skin). The console's border was a 12px tooltip frame; it is now the same 1px double edge.
 9. Drag the **popup** somewhere, `/reload`, `/wg show`.
    **Expected:** it is where you left it.
 10. Drag the **console** somewhere, `/reload`, `/wg debug`.

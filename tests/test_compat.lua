@@ -84,7 +84,7 @@ test("compat: GetSpellLink returns nil with no API (the caller renders plain tex
     assertNil(NS.Compat.GetSpellLink(1))
 end)
 
-test("compat: IsSpellKnown normalises to a plain boolean", function()
+test("compat: IsSpellKnown normalizes to a plain boolean", function()
     local NS, env = T.newAddon()
     env.IsSpellKnown = function() return 1 end   -- a truthy non-boolean
     assertEqual(NS.Compat.IsSpellKnown(1), true)

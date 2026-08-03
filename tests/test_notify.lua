@@ -6,7 +6,7 @@
 -- mock was a no-op, so the delay, the supersede check and CancelTimer all
 -- did nothing observable and a broken debounce passed. `mock.fireAceTimers()`
 -- now advances the timer queue and returns how many callbacks actually ran,
--- which is what makes "the cancelled notify did NOT fire" an assertion rather
+-- which is what makes "the canceled notify did NOT fire" an assertion rather
 -- than an assumption.
 local T = _G.WHATGROUP_TEST
 local test, assertEqual, assertTrue, assertFalse, assertNil =
@@ -156,7 +156,7 @@ test("notify: a re-fire cancels the in-flight timer so two can't race", function
     -- A fresh capture arrives before the first delay elapsed.
     NS.addon.pendingInfo = pending({ title = "Replacement" })
     NS.addon:_TryFireJoinNotify("second")
-    assertTrue(firstHandle.cancelled, "the superseded timer is cancelled, not left running")
+    assertTrue(firstHandle.canceled, "the superseded timer is canceled, not left running")
     assertEqual(mock.fireAceTimers(), 1, "only the surviving timer fires")
 end)
 
@@ -182,7 +182,7 @@ test("notify: WipeCapture cancels an in-flight notify so it never fires", functi
     NS.addon:_TryFireJoinNotify("test")
     local mark = #mock.prints
     NS.addon:WipeCapture()
-    assertEqual(mock.fireAceTimers(), 0, "the cancelled handle is skipped entirely")
+    assertEqual(mock.fireAceTimers(), 0, "the canceled handle is skipped entirely")
     assertFalse(anyLine(linesSince(mock, mark), "You have joined a group!"))
     assertNil(NS.addon.notifyTimer)
 end)
@@ -249,7 +249,7 @@ test("notify: autoShow is read at SCHEDULE time, not at fire time", function()
     NS.addon.pendingInfo = pending()
     NS.addon:_TryFireJoinNotify("test")
     -- Flipping the setting after the timer is armed must not retroactively
-    -- change the queued behaviour — the value was captured as an upvalue.
+    -- change the queued behavior — the value was captured as an upvalue.
     NS.addon.Settings.Helpers.Set("frame.autoShow", false)
     mock.fireAceTimers()
     assertTrue(mock.frames["WhatGroupFrame"] ~= nil,

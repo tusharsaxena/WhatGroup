@@ -431,7 +431,7 @@ test("panel: the patch is one-shot per widget", function()
     assertEqual(scroll.FixScroll, patched, "re-patching is a no-op")
 end)
 
-test("panel: releasing the widget restores AceGUI's stock behaviour", function()
+test("panel: releasing the widget restores AceGUI's stock behavior", function()
     local _, _, mock = openGeneral()
     local scroll = mock.findWidget(function(w) return w.type == "ScrollFrame" end)
     scroll:OnRelease()

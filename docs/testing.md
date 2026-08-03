@@ -52,7 +52,7 @@ The suites, in run order: `test_harness`, `test_libka0s`, `test_util`,
 `test_libka0s` is the integration suite for the four adopted LibKa0s majors:
 that each really registers, that each descriptor is well-formed, that the
 degraded install answers rather than errors, and the two halves of the `L`-trap
-guard. The library's own behaviour is tested where it lives — this addon keeps
+guard. The library's own behavior is tested where it lives — this addon keeps
 no duplicate of those cases (testing-§8).
 
 Coverage extends past pure logic into the UI and event layers — the popup's
@@ -76,7 +76,7 @@ degraded path while the suite stayed green — plus AceDB's merge-in-place
 `copyDefaults`, AceConsole's `:Print` clobber, the AceGUI widget recorder and
 the Settings registrars.
 
-Four of this addon's overrides model real client behaviour instead of
+Four of this addon's overrides model real client behavior instead of
 no-op'ing it, and each is the sole reason a class of bug is catchable at all —
 the header comment in that file explains why. In short: frame **visibility** and
 **geometry** are real state (otherwise "the window closed" and "the position was
@@ -86,7 +86,7 @@ objects** (the base's answer from the frame stub's metatable and hand back the
 frame itself — its own README records that this addon is right to differ);
 screen-space getters answer real **numbers**, because the popup derives the
 secure teleport button's offsets by subtracting them; and the **AceTimer queue**
-is fireable, cancellable and **separate from the `C_Timer` queue**, so the
+is fireable, cancelable and **separate from the `C_Timer` queue**, so the
 notify delay and the panel's secure-defer hop can be fired independently.
 
 `_G` points back at the mock table itself, because `settings/Panel.lua` and the
@@ -115,7 +115,7 @@ without the pipeline.
 **declared suite order** + a Totals table with the grand total), and exits
 **without running any test**. It is a pure filter over the registry: the kit
 **collects** every case and runs nothing until `Kit.run`, so the inventory
-cannot disagree with the run. Default `lua tests/run.lua` behaviour is
+cannot disagree with the run. Default `lua tests/run.lua` behavior is
 unchanged.
 
 The README's `tests` badge is a **static, hand-maintained** shields.io X/Y
@@ -172,7 +172,7 @@ diff -r ../LibKa0s/testkit tests/_kit                          # bytes  — SHOU
 |---|---|---|
 | both empty | in sync | — |
 | **content** non-empty | a copy has genuinely **forked** — the forbidden state | re-vendor the whole folder from `../LibKa0s` |
-| content empty, **bytes** non-empty | **nothing has forked.** The two checkouts merely disagree about line endings | renormalise whichever side drifted (`git add --renormalize .`; if the working tree does not flip, delete the affected paths and `git checkout -- .` to pull them back through the filter) |
+| content empty, **bytes** non-empty | **nothing has forked.** The two checkouts merely disagree about line endings | renormalize whichever side drifted (`git add --renormalize .`; if the working tree does not flip, delete the affected paths and `git checkout -- .` to pull them back through the filter) |
 
 Never fix either by editing `libs/` or `tests/_kit/`. Re-vendoring will not
 converge a line-ending divergence either — it just moves the wrong endings
