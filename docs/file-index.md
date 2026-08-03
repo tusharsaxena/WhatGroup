@@ -55,7 +55,7 @@ Libs are copied as-is from Ka0s KickCD (`/mnt/d/Profile/Users/Tushar/Documents/G
 
 - [README.md](../README.md) — user-facing.
 - [CLAUDE.md](../CLAUDE.md) — root agent stub; points at `docs/`.
-- `docs/*.md` — the canonical trio plus topic chunks. Read on demand:
+- `docs/*.md` — the canonical trio (`ARCHITECTURE.md`, `testing.md`, `smoke-tests.md`) plus topic chunks. Read on demand:
   - [ARCHITECTURE.md](./ARCHITECTURE.md) — design overview + invariants + subsystem map + working environment
   - [scope.md](./scope.md) — in / out of scope + resolved decisions
   - [capture-pipeline.md](./capture-pipeline.md) — LFG state machine + FIFO + `hooksecurefunc` on `SetItemRef`
