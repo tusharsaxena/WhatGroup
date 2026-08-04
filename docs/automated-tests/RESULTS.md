@@ -30,7 +30,7 @@ This addon ships no `tests/perf.lua`, so the `perf` column is a permanent `skip`
 
 ## Complexity watch list
 
-Current state as of [`20260804-215056`](20260804-215056/) — not that run's diff.
+Current state as of [`20260804-233335`](20260804-233335/) — not that run's diff.
 Every function `lizard` warned on, and every file at or above `layout-§1`'s 1000-LOC
 on-notice threshold, each with a one-line disposition.
 
@@ -45,9 +45,12 @@ named units, so their **Accepted** / **Peel next** dispositions are retired rath
 forward: there is nothing left to accept or to peel. `lizard` now warns on nothing in this addon.
 
 The highest function is `WhatGroup:_TryFireJoinNotify` at **CCN 13** (`core/WhatGroup.lua`), well
-under the cap and untouched by that work — a headroom figure, not a watch-list entry, and only
-visible with `lizard -C 1` because the run's own `Max CCN` column reports the maximum over
-*warned* functions and so reads 0.
+under the cap and untouched by that work — a headroom figure, not a watch-list entry. The
+[`20260804-233335`](20260804-233335/) row reports that 13 in its own `Max CCN` column; the
+[`20260804-215056`](20260804-215056/) row above it reads 0 for the same tree, because the runner
+read `Max CCN` out of `lizard`'s warnings block and so had no input once the warnings hit zero.
+LibKa0s v1.7.0's testkit revision 6 measures it over every function instead, and re-vendoring it is
+what made the column readable here. The two rows are the same code; only the measurement changed.
 
 ### Files by `layout-§1` band
 
