@@ -534,19 +534,33 @@ test("panel: the landing page adds logo, notes, heading and command rows in that
     end
 end)
 
-test("panel: re-showing the landing page re-renders it instead of stacking a second copy", function()
-    local _, _, mock = T.enableAddon()
+-- The library re-runs a page's renderer on exactly ONE re-entry path: the page was marked dirty by
+-- a structural refresh while it was hidden. A plain Hide/Show is turned away by
+-- `if ctx._rendered and not ctx._dirty then return end` and never re-enters BuildMainContent at
+-- all — so a test driven that way pins nothing, whatever it asserts afterwards. Drive the real
+-- path. What it pins is the ClearScroll at the top of BuildMainContent: ClearScroll REUSES the
+-- same ScrollFrame and only releases its children, so without it the second render appends a
+-- second logo and a second command list to the first one's widgets.
+test("panel: a dirty landing page re-renders in place instead of stacking a second copy", function()
+    local NS, _, mock = T.enableAddon()
     local main = panels(mock)
     open(mock, main)
-    local scroll
-    for _, w in ipairs(mock.aceWidgets) do
-        if w.type == "ScrollFrame" then scroll = w end
+
+    -- The LAST ScrollFrame, for the reason lastWidget() gives: a re-render can make a new one.
+    local function landingScroll()
+        local found
+        for _, w in ipairs(mock.aceWidgets) do
+            if w.type == "ScrollFrame" then found = w end
+        end
+        return found
     end
-    local first = #scroll.children
+
+    local first = #landingScroll().children
+    assertTrue(first > 0, "the landing page put widgets in the scroll on its first show")
+
     main:Hide()
-    open(mock, main)
-    for _, w in ipairs(mock.aceWidgets) do
-        if w.type == "ScrollFrame" then scroll = w end
-    end
-    assertEqual(#scroll.children, first, "one logo and one command list, not two")
+    NS.addon.Settings.Helpers.RefreshAllPanels()   -- flags the hidden page dirty
+    open(mock, main)                               -- which re-renders it on show
+
+    assertEqual(#landingScroll().children, first, "one logo and one command list, not two")
 end)

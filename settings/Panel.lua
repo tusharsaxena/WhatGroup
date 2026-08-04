@@ -88,9 +88,15 @@ local MAIN_GAP_AFTER_LOGO = 8
 local MAIN_GAP_AFTER_DESC = 12
 local MAIN_GAP_BELOW_HEAD = 6
 
--- Left-justify a text widget's FontString. Guarded both ways because AceGUI's Label only grows a
--- `.label` once it has been laid out, and the widget types this page uses are the ones where that
--- is true. The notes line and every command row share this — it used to be written out twice.
+-- Left-justify a text widget's own FontString. The notes line and every command row share this;
+-- it used to be written out twice, once at each call site, and the guard is carried over from
+-- them verbatim.
+--
+-- The guard is defensive, NOT load-order-sensitive: AceGUI's Label creates its `.label`
+-- FontString in the constructor (libs/AceGUI-3.0/widgets/AceGUIWidget-Label.lua), so for the
+-- Labels this page makes, both halves are always true. It stays because `.label` is a
+-- per-widget-type field rather than part of the AceGUI widget contract — hand this a widget type
+-- that has no text FontString and it must skip, not raise.
 local function justifyLeft(widget)
     local fs = widget.label
     if fs and fs.SetJustifyH then

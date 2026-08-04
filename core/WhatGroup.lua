@@ -192,9 +192,13 @@ end
 -- Group-info capture
 -- ---------------------------------------------------------------------------
 
--- Flatten one GetSearchResultInfo result into the captured shape, every field defaulted and every
--- activity field pre-seeded with its placeholder. The key set here is a contract read by
--- modules/Frame.lua (PopulateFields), Labels.GetGroupTypeLabel and ShowNotification.
+-- Flatten one GetSearchResultInfo result into the captured shape: every search field defaulted,
+-- and the activity fields pre-seeded with placeholders so a capture whose activity never resolved
+-- is still readable without nil checks. Two deliberate exceptions — `shortName` is not seeded at
+-- all (applyActivityInfo below says why), and `activityID`/`mapID` are spelled out as `nil`, which
+-- sets no key at all: they are listed for the reader and the shape stays nil-able. The key set
+-- here is a contract read by modules/Frame.lua (PopulateFields), Labels.GetGroupTypeLabel and
+-- ShowNotification.
 --
 -- Every default below is an `or` chain, NOT `if src == nil then`. The two are different: `or`
 -- replaces a stored `false` with the default, `== nil` keeps it. `or` is what shipped and what the
