@@ -192,16 +192,26 @@ end
 -- Group-info capture
 -- ---------------------------------------------------------------------------
 
-function WhatGroup:CaptureGroupInfo(searchResultID)
-    local info = C_LFGList.GetSearchResultInfo(searchResultID)
-    if not info then
-        NS.Debug("Capture", "GetSearchResultInfo returned nil for id=" .. tostring(searchResultID))
-        return
-    end
-
+-- Flatten one GetSearchResultInfo result into the captured shape: every search field defaulted,
+-- and the activity fields pre-seeded with placeholders so a capture whose activity never resolved
+-- is still readable without nil checks. Two deliberate exceptions — `shortName` is not seeded at
+-- all (applyActivityInfo below says why), and `activityID`/`mapID` are spelled out as `nil`, which
+-- sets no key at all: they are listed for the reader and the shape stays nil-able. The key set
+-- here is a contract read by modules/Frame.lua (PopulateFields), Labels.GetGroupTypeLabel and
+-- ShowNotification.
+--
+-- Every default below is an `or` chain, NOT `if src == nil then`. The two are different: `or`
+-- replaces a stored `false` with the default, `== nil` keeps it. `or` is what shipped and what the
+-- downstream consumers assume — Labels.GetGroupTypeLabel compares categoryID numerically and
+-- ShowNotification tests `shortName ~= ""`, so a `false` reaching either degrades the output
+-- silently. (0 and "" are TRUTHY in Lua, so an `or` chain never swallows a stored zero or empty
+-- string; only `false` and `nil`.) These functions exist to keep CaptureGroupInfo's complexity
+-- down — the split is the whole point, the `or`s stay literal.
+local function buildCapture(info)
+    local unknown = NS.L["Unknown"]
     local captured = {
-        title             = info.name or NS.L["Unknown"],
-        leaderName        = info.leaderName or NS.L["Unknown"],
+        title             = info.name or unknown,
+        leaderName        = info.leaderName or unknown,
         numMembers        = info.numMembers or 0,
         voiceChat         = info.voiceChat or "",
         -- Playstyle: API offers three plausible fields. `playstyleString` is
@@ -213,6 +223,8 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
         generalPlaystyle  = info.generalPlaystyle or info.playstyle or 0,
         playstyleString   = info.playstyleString or "",
         age               = info.age or 0,
+        -- A FRESH table per call, never a shared module-level empty one: captures are queued in
+        -- captureQueue, and a shared fallback would alias every id-less capture together.
         activityIDs       = info.activityIDs or {},
         activityID        = nil,
         fullName          = "",
@@ -225,21 +237,40 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
         mapID             = nil,
     }
     captured.playstyle = captured.generalPlaystyle
+    return captured
+end
+
+-- Overlay the resolved activity's fields onto a capture. `shortName` is set ONLY here and is
+-- deliberately absent from buildCapture's literal — ShowNotification's `info.shortName ~= ""`
+-- test distinguishes "no activity resolved" from "activity with no short name".
+local function applyActivityInfo(captured, actInfo)
+    captured.fullName       = actInfo.fullName or actInfo.activityName or ""
+    captured.activityName   = actInfo.activityName or ""
+    captured.maxNumPlayers  = actInfo.maxNumPlayers or 0
+    captured.isMythicPlus   = actInfo.isMythicPlusActivity or false
+    captured.isCurrentRaid  = actInfo.isCurrentRaidActivity or false
+    captured.isHeroicRaid   = actInfo.isHeroicRaidActivity or false
+    captured.categoryID     = actInfo.categoryID or 0
+    captured.shortName      = actInfo.shortName or ""
+    -- No default: mapID stays nil-able, and GetTeleportSpell reads it that way.
+    captured.mapID          = actInfo.mapID
+end
+
+function WhatGroup:CaptureGroupInfo(searchResultID)
+    local info = C_LFGList.GetSearchResultInfo(searchResultID)
+    if not info then
+        NS.Debug("Capture", "GetSearchResultInfo returned nil for id=" .. tostring(searchResultID))
+        return
+    end
+
+    local captured = buildCapture(info)
 
     local firstActivityID = captured.activityIDs[1]
     if firstActivityID then
         captured.activityID = firstActivityID
         local actInfo = NS.Compat.GetActivityInfoTable(firstActivityID)
         if actInfo then
-            captured.fullName       = actInfo.fullName or actInfo.activityName or ""
-            captured.activityName   = actInfo.activityName or ""
-            captured.maxNumPlayers  = actInfo.maxNumPlayers or 0
-            captured.isMythicPlus   = actInfo.isMythicPlusActivity or false
-            captured.isCurrentRaid  = actInfo.isCurrentRaidActivity or false
-            captured.isHeroicRaid   = actInfo.isHeroicRaidActivity or false
-            captured.categoryID     = actInfo.categoryID or 0
-            captured.shortName      = actInfo.shortName or ""
-            captured.mapID          = actInfo.mapID
+            applyActivityInfo(captured, actInfo)
         end
     end
 
@@ -370,6 +401,47 @@ local Labels = WhatGroup.Labels
 -- Chat notification
 -- ---------------------------------------------------------------------------
 
+local GOLD = "FFD700"
+
+-- The teleport row's value: the spell link, plus a gray "(not learned)" note when the player does
+-- not have it. Returns nil when there is no teleport for this activity/map at all — the row is then
+-- absent, not empty.
+local function teleportValue(self, info)
+    local spellID, known = self:GetTeleportSpell(info.activityID, info.mapID)
+    if not spellID then return nil end
+    local spellLink = NS.Compat.GetSpellLink(spellID)
+                      or ("|cff71d5ff[Spell " .. spellID .. "]|r")
+    local note = known and "" or (" |cff888888" .. NS.L["(not learned)"] .. "|r")
+    return spellLink .. note
+end
+
+-- The independently-toggled notification rows, IN THE ORDER they print. Built once at file load
+-- (after `Labels` is bound above), never per notification. `flag` is the db.profile.notify key that
+-- gates the row; `label` is looked up in NS.L at print time, so a locale swap still applies.
+--
+-- `omitWhenNil` is opt-IN, and only Playstyle and Teleport declare it, because only those two ever
+-- had a second inner `if` suppressing their own row. Instance, Type and Leader print whenever their
+-- flag is on — Leader in particular printed a nil leaderName straight through NS.SafeToString, and
+-- a blanket nil gate here would have silently deleted that row. An absent row and a row reading
+-- "nil" are different outputs; the flag keeps them apart.
+local NOTIFY_ROWS = {
+    { flag = "showInstance",  label = "Instance:",
+      value = function(_, info) return info.fullName ~= "" and info.fullName or NS.L["Unknown"] end },
+    { flag = "showType",      label = "Type:",
+      value = function(_, info)
+          return info.shortName ~= "" and info.shortName or Labels.GetGroupTypeLabel(info)
+      end },
+    { flag = "showLeader",    label = "Leader:",
+      value = function(_, info) return info.leaderName end },
+    { flag = "showPlaystyle", label = "Playstyle:", omitWhenNil = true,
+      value = function(_, info)
+          local playStyle = Labels.GetPlaystyleLabel(info)
+          if playStyle == "" then return nil end
+          return playStyle
+      end },
+    { flag = "showTeleport",  label = "Teleport:", omitWhenNil = true, value = teleportValue },
+}
+
 function WhatGroup:ShowNotification()
     local info = self.pendingInfo
     if not info then
@@ -379,44 +451,28 @@ function WhatGroup:ShowNotification()
     local n = self.db and self.db.profile and self.db.profile.notify
     if not n or not n.enabled then return end
 
-    local gold      = "FFD700"
-    local clickLink = colorize(link("WhatGroup:show", NS.L["[Click here to view details]"]), "00FF7F")
-
     -- Every line routes through the single secret-safe printer `p` (WG-23):
     -- the label (a constant color-coded string) and the value are passed as
     -- SEPARATE args, so the LFG-sourced values are stringified by the seam
     -- rather than pre-concatenated through `..`/tostring at the call site.
     p(NS.L["You have joined a group!"])
-    p("   - " .. colorize(NS.L["Group:"], gold), info.title or NS.L["Unknown"])
+    p("   - " .. colorize(NS.L["Group:"], GOLD), info.title or NS.L["Unknown"])
 
-    if n.showInstance then
-        p("   - " .. colorize(NS.L["Instance:"], gold),
-          info.fullName ~= "" and info.fullName or NS.L["Unknown"])
-    end
-    if n.showType then
-        local typeStr = info.shortName ~= "" and info.shortName or Labels.GetGroupTypeLabel(info)
-        p("   - " .. colorize(NS.L["Type:"], gold), typeStr)
-    end
-    if n.showLeader then
-        p("   - " .. colorize(NS.L["Leader:"], gold), info.leaderName)
-    end
-    if n.showPlaystyle then
-        local playStyle = Labels.GetPlaystyleLabel(info)
-        if playStyle ~= "" then
-            p("   - " .. colorize(NS.L["Playstyle:"], gold), playStyle)
+    for i = 1, #NOTIFY_ROWS do
+        local row = NOTIFY_ROWS[i]
+        if n[row.flag] then
+            local v = row.value(self, info)
+            local omit = row.omitWhenNil and v == nil
+            if not omit then
+                p("   - " .. colorize(NS.L[row.label], GOLD), v)
+            end
         end
     end
-    if n.showTeleport then
-        local spellID, known = self:GetTeleportSpell(info.activityID, info.mapID)
-        if spellID then
-            local spellLink = NS.Compat.GetSpellLink(spellID)
-                              or ("|cff71d5ff[Spell " .. spellID .. "]|r")
-            local note  = known and "" or (" |cff888888" .. NS.L["(not learned)"] .. "|r")
-            p("   - " .. colorize(NS.L["Teleport:"], gold), spellLink .. note)
-        end
-    end
+
+    -- The click link stays inline: it is the one row with no label and its own green, so a table
+    -- entry for it would cost more indirection than it saves.
     if n.showClickLink then
-        p("   - " .. clickLink)
+        p("   - " .. colorize(link("WhatGroup:show", NS.L["[Click here to view details]"]), "00FF7F"))
     end
 end
 

@@ -88,18 +88,26 @@ local MAIN_GAP_AFTER_LOGO = 8
 local MAIN_GAP_AFTER_DESC = 12
 local MAIN_GAP_BELOW_HEAD = 6
 
-function Helpers.BuildMainContent(ctx)
-    local AceGUI = Helpers.AceGUI
-    local scroll = Helpers.EnsureScroll(ctx)
-    if not (AceGUI and scroll) then return end
-    -- Re-rendered pages must not stack: the library re-runs a renderer when a hidden page is
-    -- marked dirty and shown again.
-    Helpers.ClearScroll(ctx)
-    scroll = Helpers.EnsureScroll(ctx)
+-- Left-justify a text widget's own FontString. The notes line and every command row share this;
+-- it used to be written out twice, once at each call site, and the guard is carried over from
+-- them verbatim.
+--
+-- The guard is defensive, NOT load-order-sensitive: AceGUI's Label creates its `.label`
+-- FontString in the constructor (libs/AceGUI-3.0/widgets/AceGUIWidget-Label.lua), so for the
+-- Labels this page makes, both halves are always true. It stays because `.label` is a
+-- per-widget-type field rather than part of the AceGUI widget contract — hand this a widget type
+-- that has no text FontString and it must skip, not raise.
+local function justifyLeft(widget)
+    local fs = widget.label
+    if fs and fs.SetJustifyH then
+        fs:SetJustifyH("LEFT")
+    end
+end
 
-    -- Logo. SimpleGroup is a full-width child so AceGUI's List layout gives it the scroll's full
-    -- width; the texture inside is anchored TOPLEFT at the source TGA's native dimensions, so it
-    -- renders pixel-exact and left-aligned regardless of panel width.
+-- Logo. SimpleGroup is a full-width child so AceGUI's List layout gives it the scroll's full
+-- width; the texture inside is anchored TOPLEFT at the source TGA's native dimensions, so it
+-- renders pixel-exact and left-aligned regardless of panel width.
+local function addLogo(AceGUI, scroll)
     local logoGroup = AceGUI:Create("SimpleGroup")
     logoGroup:SetLayout(nil)
     logoGroup:SetFullWidth(true)
@@ -112,8 +120,10 @@ function Helpers.BuildMainContent(ctx)
     scroll:AddChild(logoGroup)
 
     Helpers.AddSpacer(scroll, MAIN_GAP_AFTER_LOGO)
+end
 
-    -- TOC Notes one-liner — full-width Label, left-justified.
+-- TOC Notes one-liner — full-width Label, left-justified.
+local function addNotesLine(AceGUI, scroll)
     local meta  = (C_AddOns and C_AddOns.GetAddOnMetadata) or _G.GetAddOnMetadata
     local notes = (meta and meta("WhatGroup", "Notes")) or ""
 
@@ -123,37 +133,49 @@ function Helpers.BuildMainContent(ctx)
     if desc.label and desc.label.SetFontObject and _G.GameFontHighlight then
         desc.label:SetFontObject(_G.GameFontHighlight)
     end
-    if desc.label and desc.label.SetJustifyH then
-        desc.label:SetJustifyH("LEFT")
-    end
+    justifyLeft(desc)
     scroll:AddChild(desc)
 
     Helpers.AddSpacer(scroll, MAIN_GAP_AFTER_DESC)
+end
 
-    -- "Slash Commands" heading — the library's own Section, so it is the same AceGUI Heading (and
-    -- the same font bump and spacers) every sub-page's section headers use.
-    Helpers.Section(ctx, "Slash Commands")
-    Helpers.AddSpacer(scroll, MAIN_GAP_BELOW_HEAD)
-
-    -- One Label per command, rendered through LibKa0s-Slash-1.0's ONE command-row formatter
-    -- (convergence #2). This page used to carry a second formatter for the same data — double
-    -- spaces around the em dash, the dash explicitly white-wrapped and the description bare —
-    -- which is exactly the silent drift between a panel and its chat help that a shared renderer
-    -- exists to end. Un-indented, because a landing-page row is its own label; the chat form
-    -- (Sl:HelpRows) is the same rows with a two-space indent.
-    --
-    -- Still generated from WhatGroup.COMMANDS, so the list stays in lockstep with `/wg help`:
-    -- LandingRows walks the same table this page used to walk directly.
+-- One Label per command, rendered through LibKa0s-Slash-1.0's ONE command-row formatter
+-- (convergence #2). This page used to carry a second formatter for the same data — double
+-- spaces around the em dash, the dash explicitly white-wrapped and the description bare —
+-- which is exactly the silent drift between a panel and its chat help that a shared renderer
+-- exists to end. Un-indented, because a landing-page row is its own label; the chat form
+-- (Sl:HelpRows) is the same rows with a two-space indent.
+--
+-- Still generated from WhatGroup.COMMANDS, so the list stays in lockstep with `/wg help`:
+-- LandingRows walks the same table this page used to walk directly.
+local function addCommandRows(AceGUI, scroll)
     local Sl = NS.SlashCommands
     for _, line in ipairs(Sl and Sl:LandingRows() or {}) do
         local row = AceGUI:Create("Label")
         row:SetFullWidth(true)
         row:SetText(line)
-        if row.label and row.label.SetJustifyH then
-            row.label:SetJustifyH("LEFT")
-        end
+        justifyLeft(row)
         scroll:AddChild(row)
     end
+end
+
+function Helpers.BuildMainContent(ctx)
+    local AceGUI = Helpers.AceGUI
+    local scroll = Helpers.EnsureScroll(ctx)
+    if not (AceGUI and scroll) then return end
+    -- Re-rendered pages must not stack: the library re-runs a renderer when a hidden page is
+    -- marked dirty and shown again. This has to happen before any widget is created below.
+    Helpers.ClearScroll(ctx)
+    scroll = Helpers.EnsureScroll(ctx)
+
+    addLogo(AceGUI, scroll)
+    addNotesLine(AceGUI, scroll)
+    -- "Slash Commands" heading — the library's own Section, so it is the same AceGUI Heading (and
+    -- the same font bump and spacers) every sub-page's section headers use. It takes `ctx`, not
+    -- `scroll`, so it stays here where the page's outline reads.
+    Helpers.Section(ctx, "Slash Commands")
+    Helpers.AddSpacer(scroll, MAIN_GAP_BELOW_HEAD)
+    addCommandRows(AceGUI, scroll)
 end
 
 -- ---------------------------------------------------------------------------

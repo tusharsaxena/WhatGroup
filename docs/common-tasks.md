@@ -214,13 +214,13 @@ lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .
 
 If `C_LFGList.GetSearchResultInfo` or `C_LFGList.GetActivityInfoTable` exposes a new field worth showing:
 
-1. Add it to the `captured` table inside `CaptureGroupInfo` in `WhatGroup.lua`, with a sensible default.
+1. Add it to the `captured` table literal inside the file-local `buildCapture` in `WhatGroup.lua`, with a sensible default. `CaptureGroupInfo` no longer holds that table — it is control flow only (nil guard, `buildCapture`, then the activity block). Write the default as an `or` chain like every other line there: `or` replaces a stored `false` with the default and `if x == nil` does not, and downstream consumers assume the `or` semantics. A field that comes from `C_LFGList.GetActivityInfoTable` rather than the search result goes in the sibling `applyActivityInfo` instead, and — unless it is deliberately absent-until-resolved like `shortName` — gets a placeholder in `buildCapture` too.
 2. If it's surfaced in the popup, add a row to `modules/Frame.lua`:
    - Add a new `MakeLabel` call after the existing rows, anchored against the previous label.
    - Add a `fields.<name>` entry to the storage table.
    - Add a populator branch in `PopulateFields` reading `info.<field>`.
    - The `content` frame's size is fixed by its TOPLEFT + BOTTOMRIGHT anchors, so no SetHeight tweak is needed for layout. If the new row would push past `FRAME_HEIGHT - 38 - 44 ≈ 178 px`, bump `FRAME_HEIGHT` instead (step 5 below).
-3. If it's surfaced in chat, add a print branch in `ShowNotification` and a corresponding `notify.show<Name>` schema row gated by `n.show<Name>`.
+3. If it's surfaced in chat, add an entry to the module-level `NOTIFY_ROWS` table above `ShowNotification` — `{ flag = "show<Name>", label = "<Name>:", value = function(self, info) ... end }` — placed at the position in the table where you want the row printed, since the table order *is* the chat order. `ShowNotification` itself no longer carries a branch per row; it loops the table and gates each entry on `n[row.flag]`. Add `omitWhenNil = true` only if the row should vanish entirely when there is nothing to show — the default is to print the row with the value degraded by the `NS.SafeToString` seam, which is what the Leader row relies on. Add the matching `notify.show<Name>` schema row.
 4. Update the captured-info table in [capture-pipeline.md](./capture-pipeline.md#captured-info).
 5. If the popup's height needs to grow to fit a new row, also bump `FRAME_HEIGHT` at the top of `modules/Frame.lua`.
 

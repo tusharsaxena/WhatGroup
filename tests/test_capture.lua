@@ -346,3 +346,67 @@ test("capture: a raising GetApplicationInfo is caught and falls back", function(
     assertEqual(addon.pendingInfo.title, "Raised")
     assertEqual(addon.pendingInfo.mapID, 666)
 end)
+
+-- ---------------------------------------------------------------------------
+-- Behavior pin (CCN split): the defaults are `or`, not `== nil`
+-- ---------------------------------------------------------------------------
+--
+-- Every default in buildCapture/applyActivityInfo is an `or` chain, which means a source field
+-- holding `false` is REPLACED by the default, not stored. `if src == nil then src = default end`
+-- looks equivalent and is not: it would store the `false`. That matters downstream —
+-- Labels.GetGroupTypeLabel compares categoryID/maxNumPlayers numerically and ShowNotification
+-- tests `shortName ~= ""`, so a boolean reaching either degrades the output with no error.
+--
+-- Note the reason it is `false` and not `0` being tested: 0 and "" are TRUTHY in Lua, so
+-- `(0 or 99)` is 0 and an `or` chain never swallows a stored zero. `false` and `nil` are the
+-- only values an `or` default replaces, and `false` is the only one of those two that
+-- distinguishes the two spellings.
+
+test("capture: a search field holding false takes the default, not the false", function()
+    local NS, _, mock = T.bootAddon()
+    mock.searchResults[1] = {
+        name = false, leaderName = false, numMembers = false, voiceChat = false,
+        playstyleString = false, age = false, generalPlaystyle = false,
+        playstyle = false, activityIDs = { },
+    }
+    local c = NS.addon:CaptureGroupInfo(1)
+    assertEqual(c.title, "Unknown")
+    assertEqual(c.leaderName, "Unknown")
+    assertEqual(c.numMembers, 0)
+    assertEqual(c.voiceChat, "")
+    assertEqual(c.playstyleString, "")
+    assertEqual(c.age, 0)
+    assertEqual(c.generalPlaystyle, 0)
+    assertEqual(c.playstyle, 0)
+end)
+
+test("capture: an activity field holding false takes the default, not the false", function()
+    local NS, _, mock = T.bootAddon()
+    mock.searchResults[1] = baseInfo({ activityIDs = { 500 } })
+    mock.activities[500] = {
+        fullName = false, activityName = false, shortName = false,
+        maxNumPlayers = false, categoryID = false,
+        isMythicPlusActivity = false, isCurrentRaidActivity = false,
+        isHeroicRaidActivity = false,
+    }
+    local c = NS.addon:CaptureGroupInfo(1)
+    assertEqual(c.fullName, "")
+    assertEqual(c.activityName, "")
+    assertEqual(c.shortName, "")
+    assertEqual(c.maxNumPlayers, 0)
+    assertEqual(c.categoryID, 0)
+    assertFalse(c.isMythicPlus)
+    assertFalse(c.isCurrentRaid)
+    assertFalse(c.isHeroicRaid)
+end)
+
+test("capture: a stored zero survives the defaults, because 0 is truthy in Lua", function()
+    local NS, _, mock = T.bootAddon()
+    mock.searchResults[1] = baseInfo({ numMembers = 0, age = 0, activityIDs = { 500 } })
+    mock.activities[500] = { maxNumPlayers = 0, categoryID = 0 }
+    local c = NS.addon:CaptureGroupInfo(1)
+    assertEqual(c.numMembers, 0)
+    assertEqual(c.age, 0)
+    assertEqual(c.maxNumPlayers, 0)
+    assertEqual(c.categoryID, 0)
+end)
