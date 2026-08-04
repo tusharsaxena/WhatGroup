@@ -192,18 +192,36 @@ end
 -- Group-info capture
 -- ---------------------------------------------------------------------------
 
-function WhatGroup:CaptureGroupInfo(searchResultID)
-    local info = C_LFGList.GetSearchResultInfo(searchResultID)
-    if not info then
-        NS.Debug("Capture", "GetSearchResultInfo returned nil for id=" .. tostring(searchResultID))
-        return
-    end
+-- The two field maps below are `{ destination, source, default }` rows, built ONCE at file load
+-- and only read afterwards — a capture allocates nothing extra. Each default is the falsy image of
+-- its own field's type (0 / "" / false), so the `if v == nil then v = default` the loops run is
+-- value-for-value identical to the `src or default` chains these tables replaced: 0 and "" are
+-- truthy in Lua, and `false or false` is false.
+local SEARCH_FIELDS = {
+    { "numMembers",      "numMembers",      0  },
+    { "voiceChat",       "voiceChat",       "" },
+    { "playstyleString", "playstyleString", "" },
+    { "age",             "age",             0  },
+}
 
+local ACTIVITY_FIELDS = {
+    { "activityName",  "activityName",          ""    },
+    { "maxNumPlayers", "maxNumPlayers",         0     },
+    { "isMythicPlus",  "isMythicPlusActivity",  false },
+    { "isCurrentRaid", "isCurrentRaidActivity", false },
+    { "isHeroicRaid",  "isHeroicRaidActivity",  false },
+    { "categoryID",    "categoryID",            0     },
+    { "shortName",     "shortName",             ""    },
+}
+
+-- Flatten one GetSearchResultInfo result into the captured shape, every field defaulted and every
+-- activity field pre-seeded with its placeholder. The key set here is a contract read by
+-- modules/Frame.lua (PopulateFields), Labels.GetGroupTypeLabel and ShowNotification.
+local function buildCapture(info)
+    local unknown = NS.L["Unknown"]
     local captured = {
-        title             = info.name or NS.L["Unknown"],
-        leaderName        = info.leaderName or NS.L["Unknown"],
-        numMembers        = info.numMembers or 0,
-        voiceChat         = info.voiceChat or "",
+        title             = info.name or unknown,
+        leaderName        = info.leaderName or unknown,
         -- Playstyle: API offers three plausible fields. `playstyleString` is
         -- the server-rendered, localized text (preferred when present);
         -- `generalPlaystyle` is the integer enum (Enum.LFGEntryGeneralPlaystyle);
@@ -211,8 +229,8 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
         -- all three; consumers prefer playstyleString, then look up
         -- generalPlaystyle in WhatGroup.Labels.PLAYSTYLE.
         generalPlaystyle  = info.generalPlaystyle or info.playstyle or 0,
-        playstyleString   = info.playstyleString or "",
-        age               = info.age or 0,
+        -- A FRESH table per call, never a shared module-level empty one: captures are queued in
+        -- captureQueue, and a shared fallback would alias every id-less capture together.
         activityIDs       = info.activityIDs or {},
         activityID        = nil,
         fullName          = "",
@@ -224,22 +242,46 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
         categoryID        = 0,
         mapID             = nil,
     }
+    for i = 1, #SEARCH_FIELDS do
+        local row = SEARCH_FIELDS[i]
+        local v = info[row[2]]
+        if v == nil then v = row[3] end
+        captured[row[1]] = v
+    end
     captured.playstyle = captured.generalPlaystyle
+    return captured
+end
+
+-- Overlay the resolved activity's fields onto a capture. `shortName` is set ONLY here and is
+-- deliberately absent from buildCapture's literal — ShowNotification's `info.shortName ~= ""`
+-- test distinguishes "no activity resolved" from "activity with no short name".
+local function applyActivityInfo(captured, actInfo)
+    captured.fullName = actInfo.fullName or actInfo.activityName or ""
+    for i = 1, #ACTIVITY_FIELDS do
+        local row = ACTIVITY_FIELDS[i]
+        local v = actInfo[row[2]]
+        if v == nil then v = row[3] end
+        captured[row[1]] = v
+    end
+    -- No default: mapID stays nil-able, and GetTeleportSpell reads it that way.
+    captured.mapID = actInfo.mapID
+end
+
+function WhatGroup:CaptureGroupInfo(searchResultID)
+    local info = C_LFGList.GetSearchResultInfo(searchResultID)
+    if not info then
+        NS.Debug("Capture", "GetSearchResultInfo returned nil for id=" .. tostring(searchResultID))
+        return
+    end
+
+    local captured = buildCapture(info)
 
     local firstActivityID = captured.activityIDs[1]
     if firstActivityID then
         captured.activityID = firstActivityID
         local actInfo = NS.Compat.GetActivityInfoTable(firstActivityID)
         if actInfo then
-            captured.fullName       = actInfo.fullName or actInfo.activityName or ""
-            captured.activityName   = actInfo.activityName or ""
-            captured.maxNumPlayers  = actInfo.maxNumPlayers or 0
-            captured.isMythicPlus   = actInfo.isMythicPlusActivity or false
-            captured.isCurrentRaid  = actInfo.isCurrentRaidActivity or false
-            captured.isHeroicRaid   = actInfo.isHeroicRaidActivity or false
-            captured.categoryID     = actInfo.categoryID or 0
-            captured.shortName      = actInfo.shortName or ""
-            captured.mapID          = actInfo.mapID
+            applyActivityInfo(captured, actInfo)
         end
     end
 
@@ -370,6 +412,42 @@ local Labels = WhatGroup.Labels
 -- Chat notification
 -- ---------------------------------------------------------------------------
 
+local GOLD = "FFD700"
+
+-- The teleport row's value: the spell link, plus a gray "(not learned)" note when the player does
+-- not have it. Returns nil when there is no teleport for this activity/map at all — the row is then
+-- absent, not empty.
+local function teleportValue(self, info)
+    local spellID, known = self:GetTeleportSpell(info.activityID, info.mapID)
+    if not spellID then return nil end
+    local spellLink = NS.Compat.GetSpellLink(spellID)
+                      or ("|cff71d5ff[Spell " .. spellID .. "]|r")
+    local note = known and "" or (" |cff888888" .. NS.L["(not learned)"] .. "|r")
+    return spellLink .. note
+end
+
+-- The independently-toggled notification rows, IN THE ORDER they print. Built once at file load
+-- (after `Labels` is bound above), never per notification. `flag` is the db.profile.notify key that
+-- gates the row; `label` is looked up in NS.L at print time, so a locale swap still applies; a
+-- `value` that returns nil means "emit no row".
+local NOTIFY_ROWS = {
+    { flag = "showInstance",  label = "Instance:",
+      value = function(_, info) return info.fullName ~= "" and info.fullName or NS.L["Unknown"] end },
+    { flag = "showType",      label = "Type:",
+      value = function(_, info)
+          return info.shortName ~= "" and info.shortName or Labels.GetGroupTypeLabel(info)
+      end },
+    { flag = "showLeader",    label = "Leader:",
+      value = function(_, info) return info.leaderName end },
+    { flag = "showPlaystyle", label = "Playstyle:",
+      value = function(_, info)
+          local playStyle = Labels.GetPlaystyleLabel(info)
+          if playStyle == "" then return nil end
+          return playStyle
+      end },
+    { flag = "showTeleport",  label = "Teleport:", value = teleportValue },
+}
+
 function WhatGroup:ShowNotification()
     local info = self.pendingInfo
     if not info then
@@ -379,44 +457,27 @@ function WhatGroup:ShowNotification()
     local n = self.db and self.db.profile and self.db.profile.notify
     if not n or not n.enabled then return end
 
-    local gold      = "FFD700"
-    local clickLink = colorize(link("WhatGroup:show", NS.L["[Click here to view details]"]), "00FF7F")
-
     -- Every line routes through the single secret-safe printer `p` (WG-23):
     -- the label (a constant color-coded string) and the value are passed as
     -- SEPARATE args, so the LFG-sourced values are stringified by the seam
     -- rather than pre-concatenated through `..`/tostring at the call site.
     p(NS.L["You have joined a group!"])
-    p("   - " .. colorize(NS.L["Group:"], gold), info.title or NS.L["Unknown"])
+    p("   - " .. colorize(NS.L["Group:"], GOLD), info.title or NS.L["Unknown"])
 
-    if n.showInstance then
-        p("   - " .. colorize(NS.L["Instance:"], gold),
-          info.fullName ~= "" and info.fullName or NS.L["Unknown"])
-    end
-    if n.showType then
-        local typeStr = info.shortName ~= "" and info.shortName or Labels.GetGroupTypeLabel(info)
-        p("   - " .. colorize(NS.L["Type:"], gold), typeStr)
-    end
-    if n.showLeader then
-        p("   - " .. colorize(NS.L["Leader:"], gold), info.leaderName)
-    end
-    if n.showPlaystyle then
-        local playStyle = Labels.GetPlaystyleLabel(info)
-        if playStyle ~= "" then
-            p("   - " .. colorize(NS.L["Playstyle:"], gold), playStyle)
+    for i = 1, #NOTIFY_ROWS do
+        local row = NOTIFY_ROWS[i]
+        if n[row.flag] then
+            local v = row.value(self, info)
+            if v ~= nil then
+                p("   - " .. colorize(NS.L[row.label], GOLD), v)
+            end
         end
     end
-    if n.showTeleport then
-        local spellID, known = self:GetTeleportSpell(info.activityID, info.mapID)
-        if spellID then
-            local spellLink = NS.Compat.GetSpellLink(spellID)
-                              or ("|cff71d5ff[Spell " .. spellID .. "]|r")
-            local note  = known and "" or (" |cff888888" .. NS.L["(not learned)"] .. "|r")
-            p("   - " .. colorize(NS.L["Teleport:"], gold), spellLink .. note)
-        end
-    end
+
+    -- The click link stays inline: it is the one row with no label and its own green, so a table
+    -- entry for it would cost more indirection than it saves.
     if n.showClickLink then
-        p("   - " .. clickLink)
+        p("   - " .. colorize(link("WhatGroup:show", NS.L["[Click here to view details]"]), "00FF7F"))
     end
 end
 

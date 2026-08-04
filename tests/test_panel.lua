@@ -479,3 +479,74 @@ test("panel: the landing page renders the Slash Commands heading and the logo", 
     end
     assertTrue(logo ~= nil, "the brand logo texture is created")
 end)
+
+-- Characterization (CCN split): the landing page is four independent sub-parts — logo, TOC notes
+-- line, "Slash Commands" heading, one Label per command — and what a reader sees is the ORDER they
+-- are added to the scroll in and the spacer heights BETWEEN them. Nothing else pinned that, so the
+-- whole child list is asserted here, positionally.
+test("panel: the landing page adds logo, notes, heading and command rows in that order", function()
+    local NS, _, mock = T.enableAddon()
+    local AceGUI = NS.addon.Settings.Helpers.AceGUI
+    -- The mock's FontString stub no-ops SetJustifyH through its metatable, so the left-justify the
+    -- notes line and every command row rely on is only observable by intercepting the label as the
+    -- widget is created.
+    local baseCreate = AceGUI.Create
+    AceGUI.Create = function(s, widgetType)
+        local w = baseCreate(s, widgetType)
+        w.label.SetJustifyH = function(fs, v) w.justifyH = v; return fs end
+        return w
+    end
+    local main = panels(mock)
+    open(mock, main)
+    AceGUI.Create = baseCreate
+
+    local scroll
+    for _, w in ipairs(mock.aceWidgets) do
+        if w.type == "ScrollFrame" then scroll = w end
+    end
+    local kids = scroll.children
+
+    assertEqual(kids[1].type, "SimpleGroup", "the logo group leads")
+    assertEqual(kids[1].height, 300, "at the texture's native size")
+    assertTrue(kids[1].fullWidth)
+    assertNil(kids[1].layout, "with the deliberate nil layout, so the texture stays pixel-exact")
+    assertEqual(kids[2].height, 8, "MAIN_GAP_AFTER_LOGO")
+
+    assertEqual(kids[3].type, "Label")
+    assertEqual(kids[3].text, mock.metadata.Notes, "the TOC Notes one-liner")
+    assertEqual(kids[3].justifyH, "LEFT")
+    assertTrue(kids[3].fullWidth)
+    assertEqual(kids[4].height, 12, "MAIN_GAP_AFTER_DESC")
+
+    assertEqual(kids[5].type, "Heading")
+    assertEqual(kids[5].text, "Slash Commands")
+    assertEqual(kids[7].height, 6, "MAIN_GAP_BELOW_HEAD, after the Section's own trailing spacer")
+
+    local rows = NS.SlashCommands:LandingRows()
+    assertTrue(#rows > 0, "there is at least one command row to render")
+    assertEqual(#kids, 7 + #rows, "and nothing beyond the rows")
+    for i, line in ipairs(rows) do
+        local row = kids[7 + i]
+        assertEqual(row.type, "Label")
+        assertEqual(row.text, line, "row " .. i .. " comes from LandingRows()")
+        assertEqual(row.justifyH, "LEFT")
+        assertTrue(row.fullWidth)
+    end
+end)
+
+test("panel: re-showing the landing page re-renders it instead of stacking a second copy", function()
+    local _, _, mock = T.enableAddon()
+    local main = panels(mock)
+    open(mock, main)
+    local scroll
+    for _, w in ipairs(mock.aceWidgets) do
+        if w.type == "ScrollFrame" then scroll = w end
+    end
+    local first = #scroll.children
+    main:Hide()
+    open(mock, main)
+    for _, w in ipairs(mock.aceWidgets) do
+        if w.type == "ScrollFrame" then scroll = w end
+    end
+    assertEqual(#scroll.children, first, "one logo and one command list, not two")
+end)
