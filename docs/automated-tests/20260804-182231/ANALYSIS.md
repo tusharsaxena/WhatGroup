@@ -52,11 +52,17 @@ the first one that can say something moved, and this record is what it will be r
 
 ## Complexity watch list
 
-| `WhatGroup:CaptureGroupInfo` | 22 | `core/WhatGroup.lua` | **Accepted.** Twenty-odd `or` fallbacks in one flat table constructor — breadth, not depth. |
-| `WhatGroup:ShowNotification` | 22 | `core/WhatGroup.lua` | **Accepted.** Nine independent toggle guards mapping 1:1 onto the Notifications panel. |
-| `Helpers.BuildMainContent` | 17 | `settings/Panel.lua` | **Peel next** — the lowest-value of the three; the logo and description blocks lift out cleanly. |
+### Functions `lizard` warned on
 
-**Files in the 1000–1500 band:** None.
+| Function | CCN | Location | Disposition |
+|---|---|---|---|
+| `WhatGroup:CaptureGroupInfo` | 22 | `core/WhatGroup.lua` | **Accepted.** Twenty-odd `or` fallbacks in one flat table constructor — breadth, not depth, and the one place the captured record's shape is visible whole. |
+| `WhatGroup:ShowNotification` | 22 | `core/WhatGroup.lua` | **Accepted.** Nine independent toggle guards mapping 1:1 onto the Notifications panel. Revisit if the toggle count passes a dozen. |
+| `Helpers.BuildMainContent` | 17 | `settings/Panel.lua` | **Peel next** — the lowest-value of the three; the logo and description blocks are self-contained and lift out cleanly. |
+
+### Files by `layout-§1` band
+
+None — no file reaches 1000 LOC.
 
 ## Actions
 
