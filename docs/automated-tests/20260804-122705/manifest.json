@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "addon": "WhatGroup",
+  "addonVersion": "1.3.0",
+  "run": "20260804-122705",
+  "startedAt": "2026-08-04T12:27:05+00:00",
+  "durationMs": 4000,
+  "label": "adoption",
+  "release": null,
+  "git": { "sha": "f883274efb2b376c93581a96fe353fbd4566e760", "branch": "main", "dirty": true },
+  "host": { "lua": "Lua 5.1.5  Copyright (C) 1994-2012 Lua.org, PUC-Rio", "luacheck": "Luacheck: 1.2.0", "lizard": "1.23.0" },
+  "suites": {
+    "lint": { "status": "pass", "durationMs": 2000, "warnings": 0, "errors": 0, "files": 14, "gating": true },
+    "tests": { "status": "pass", "durationMs": 0, "passed": 415, "failed": 0, "total": 415, "gating": true },
+    "perf": { "status": "skip", "durationMs": 0, "skipReason": "no tests/perf.lua — this addon ships no offline scenarios", "scenarios": 0, "gating": false },
+    "complexity": { "status": "pass", "durationMs": 2000, "warnings": 3, "maxCcn": 22, "nloc": 5417, "functions": 787, "avgCcn": 1.7, "avgNloc": 6.2, "avgToken": 45.5, "warnFunRatio": 0.00, "warnNlocRatio": 0.03, "bandFiles": 0, "overCapFiles": 0, "gating": false }
+  },
+  "verdict": "green"
+}
