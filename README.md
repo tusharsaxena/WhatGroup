@@ -80,7 +80,7 @@ The group info is only remembered for your current play session and clears when 
 
 ## Bundled libraries
 
-Everything this addon needs ships inside it — nothing else has to be installed. Alongside Ace3 and LibSharedMedia-3.0, it bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.6.3 (MIT), the shared Ka0s library behind the chat printer, the debug console, the `/wg` command line and the settings panel. Its license travels with the code at `libs/LibKa0s/LICENSE`.
+Everything this addon needs ships inside it — nothing else has to be installed. Alongside Ace3 and LibSharedMedia-3.0, it bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.7.0 (MIT), the shared Ka0s library behind the chat printer, the debug console, the `/wg` command line and the settings panel. Its license travels with the code at `libs/LibKa0s/LICENSE`.
 
 ## FAQ
 
