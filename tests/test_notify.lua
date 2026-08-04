@@ -424,3 +424,40 @@ test("notify: a secret-like title degrades in place instead of raising", functio
     assertTrue(ok, "the notify path must not propagate a concat error")
     assertTrue(anyLine(linesSince(mock, mark), "<secret>"))
 end)
+
+-- Behavior pin (CCN split): the Leader row has NO nil guard and never had one. When
+-- pendingInfo.leaderName is nil the row still prints, with the value degraded by the
+-- NS.SafeToString seam rather than the row being dropped. A refactor that gives every
+-- notification row a uniform "value is nil, emit nothing" gate silently deletes this line —
+-- an absent row and a row reading "nil" are different chat output.
+test("notify: the Leader row still prints when leaderName is nil", function()
+    local NS, _, mock = T.bootAddon()
+    local info = pending()
+    info.leaderName = nil
+    NS.addon.pendingInfo = info
+    local mark = #mock.prints
+    NS.addon:ShowNotification()
+    assertTrue(anyLine(linesSince(mock, mark), "Leader:"),
+        "the Leader row is emitted even with no leader name to put in it")
+end)
+
+-- The counterpart: Playstyle and Teleport DO suppress their own row, and that asymmetry is the
+-- reason the nil gate has to be opt-in rather than blanket.
+test("notify: Playstyle and Teleport drop their rows while Leader keeps its own", function()
+    local NS, _, mock = T.bootAddon()
+    -- generalPlaystyle 0 with an empty playstyleString => GetPlaystyleLabel is "".
+    local info = pending({ generalPlaystyle = 0, playstyleString = "" })
+    -- Cleared after the fact, not through the overrides table: `{ mapID = nil }` sets no key at
+    -- all in Lua, so pending()'s pairs() merge would never see it and the fixture's real mapID
+    -- would survive. With neither key, GetTeleportSpell has nothing to look up.
+    info.mapID = nil
+    info.activityID = nil
+    info.leaderName = nil
+    NS.addon.pendingInfo = info
+    local mark = #mock.prints
+    NS.addon:ShowNotification()
+    local lines = linesSince(mock, mark)
+    assertFalse(anyLine(lines, "Playstyle:"), "no playstyle label means no row")
+    assertFalse(anyLine(lines, "Teleport:"), "no teleport spell means no row")
+    assertTrue(anyLine(lines, "Leader:"), "Leader is not subject to the same suppression")
+end)

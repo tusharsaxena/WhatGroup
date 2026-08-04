@@ -19,8 +19,12 @@ Branch `feat/fix-ccn`. Design: `LibKa0s/docs/superpowers/specs/2026-08-04-ccn-el
 - No dumping a body into one helper to game the metric. Every resulting function must be a
   unit a reader can name.
 - Dispatch/defaults tables are **module-level**, built once at file load — never per call.
-- `lizard` counts `and`/`or` as decisions. Prefer `== nil` over `or` wherever a stored
-  `false` or `0` must survive.
+- `lizard` counts `and`/`or` as decisions, but `or` and `== nil` are **not** interchangeable and
+  the metric is never a reason to swap one for the other. `x or D` replaces a stored `false` with
+  `D`; `if x == nil then x = D end` keeps the `false`. Whichever the shipped code used is the
+  behavior, and it stays. (`0` and `""` are TRUTHY in Lua, so `(0 or 99)` is `0` — an `or` chain
+  never swallows a stored zero or empty string. Only `false` and `nil`.) Bring CCN down by
+  splitting the function, not by rewriting its defaulting.
 - Hot paths must not gain a per-call allocation.
 - Sixteen functions across the collection have no coverage; where this file says
   `Coverage: NONE`, write a characterization test pinning current behavior **before**
@@ -36,17 +40,28 @@ Branch `feat/fix-ccn`. Design: `LibKa0s/docs/superpowers/specs/2026-08-04-ccn-el
 
 **Where the branches come from.** Almost pure `or`-defaulting: 8 `x = info.y or D` chains in the captured literal (one of them a two-source chain `info.generalPlaystyle or info.playstyle or 0`), plus 8 more `x = actInfo.y or D` chains inside the activity block, on top of three real branches (`if not info`, `if firstActivityID`, `if actInfo`). lizard counts every short-circuit, so ~19 of the 22 come from defaulting, not control flow.
 
-**Fix.** Two module-level constant field-map tables plus two file-local helpers, leaving CaptureGroupInfo as pure control flow.
+**Fix.** Two file-local helpers, leaving CaptureGroupInfo as pure control flow. Every `or` chain moves ACROSS unchanged — the split alone is what buys the headroom.
 
-(1) `local SEARCH_FIELDS = { {"numMembers","numMembers",0}, {"voiceChat","voiceChat",""}, {"playstyleString","playstyleString",""}, {"age","age",0} }` and `local function buildCapture(info)` which builds the literal keeping only the four genuinely irregular fields inline (`title = info.name or unknown`, `leaderName = info.leaderName or unknown` with `local unknown = NS.L["Unknown"]` resolved once at call time so locale swaps in tests still work, `generalPlaystyle = info.generalPlaystyle or info.playstyle or 0`, `activityIDs = info.activityIDs or {}` — this one MUST stay inline, it needs a fresh table per call), pre-seeds the placeholder fields (activityID/fullName/activityName/maxNumPlayers/isMythicPlus/isCurrentRaid/isHeroicRaid/categoryID/mapID) exactly as today, loops SEARCH_FIELDS applying `local v = info[src]; if v == nil then v = default end`, then sets `c.playstyle = c.generalPlaystyle` and returns c. CCN ~7.
+> **Correction (repair round).** The first cut of this plan called for two module-level
+> `{dest, src, default}` field tables read back through `row[1]/row[2]/row[3]`, with the loop body
+> spelled `local v = info[src]; if v == nil then v = default end`. Both halves of that were wrong.
+> The `== nil` swap is a real behavior change — a source field holding `false` was stored as `false`
+> instead of being replaced by the default, which degrades `categoryID` to a boolean that
+> `Labels.GetGroupTypeLabel` compares numerically and makes `ShowNotification` print the string
+> "false" for a `shortName`. And the old equivalence note here justified it by claiming the defaults
+> were "the falsy image of its own field's type (0/""/false)": `0` and `""` are **truthy** in Lua,
+> so they were never at risk from `or` in the first place, and `false` — the one value that *is* at
+> risk — is exactly the value the swap broke. The tables were also the only thing the swap bought,
+> since the function split on its own already lands both helpers around CCN 10. They are gone; the
+> literal `or` assignment lines are back.
 
-(2) `local ACTIVITY_FIELDS = { {"activityName","activityName",""}, {"maxNumPlayers","maxNumPlayers",0}, {"isMythicPlus","isMythicPlusActivity",false}, {"isCurrentRaid","isCurrentRaidActivity",false}, {"isHeroicRaid","isHeroicRaidActivity",false}, {"categoryID","categoryID",0}, {"shortName","shortName",""} }` and `local function applyActivityInfo(captured, actInfo)` which does the one irregular line inline (`captured.fullName = actInfo.fullName or actInfo.activityName or ""`), loops ACTIVITY_FIELDS with the same nil-check, then `captured.mapID = actInfo.mapID` (no default today — keep it nil-able). CCN ~5.
+(1) `local function buildCapture(info)` builds the whole `captured` literal exactly as CaptureGroupInfo did — the same eight `x = info.y or D` lines, including `generalPlaystyle = info.generalPlaystyle or info.playstyle or 0` and `activityIDs = info.activityIDs or {}` (this one needs a fresh table per call) — with `local unknown = NS.L["Unknown"]` resolved once at call time so locale swaps in tests still work, pre-seeds the placeholder fields (activityID/fullName/activityName/maxNumPlayers/isMythicPlus/isCurrentRaid/isHeroicRaid/categoryID/mapID) exactly as today, then sets `c.playstyle = c.generalPlaystyle` and returns c. CCN ~10.
 
-Equivalence note for the `or` → `if v == nil` swap: every default in both tables is the falsy image of its own field's type (0/""/false), so `src or default` and `if src == nil then default` produce identical values for every reachable input — 0 and "" are truthy in Lua and false-or-false is false. This is the only place the rewrite is not textually identical, and it is worth calling out in the commit message.
+(2) `local function applyActivityInfo(captured, actInfo)` carries the eight activity lines over verbatim — `captured.fullName = actInfo.fullName or actInfo.activityName or ""` and the seven `captured.x = actInfo.y or D` that follow — then `captured.mapID = actInfo.mapID` (no default today — keep it nil-able). CCN ~10.
 
 (3) `CaptureGroupInfo` becomes: nil-info guard + NS.Debug + return; `local captured = buildCapture(info)`; `local firstActivityID = captured.activityIDs[1]`; `if firstActivityID then captured.activityID = firstActivityID; local actInfo = NS.Compat.GetActivityInfoTable(firstActivityID); if actInfo then applyActivityInfo(captured, actInfo) end end`; return captured. CCN 4.
 
-Both constant tables are module-level (one allocation at file load), so nothing new is allocated per capture.
+Nothing new is allocated per capture: the two helpers are plain file-local functions closed over at load, and they write into the same single `captured` table the old body did.
 
 **Must not change.** The exact key set of the returned table is a contract read by modules/Frame.lua (PopulateFields), Labels.GetGroupTypeLabel and ShowNotification — `shortName` in particular exists ONLY when an actInfo was found (it is not pre-seeded in the literal today), and that asymmetry must be preserved or `info.shortName ~= ""` in ShowNotification changes meaning. `activityIDs` must remain a distinct table per call (never a shared module-level empty table) — captures are queued in captureQueue and would alias. `captured.playstyle` must keep mirroring generalPlaystyle after the two-source `or` chain resolves. In-game-only: nothing here is game-only; every branch is reachable headless via the wow_mock LFG stubs.
 
@@ -68,9 +83,11 @@ Both constant tables are module-level (one allocation at file load), so nothing 
 
 `local function teleportValue(self, info)` — file-local named helper holding the teleport row's whole body: `local spellID, known = self:GetTeleportSpell(info.activityID, info.mapID); if not spellID then return nil end; local spellLink = NS.Compat.GetSpellLink(spellID) or ("|cff71d5ff[Spell " .. spellID .. "]|r"); local note = known and "" or (" |cff888888" .. NS.L["(not learned)"] .. "|r"); return spellLink .. note`. CCN ~5.
 
-`local NOTIFY_ROWS = { {flag="showInstance", label="Instance:", value=function(_, info) return info.fullName ~= "" and info.fullName or NS.L["Unknown"] end}, {flag="showType", label="Type:", value=function(_, info) return info.shortName ~= "" and info.shortName or Labels.GetGroupTypeLabel(info) end}, {flag="showLeader", label="Leader:", value=function(_, info) return info.leaderName end}, {flag="showPlaystyle", label="Playstyle:", value=function(_, info) local s = Labels.GetPlaystyleLabel(info); if s == "" then return nil end; return s end}, {flag="showTeleport", label="Teleport:", value=teleportValue} }` — declared once at file load, after the `Labels` upvalue is bound (line 367) and before ShowNotification. Returning nil from `value` means "emit no row", which is exactly what the playstyle and teleport inner `if`s express today. Each closure's own CCN is 1-3.
+`local NOTIFY_ROWS = { {flag="showInstance", label="Instance:", value=function(_, info) return info.fullName ~= "" and info.fullName or NS.L["Unknown"] end}, {flag="showType", label="Type:", value=function(_, info) return info.shortName ~= "" and info.shortName or Labels.GetGroupTypeLabel(info) end}, {flag="showLeader", label="Leader:", value=function(_, info) return info.leaderName end}, {flag="showPlaystyle", label="Playstyle:", value=function(_, info) local s = Labels.GetPlaystyleLabel(info); if s == "" then return nil end; return s end}, {flag="showTeleport", label="Teleport:", omitWhenNil=true, value=teleportValue} }` — declared once at file load, after the `Labels` upvalue is bound (line 367) and before ShowNotification. Each closure's own CCN is 1-3.
 
-ShowNotification body becomes: the two entry guards unchanged; `p(NS.L["You have joined a group!"])`; `p("   - " .. colorize(NS.L["Group:"], GOLD), info.title or NS.L["Unknown"])`; `for i = 1, #NOTIFY_ROWS do local row = NOTIFY_ROWS[i]; if n[row.flag] then local v = row.value(self, info); if v ~= nil then p("   - " .. colorize(NS.L[row.label], GOLD), v) end end end`; then the click-link row kept inline (`if n.showClickLink then p("   - " .. colorize(link("WhatGroup:show", NS.L["[Click here to view details]"]), "00FF7F")) end`) because it is the one row with no label and a different color, and forcing it into the table would be the kind of indirection that costs more than it saves. CCN ~11.
+Row suppression is opt-IN, via `omitWhenNil` on the Playstyle and Teleport rows only. Those two are the only rows that carry an inner `if` today. **A blanket "value returned nil means emit no row" would be a behavior change**: the Leader row has no such guard and prints `info.leaderName` unconditionally, nil included — it reaches chat as "nil" through NS.Util.print's SafeToString seam. An absent row and a row reading "nil" are different outputs, and `pendingInfo` is a plain table that RunTest and the queue can hand over without a leaderName, so the difference is observable. Pinned by `notify: the Leader row still prints when leaderName is nil` in tests/test_notify.lua.
+
+ShowNotification body becomes: the two entry guards unchanged; `p(NS.L["You have joined a group!"])`; `p("   - " .. colorize(NS.L["Group:"], GOLD), info.title or NS.L["Unknown"])`; `for i = 1, #NOTIFY_ROWS do local row = NOTIFY_ROWS[i]; if n[row.flag] then local v = row.value(self, info); local omit = row.omitWhenNil and v == nil; if not omit then p("   - " .. colorize(NS.L[row.label], GOLD), v) end end end`; then the click-link row kept inline (`if n.showClickLink then p("   - " .. colorize(link("WhatGroup:show", NS.L["[Click here to view details]"]), "00FF7F")) end`) because it is the one row with no label and a different color, and forcing it into the table would be the kind of indirection that costs more than it saves. CCN ~11.
 
 The English label strings stay as the raw NS.L keys in the table and are indexed at call time inside the loop, so locale substitution behaves exactly as today. Building the click link lazily instead of unconditionally at the top is side-effect-free and output-identical.
 

@@ -192,36 +192,24 @@ end
 -- Group-info capture
 -- ---------------------------------------------------------------------------
 
--- The two field maps below are `{ destination, source, default }` rows, built ONCE at file load
--- and only read afterwards — a capture allocates nothing extra. Each default is the falsy image of
--- its own field's type (0 / "" / false), so the `if v == nil then v = default` the loops run is
--- value-for-value identical to the `src or default` chains these tables replaced: 0 and "" are
--- truthy in Lua, and `false or false` is false.
-local SEARCH_FIELDS = {
-    { "numMembers",      "numMembers",      0  },
-    { "voiceChat",       "voiceChat",       "" },
-    { "playstyleString", "playstyleString", "" },
-    { "age",             "age",             0  },
-}
-
-local ACTIVITY_FIELDS = {
-    { "activityName",  "activityName",          ""    },
-    { "maxNumPlayers", "maxNumPlayers",         0     },
-    { "isMythicPlus",  "isMythicPlusActivity",  false },
-    { "isCurrentRaid", "isCurrentRaidActivity", false },
-    { "isHeroicRaid",  "isHeroicRaidActivity",  false },
-    { "categoryID",    "categoryID",            0     },
-    { "shortName",     "shortName",             ""    },
-}
-
 -- Flatten one GetSearchResultInfo result into the captured shape, every field defaulted and every
 -- activity field pre-seeded with its placeholder. The key set here is a contract read by
 -- modules/Frame.lua (PopulateFields), Labels.GetGroupTypeLabel and ShowNotification.
+--
+-- Every default below is an `or` chain, NOT `if src == nil then`. The two are different: `or`
+-- replaces a stored `false` with the default, `== nil` keeps it. `or` is what shipped and what the
+-- downstream consumers assume — Labels.GetGroupTypeLabel compares categoryID numerically and
+-- ShowNotification tests `shortName ~= ""`, so a `false` reaching either degrades the output
+-- silently. (0 and "" are TRUTHY in Lua, so an `or` chain never swallows a stored zero or empty
+-- string; only `false` and `nil`.) These functions exist to keep CaptureGroupInfo's complexity
+-- down — the split is the whole point, the `or`s stay literal.
 local function buildCapture(info)
     local unknown = NS.L["Unknown"]
     local captured = {
         title             = info.name or unknown,
         leaderName        = info.leaderName or unknown,
+        numMembers        = info.numMembers or 0,
+        voiceChat         = info.voiceChat or "",
         -- Playstyle: API offers three plausible fields. `playstyleString` is
         -- the server-rendered, localized text (preferred when present);
         -- `generalPlaystyle` is the integer enum (Enum.LFGEntryGeneralPlaystyle);
@@ -229,6 +217,8 @@ local function buildCapture(info)
         -- all three; consumers prefer playstyleString, then look up
         -- generalPlaystyle in WhatGroup.Labels.PLAYSTYLE.
         generalPlaystyle  = info.generalPlaystyle or info.playstyle or 0,
+        playstyleString   = info.playstyleString or "",
+        age               = info.age or 0,
         -- A FRESH table per call, never a shared module-level empty one: captures are queued in
         -- captureQueue, and a shared fallback would alias every id-less capture together.
         activityIDs       = info.activityIDs or {},
@@ -242,12 +232,6 @@ local function buildCapture(info)
         categoryID        = 0,
         mapID             = nil,
     }
-    for i = 1, #SEARCH_FIELDS do
-        local row = SEARCH_FIELDS[i]
-        local v = info[row[2]]
-        if v == nil then v = row[3] end
-        captured[row[1]] = v
-    end
     captured.playstyle = captured.generalPlaystyle
     return captured
 end
@@ -256,15 +240,16 @@ end
 -- deliberately absent from buildCapture's literal — ShowNotification's `info.shortName ~= ""`
 -- test distinguishes "no activity resolved" from "activity with no short name".
 local function applyActivityInfo(captured, actInfo)
-    captured.fullName = actInfo.fullName or actInfo.activityName or ""
-    for i = 1, #ACTIVITY_FIELDS do
-        local row = ACTIVITY_FIELDS[i]
-        local v = actInfo[row[2]]
-        if v == nil then v = row[3] end
-        captured[row[1]] = v
-    end
+    captured.fullName       = actInfo.fullName or actInfo.activityName or ""
+    captured.activityName   = actInfo.activityName or ""
+    captured.maxNumPlayers  = actInfo.maxNumPlayers or 0
+    captured.isMythicPlus   = actInfo.isMythicPlusActivity or false
+    captured.isCurrentRaid  = actInfo.isCurrentRaidActivity or false
+    captured.isHeroicRaid   = actInfo.isHeroicRaidActivity or false
+    captured.categoryID     = actInfo.categoryID or 0
+    captured.shortName      = actInfo.shortName or ""
     -- No default: mapID stays nil-able, and GetTeleportSpell reads it that way.
-    captured.mapID = actInfo.mapID
+    captured.mapID          = actInfo.mapID
 end
 
 function WhatGroup:CaptureGroupInfo(searchResultID)
@@ -428,8 +413,13 @@ end
 
 -- The independently-toggled notification rows, IN THE ORDER they print. Built once at file load
 -- (after `Labels` is bound above), never per notification. `flag` is the db.profile.notify key that
--- gates the row; `label` is looked up in NS.L at print time, so a locale swap still applies; a
--- `value` that returns nil means "emit no row".
+-- gates the row; `label` is looked up in NS.L at print time, so a locale swap still applies.
+--
+-- `omitWhenNil` is opt-IN, and only Playstyle and Teleport declare it, because only those two ever
+-- had a second inner `if` suppressing their own row. Instance, Type and Leader print whenever their
+-- flag is on — Leader in particular printed a nil leaderName straight through NS.SafeToString, and
+-- a blanket nil gate here would have silently deleted that row. An absent row and a row reading
+-- "nil" are different outputs; the flag keeps them apart.
 local NOTIFY_ROWS = {
     { flag = "showInstance",  label = "Instance:",
       value = function(_, info) return info.fullName ~= "" and info.fullName or NS.L["Unknown"] end },
@@ -439,13 +429,13 @@ local NOTIFY_ROWS = {
       end },
     { flag = "showLeader",    label = "Leader:",
       value = function(_, info) return info.leaderName end },
-    { flag = "showPlaystyle", label = "Playstyle:",
+    { flag = "showPlaystyle", label = "Playstyle:", omitWhenNil = true,
       value = function(_, info)
           local playStyle = Labels.GetPlaystyleLabel(info)
           if playStyle == "" then return nil end
           return playStyle
       end },
-    { flag = "showTeleport",  label = "Teleport:", value = teleportValue },
+    { flag = "showTeleport",  label = "Teleport:", omitWhenNil = true, value = teleportValue },
 }
 
 function WhatGroup:ShowNotification()
@@ -468,7 +458,8 @@ function WhatGroup:ShowNotification()
         local row = NOTIFY_ROWS[i]
         if n[row.flag] then
             local v = row.value(self, info)
-            if v ~= nil then
+            local omit = row.omitWhenNil and v == nil
+            if not omit then
                 p("   - " .. colorize(NS.L[row.label], GOLD), v)
             end
         end
