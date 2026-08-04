@@ -8,4 +8,16 @@ the analysis of a given run is its `ANALYSIS.md`.
 
 | Run | Version | Lint w/e | Tests | Perf | CCN warn | Max CCN | Verdict |
 |---|---|---|---|---|---|---|---|
-| [`2026-08-04-102155`](2026-08-04-102155/) | 1.3.0 | 0/0 | 415/415 | skip | 3 | 22 | **green** |
+| [`20260804-114909`](20260804-114909/) | 1.3.0 | 0/0 | 415/415 | skip | 3 | 22 | **green** |
+
+## Complexity watch list
+
+Current state as of [`20260804-114909`](20260804-114909/) — not that run's diff.
+Every function `lizard` warned on and every file in `layout-§1`'s 1000–1500 on-notice band,
+each with a one-line disposition.
+
+| `WhatGroup:CaptureGroupInfo` | 22 | `core/WhatGroup.lua` | **Accepted.** Twenty-odd `or` fallbacks in one flat table constructor — breadth, not depth. |
+| `WhatGroup:ShowNotification` | 22 | `core/WhatGroup.lua` | **Accepted.** Nine independent toggle guards mapping 1:1 onto the Notifications panel. |
+| `Helpers.BuildMainContent` | 17 | `settings/Panel.lua` | **Peel next** — the lowest-value of the three; the logo and description blocks lift out cleanly. |
+
+**Files in the 1000–1500 band:** None.
