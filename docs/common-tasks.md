@@ -202,6 +202,14 @@ When the user does ask, the version sites are:
 
 The user has a `/wow-addon:bump-version <X.Y.Z>` slash command in their personal `wow-addon` plugin that updates every site in one pass. Prefer that over manual edits.
 
+**In the same change, before the tag:** regenerate the complexity report and read its diff —
+
+```sh
+lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .
+```
+
+— writing anything that newly crossed a threshold into `docs/complexity.md`'s `## Watch list`. This is a **release** checkpoint and **not** a commit gate; see [testing.md → The complexity report](./testing.md#the-complexity-report--a-release-checkpoint-not-a-commit-gate) and performance-§10.
+
 ## Add a captured-info field
 
 If `C_LFGList.GetSearchResultInfo` or `C_LFGList.GetActivityInfoTable` exposes a new field worth showing:
