@@ -199,6 +199,37 @@ A warning inside one of the four LibKa0s seam files (`core/CoreSetup.lua`,
 a defect in this addon's wiring. A warning under `libs/` is not this addon's to
 fix — it is a finding for `../LibKa0s`.
 
+## The complexity report — a release checkpoint, not a commit gate
+
+[`docs/complexity.md`](./complexity.md) is the generated `lizard` report: one file,
+**overwritten in place**, never dated and never a directory, so the git history of that single path
+is the trend line. Regenerate it from this repo's root with **exactly** this command — no extra
+flags, no narrowed path, no per-addon thresholds, because two reports produced by different
+invocations cannot be diffed against each other:
+
+```sh
+lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .
+```
+
+**When:** as part of **every release** — in the same change that bumps the version and rolls the
+README's `## What's new` and `## Version History` forward, **before** the tag. Regenerate it, then
+**read the diff**: a function that newly crossed a threshold, or a file that newly entered the
+1000–1500 LOC band, goes into the report's `## Watch list` with a one-line disposition. Regenerating
+over a degradation in silence is the report failing at its only job.
+
+**This is not a commit gate.** `lua tests/run.lua` and `luacheck .` gate commits; the complexity
+report does not, and MUST NOT. It is a report you read when deciding where to refactor next, and a
+threshold that fails a build is the fastest way to teach a repo to reach for `--no-verify`.
+
+`lizard` is an optional local tool (see [`../DEPENDENCIES.md`](../DEPENDENCIES.md)). If it isn't
+installed, the committed report is **stale** — that is a documented state, not non-compliance. Leave
+the previous report in place with its original header (which dates itself) and say so in the release
+notes. Never hand-edit it: a hand-edited complexity report is worse than an absent one, because it
+reads as measured.
+
+The full rule, including the header format and what belongs in the watch list, is
+**performance-§10** in the Ka0s WoW Addon Standard.
+
 ## In-game smoke tests
 
 The pieces that can't be exercised headlessly — AceGUI panel rendering, the

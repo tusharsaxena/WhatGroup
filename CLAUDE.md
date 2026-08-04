@@ -73,7 +73,11 @@ This root file is a **stub** (documentation-§2). The real detail lives in `docs
 - **[docs/testing.md](docs/testing.md)** — how to verify: the green gate, mock fidelity,
   the generated `docs/test-cases.md` inventory and the README `tests` badge.
 - Topic detail (file index, scope, capture pipeline, settings system, slash dispatch,
-  debug console, frame, WoW quirks, common tasks, smoke tests) sits alongside them.
+  debug console, frame, WoW quirks, common tasks, smoke tests) sits alongside them —
+  including the generated **[docs/complexity.md](docs/complexity.md)**, refreshed at
+  every release and never hand-edited (performance-§10).
+- **[DEPENDENCIES.md](DEPENDENCIES.md)** — the root toolchain contract (documentation-§7):
+  what to install to build, run, test or release this addon, with WSL2/Ubuntu commands.
 
 Green gate before every commit: `lua tests/run.lua` and `luacheck .` (0/0), plus the
 **vendor gate** — `diff -r --strip-trailing-cr` and plain `diff -r` of `../LibKa0s/LibKa0s`
