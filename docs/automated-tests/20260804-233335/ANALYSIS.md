@@ -57,8 +57,8 @@ every `@`-tagged function row, so the column is populated whether or not anythin
 The highest function in this run is `WhatGroup:_TryFireJoinNotify` at **CCN 13**
 (`core/WhatGroup.lua:533-573`), then four at 12: `ConfigureTeleportButton`
 (`modules/Frame.lua:184-261`), `WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED`
-(`core/WhatGroup.lua:619-673`), `WhatGroup:InitSummary` (`core/WhatGroup.lua:445-477`) and `WhatGroup:ShowNotification`
-(`core/WhatGroup.lua:174-189`).
+(`core/WhatGroup.lua:619-673`), `WhatGroup:ShowNotification` (`core/WhatGroup.lua:445-477`) and
+`WhatGroup:InitSummary` (`core/WhatGroup.lua:174-189`).
 None of the five is a watch-list entry — all sit well under the cap, and none was touched by the
 refactor that got the addon here. They are headroom figures, and this run's footer line agrees:
 `No thresholds exceeded`.

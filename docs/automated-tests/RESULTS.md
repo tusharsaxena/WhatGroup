@@ -50,9 +50,13 @@ addon's shipped source only — `core/Compat.lua`, `core/CoreSetup.lua`, `core/D
 `defaults/TeleportSpells.lua`, `locales/enUS.lua`, `modules/Frame.lua`,
 `settings/OptionsSetup.lua`, `settings/Panel.lua`, `settings/Schema.lua`, `settings/Slash.lua`.
 The vendored `libs/` and the frozen audit and review bundles are excluded because they are not this
-repo's to fix; **`tests/` is excluded too**, which puts 5265 lines of harness and mock code
-permanently outside the lint gate. That is a standing fact about the config (`docs/testing.md`'s
-"Lint scope" says the same), not this run's news.
+repo's to fix; **`tests/` is excluded too**, which puts 6098 lines of Lua across 20 files
+permanently outside the lint gate — the 14 `test_*.lua` suites (`capture`, `compat`, `database`,
+`debuglog`, `frame`, `harness`, `labels`, `libka0s`, `lifecycle`, `notify`, `panel`, `settings`,
+`slash`, `util`), the runner pair `run.lua` / `loader.lua`, the `wow_mock.lua` API stub, and the
+three vendored kit files `_kit/framework.lua`, `_kit/loader.lua` and `_kit/mock_base.lua`. That is
+a standing fact about the config (`docs/testing.md`'s "Lint scope" says the same), not this run's
+news.
 
 ## Perf
 
@@ -84,7 +88,7 @@ The five highest functions are all headroom figures rather than watch-list entri
 touched by that work: `WhatGroup:_TryFireJoinNotify` at **13** (`core/WhatGroup.lua:533-573`), then
 four at **12** — `ConfigureTeleportButton` (`modules/Frame.lua:184-261`),
 `WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED` (`core/WhatGroup.lua:619-673`),
-`WhatGroup:InitSummary` (`core/WhatGroup.lua:445-477`) and `WhatGroup:ShowNotification`
+`WhatGroup:ShowNotification` (`core/WhatGroup.lua:445-477`) and `WhatGroup:InitSummary`
 (`core/WhatGroup.lua:174-189`). See
 [`20260804-233335/complexity.txt`](20260804-233335/complexity.txt) for the full per-function table.
 The `0` one row above in the `Max CCN` column is the instrument fault described under the table, not
