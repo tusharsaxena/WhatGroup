@@ -16,17 +16,53 @@ which is never the same as a pass.
 | [`20260804-215056`](20260804-215056/) | 1.3.0 | 0/0 | 14 | 422/422 | skip | 5573 | 808 | 6.3 | 1.7 | 0 | 0 | **green** |
 | [`20260804-182231`](20260804-182231/) | 1.3.0 | 0/0 | 14 | 415/415 | skip | 5417 | 787 | 6.2 | 1.7 | 22 | 3 | **green** |
 
+**Reading the `Max CCN` column: the `0` in the [`20260804-215056`](20260804-215056/) row is an
+instrument fault, not a measurement.** Runs recorded before the LibKa0s v1.7.0 testkit (revision 6)
+was vendored — [`20260804-182231`](20260804-182231/) and [`20260804-215056`](20260804-215056/) —
+read `Max CCN` out of `lizard`'s `!!!! Warnings` block, which is empty once nothing warns, so the
+field collapsed to `0` the moment this addon reached zero warnings. The true figure was always in
+that same bundle's own `complexity.txt`: for `20260804-215056` it is **13**
+(`WhatGroup@533-573@./core/WhatGroup.lua`, in
+[`20260804-215056/complexity.txt`](20260804-215056/complexity.txt)) — identical to the 13 the
+[`20260804-233335`](20260804-233335/) row reports for the same tree. The `22` in the
+`20260804-182231` row is sound, because that run did have warned functions to take a maximum over.
+The rows stand as recorded (`performance-§10`): a hand-corrected number reads as measured, and this
+note is how the correction is made instead.
+
 ## Test suite
 
-422 cases across capture, labels, notifications, lifecycle and the settings surface. The generated inventory `test-cases.md` in each bundle is the authority on what exists at that point; the README badge tracks the same number.
+Current state as of [`20260804-233335`](20260804-233335/): **422 cases** across capture, labels,
+notifications, lifecycle and the settings surface. The count moved with the code this cycle
+(415 → 422 at [`20260804-215056`](20260804-215056/)): the seven new cases pin the `or`-defaulting
+and Leader-row behavior that the CCN refactor could otherwise have broken silently, plus the
+landing page's widget order and its dirty-page re-render. The generated inventory
+[`20260804-233335/test-cases.md`](20260804-233335/test-cases.md) is the authority on exactly which
+cases exist at that point; the README badge tracks the same number.
 
 ## Lint
 
-Clean over 14 files: 0 warnings, 0 errors. `luacheck .` runs over the addon's own source and its `tests/`; the vendored `libs/` and `tests/_kit/` are out of scope by config, since neither is this repo's to fix.
+Current state as of [`20260804-233335`](20260804-233335/): clean over **14 files**, 0 warnings and
+0 errors ([`20260804-233335/lint.txt`](20260804-233335/lint.txt)). Scope matters as much as the
+result, and here it is narrower than the `0/0` suggests: `.luacheckrc` sets
+`exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "tests/" }`, so the 14 files are the
+addon's shipped source only — `core/Compat.lua`, `core/CoreSetup.lua`, `core/Database.lua`,
+`core/DebugLogSetup.lua`, `core/Util.lua`, `core/WhatGroup.lua`, `defaults/Profile.lua`,
+`defaults/TeleportSpells.lua`, `locales/enUS.lua`, `modules/Frame.lua`,
+`settings/OptionsSetup.lua`, `settings/Panel.lua`, `settings/Schema.lua`, `settings/Slash.lua`.
+The vendored `libs/` and the frozen audit and review bundles are excluded because they are not this
+repo's to fix; **`tests/` is excluded too**, which puts 5265 lines of harness and mock code
+permanently outside the lint gate. That is a standing fact about the config (`docs/testing.md`'s
+"Lint scope" says the same), not this run's news.
 
 ## Perf
 
-This addon ships no `tests/perf.lua`, so the `perf` column is a permanent `skip` rather than a transient tooling gap. Two things follow, and both are standing facts rather than this run's news: the record says **nothing** about the addon's runtime cost, and `performance-§9`'s zero-overhead evidence — that bracketed instrumentation is free when capture is off — does not exist for it. Adding scenarios is the only thing that changes either.
+Current state as of [`20260804-233335`](20260804-233335/): **skip — zero scenarios, nothing
+measured.** This addon ships no `tests/perf.lua`, so the `perf` column is a permanent `skip` rather
+than a transient tooling gap, and every bundle records it as a `skip` with that reason rather than
+as a pass. Two things follow, and both are standing facts rather than this run's news: the record
+says **nothing** about the addon's runtime cost, and `performance-§9`'s zero-overhead evidence —
+that bracketed instrumentation is free when capture is off — does not exist for it. Adding
+scenarios is the only thing that changes either.
 
 ## Complexity watch list
 
@@ -44,17 +80,19 @@ That is this run's result, not an omission. The three entries this table carried
 named units, so their **Accepted** / **Peel next** dispositions are retired rather than carried
 forward: there is nothing left to accept or to peel. `lizard` now warns on nothing in this addon.
 
-The highest function is `WhatGroup:_TryFireJoinNotify` at **CCN 13** (`core/WhatGroup.lua`), well
-under the cap and untouched by that work — a headroom figure, not a watch-list entry. The
-[`20260804-233335`](20260804-233335/) row reports that 13 in its own `Max CCN` column; the
-[`20260804-215056`](20260804-215056/) row above it reads 0 for the same tree, because the runner
-read `Max CCN` out of `lizard`'s warnings block and so had no input once the warnings hit zero.
-LibKa0s v1.7.0's testkit revision 6 measures it over every function instead, and re-vendoring it is
-what made the column readable here. The two rows are the same code; only the measurement changed.
+The five highest functions are all headroom figures rather than watch-list entries, and none was
+touched by that work: `WhatGroup:_TryFireJoinNotify` at **13** (`core/WhatGroup.lua:533-573`), then
+four at **12** — `ConfigureTeleportButton` (`modules/Frame.lua:184-261`),
+`WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED` (`core/WhatGroup.lua:619-673`),
+`WhatGroup:InitSummary` (`core/WhatGroup.lua:445-477`) and `WhatGroup:ShowNotification`
+(`core/WhatGroup.lua:174-189`). See
+[`20260804-233335/complexity.txt`](20260804-233335/complexity.txt) for the full per-function table.
+The `0` one row above in the `Max CCN` column is the instrument fault described under the table, not
+a different tree.
 
 ### Files by `layout-§1` band
 
-None — no file reaches 1000 LOC. Refreshed against this run: the largest by raw line count is
-`core/WhatGroup.lua` at 718, then `tests/test_libka0s.lua` at 645 and `tests/test_panel.lua` at
-566. Nothing is close to the 1000-LOC on-notice threshold, and this branch moved the two source
-files by a few dozen lines each.
+**None.** No file reaches 1000 LOC — [`20260804-233335/manifest.json`](20260804-233335/manifest.json)
+records `bandFiles: 0` and `overCapFiles: 0`. The three largest by raw line count are
+`core/WhatGroup.lua` at 718, `tests/test_libka0s.lua` at 645 and `tests/test_panel.lua` at 566, so
+the closest file sits roughly 280 lines below the on-notice threshold.
