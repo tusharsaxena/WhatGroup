@@ -208,7 +208,7 @@ The user has a `/wow-addon:bump-version <X.Y.Z>` slash command in their personal
 lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .
 ```
 
-— writing anything that newly crossed a threshold into `docs/complexity.md`'s `## Watch list`. This is a **release** checkpoint and **not** a commit gate; see [testing.md → The complexity report](./testing.md#the-complexity-report--a-release-checkpoint-not-a-commit-gate) and performance-§10.
+— writing anything that newly crossed a threshold into `docs/automated-tests/RESULTS.md`'s watch list. This is a **release** checkpoint and **not** a commit gate; see [testing.md → The complexity report](./testing.md#the-complexity-report--a-release-checkpoint-not-a-commit-gate) and performance-§10.
 
 ## Add a captured-info field
 

@@ -26,7 +26,7 @@ Where each responsibility lives in the source tree. Pair this map with the actua
 | `CLAUDE.md` | Root agent **stub** (documentation-§2) — a short pointer that loads into every session's context: the standards-compliance rule, the agent hard rules (no auto-commit, no version bump, hook discipline), response style, and links into `docs/`. Never a full brief; the scaffolding pack is fetched at runtime and never stored here (documentation-§3, anti-pattern #49). |
 | `DEPENDENCIES.md` | Root toolchain contract (documentation-§7). Every piece of software needed to build, run, test or release the addon, split runtime / development / release-and-assets, each entry evidence-backed, with WSL2-Ubuntu install commands and a one-line verification per tool. Checked at release like the rest of the doc set. |
 | `docs/ARCHITECTURE.md` | High-level design overview: what-it-does blurb, subsystem diagram, subsystems table → `docs/*`, invariants, working environment, dependencies, load order. |
-| `docs/complexity.md` | **Generated** `lizard` complexity report (performance-§10) — one file overwritten in place, so its git history is the trend line. Regenerated and its diff read at **every release**, never a commit gate. Never hand-edit it. |
+| `docs/automated-tests/RESULTS.md` | **Generated** one-row-per-run record across all four suites, with the complexity watch list (automated-tests-§4) — one file overwritten in place, so its git history is the trend line. Regenerated and its diff read at **every release**, never a commit gate. Never hand-edit it. |
 | `docs/*.md` | Topic-specific deep dives (this file is one of them). |
 
 ## Embedded libraries

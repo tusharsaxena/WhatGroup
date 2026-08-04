@@ -199,36 +199,42 @@ A warning inside one of the four LibKa0s seam files (`core/CoreSetup.lua`,
 a defect in this addon's wiring. A warning under `libs/` is not this addon's to
 fix — it is a finding for `../LibKa0s`.
 
-## The complexity report — a release checkpoint, not a commit gate
+## Automated test records — the consolidated run
 
-[`docs/complexity.md`](./complexity.md) is the generated `lizard` report: one file,
-**overwritten in place**, never dated and never a directory, so the git history of that single path
-is the trend line. Regenerate it from this repo's root with **exactly** this command — no extra
-flags, no narrowed path, no per-addon thresholds, because two reports produced by different
-invocations cannot be diffed against each other:
+All four out-of-game suites go through one vendored runner, and every run is recorded
+(`automated-tests`):
 
 ```sh
-lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .
+tests/_kit/run-automated-tests.sh                            # all four, writes a bundle
+tests/_kit/run-automated-tests.sh --suite complexity          # a subset
+tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the green gate; writes nothing
 ```
 
-**When:** as part of **every release** — in the same change that bumps the version and rolls the
-README's `## What's new` and `## Version History` forward, **before** the tag. Regenerate it, then
-**read the diff**: a function that newly crossed a threshold, or a file that newly entered the
-1000–1500 LOC band, goes into the report's `## Watch list` with a one-line disposition. Regenerating
-over a degradation in silence is the report failing at its only job.
+| Suite | Command | Gates? |
+|---|---|---|
+| `lint` | `luacheck .` | **yes** |
+| `tests` | `lua tests/run.lua` | **yes** |
+| `perf` | `lua tests/perf.lua` | no — recorded only |
+| `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only |
 
-**This is not a commit gate.** `lua tests/run.lua` and `luacheck .` gate commits; the complexity
-report does not, and MUST NOT. It is a report you read when deciding where to refactor next, and a
-threshold that fails a build is the fastest way to teach a repo to reach for `--no-verify`.
+**`perf` and `complexity` never fail a run.** They are measured, recorded and diffed — a threshold
+that fails a run teaches everyone to reach for `--no-verify`, after which the gate protects nothing
+and the habit remains. They contribute `amber`, which is a signal rather than a stop. **A missing
+tool is a skip recorded with its reason**, never a pass.
 
-`lizard` is an optional local tool (see [`../DEPENDENCIES.md`](../DEPENDENCIES.md)). If it isn't
-installed, the committed report is **stale** — that is a documented state, not non-compliance. Leave
-the previous report in place with its original header (which dates itself) and say so in the release
-notes. Never hand-edit it: a hand-edited complexity report is worse than an absent one, because it
-reads as measured.
+The runner is **vendored** from `LibKa0s`'s `testkit/`; never edit `tests/_kit/`. A kit fix goes
+upstream and is re-vendored.
 
-The full rule, including the header format and what belongs in the watch list, is
-**performance-§10** in the Ka0s WoW Addon Standard.
+**At release, not at commit.** A full bundle is produced as part of every version bump, before the
+tag, with an `ANALYSIS.md` write-up. Commits are gated on lint + tests only.
+
+Results live in [`automated-tests/`](./automated-tests/): `RESULTS.md` is one row per run across all
+four suites plus the current complexity watch list — **one file, overwritten in place**, so its git
+history is the trend line — and each `<YYYY-MM-DD-HHMMSS>/` is a frozen bundle of that run's raw
+output. Bundles are never edited and never pruned.
+
+`docs/complexity.md` was this addon's standalone complexity report through standard v2.18.0; it is
+**retired** — its raw output is each bundle's `complexity.txt` and its trend line is `RESULTS.md`.
 
 ## In-game smoke tests
 

@@ -1,41 +1,3 @@
-# Complexity report
-
-<!-- GENERATED — do not hand-edit. Regenerate per performance-§10. -->
-
-- **Generated:** 2026-08-04
-- **Tool:** lizard 1.23.0
-- **Command:** `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .`
-- **Standard:** v2.18.0
-
-Scope: WhatGroup's own Lua — `core/`, `defaults/`, `locales/`, `modules/`, `settings/` and the
-addon's own `tests/`. The vendored trees (`libs/`, the shared kit at `tests/_kit/`) are excluded by
-the mandated invocation. 31 files, 787 functions, 5417 NLOC, 3 warnings.
-
-## Watch list
-
-**This is the first complexity report committed to this repo, so there is no previous report to
-diff against.** Nothing below is a regression — it is the starting baseline. The next release's
-report is the first one that can say "newly crossed" about anything, and that is the release where
-this list starts earning its keep.
-
-`lizard` warned on three functions (its defaults: CCN > 15, length > 1000, parameters > 100). No
-file sits in layout-§1's 1000–1500 LOC on-notice band — the largest file in the addon is
-`core/WhatGroup.lua` at 662 physical lines (374 NLOC), well under the 1000 mark.
-
-| Function | CCN | NLOC | Location | Disposition |
-|---|---|---|---|---|
-| `WhatGroup:CaptureGroupInfo` | 22 | 44 | `core/WhatGroup.lua:194-251` | **Accepted.** The complexity is 20-odd `or` fallbacks in one flat table constructor plus one `if actInfo` block — breadth, not depth. Every branch is a default for a field the LFG API may omit, which is exactly the defensiveness capture-pipeline.md asks for. Splitting it would move the same `or`s into two functions and cost the reader the one place where the captured record's shape is visible whole. |
-| `WhatGroup:ShowNotification` | 22 | 42 | `core/WhatGroup.lua:373-421` | **Accepted.** Nine independent, non-nested `if n.showX then` guards, one per notification toggle in the settings schema. CCN counts each toggle; a reader sees a flat list that maps 1:1 onto the Notifications panel. A data-driven rewrite (a line table walked by a loop) is the only real reduction and it would trade a legible chat layout for indirection. Revisit if the toggle count grows past a dozen. |
-| `Helpers.BuildMainContent` | 17 | 42 | `settings/Panel.lua:91-157` | **Peel next.** The lowest-value of the three: it is one function doing logo, TOC-notes label, section heading and the command-row loop, and its CCN is mostly `if widget and widget.method` capability guards. The logo block and the description block are each self-contained and lift out cleanly into `Helpers.AddLogo(ctx)` / `Helpers.AddNotes(ctx)`. Not urgent — no defect is attached to it — but it is the first thing to peel when `settings/Panel.lua` is next opened. |
-
-None of the three is tracked as a deviation or a review finding today: the 2026-08-04 audit records
-`WG-41` for the **absence of this report**, not for any hot spot in it, and the 2026-08-03 review
-raised nothing against these functions. If one of them is still on this list two releases from now
-without moving, that is the signal to open an ID for it.
-
-## Raw output
-
-```text
 ================================================
   NLOC    CCN   token  PARAM  length  location  
 ------------------------------------------------
@@ -874,4 +836,3 @@ NLOC    Avg.NLOC  AvgCCN  Avg.token  function_cnt    file
 Total nloc   Avg.NLOC  AvgCCN  Avg.token   Fun Cnt  Warning cnt   Fun Rt   nloc Rt
 ------------------------------------------------------------------------------------------
       5417       6.2     1.7       45.5      787            3      0.00    0.03
-```
