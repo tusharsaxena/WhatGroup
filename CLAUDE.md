@@ -22,7 +22,7 @@ whether it should be:
    WowAddonStandards repo).
 
 Do not resolve a standards conflict on your own — surface it and let the user
-choose. (See the frozen compliance snapshot in `docs/audits/2026-07-18/`.)
+choose. (See the frozen compliance snapshot in `docs/audits/2026-08-04/`.)
 
 ## The `docs/` set — there is no `agent-context.md`
 
