@@ -2,13 +2,13 @@
 
 Orient-yourself map for **Ka0s WhatGroup**. This file is the high-level index; topic detail lives in `docs/`.
 
-## What it does
+## Overview
 
 WhatGroup observes the Premade Group Finder (LFG) flow. It captures the group details visible on the search-result tile when the player applies, holds them across the application → invite → accept → join sequence, and resurfaces them once the player is actually in the group as a chat notification + popup dialog. The popup carries a teleport button for known dungeon teleport spells.
 
 The addon is observation-only. It never modifies LFG state, never auto-applies, and never blocks the join flow — both hooks are direct `hooksecurefunc` post-hooks (one on `C_LFGList.ApplyToGroup` for capture, one on `SetItemRef` filtered to `WhatGroup:` link clicks). No AceHook wrappers — those leave per-invocation closures that taint Blizzard's secure-execute chain on Logout.
 
-## Subsystems at a glance
+## Module Map
 
 ```
 LFG events ─▶ capture pipeline ─▶ pendingInfo
@@ -53,6 +53,98 @@ LFG events ─▶ capture pipeline ─▶ pendingInfo
 | Routine recipes (add a setting, add a command, refresh libs) | — | [docs/common-tasks.md](./common-tasks.md) |
 | Verification model (headless harness, mock fidelity, `--list` inventory + badge sync) | `tests/` | [docs/testing.md](./testing.md) |
 | Manual smoke tests (boot health, slash, settings panel, `/wg test`, real LFG, regression checks) | — | [docs/smoke-tests.md](./smoke-tests.md) |
+
+## Settings Schema
+
+Ten rows, all profile-scoped, declared in `settings/Schema.lua` and valued in `defaults/Profile.lua`
+(`NS.C`) — the schema owns the STRUCTURE, `NS.C` owns the VALUES (savedvariables-§2 / WG-24):
+
+| Path | Type | Panel group |
+|---|---|---|
+| `enabled` | bool | General — the master switch; its `onChange` off-flip calls `WhatGroup:WipeCapture()` |
+| `frame.autoShow` | bool | General — open the popup automatically on join |
+| `notify.enabled` | bool | General — print the chat summary on join |
+| `notify.delay` | number | Notify — seconds to wait before notify + popup (`0` = instant) |
+| `notify.showInstance` | bool | Notify — line toggles |
+| `notify.showType` | bool | Notify |
+| `notify.showLeader` | bool | Notify |
+| `notify.showPlaystyle` | bool | Notify |
+| `notify.showClickLink` | bool | Notify |
+| `notify.showTeleport` | bool | Notify |
+
+The account-wide `global` table carries `schemaVersion` and `windows` (standalone-window geometry,
+WG-26) and no schema rows. Reads and writes go through `Helpers.Get` / `Helpers.Set` — `Set` is the
+orchestrated single write-path (`RawSet` → the row's `onChange` → `RefreshAll`), and `Get` on an
+unknown path returns nil **without materializing parent tables**. Detail:
+[docs/settings-system.md](./settings-system.md).
+
+## Message Bus
+
+**There is none, because** WhatGroup is a single-addon capture pipeline with no cross-module
+publish/subscribe need: `grep -rn "SendMessage\|RegisterMessage" core modules settings defaults`
+returns nothing. The capture path calls `WhatGroup:_TryFireJoinNotify(reason)` directly, and that
+one entry point is the coordination seam a bus would otherwise provide — the `notifiedFor` identity
+flag, not a message, is what keeps the two trigger paths from double-firing. If a second consumer of
+join data ever appears, AceEvent-3.0's `SendMessage` is already mixed in and is the route to take.
+
+## Slash Commands
+
+`/wg` (alias `/whatgroup`), dispatched by `LibKa0s-Slash-1.0` over the `COMMANDS` table in
+`settings/Slash.lua`. Rows are **positional triples** — `{ name, description, handler }`, handler
+taking `rest` alone — and the same table is published as `WhatGroup.COMMANDS` so the settings
+landing page renders exactly what the dispatcher runs.
+
+| Verb | Owner | Does |
+|---|---|---|
+| `help` | library | Lists every row |
+| `show` | host | Re-opens the popup for the current group |
+| `test` | host | Injects synthetic group info and runs the full notify + frame flow |
+| `config` | host | Opens the settings panel (refused in combat, inside `OpenOptionsPanel`) |
+| `version` | library | Prints the addon version |
+| `list` / `get` / `set` | library | The schema CLI, over the ten rows above |
+| `reset` | host | Resets **one** path — `/wg reset <path>`, no confirmation (`LIBKA0S-13`) |
+| `resetall` | host | Resets everything, behind the shared `WHATGROUP_RESET_ALL` popup |
+| `debug` | host | Opens/closes the debug console; `on|off` toggles logging |
+
+`perf` stays a reserved verb (`slash-commands-§2`) and is deliberately not registered — see
+`## Documented deviations`. Detail: [docs/slash-dispatch.md](./slash-dispatch.md).
+
+## Event Subscriptions
+
+Small and deliberately so — the whole surface, from `grep -rn "RegisterEvent\|hooksecurefunc"`:
+
+| Registered | Where | Handler does |
+|---|---|---|
+| `GROUP_ROSTER_UPDATE` | `core/WhatGroup.lua` `OnEnable` | Detects the not-in → in transition and calls `_TryFireJoinNotify("ROSTER transition")`; on leave, `WipeCapture()` |
+| `LFG_LIST_APPLICATION_STATUS_UPDATED` | `core/WhatGroup.lua` `OnEnable` | Advances the application queue; on `inviteaccepted` sets `pendingInfo` and calls `_TryFireJoinNotify("inviteaccepted")` |
+| `PLAYER_REGEN_ENABLED` | `modules/Frame.lua` (two one-shot frames) | Re-runs the deferred `ConfigureTeleportButton` write, and the deferred first `buildFrame()` |
+| `hooksecurefunc(C_LFGList, "ApplyToGroup")` | `core/WhatGroup.lua`, file-load | Records the group applied to |
+| `hooksecurefunc("SetItemRef")` | `core/WhatGroup.lua`, file-load | Filtered to `WhatGroup:` links — re-opens the popup |
+
+Both hooks are **direct post-hooks installed at file load**, never AceHook and never in `OnEnable`.
+There is no `OnUpdate` handler, no repeating ticker and no repeating timer anywhere in the addon —
+the sweep behind that claim is in [`performance.md`](./performance.md), and it is what the
+no-combat-path exemption rests on.
+
+## Taint Notes
+
+- **No AceHook.** `SecureHook` / `RawHook` wrap the callback in a per-invocation bookkeeping closure,
+  and that closure taints the secure-execute chain Blizzard runs for the GameMenu Logout button
+  (`ADDON_ACTION_FORBIDDEN … 'callback()'`). Direct `hooksecurefunc` adds no closure of ours.
+- **Hooks at file load, secure frames at first use.** The two post-hooks install at file-load top
+  level so GameMenu's `InitButtons` sees a clean context; the popup's `SecureActionButtonTemplate`
+  teleport button, its `UISpecialFrames` insert and the `WHATGROUP_RESET_ALL` popup registration are
+  all deferred to first use.
+- **Three combat guards in `modules/Frame.lua`.** `ConfigureTeleportButton` stashes `info` and
+  reruns on `PLAYER_REGEN_ENABLED`; `ShowFrame` defers the first `buildFrame()` past combat with a
+  one-shot wait frame and says so in chat; `Settings.Register()` self-guards as defense in depth.
+- **Category registration is not combat-gated.** Registering a canvas category at login never
+  taints; only panel *open* is refused, and that refusal lives inside `OpenOptionsPanel` so every
+  caller gets it (options-ui-§2).
+- **Two `C_Timer.After(0, …)` hops are taint avoidance, not timers.** They move the panel and frame
+  builds out of Blizzard's secure-execute chain; each carries a justification comment.
+- **The chat path stringifies through `NS.SafeToString`**, so a combat-protected value degrades to
+  `<secret>` instead of raising (events-frames-taint-§8 / WG-22).
 
 ## Invariants worth not breaking
 
@@ -136,6 +228,27 @@ Lifecycle:
 `Settings.Register()` runs at `OnEnable` (and again as a no-op from `runConfig`). It defers the AceGUI body build to the parent and General subcategory's first `OnShow` (each behind its own one-shot guard). See [docs/settings-system.md](./settings-system.md#lazy-panel-build).
 
 If you add a new runtime file, put it in the right place in `WhatGroup.toc` (after libs, after the file it depends on).
+
+## Known Limitations
+
+Things the addon does not do, and the reason each is a boundary rather than a bug. Scope decisions
+are reasoned in [docs/scope.md](./scope.md); a limitation that is a *ratified standards deviation*
+lives in the table below this one, not here.
+
+- **Capture is session-only.** `captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup` and
+  `notifiedFor` never touch SavedVariables, so `/reload` mid-application loses the pending capture
+  and the join that follows prints nothing. Deliberate: the data describes a group you are in right
+  now, and persisting it would resurface a stale group after a relog.
+- **Only groups joined through the Premade Group Finder are captured.** A guild or party invite
+  carries no LFG search result, so there is nothing to observe. `/wg test` exists precisely because
+  the real path cannot be exercised on demand.
+- **Teleport is limited to dungeon Path-of spells the player has learned.** The button renders
+  grayed until `IsSpellKnown` says otherwise, and only for map IDs present in
+  `defaults/TeleportSpells.lua` — a hand-maintained table, so a newly added dungeon needs a data
+  update.
+- **English only.** The locale shell (`locales/enUS.lua`, `NS.L`) is mandatory and every authored
+  string routes through it, but translation content is a non-goal (localization-§3 / WG-07).
+- **No profiler wiring.** `LibKa0s-Perf-1.0` is vendored but not wired; see the deviation table.
 
 ## Documented deviations
 
