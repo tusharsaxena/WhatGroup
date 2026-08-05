@@ -9,3 +9,6 @@ ignore:
   - .gitattributes
   - docs        # includes docs/audits and docs/reviews
   - tests
+  - _dev        # the scratch dir packaging reserves; ignored whether or not it exists today
+  - "*.bak"     # editor lockfiles and backups
+  - .claude     # agent configuration — dev-only, never shipped to players
