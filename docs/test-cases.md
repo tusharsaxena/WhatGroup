@@ -126,7 +126,7 @@ badge and any count quoted in the docs must agree with it.
 - database: migrations run before any profile read (OnInitialize order)
 - database: the profile is untouched by a migration pass
 
-### test_settings.lua (41)
+### test_settings.lua (42)
 
 - settings: BuildDefaults threads profile + global defaults
 - settings: defaults source from NS.C (defaults/Profile.lua, WG-24)
@@ -152,7 +152,8 @@ badge and any count quoted in the docs must agree with it.
 - settings: BuildDefaults is a fresh table each call
 - settings: Get returns nil before the db exists
 - settings: Set before the db exists is a harmless no-op
-- settings: Resolve creates the intermediate tables it walks through
+- settings: a write creates the intermediate tables it walks through
+- settings: Get on an unknown deep path returns nil and creates no table
 - settings: Resolve replaces a non-table intermediate
 - settings: RawSet writes without firing onChange
 - settings: Set skipOnChange suppresses the side effect
@@ -489,7 +490,7 @@ badge and any count quoted in the docs must agree with it.
 | test_util.lua | 26 |
 | test_compat.lua | 17 |
 | test_database.lua | 9 |
-| test_settings.lua | 41 |
+| test_settings.lua | 42 |
 | test_slash.lua | 43 |
 | test_labels.lua | 31 |
 | test_capture.lua | 29 |
@@ -499,4 +500,4 @@ badge and any count quoted in the docs must agree with it.
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 19 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **429** |
+| **Total** | **430** |

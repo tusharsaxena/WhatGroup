@@ -203,7 +203,15 @@ add{
 -- db.profile path helpers
 -- ---------------------------------------------------------------------------
 
-local function Resolve(path)
+-- A READ DOES NOT WRITE (savedvariables-§2). `create` is what separates the two
+-- callers. A WRITE may materialize the intermediate tables it walks through — a
+-- schema row nested under a table SavedVariables has never held still has to be
+-- writable — but a READ must not. Without the flag, `Helpers.Get` on a typo'd or
+-- not-yet-existing path grew `db.profile` one empty table per segment, and that
+-- junk then round-tripped into SavedVariables; worse, the typo the caller was
+-- probing for became indistinguishable from a real-but-empty branch on the next
+-- read. `Helpers.Get` passes no flag and gets nil; `Helpers.RawSet` passes true.
+local function Resolve(path, create)
     if not (WhatGroup.db and WhatGroup.db.profile) then return nil, nil end
     local segments = {}
     for part in string.gmatch(path, "[^.]+") do
@@ -213,7 +221,10 @@ local function Resolve(path)
     local parent = WhatGroup.db.profile
     for i = 1, #segments - 1 do
         local k = segments[i]
-        if type(parent[k]) ~= "table" then parent[k] = {} end
+        if type(parent[k]) ~= "table" then
+            if not create then return nil, nil end
+            parent[k] = {}
+        end
         parent = parent[k]
     end
     return parent, segments[#segments]
@@ -229,7 +240,7 @@ function Helpers.Get(path)
 end
 
 function Helpers.RawSet(path, value)
-    local parent, key = Resolve(path)
+    local parent, key = Resolve(path, true)
     if not parent then return end
     parent[key] = value
 end
