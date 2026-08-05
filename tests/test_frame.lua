@@ -208,6 +208,19 @@ end)
 -- The secure teleport button
 -- ---------------------------------------------------------------------------
 
+-- WG-R-05. A SecureActionButtonTemplate runs its secure action once per REGISTERED click edge, so
+-- the edge COUNT is behavior, not decoration: registering both made one press cast twice. Adding
+-- "AnyUp" back to the RegisterForClicks call in buildFrame turns this case red.
+test("frame: the teleport button registers exactly one click edge, so one press is one cast",
+function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    local edges = teleportBtn(mock).__clicks
+    assertEqual(#edges, 1, "two registered edges fire the /cast macro twice per press")
+    assertEqual(edges[1], "AnyDown", "and it is the edge the PreClick trace gates on")
+end)
+
 test("frame: a known teleport wires the secure /cast macro", function()
     local NS, _, mock = T.bootAddon()
     mock.spellNames[445269] = "Path of the Stonevault"

@@ -330,7 +330,7 @@ badge and any count quoted in the docs must agree with it.
 - notify: the Leader row still prints when leaderName is nil
 - notify: Playstyle and Teleport drop their rows while Leader keeps its own
 
-### test_frame.lua (31)
+### test_frame.lua (32)
 
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
@@ -347,6 +347,7 @@ badge and any count quoted in the docs must agree with it.
 - frame: the Playstyle field falls back to the enum label
 - frame: playstyle None (0) renders the dim em-dash, not an empty row
 - frame: re-showing with a new capture re-renders the fields
+- frame: the teleport button registers exactly one click edge, so one press is one cast
 - frame: a known teleport wires the secure /cast macro
 - frame: a known teleport renders at full alpha, undesaturated
 - frame: an unlearned teleport shows desaturated at half alpha and casts nothing
@@ -454,9 +455,11 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: /wg resetall asks for confirmation rather than resetting outright
 - lifecycle: /wg resetall and the Defaults button share one OnAccept body
 
-### test_debuglog.lua (19)
+### test_debuglog.lua (21)
 
 - debuglog: FONT_MONO points at the vendored JetBrains Mono TTF
+- debuglog: the console renders in the vendored TTF when the client can fetch it
+- debuglog: a TTF the client cannot fetch falls back to a Blizzard font (debug-logging-§2)
 - debuglog: FormatPlain wraps the tag in brackets, single-space separators
 - debuglog: FormatPlain tolerates a nil tag
 - debuglog: FormatColored colors timestamp + tag; pipe and content default
@@ -495,9 +498,9 @@ badge and any count quoted in the docs must agree with it.
 | test_labels.lua | 31 |
 | test_capture.lua | 29 |
 | test_notify.lua | 44 |
-| test_frame.lua | 31 |
+| test_frame.lua | 32 |
 | test_panel.lua | 47 |
 | test_lifecycle.lua | 37 |
-| test_debuglog.lua | 19 |
+| test_debuglog.lua | 21 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **430** |
+| **Total** | **433** |

@@ -21,8 +21,9 @@ handful of facts in the descriptor below.
   `/framestack` and any Esc-close muscle memory expect.
 - `title = "Ka0s WhatGroup"` — the bare brand; the library appends its own
   `" — Debug"`.
-- `font = NS.FONT_MONO`, `slash = "/wg"` (the latter only composes the console
-  checkbox's tooltip).
+- `font = resolveConsoleFont(NS.FONT_MONO)`, `slash = "/wg"` (the latter only
+  composes the console checkbox's tooltip). See **Font** below for why the path
+  is probed rather than passed through.
 - `isEnabled` / `setEnabled` — the flag **stays this addon's**
   (`NS.State.debug`). The library never keeps a copy — a second copy inside the
   library would be a second truth.
@@ -224,6 +225,23 @@ with LibSharedMedia-3.0 at load (`LSM:Register("font", "JetBrains Mono", …)`,
 guarded so a missing LSM is a no-op); the descriptor hands the same path to the
 library, which feeds it straight to `SetFont` for both the console log and the
 Copy `EditBox`.
+
+**The fetch-failure fallback (debug-logging-§2).** `core/DebugLogSetup.lua` does
+not hand `NS.FONT_MONO` over unexamined. It probes the path once at load —
+`CreateFont("WhatGroupFontProbe"):SetFont(path, 10, "")` — and passes
+`Fonts\ARIALN.TTF` instead if the probe fails. This matters because the failure
+is **silent**: `SetFont` answers `false` when the client cannot load the file (a
+packager that dropped `media/fonts/`, a corrupt TTF, a path case-mangled on a
+case-sensitive filesystem) and does not raise, so without the fallback the
+console would come up in whatever font the region already carried — a
+proportional one — and the aligned `HH:MM:SS | [tag] …` columns the monospace
+requirement exists for would be gone with nothing in the error log to explain
+it. A `Font` object rather than a throwaway frame: it is the lightest thing in
+the API carrying `SetFont`, it is never parented or shown, and probing it cannot
+disturb a shared Blizzard font object. The probe resolves at load because the
+library validates `descriptor.font` as a string at `:New` time. Two cases in
+`tests/test_debuglog.lua` pin both branches, driving the failure through the
+mock's `fontFetchFails` table.
 
 ## Copy / Clear
 

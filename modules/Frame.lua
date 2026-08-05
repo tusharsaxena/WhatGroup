@@ -142,7 +142,13 @@ local function buildFrame()
     local teleportBtn = CreateFrame("Button", nil, f, "SecureActionButtonTemplate")
     teleportBtn:SetSize(24, 24)
     teleportBtn:SetPoint("TOPLEFT", btnX, btnY)
-    teleportBtn:RegisterForClicks("AnyUp", "AnyDown")
+    -- ONE click edge, not two. A SecureActionButtonTemplate runs its secure action once per
+    -- REGISTERED edge, so "AnyUp", "AnyDown" made a single press fire the `/cast` macro twice —
+    -- the second attempt landing on a spell already going out, which is where the spurious
+    -- "Another action is in progress" / "Spell is not ready yet" line came from. "AnyDown" is the
+    -- edge Blizzard's own action buttons cast on, and it is the edge the PreClick trace below
+    -- already gates for, so the debug line and the cast stay on the same event.
+    teleportBtn:RegisterForClicks("AnyDown")
     teleportBtn:Hide()
 
     local teleportIcon = teleportBtn:CreateTexture(nil, "ARTWORK")
@@ -237,10 +243,11 @@ local function buildFrame()
             end)
             btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
             -- Material-effect trace (debug-logging-§10): log the actual press.
-            -- The button registers both click edges (AnyUp/AnyDown), so gate
-            -- on the down edge to emit exactly one line per press. PreClick is
-            -- non-secure work that runs alongside the secure /cast, so it's
-            -- taint-free even in combat.
+            -- The button registers the down edge only (see RegisterForClicks in buildFrame), so
+            -- one press is one line. The `down` check stays as a guard rather than a filter: it
+            -- costs nothing and keeps the trace honest if the registration is ever widened again.
+            -- PreClick is non-secure work that runs alongside the secure /cast, so it's taint-free
+            -- even in combat.
             btn:SetScript("PreClick", function(_, mouseButton, down)
                 if down then
                     NS.Debug("Frame", "teleport button pressed \226\134\146 /cast "
@@ -285,14 +292,13 @@ local function PopulateFields()
 
     fields.leader:SetText(info.leaderName)
 
-    -- Prefer the server-rendered playstyleString when present; otherwise
-    -- look up the integer enum in WhatGroup.Labels.PLAYSTYLE. Empty
-    -- string ("") and Enum.LFGEntryGeneralPlaystyle.None (= 0) both fall
-    -- through to the dim em-dash placeholder.
-    local playStyle = info.playstyleString
-    if not playStyle or playStyle == "" then
-        playStyle = Labels.PLAYSTYLE[info.generalPlaystyle] or ""
-    end
+    -- Through the sibling of the GetGroupTypeLabel call above, not open-coded: the helper already
+    -- prefers the server-rendered playstyleString and falls back to the PLAYSTYLE enum lookup, and
+    -- a second copy here is the copy that would keep the old rule the day the helper changes.
+    -- Empty string ("") and Enum.LFGEntryGeneralPlaystyle.None (= 0) both come back as "" and fall
+    -- through to the dim em-dash placeholder, which stays the POPUP's decision — the chat summary
+    -- renders the same absence differently.
+    local playStyle = Labels.GetPlaystyleLabel(info)
     fields.playstyle:SetText(playStyle ~= "" and playStyle or "|cff888888—|r")
 
     ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, info)

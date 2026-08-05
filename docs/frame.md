@@ -33,7 +33,7 @@ A single content frame inset 14px from the title bar and 14px / 44px from the bo
 | 2 | `Instance:` | `info.fullName` (fallback `"Unknown"`) |
 | 3 | `Type:` | `info.shortName` (fallback `WhatGroup.Labels.GetGroupTypeLabel(info)`) |
 | 4 | `Leader:` | `info.leaderName` |
-| 5 | `Playstyle:` | `info.playstyleString` (server-rendered) → `WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle]` → fallback dim em-dash |
+| 5 | `Playstyle:` | `WhatGroup.Labels.GetPlaystyleLabel(info)` — `info.playstyleString` (server-rendered) → `WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle]` → `""`, which the popup renders as the dim em-dash |
 | 6 | `Teleport:` | 24×24 spell icon button (hidden when no spell mapped) |
 
 Labels use a fixed 72px column (`LABEL_WIDTH`) colored gold (`|cffFFD700`); values are anchored 6px to the right of the label and use `GameFontHighlight` (white). The 18px row gap (`yGap`) gives a clean vertical rhythm. The content frame's size is fully determined by its TOPLEFT + BOTTOMRIGHT anchors against `f` (insets `14, -38` and `-14, 44`), so no explicit `SetHeight` is needed — the row stack just has to fit inside that natural extent.
@@ -63,7 +63,7 @@ Edge cases:
 
 ## Teleport button
 
-`teleportBtn` is an anonymous `SecureActionButtonTemplate` Button registered for `AnyUp` / `AnyDown` clicks. The secure template is mandatory: `CastSpellByID` from a non-secure `OnClick` handler fires `ADDON_ACTION_FORBIDDEN` in retail. The macro-attribute approach below routes the click through Blizzard's secure action handler, which is the only legal cast path from addon code.
+`teleportBtn` is an anonymous `SecureActionButtonTemplate` Button registered for `AnyDown` clicks — **one** edge, deliberately. The secure action runs once per registered edge, so the former `AnyUp` / `AnyDown` pair cast the macro twice per press (WG-R-05); `AnyDown` is the edge Blizzard's own action buttons cast on and the edge the `PreClick` trace gates for. The secure template is mandatory: `CastSpellByID` from a non-secure `OnClick` handler fires `ADDON_ACTION_FORBIDDEN` in retail. The macro-attribute approach below routes the click through Blizzard's secure action handler, which is the only legal cast path from addon code.
 
 **The button is parented directly to `f` (the popup), not to `UIParent`.** Earlier iterations parented it to UIParent and synced its screen position from a non-secure proxy frame inside the popup; that pattern leaked taint into Blizzard's secure-execute chain, surfacing as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked Logout in the GameMenu. Parenting directly to `f` means the button rides on the parent-child relationship: `f:Show()` shows the button, `f:Hide()` hides it, dragging the popup moves the button with it. No `syncTeleportButton`, no `PLAYER_REGEN_ENABLED` handler, no deferred Hide, no proxy frame.
 

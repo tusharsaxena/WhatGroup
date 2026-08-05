@@ -17,6 +17,31 @@ test("debuglog: FONT_MONO points at the vendored JetBrains Mono TTF", function()
         "FONT_MONO must point at the vendored JetBrainsMono TTF")
 end)
 
+-- debug-logging-§2's fetch-failure fallback (WG-A-13). The font the LIBRARY actually applied is
+-- read off the console's own log region rather than off the descriptor, because the descriptor is
+-- not published back — and the region is what the player sees. Driving the failure needs it set
+-- BEFORE any source loads (`opts.mock`), since the descriptor resolves the path at file load.
+local function consoleLogFont(NS, mock)
+    debugCmd(NS, "")                      -- bare toggle: opens the window, building the frame
+    for _, f in ipairs(mock.frames) do
+        if f.__kind == "ScrollingMessageFrame" and f.__font then return f.__font[1] end
+    end
+end
+
+test("debuglog: the console renders in the vendored TTF when the client can fetch it", function()
+    local NS, _, mock = T.newAddon()
+    assertEqual(consoleLogFont(NS, mock), NS.FONT_MONO)
+end)
+
+test("debuglog: a TTF the client cannot fetch falls back to a Blizzard font (debug-logging-§2)",
+function()
+    local vendored = "Interface\\AddOns\\WhatGroup\\media\\fonts\\JetBrainsMono-Regular.ttf"
+    local NS, _, mock = T.newAddon{ mock = function(m) m.fontFetchFails[vendored] = true end }
+    assertEqual(NS.FONT_MONO, vendored, "the constant is unchanged — only what is HANDED OVER")
+    assertEqual(consoleLogFont(NS, mock), "Fonts\\ARIALN.TTF",
+        "a silent SetFont failure must not leave the console in a proportional font")
+end)
+
 test("debuglog: FormatPlain wraps the tag in brackets, single-space separators", function()
     local NS = T.newAddon()
     assertEqual(NS.DebugLog.FormatPlain("15:04:43", "Capture", "title=X"),

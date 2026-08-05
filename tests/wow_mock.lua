@@ -68,6 +68,8 @@ local function build()
     mock.hooks         = {}   -- [name] -> { fn, ... } recorded by hooksecurefunc
     mock.frames        = {}   -- every CreateFrame'd stub, creation order (+ keyed by name)
     mock.fontStrings   = {}   -- every CreateFontString'd stub, creation order
+    mock.fontFetchFails = {}  -- [fontPath] = true -> SetFont answers false, as the client does
+                              -- when it cannot load the file (debug-logging-§2's fetch failure)
     mock.textures      = {}   -- every CreateTexture'd stub, creation order
     mock.popups        = {}   -- StaticPopup_Show(name) calls, in order
     mock.categories    = {}   -- Settings.Register*Category calls, in order
@@ -219,6 +221,24 @@ local function build()
             f.__textures[#f.__textures + 1] = tex
             mock.textures[#mock.textures + 1] = tex
             return tex
+        end
+
+        -- Fonts. The ONE font behavior that is MODELLED rather than caught by the PascalCase
+        -- catch-all, because the catch-all's truthy return is exactly the answer that hides the
+        -- failure: the client returns FALSE from SetFont when it cannot fetch the file, and does
+        -- not raise. `mock.fontFetchFails[path] = true` reproduces that, which is the only way a
+        -- suite can drive core/DebugLogSetup.lua's Blizzard fallback (debug-logging-§2).
+        -- Click-edge registration, recorded rather than caught: a SecureActionButton fires its
+        -- secure action once per registered edge, so how MANY edges are registered is behavior.
+        api.RegisterForClicks = function(_, ...)
+            f.__clicks = { ... }
+            return f
+        end
+
+        api.SetFont = function(_, path, size, flags)
+            if mock.fontFetchFails[path] then return false end
+            f.__font = { path, size, flags }
+            return true
         end
 
         -- textures / appearance the addon reads back
@@ -431,6 +451,14 @@ local function build()
 
     mock.CreateFrame = function(kind, name, _parent, template)
         local f = stubFrame(kind, name, template)
+        mock.frames[#mock.frames + 1] = f
+        if name then mock.frames[name] = f end
+        return f
+    end
+    -- Font OBJECTS (CreateFont), as distinct from FontStrings. Recorded under mock.frames by name
+    -- like any other stub, so a suite can find the console font probe.
+    mock.CreateFont = function(name)
+        local f = stubFrame("Font", name)
         mock.frames[#mock.frames + 1] = f
         if name then mock.frames[name] = f end
         return f
