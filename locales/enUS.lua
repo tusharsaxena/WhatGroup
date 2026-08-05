@@ -22,7 +22,17 @@
 -- "Settings layer not ready yet", "debug logging ON/OFF") are deliberately
 -- NOT routed: they are developer/power-user feedback for the `/wg`
 -- command line, not chrome a translator would localize. Keeping them out
--- keeps this table focused on the strings a player actually reads.
+-- keeps this table focused on the strings a player actually reads. So are the
+-- library's own strings (the "Defaults" button, the combat-refusal notice):
+-- LibKa0s-Options-1.0 authors those, and a copy here would be a second source
+-- of truth that drifts.
+--
+-- That partial routing is a RATIFIED deviation from localization-§3's routing
+-- SHOULD, not an oversight — see `## Documented deviations` in
+-- docs/ARCHITECTURE.md, whose re-check trigger is the first non-English locale
+-- file. A key with no L[...] reader is a defect either way: it tells a
+-- translator a surface is covered when it is not. This table therefore holds
+-- only keys something actually looks up.
 
 local addonName, NS = ...
 
@@ -65,11 +75,14 @@ L["Dungeon"]                  = "Dungeon"
 L["Raid"]                     = "Raid"
 L["Group"]                    = "Group"
 
--- Settings panel
-L["Ka0s WhatGroup"]           = "Ka0s WhatGroup"
-L["General"]                  = "General"
+-- Settings panel. Only the landing page's own heading lives here. Three former
+-- rows were dropped as unroutable rather than left as keys nothing reads:
+-- "Ka0s WhatGroup" is the brand (the TOC Title and the Blizzard category label,
+-- not prose); "General" is simultaneously the page id, the schema `group` key
+-- and the subcategory label, so translating the display copy alone would
+-- silently unmatch the schema; "Defaults" is the library's DEFAULTS_LABEL, not
+-- a string this addon authors.
 L["Slash Commands"]           = "Slash Commands"
-L["Defaults"]                 = "Defaults"
 
 -- StaticPopup / reset
 L["Reset every WhatGroup setting to its default? The active profile is the only one affected."] =
@@ -103,6 +116,4 @@ L["No group info available. Use |cffFFFF00/wg test|r to preview."] =
     "No group info available. Use |cffFFFF00/wg test|r to preview."
 L["Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."] =
     "Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."
-L["cannot open settings during combat — Blizzard's category-switch is protected"] =
-    "cannot open settings during combat — Blizzard's category-switch is protected"
 L["Popup deferred until combat ends."] = "Popup deferred until combat ends."

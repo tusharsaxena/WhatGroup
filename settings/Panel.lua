@@ -172,8 +172,10 @@ function Helpers.BuildMainContent(ctx)
     addNotesLine(AceGUI, scroll)
     -- "Slash Commands" heading — the library's own Section, so it is the same AceGUI Heading (and
     -- the same font bump and spacers) every sub-page's section headers use. It takes `ctx`, not
-    -- `scroll`, so it stays here where the page's outline reads.
-    Helpers.Section(ctx, "Slash Commands")
+    -- `scroll`, so it stays here where the page's outline reads. Routed through NS.L because it is
+    -- pure chrome the addon authors — it carries no structural role, unlike "General", which is
+    -- simultaneously this page's id, its schema `group` key and its subcategory label.
+    Helpers.Section(ctx, NS.L["Slash Commands"])
     Helpers.AddSpacer(scroll, MAIN_GAP_BELOW_HEAD)
     addCommandRows(AceGUI, scroll)
 end
