@@ -113,9 +113,14 @@ NS.TeleportSpells = {
     -- [xxxx] = yyyyyyy,             -- Nerub-ar Palace (raid) — no teleport spell exists; slot reserved
 
     -- ===== Midnight =====
+    -- Midnight names these "Teleport: <Dungeon>" rather than the older "Path of <Dungeon>".
+    -- Only the spell ID is load-bearing (the macro is built from the spell's own name at
+    -- configure time), so the naming change costs nothing here — but it is why searching the
+    -- wiki for a "Path of …" page for a Midnight dungeon comes up empty.
     [2805] = 1254400,             -- Windrunner Spire
     [2811] = 1254572,             -- Magisters' Terrace
     [2874] = 1254559,             -- Maisara Caverns
+    [2915] = 1255391,             -- Nexus-Point Xenas
     -- [xxxx] = yyyyyyy,             -- The Dreamrift (raid) — no teleport spell exists; slot reserved
     -- [xxxx] = yyyyyyy,             -- The Voidspire (raid) — no teleport spell exists; slot reserved
     -- [xxxx] = yyyyyyy,             -- March on Quel'Danas (raid) — no teleport spell exists; slot reserved
