@@ -85,7 +85,11 @@ NS.TeleportSpells = {
 
     -- ===== Dragonflight =====
     [2080] = 393267,              -- Brackenhide Hollow
-    [2451] = 393283,              -- Halls of Infusion
+    -- 2451 is Uldaman: Legacy of Tyr (confirmed in-client), so the Halls of Infusion row that
+    -- claimed this key was misfiled — it offered Halls' teleport to Uldaman groups and left Halls
+    -- with none. Parked rather than guessed: the spell below is right, the mapID is not known.
+    -- [xxxx] = 393283,           -- Halls of Infusion — needs its mapID
+    [2451] = 393222,              -- Uldaman: Legacy of Tyr  (Path of the Watcher's Legacy)
     [2515] = 393279,              -- The Azure Vault
     [2516] = 393262,              -- The Nokhud Offensive
     [2519] = 393276,              -- Neltharus
@@ -94,8 +98,7 @@ NS.TeleportSpells = {
     [2526] = 393273,              -- Algeth'ar Academy
     [2549] = 432258,              -- Amirdrassil, the Dream's Hope (raid)
     [2569] = 432257,              -- Aberrus, the Shadowed Crucible (raid)
-    [2579] = 424197,              -- Dawn of the Infinite (validate mapID)
-    -- [xxxx] = 393222,              -- Uldaman: Legacy of Tyr (validate mapID)
+    [2579] = 424197,              -- Dawn of the Infinite    (Path of Twisted Time)
 
     -- ===== The War Within =====
     [2648] = 445443,              -- The Rookery
