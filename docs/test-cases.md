@@ -471,6 +471,11 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state
 - debuglog: enable ack is color-coded green/red matching the header (debug-logging-§5)
 
+### test_vendor_sync.lua (2)
+
+- libs/LibKa0s is the LibKa0s release the README says this addon bundles
+- tests/_kit is the test kit that shipped with that release
+
 ## Totals
 
 | Suite | Cases |
@@ -489,4 +494,5 @@ badge and any count quoted in the docs must agree with it.
 | test_panel.lua | 47 |
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 19 |
-| **Total** | **423** |
+| test_vendor_sync.lua | 2 |
+| **Total** | **425** |
