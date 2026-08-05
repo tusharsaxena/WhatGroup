@@ -15,6 +15,8 @@ WhatGroup remembers the details of any group you join through the Premade Group 
 
 Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Settings panel, or with the `/wg` commands below.
 
+Everything this addon needs ships inside it — nothing else has to be installed. Alongside Ace3 and LibSharedMedia-3.0, it bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.8.0 (MIT), the shared Ka0s library behind the chat printer, the debug console, the `/wg` command line and the settings panel. Its license travels with the code at `libs/LibKa0s/LICENSE`.
+
 ## What's new in 1.3.0
 
 *   The **Ka0s WhatGroup** page now shows up in the game's AddOns settings list the moment you log in — you no longer have to run `/wg config` first to make it appear.
@@ -77,10 +79,6 @@ Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Set
 When you click **Apply** in the Premade Group Finder, WhatGroup quietly notes the group's details. It keeps track of your application so the right group info is waiting for you when you join — even if you've applied to several groups at once. When you join, the chat message prints and the popup opens — instantly by default, or after the delay you set under **Notify** if you'd rather let the zone-in settle first.
 
 The group info is only remembered for your current play session and clears when you leave the group. Only your settings are saved between sessions, plus where you've dragged the popup. For the technical details, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-## Bundled libraries
-
-Everything this addon needs ships inside it — nothing else has to be installed. Alongside Ace3 and LibSharedMedia-3.0, it bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.8.0 (MIT), the shared Ka0s library behind the chat printer, the debug console, the `/wg` command line and the settings panel. Its license travels with the code at `libs/LibKa0s/LICENSE`.
 
 ## FAQ
 
