@@ -16,7 +16,7 @@ badge and any count quoted in the docs must agree with it.
 - harness: every LibKa0s file the runner loads exists on disk
 - harness: the libraries load BEFORE the addon's own files
 
-### test_libka0s.lua (42)
+### test_libka0s.lua (46)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
@@ -56,6 +56,10 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the settings stub carries no widget maker and no layout constant
 - degraded: the settings panel explains itself once at load and once per config
 - degraded: `/wg debug on` still moves the flag and explains the missing window ONCE
+- parity: the Core seam's whole namespace surface survives the library's absence
+- parity: the DebugLog stub carries the whole live surface
+- parity: the Slash stub carries the whole live surface
+- parity: the Options helpers stub carries the whole live surface
 - libka0s: the L-trap matcher flags the table and the `or` spelling, not the `and` one
 - libka0s: no seam file hands a descriptor this addon's locale table (the L trap)
 - libka0s: Core has no STRINGS and reads no descriptor L (tripwire)
@@ -481,7 +485,7 @@ badge and any count quoted in the docs must agree with it.
 | Suite | Cases |
 |-------|------:|
 | test_harness.lua | 7 |
-| test_libka0s.lua | 42 |
+| test_libka0s.lua | 46 |
 | test_util.lua | 26 |
 | test_compat.lua | 17 |
 | test_database.lua | 9 |
@@ -495,4 +499,4 @@ badge and any count quoted in the docs must agree with it.
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 19 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **425** |
+| **Total** | **429** |
