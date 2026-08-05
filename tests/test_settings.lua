@@ -240,11 +240,23 @@ test("settings: Set before the db exists is a harmless no-op", function()
     assertTrue(ok)
 end)
 
-test("settings: Resolve creates the intermediate tables it walks through", function()
+test("settings: a write creates the intermediate tables it walks through", function()
     local NS = T.bootAddon()
     local H = NS.addon.Settings.Helpers
     H.Set("deep.nested.value", 7)
     assertEqual(NS.addon.db.profile.deep.nested.value, 7)
+end)
+
+-- savedvariables-§2 — A READ DOES NOT WRITE. The write path above still
+-- materializes, and must; this pins that the read path does not. A Get that
+-- grows db.profile one empty table per segment turns every typo'd path into a
+-- permanent empty branch in SavedVariables, and leaves the next read unable to
+-- tell that typo from real-but-empty data.
+test("settings: Get on an unknown deep path returns nil and creates no table", function()
+    local NS = T.bootAddon()
+    local H = NS.addon.Settings.Helpers
+    assertNil(H.Get("brandnew.deep.leaf"), "an unknown path reads as nil")
+    assertNil(NS.addon.db.profile.brandnew, "the read materialized a parent table")
 end)
 
 test("settings: Resolve replaces a non-table intermediate", function()

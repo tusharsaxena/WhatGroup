@@ -1,7 +1,7 @@
 package-as: WhatGroup
 
 # Every library is vendored under libs/ and committed to git — this addon
-# declares NO externals: block (§3.3, §13). The packager ships the repo as-is.
+# declares NO externals: block (packaging, library-stack-§3). The packager ships the repo as-is.
 
 ignore:
   - .luacheckrc
@@ -9,3 +9,6 @@ ignore:
   - .gitattributes
   - docs        # includes docs/audits and docs/reviews
   - tests
+  - _dev        # the scratch dir packaging reserves; ignored whether or not it exists today
+  - "*.bak"     # editor lockfiles and backups
+  - .claude     # agent configuration — dev-only, never shipped to players

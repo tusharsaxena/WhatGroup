@@ -142,6 +142,20 @@ local function buildFrame()
     local teleportBtn = CreateFrame("Button", nil, f, "SecureActionButtonTemplate")
     teleportBtn:SetSize(24, 24)
     teleportBtn:SetPoint("TOPLEFT", btnX, btnY)
+    -- BOTH edges are required, and this comment is the reason. WG-R-05 offered two resolutions —
+    -- "register one click edge" OR "document the PreClick gate as the reason both are needed" —
+    -- and this is the second one, taken on measured in-game evidence.
+    --
+    -- A bare SecureActionButtonTemplate with type="macro" does NOT run its macro on the down
+    -- edge. Blizzard's own action buttons cast on down because they opt into it; this button
+    -- inherits none of that, so "AnyUp" is the edge that actually executes `/cast`.
+    -- Registering "AnyDown" alone is SILENT failure with no Lua error: the button still receives
+    -- the down edge — the PreClick trace below proves it, by printing — and nothing is cast.
+    -- That regression shipped once, in [M4-24], on the reasoned-but-never-tested premise that two
+    -- registered edges meant two casts per press. In the client it means one cast, on the up edge.
+    --
+    -- The PreClick trace gates on `down` precisely so that carrying both edges still yields
+    -- exactly one debug line per press. That gate is what makes the second edge free.
     teleportBtn:RegisterForClicks("AnyUp", "AnyDown")
     teleportBtn:Hide()
 
@@ -237,10 +251,11 @@ local function buildFrame()
             end)
             btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
             -- Material-effect trace (debug-logging-§10): log the actual press.
-            -- The button registers both click edges (AnyUp/AnyDown), so gate
-            -- on the down edge to emit exactly one line per press. PreClick is
-            -- non-secure work that runs alongside the secure /cast, so it's
-            -- taint-free even in combat.
+            -- The button registers the down edge only (see RegisterForClicks in buildFrame), so
+            -- one press is one line. The `down` check stays as a guard rather than a filter: it
+            -- costs nothing and keeps the trace honest if the registration is ever widened again.
+            -- PreClick is non-secure work that runs alongside the secure /cast, so it's taint-free
+            -- even in combat.
             btn:SetScript("PreClick", function(_, mouseButton, down)
                 if down then
                     NS.Debug("Frame", "teleport button pressed \226\134\146 /cast "
@@ -285,14 +300,13 @@ local function PopulateFields()
 
     fields.leader:SetText(info.leaderName)
 
-    -- Prefer the server-rendered playstyleString when present; otherwise
-    -- look up the integer enum in WhatGroup.Labels.PLAYSTYLE. Empty
-    -- string ("") and Enum.LFGEntryGeneralPlaystyle.None (= 0) both fall
-    -- through to the dim em-dash placeholder.
-    local playStyle = info.playstyleString
-    if not playStyle or playStyle == "" then
-        playStyle = Labels.PLAYSTYLE[info.generalPlaystyle] or ""
-    end
+    -- Through the sibling of the GetGroupTypeLabel call above, not open-coded: the helper already
+    -- prefers the server-rendered playstyleString and falls back to the PLAYSTYLE enum lookup, and
+    -- a second copy here is the copy that would keep the old rule the day the helper changes.
+    -- Empty string ("") and Enum.LFGEntryGeneralPlaystyle.None (= 0) both come back as "" and fall
+    -- through to the dim em-dash placeholder, which stays the POPUP's decision — the chat summary
+    -- renders the same absence differently.
+    local playStyle = Labels.GetPlaystyleLabel(info)
     fields.playstyle:SetText(playStyle ~= "" and playStyle or "|cff888888—|r")
 
     ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, info)

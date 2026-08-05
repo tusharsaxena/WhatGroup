@@ -1,0 +1,72 @@
+# Performance
+
+**Ka0s WhatGroup brackets nothing, and this page is why.**
+
+This addon claims the **no-combat-path exemption** (`performance-§12`). It vendors
+`libs/LibKa0s/` whole — Perf.lua included, because the folder is copied whole or not at all
+(library-stack-§7, anti-patterns #48) — and does **not** wire it: there is no
+`core/PerfSetup.lua`, no `WhatGroupPerfDB`, no `perf` verb registration, no suspend/resume
+contract, no `tests/perf.lua` and no `docs/perf-runs/`. The `perf` verb stays **reserved**
+(slash-commands-§2) so it can never come to mean anything else here; it is simply not registered.
+
+The exemption is ratified once, as a row in
+[`ARCHITECTURE.md` → `## Documented deviations`](./ARCHITECTURE.md#documented-deviations). This
+page is the answer to *"how much does this addon cost?"* — **nothing measurable, and here is how we
+know**.
+
+## Criterion (a) — no combat path: the whole-repo sweep
+
+The evidence, not the claim. Regenerate it with:
+
+```sh
+grep -rnE 'RegisterEvent|SetScript\("OnUpdate"|C_Timer|ScheduleRepeatingTimer|ScheduleTimer|hooksecurefunc' \
+  core modules settings defaults locales
+```
+
+Every hit, with the per-hit work:
+
+| Site | What it is | Work while the player is in combat |
+|---|---|---|
+| `core/WhatGroup.lua:56` | `hooksecurefunc(C_LFGList, "ApplyToGroup", …)` | Fires only when the **player clicks Apply** in the LFG browser, which is not a combat action. Stashes one table. |
+| `core/WhatGroup.lua:62` | `hooksecurefunc("SetItemRef", …)` | Fires only on a **chat-link click**. One prefix compare, then a return for every link that is not ours. |
+| `core/WhatGroup.lua:145` | `RegisterEvent("GROUP_ROSTER_UPDATE")` | The one handler that can fire mid-combat. `IsInGroup()` plus three comparisons; the debug line is suppressed unless the in-group state actually transitioned. On most pulls it fires **zero** times. |
+| `core/WhatGroup.lua:146` | `RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")` | Fires on an LFG application status change — a state the player reaches out of combat. |
+| `core/WhatGroup.lua:562` | `self:ScheduleTimer(…)` | **One-shot** AceTimer, armed once per group join, for the notify delay. Not repeating. |
+| `modules/Frame.lua:193` | `f:RegisterEvent("PLAYER_REGEN_ENABLED")` | Registered **only** when a secure-attribute write was blocked by `InCombatLockdown()`, and the handler **unregisters itself** on the first fire. It exists to do its work strictly *after* combat. |
+| `modules/Frame.lua:318` | `waitFrame:RegisterEvent("PLAYER_REGEN_ENABLED")` | Same shape: a transient frame that defers the popup build to combat-end and then `UnregisterAllEvents()`. |
+| `settings/OptionsSetup.lua:172`, `:180` | `C_Timer.After(0, …)` | Two **next-frame** secure-defer hops in the settings panel build. One-shot, and only ever reached from a settings-panel `OnShow`. |
+
+**Zero `OnUpdate` handlers. Zero repeating tickers. Zero repeating timers.** Every scheduled item
+above is one-shot or self-unregistering, and the only handler reachable inside a combat window is
+`GROUP_ROSTER_UPDATE`, whose body is an `IsInGroup()` and three comparisons.
+
+## Criteria (b) and (c) — both apply, and (c) is the stronger
+
+- **(b) — every declared bucket would read `0.000` by construction.** The capture protocol opens its
+  windows on the player's combat state (`performance-§7`). With no code running in that window there
+  is nothing for a bracket to contain, and `performance-§3` is explicit that a bucket no bracket
+  meaningfully reaches is *a lie in every report*.
+- **(c) — `suspend` would suppress the data the addon exists to record.** WhatGroup is a **capture**
+  addon: `OnApplyToGroup` records the group applied to, and the LFG status event carries it forward
+  to the invite. Making it inert for a measurement window means an apply or an invite-accept inside
+  that window is **never recorded** — so the popup and the chat summary the player installed it for
+  silently do not appear. The capture would cost the user the feature, not pause a display.
+
+The long-form reasoning, and the date the user ratified it, are at `LIBKA0S-15` in
+[`pending/LEDGER.md`](./pending/LEDGER.md).
+
+## The re-check trigger
+
+The exemption is **conditional on criterion (a) still being true**. The first `OnUpdate` handler,
+the first repeating ticker, or the first event handler doing more than occasional work while the
+player is in combat **re-arms the full wiring MUST** — regenerate the sweep above before adding any
+of the three.
+
+## What this page does not excuse
+
+- The `perf` suite in a run bundle reads **`skip`**, and a skip is **never a pass**. At the release
+  gate it is **not evaluated** rather than passed (`automated-tests-§3`), and the release notes say
+  so — see [`testing.md`](./testing.md) and
+  [`automated-tests/README.md`](./automated-tests/README.md).
+- `docs/complexity.md` is retired; complexity is measured by the runner's `complexity` suite and
+  its trend line is [`automated-tests/RESULTS.md`](./automated-tests/RESULTS.md) (`performance-§10`).

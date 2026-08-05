@@ -155,8 +155,9 @@ function WhatGroup:OnEnable()
     -- popup show (Frame.lua). Panel widget bodies still build lazily on first
     -- OnShow (Panel.lua), so no AceGUI frame is created inside a secure-execute
     -- chain. Register() is idempotent (the `_settingsRegistered` guard), so
-    -- runConfig's call becomes a harmless no-op fallback (it also covers the rare
-    -- login-in-combat case where the InCombatLockdown guard makes this one bail).
+    -- runConfig's call becomes a harmless no-op fallback. Registration is not
+    -- combat-gated (options-ui-§9), so a `/reload` taken in combat still lands the
+    -- category in the list — only panel *open* is refused under lockdown.
     if self.Settings and self.Settings.Register then
         self.Settings.Register()
     end
@@ -626,6 +627,15 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
     elseif newStatus == "invited" then
         -- Wait for the user to accept; multiple invites can arrive.
     elseif newStatus == "inviteaccepted" then
+        -- Master enable gate, same read as OnApplyToGroup: when disabled the
+        -- addon must capture nothing, so the fresh re-fetch below never runs,
+        -- pendingInfo is never set and no notify or popup follows. Without
+        -- this the queue gate alone is not enough — the fresh fetch reaches
+        -- the LFG API directly and would resurrect a capture the master
+        -- switch was meant to suppress (WG-R-01).
+        if not (self.db and self.db.profile and self.db.profile.enabled) then
+            return
+        end
         -- Pick the more-complete capture between fresh (re-fetched
         -- from the LFG API now that the invite is accepted) and
         -- queued (captured at apply time). Prefer whichever has

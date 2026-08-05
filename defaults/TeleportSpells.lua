@@ -85,17 +85,17 @@ NS.TeleportSpells = {
 
     -- ===== Dragonflight =====
     [2080] = 393267,              -- Brackenhide Hollow
-    [2451] = 393283,              -- Halls of Infusion
+    [2451] = 393222,              -- Uldaman: Legacy of Tyr  (Path of the Watcher's Legacy)
     [2515] = 393279,              -- The Azure Vault
     [2516] = 393262,              -- The Nokhud Offensive
     [2519] = 393276,              -- Neltharus
     [2521] = 393256,              -- Ruby Life Pools
     [2522] = 432254,              -- Vault of the Incarnates (raid)
     [2526] = 393273,              -- Algeth'ar Academy
+    [2527] = 393283,              -- Halls of Infusion
     [2549] = 432258,              -- Amirdrassil, the Dream's Hope (raid)
     [2569] = 432257,              -- Aberrus, the Shadowed Crucible (raid)
-    [2579] = 424197,              -- Dawn of the Infinite (validate mapID)
-    -- [xxxx] = 393222,              -- Uldaman: Legacy of Tyr (validate mapID)
+    [2579] = 424197,              -- Dawn of the Infinite    (Path of Twisted Time)
 
     -- ===== The War Within =====
     [2648] = 445443,              -- The Rookery
@@ -113,9 +113,15 @@ NS.TeleportSpells = {
     -- [xxxx] = yyyyyyy,             -- Nerub-ar Palace (raid) — no teleport spell exists; slot reserved
 
     -- ===== Midnight =====
-    [2805] = 1254400,             -- Windrunner Spire
-    [2811] = 1254572,             -- Magisters' Terrace
-    [2874] = 1254559,             -- Maisara Caverns
+    -- The Keystone Hero teleports keep the "Path of <flavour name>" convention — the spell name
+    -- does NOT contain the dungeon name, so it cannot be derived from the dungeon and must be
+    -- read off the spell itself. Beware the separate "Teleport: <Dungeon>" spells that share the
+    -- destination and are NOT these: 1255391 is "Teleport: Nexus-Point Xenas" and is not the
+    -- Keystone Hero reward the player learns. Confirm from the in-game tooltip, not from a name.
+    [2805] = 1254400,             -- Windrunner Spire        (Path of the Windrunners)
+    [2811] = 1254572,             -- Magisters' Terrace      (Path of Devoted Magistry)
+    [2874] = 1254559,             -- Maisara Caverns         (Path of Cavernous Depths)
+    [2915] = 1254553,             -- Nexus-Point Xenas       (Path of the Fractured Core)
     -- [xxxx] = yyyyyyy,             -- The Dreamrift (raid) — no teleport spell exists; slot reserved
     -- [xxxx] = yyyyyyy,             -- The Voidspire (raid) — no teleport spell exists; slot reserved
     -- [xxxx] = yyyyyyy,             -- March on Quel'Danas (raid) — no teleport spell exists; slot reserved

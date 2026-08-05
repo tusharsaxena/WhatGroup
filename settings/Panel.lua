@@ -172,8 +172,10 @@ function Helpers.BuildMainContent(ctx)
     addNotesLine(AceGUI, scroll)
     -- "Slash Commands" heading — the library's own Section, so it is the same AceGUI Heading (and
     -- the same font bump and spacers) every sub-page's section headers use. It takes `ctx`, not
-    -- `scroll`, so it stays here where the page's outline reads.
-    Helpers.Section(ctx, "Slash Commands")
+    -- `scroll`, so it stays here where the page's outline reads. Routed through NS.L because it is
+    -- pure chrome the addon authors — it carries no structural role, unlike "General", which is
+    -- simultaneously this page's id, its schema `group` key and its subcategory label.
+    Helpers.Section(ctx, NS.L["Slash Commands"])
     Helpers.AddSpacer(scroll, MAIN_GAP_BELOW_HEAD)
     addCommandRows(AceGUI, scroll)
 end
@@ -256,6 +258,11 @@ Helpers.RegisterOptionsPage("general", "General", buildGeneralPage)
 -- UISpecialFrames insert) stay deferred in modules/Frame.lua. See docs/wow-quirks.md → "Lazy popup
 -- and secure button" for the taint reasoning, and anti-patterns #22 for why deferring the CATEGORY
 -- behind `/wg config` is the wrong fix.
+--
+-- Deliberately NOT combat-gated (options-ui-§9): registration never taints, and eager registration
+-- at load is a MUST. Only panel *open* is combat-gated, and that gate lives inside the library's
+-- `OpenOptionsPanel` so every caller inherits it. A guard here only meant that a `/reload` taken in
+-- combat left WhatGroup missing from the Settings → AddOns list until the next login.
 
 function Settings.Register()
     if WhatGroup._settingsRegistered or not _G.Settings
@@ -264,17 +271,9 @@ function Settings.Register()
         return
     end
 
-    -- Defense in depth: `runConfig` already refuses under combat, but registering Settings
-    -- categories during combat taints the GameMenu callback chain. Refuse here too so any future
-    -- caller that bypasses the slash-handler guard doesn't reintroduce the Logout taint.
-    if InCombatLockdown() then
-        pout("Cannot register settings panel during combat.")
-        return
-    end
-
     -- Resolves AceGUI, runs the schema validation, registers the main canvas with its landing-page
     -- renderer, then runs every registered page builder. Idempotent in its own right; the flag
-    -- below keeps the combat guard above meaningful.
+    -- below makes the second (`runConfig`) call a cheap no-op.
     Helpers.CreateOptionsPanel()
 
     WhatGroup._settingsRegistered = true

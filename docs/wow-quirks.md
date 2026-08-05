@@ -159,7 +159,7 @@ The fix for both: **defer them to actual user demand.** `modules/Frame.lua`'s en
 
 At PLAYER_LOGIN the addon now adds nothing to Blizzard's secure surface, GameMenu's `InitButtons` runs in a clean context during boot, and Logout works correctly. Any taint the addon does generate later (on first popup show) is contained to a session where the player has actively used the addon — and even then, GameMenu's button closures were already built with the clean context they captured at boot.
 
-The regression test for this lives in [smoke-tests.md → §1.3 GameMenu Logout — no taint regression](./smoke-tests.md#13-gamemenu-logout--no-taint-regression-critical). Run it after any change that touches hooks, the popup, the Settings panel, or the StaticPopup table.
+The regression test for this lives in [smoke-tests.md → section 1.3 GameMenu Logout — no taint regression](./smoke-tests.md#13-gamemenu-logout--no-taint-regression-critical). Run it after any change that touches hooks, the popup, the Settings panel, or the StaticPopup table.
 
 See `modules/Frame.lua`'s `buildFrame()`, `settings/Panel.lua`'s `Settings.Register()`, and `core/WhatGroup.lua`'s `runConfig()`.
 

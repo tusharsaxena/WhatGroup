@@ -70,9 +70,11 @@ if not lib then
         print(NS.PREFIX, table.concat(parts, " "))
     end
 
-    -- Published on BOTH paths. Nothing calls Format today, which is exactly why its absence would
-    -- go unnoticed: the first caller added later would work in every install that has the library
-    -- and be nil in the one this branch exists for.
+    -- Exported with no production caller ON PURPOSE: `NS.Util.format` is the parity half of the
+    -- library's printer surface, and the fallback must publish everything the library path does.
+    -- Nothing calls Format today, which is exactly why its absence would go unnoticed — the first
+    -- caller added later would work in every install that has the library and be nil in the one
+    -- this branch exists for. Keep it, or delete it from BOTH paths in the same change.
     function NS.Util.format(fmt, ...)
         local n = select("#", ...)
         if n == 0 then return NS.Util.print(fmt) end
@@ -132,4 +134,8 @@ local printer = lib:New({
 -- aliases it to its file-local `p`, to NS.Print (reclaiming the name from AceConsole's embed) and
 -- to WhatGroup._print.
 NS.Util.print  = printer.Print
+
+-- No production caller, deliberately: this is the parity half of the printer surface, published so
+-- the degraded branch above and this one expose the same keys. See that branch's note before
+-- removing — either both go or neither does.
 NS.Util.format = printer.Format

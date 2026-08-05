@@ -19,6 +19,38 @@ local addonName, NS = ...
 
 local lib = LibStub and LibStub("LibKa0s-DebugLog-1.0", true)
 
+-- ---------------------------------------------------------------------------
+-- The §2 fetch-failure fallback
+-- ---------------------------------------------------------------------------
+--
+-- debug-logging-§2 asks for a Blizzard font "as the fetch-failure fallback" behind the vendored
+-- TTF, and the reason is that a fetch failure is SILENT. `SetFont` answers `false` when the client
+-- cannot load the file — a packager that dropped media/fonts/, a corrupt TTF, a path case-mangled
+-- on a case-sensitive filesystem — and does not raise. Without a fallback the console then comes up
+-- in whatever font the FontString already carried, i.e. a proportional one: the aligned
+-- `HH:MM:SS | [tag] …` columns that the §2 monospace MUST exists for are gone, and nothing in the
+-- error log says why.
+--
+-- The library takes ONE resolved string (`descriptor.font`, fed straight to SetFont at
+-- DebugLog.lua's log / line-counter / copy-box builds) and the addon is the side that ships the
+-- file, so the probe belongs here, on the host's side of the seam. `CreateFont` rather than a
+-- throwaway frame: a Font object is the lightest thing in the API that carries `SetFont`, it is
+-- never parented or shown, and probing it cannot disturb a Blizzard font object the way reusing
+-- `GameFontNormal` would. Resolved once at load, because `:New` validates `font` as a string.
+local FONT_FALLBACK = "Fonts\\ARIALN.TTF"
+
+local function resolveConsoleFont(path)
+    if type(path) ~= "string" then return FONT_FALLBACK end
+    if type(_G.CreateFont) ~= "function" then return path end
+    local probe = _G.CreateFont("WhatGroupFontProbe")
+    if not (probe and probe.SetFont) then return path end
+    -- pcall'd as well as return-checked: SetFont is documented to answer false, but a nil-safe
+    -- probe must survive a client that raises on a malformed path instead.
+    local ok, applied = pcall(probe.SetFont, probe, path, 10, "")
+    if ok and applied ~= false then return path end
+    return FONT_FALLBACK
+end
+
 if not lib then
     -- A missing vendored lib must degrade, not error at load. The stub covers every member the
     -- addon calls — core/WhatGroup.lua's `/wg debug`, settings/Panel.lua's console checkbox,
@@ -92,7 +124,8 @@ NS.DebugLog = lib:New({
     name  = addonName,
     -- The library appends its own " — Debug", so this is the bare brand.
     title = "Ka0s WhatGroup",
-    font  = NS.FONT_MONO,
+    -- The vendored TTF, or a Blizzard font if this client cannot fetch it (debug-logging-§2).
+    font  = resolveConsoleFont(NS.FONT_MONO),
     slash = "/wg",
 
     -- The flag stays ours. NS.State.debug is session-only (debug-logging-§5, WG-12) and is read by

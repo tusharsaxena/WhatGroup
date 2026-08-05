@@ -72,7 +72,7 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.8c | With debug on: `/wg set notify.delay 3.0` | Console shows **one** `[Set] notify.delay = 3` line. Restore with `/wg set notify.delay 0` (another single `[Set]`). |
 | 2.8d | With debug on: `/wg reset` → **Yes** | Console shows **one** coalesced `[Reset] restored N settings to defaults (profile wiped)` line — **not** one `[Set]` per row. |
 | 2.9 | `/wg show` (no group, no pendingInfo) | Prints "No group info available. Use `/wg test` to preview." |
-| 2.10 | `/wg test` | Synthetic chat notification + popup fire (full coverage in §4). |
+| 2.10 | `/wg test` | Synthetic chat notification + popup fire (full coverage in section 4). |
 | 2.11 | `/wg show` (right after 2.10) | Re-opens the same popup. |
 | 2.12 | `/wg config` | Settings panel opens on the **Ka0s WhatGroup** landing page; the **General** subcategory is visible/expanded in the sidebar. |
 | 2.13 | `/wg reset` | StaticPopup confirm appears. **Yes** resets all settings; **No** cancels. |
@@ -293,9 +293,9 @@ Run after bumping the `## Interface:` line in `WhatGroup.toc` for a major patch.
 
 **Expected:** No "out of date" warning in the AddOns dialog.
 
-2. Run §1 (Boot smoke).
-3. Run §4 (Synthetic flow — `/wg test`).
-4. Run §5.1 (Real LFG flow, single application).
+2. Run section 1 (Boot smoke).
+3. Run section 4 (Synthetic flow — `/wg test`).
+4. Run section 5.1 (Real LFG flow, single application).
 
 If any Blizzard API broke (e.g. fields renamed on `C_LFGList.GetActivityInfoTable`), the most likely failure point is `CaptureGroupInfo` returning incomplete data — see [capture-pipeline.md → Captured info](./capture-pipeline.md#captured-info) for the field list and remediation steps.
 
@@ -311,7 +311,7 @@ Run after re-copying `libs/` (see [common-tasks.md → Refresh embedded libs](./
 
 If a new Ace3 module was added or removed in KickCD, also update `WhatGroup.toc`'s lib block to match the directory layout. AceGUI's `.xml` always loads last because it pulls in `widgets/`; `LibKa0s.xml` loads after it.
 
-After a **LibKa0s** re-vendor specifically, also run §10 and §11 — the two things no headless suite can reach.
+After a **LibKa0s** re-vendor specifically, also run section 10 and section 11 — the two things no headless suite can reach.
 
 ---
 
@@ -382,16 +382,16 @@ Framed as *"nothing moved"*: anything that looks different from the previous bui
 
 For a fast pre-release pass, run at minimum:
 
-- [ ] §1.3 — ESC → Logout after `/reload`
-- [ ] §1.3 — ESC → Logout after `/wg test`
-- [ ] §1.3 — ESC → Logout after `/wg config`
-- [ ] §2.1, §2.10, §2.12, §2.13 — `/wg help`, `/wg test`, `/wg config`, `/wg reset`
-- [ ] §3.4 — Defaults button confirm flow
-- [ ] §4.1 — Click teleport button (no taint)
-- [ ] §5.1 — One real LFG apply → join
-- [ ] §10 — no `SCREAMING_SNAKE` string on any page, in the console, or in chat
-- [ ] §11.5 / §11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
+- [ ] section 1.3 — ESC → Logout after `/reload`
+- [ ] section 1.3 — ESC → Logout after `/wg test`
+- [ ] section 1.3 — ESC → Logout after `/wg config`
+- [ ] sections 2.1, 2.10, 2.12, 2.13 — `/wg help`, `/wg test`, `/wg config`, `/wg reset`
+- [ ] section 3.4 — Defaults button confirm flow
+- [ ] section 4.1 — Click teleport button (no taint)
+- [ ] section 5.1 — One real LFG apply → join
+- [ ] section 10 — no `SCREAMING_SNAKE` string on any page, in the console, or in chat
+- [ ] sections 11.5 / 11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
 
-Run §9 (degraded install) and the rest of §11 after a LibKa0s re-vendor or any change to the four seam files.
+Run section 9 (degraded install) and the rest of section 11 after a LibKa0s re-vendor or any change to the four seam files.
 
 If all of those pass, the addon is in shippable shape for the 80% case. Run the full suite for releases tagged with feature work.

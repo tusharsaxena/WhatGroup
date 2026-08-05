@@ -16,7 +16,7 @@ badge and any count quoted in the docs must agree with it.
 - harness: every LibKa0s file the runner loads exists on disk
 - harness: the libraries load BEFORE the addon's own files
 
-### test_libka0s.lua (42)
+### test_libka0s.lua (46)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
@@ -56,6 +56,10 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the settings stub carries no widget maker and no layout constant
 - degraded: the settings panel explains itself once at load and once per config
 - degraded: `/wg debug on` still moves the flag and explains the missing window ONCE
+- parity: the Core seam's whole namespace surface survives the library's absence
+- parity: the DebugLog stub carries the whole live surface
+- parity: the Slash stub carries the whole live surface
+- parity: the Options helpers stub carries the whole live surface
 - libka0s: the L-trap matcher flags the table and the `or` spelling, not the `and` one
 - libka0s: no seam file hands a descriptor this addon's locale table (the L trap)
 - libka0s: Core has no STRINGS and reads no descriptor L (tripwire)
@@ -122,7 +126,7 @@ badge and any count quoted in the docs must agree with it.
 - database: migrations run before any profile read (OnInitialize order)
 - database: the profile is untouched by a migration pass
 
-### test_settings.lua (41)
+### test_settings.lua (42)
 
 - settings: BuildDefaults threads profile + global defaults
 - settings: defaults source from NS.C (defaults/Profile.lua, WG-24)
@@ -148,7 +152,8 @@ badge and any count quoted in the docs must agree with it.
 - settings: BuildDefaults is a fresh table each call
 - settings: Get returns nil before the db exists
 - settings: Set before the db exists is a harmless no-op
-- settings: Resolve creates the intermediate tables it walks through
+- settings: a write creates the intermediate tables it walks through
+- settings: Get on an unknown deep path returns nil and creates no table
 - settings: Resolve replaces a non-table intermediate
 - settings: RawSet writes without firing onChange
 - settings: Set skipOnChange suppresses the side effect
@@ -246,12 +251,13 @@ badge and any count quoted in the docs must agree with it.
 - teleport: the FIRST known spell in a candidate list wins
 - teleport: the shipped mapping table is keyed by numbers only
 
-### test_capture.lua (28)
+### test_capture.lua (29)
 
 - capture: inviteaccepted prefers FRESH when both have mapID
 - capture: inviteaccepted falls back to QUEUED when fresh lacks mapID
 - capture: enabled queues so pendingInfo survives a nil fresh fetch
 - capture: master switch off means nothing is queued
+- capture: master switch off blocks the inviteaccepted fresh fetch too
 - capture: CaptureGroupInfo maps the search-result fields
 - capture: CaptureGroupInfo maps the activity fields
 - capture: CaptureGroupInfo returns nil when the search result is gone
@@ -324,7 +330,7 @@ badge and any count quoted in the docs must agree with it.
 - notify: the Leader row still prints when leaderName is nil
 - notify: Playstyle and Teleport drop their rows while Leader keeps its own
 
-### test_frame.lua (31)
+### test_frame.lua (32)
 
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
@@ -341,6 +347,7 @@ badge and any count quoted in the docs must agree with it.
 - frame: the Playstyle field falls back to the enum label
 - frame: playstyle None (0) renders the dim em-dash, not an empty row
 - frame: re-showing with a new capture re-renders the fields
+- frame: the teleport button registers both click edges, because the up edge is the caster
 - frame: a known teleport wires the secure /cast macro
 - frame: a known teleport renders at full alpha, undesaturated
 - frame: an unlearned teleport shows desaturated at half alpha and casts nothing
@@ -363,8 +370,8 @@ badge and any count quoted in the docs must agree with it.
 - panel: OnEnable registers the parent category and the General subcategory
 - panel: the parent category is added to the AddOns list
 - panel: Register is idempotent — a second call registers nothing more
-- panel: registering during combat is refused and says why
-- panel: a combat-time bail still registers once combat ends
+- panel: registering during combat still registers (options-ui-§9)
+- panel: a login taken in combat needs no second registration
 - panel: registration validates the schema
 - panel: both panels start hidden
 - panel: registration creates no AceGUI widgets
@@ -437,7 +444,7 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: InitSummary is safe before the db exists
 - lifecycle: /wg config opens the parent settings category
 - lifecycle: /wg config is refused during combat (options-ui-§2)
-- lifecycle: /wg config registers the panel if login-in-combat skipped it
+- lifecycle: a login taken in combat still registers the panel
 - lifecycle: /wg test injects a synthetic capture and runs the full flow
 - lifecycle: /wg test bypasses the master switch
 - lifecycle: /wg test fires immediately, without the notify delay
@@ -448,9 +455,11 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: /wg resetall asks for confirmation rather than resetting outright
 - lifecycle: /wg resetall and the Defaults button share one OnAccept body
 
-### test_debuglog.lua (19)
+### test_debuglog.lua (21)
 
 - debuglog: FONT_MONO points at the vendored JetBrains Mono TTF
+- debuglog: the console renders in the vendored TTF when the client can fetch it
+- debuglog: a TTF the client cannot fetch falls back to a Blizzard font (debug-logging-§2)
 - debuglog: FormatPlain wraps the tag in brackets, single-space separators
 - debuglog: FormatPlain tolerates a nil tag
 - debuglog: FormatColored colors timestamp + tag; pipe and content default
@@ -470,22 +479,28 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state
 - debuglog: enable ack is color-coded green/red matching the header (debug-logging-§5)
 
+### test_vendor_sync.lua (2)
+
+- libs/LibKa0s is the LibKa0s release the README says this addon bundles
+- tests/_kit is the test kit that shipped with that release
+
 ## Totals
 
 | Suite | Cases |
 |-------|------:|
 | test_harness.lua | 7 |
-| test_libka0s.lua | 42 |
+| test_libka0s.lua | 46 |
 | test_util.lua | 26 |
 | test_compat.lua | 17 |
 | test_database.lua | 9 |
-| test_settings.lua | 41 |
+| test_settings.lua | 42 |
 | test_slash.lua | 43 |
 | test_labels.lua | 31 |
-| test_capture.lua | 28 |
+| test_capture.lua | 29 |
 | test_notify.lua | 44 |
-| test_frame.lua | 31 |
+| test_frame.lua | 32 |
 | test_panel.lua | 47 |
 | test_lifecycle.lua | 37 |
-| test_debuglog.lua | 19 |
-| **Total** | **422** |
+| test_debuglog.lua | 21 |
+| test_vendor_sync.lua | 2 |
+| **Total** | **433** |

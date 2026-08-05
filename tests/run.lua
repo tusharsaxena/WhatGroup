@@ -71,5 +71,6 @@ Kit.run{
         "test_panel",
         "test_lifecycle",
         "test_debuglog",
+        "test_vendor_sync",
     },
 }

@@ -33,7 +33,7 @@ A single content frame inset 14px from the title bar and 14px / 44px from the bo
 | 2 | `Instance:` | `info.fullName` (fallback `"Unknown"`) |
 | 3 | `Type:` | `info.shortName` (fallback `WhatGroup.Labels.GetGroupTypeLabel(info)`) |
 | 4 | `Leader:` | `info.leaderName` |
-| 5 | `Playstyle:` | `info.playstyleString` (server-rendered) → `WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle]` → fallback dim em-dash |
+| 5 | `Playstyle:` | `WhatGroup.Labels.GetPlaystyleLabel(info)` — `info.playstyleString` (server-rendered) → `WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle]` → `""`, which the popup renders as the dim em-dash |
 | 6 | `Teleport:` | 24×24 spell icon button (hidden when no spell mapped) |
 
 Labels use a fixed 72px column (`LABEL_WIDTH`) colored gold (`|cffFFD700`); values are anchored 6px to the right of the label and use `GameFontHighlight` (white). The 18px row gap (`yGap`) gives a clean vertical rhythm. The content frame's size is fully determined by its TOPLEFT + BOTTOMRIGHT anchors against `f` (insets `14, -38` and `-14, 44`), so no explicit `SetHeight` is needed — the row stack just has to fit inside that natural extent.
@@ -63,7 +63,7 @@ Edge cases:
 
 ## Teleport button
 
-`teleportBtn` is an anonymous `SecureActionButtonTemplate` Button registered for `AnyUp` / `AnyDown` clicks. The secure template is mandatory: `CastSpellByID` from a non-secure `OnClick` handler fires `ADDON_ACTION_FORBIDDEN` in retail. The macro-attribute approach below routes the click through Blizzard's secure action handler, which is the only legal cast path from addon code.
+`teleportBtn` is an anonymous `SecureActionButtonTemplate` Button registered for **both** click edges — `RegisterForClicks("AnyUp", "AnyDown")` — and both are required (WG-R-05). A bare secure button with `type="macro"` inherits none of the down-cast opt-in Blizzard's own action buttons have, so `AnyUp` is the edge that actually executes the `/cast`; registering `AnyDown` alone is a **silent** failure — the button still receives the press and the `PreClick` trace still prints, but nothing casts, with no Lua error to notice. That regression shipped once, in [M4-24], on the reasoned-but-never-tested premise that two registered edges meant two casts per press; measured in the client it is one cast, on the up edge. Carrying both edges is free because the `PreClick` trace gates on `down`, so one press is still exactly one debug line. `tests/test_frame.lua` pins the pair, and narrowing the registration to either edge alone turns that case red. The secure template is mandatory: `CastSpellByID` from a non-secure `OnClick` handler fires `ADDON_ACTION_FORBIDDEN` in retail. The macro-attribute approach below routes the click through Blizzard's secure action handler, which is the only legal cast path from addon code.
 
 **The button is parented directly to `f` (the popup), not to `UIParent`.** Earlier iterations parented it to UIParent and synced its screen position from a non-secure proxy frame inside the popup; that pattern leaked taint into Blizzard's secure-execute chain, surfacing as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked Logout in the GameMenu. Parenting directly to `f` means the button rides on the parent-child relationship: `f:Show()` shows the button, `f:Hide()` hides it, dragging the popup moves the button with it. No `syncTeleportButton`, no `PLAYER_REGEN_ENABLED` handler, no deferred Hide, no proxy frame.
 
@@ -109,11 +109,12 @@ end
 
 ## Combat-defer
 
-`SecureActionButtonTemplate` attribute writes (`type`, `macrotext`) and `Show`/`Hide` are protected during `InCombatLockdown()` — silently dropped, not erroring. Three call sites are guarded:
+`SecureActionButtonTemplate` attribute writes (`type`, `macrotext`) and `Show`/`Hide` are protected during `InCombatLockdown()` — silently dropped, not erroring. Two call sites are guarded:
 
 - **`ConfigureTeleportButton`** (called every `PopulateFields`, i.e. every `ShowFrame`). When in combat: stash `info` on `f._pendingTeleportInfo`, register `PLAYER_REGEN_ENABLED` on the popup frame, and return. When the event fires, unregister and rerun `ConfigureTeleportButton` with the most recently-stashed info. Repeated calls during the same combat window safely overwrite the stash; `RegisterEvent` is idempotent. The button retains its prior visual state until the rerun.
 - **`WhatGroup:ShowFrame` first-build** (the `not f and InCombatLockdown()` branch above). Creating the popup itself is fine in combat, but `buildFrame()` creates a `SecureActionButtonTemplate` and inserts `"WhatGroupFrame"` into `UISpecialFrames` — both protected. So the very first show is queued via a one-shot `CreateFrame("Frame")` waiting on `PLAYER_REGEN_ENABLED`, with a `[WG] Popup deferred until combat ends.` chat hint. The captured `pendingInfo` is restored on combat-end only if it was cleared mid-wait (group-leave during the window). Subsequent in-combat shows route through `ConfigureTeleportButton`'s guard, since `f` already exists.
-- **`Settings.Register()`** in `settings/Panel.lua` self-guards on `InCombatLockdown()` after the idempotent check (defense-in-depth atop `runConfig`'s slash-handler refusal). Same combat-taint rationale as the popup's secure button — registering Settings categories mid-combat taints the GameMenu callback chain.
+
+`Settings.Register()` in `settings/Panel.lua` is deliberately **not** a third site. Registering a canvas Settings category is not a secure write and never taints, and `options-ui-§9` makes eager registration at load a MUST; a guard there only meant a `/reload` taken in combat left the addon out of the Settings → AddOns list. Panel *open* is still refused under lockdown, inside the library's `OpenOptionsPanel`.
 
 There is intentionally no programmatic Hide method. The frame is closed by:
 

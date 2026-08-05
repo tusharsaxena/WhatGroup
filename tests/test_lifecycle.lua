@@ -274,14 +274,14 @@ test("lifecycle: /wg config is refused during combat (options-ui-§2)", function
     assertTrue(mock.prints[#mock.prints]:find("combat", 1, true) ~= nil)
 end)
 
-test("lifecycle: /wg config registers the panel if login-in-combat skipped it", function()
+test("lifecycle: a login taken in combat still registers the panel", function()
     local NS, _, mock = T.bootAddon()
     mock.combat = true
-    NS.addon:OnEnable()             -- registration bails on the combat guard
-    assertEqual(#mock.categories, 0)
+    NS.addon:OnEnable()             -- registration is not combat-gated (options-ui-§9)
+    assertEqual(#mock.categories, 2, "the category is in the AddOns list from login")
     mock.combat = false
     runCmd(NS, "config")
-    assertEqual(#mock.categories, 2, "the fallback registration covers it")
+    assertEqual(#mock.categories, 2, "and runConfig's fallback call registers nothing more")
     assertEqual(#mock.openedTo, 1)
 end)
 

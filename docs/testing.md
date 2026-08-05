@@ -210,23 +210,30 @@ tests/_kit/run-automated-tests.sh --suite complexity          # a subset
 tests/_kit/run-automated-tests.sh --suite lint --suite tests --no-bundle   # the green gate; writes nothing
 ```
 
-| Suite | Command | Gates? |
-|---|---|---|
-| `lint` | `luacheck .` | **yes** |
-| `tests` | `lua tests/run.lua` | **yes** |
-| `perf` | `lua tests/perf.lua` | no — recorded only |
-| `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only |
+**There are two checkpoints, and a suite answers differently at each** (`testing-§6`), so every row
+names both. A bare `no — recorded only` reads as *"this suite gates nothing"*, which the release gate
+contradicts.
 
-**`perf` and `complexity` never fail a run.** They are measured, recorded and diffed — a threshold
-that fails a run teaches everyone to reach for `--no-verify`, after which the gate protects nothing
-and the habit remains. They contribute `amber`, which is a signal rather than a stop. **A missing
-tool is a skip recorded with its reason**, never a pass.
+| Suite | Command | Gates the run + the commit? | Gates the tag? |
+|---|---|---|---|
+| `lint` | `luacheck .` | **yes** | **yes** — must be `pass` |
+| `tests` | `lua tests/run.lua` | **yes** | **yes** — must be `pass` |
+| `perf` | `lua tests/perf.lua` | no — recorded only | **yes** — must be `pass`; a `skip` is *not evaluated* |
+| `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only | **yes** — `pass` plus zero functions above CCN 15 |
+
+**`perf` and `complexity` never fail a run and never block a commit.** They are measured, recorded
+and diffed — a threshold that fails a run teaches everyone to reach for `--no-verify`, after which
+the gate protects nothing and the habit remains. They contribute `amber`, which is a signal rather
+than a stop. **A missing tool is a skip recorded with its reason**, never a pass — and at the tag a
+`skip` is **not evaluated** rather than passed.
 
 The runner is **vendored** from `LibKa0s`'s `testkit/`; never edit `tests/_kit/`. A kit fix goes
 upstream and is re-vendored.
 
 **At release, not at commit.** A full bundle is produced as part of every version bump, before the
-tag, with an `ANALYSIS.md` write-up. Commits are gated on lint + tests only.
+tag, with an `ANALYSIS.md` write-up. Commits are gated on lint + tests only; the **tag** is gated on
+all four suites at `pass` plus zero functions above CCN 15 (`automated-tests-§3`, *The release
+gate*), evaluated by `/wow-addon:bump-version` from that run's `manifest.json`.
 
 Results live in [`automated-tests/`](./automated-tests/): `RESULTS.md` is one row per run across all
 four suites plus the current complexity watch list — **one file, overwritten in place**, so its git

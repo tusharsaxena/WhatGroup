@@ -2,13 +2,13 @@
 
 Orient-yourself map for **Ka0s WhatGroup**. This file is the high-level index; topic detail lives in `docs/`.
 
-## What it does
+## Overview
 
 WhatGroup observes the Premade Group Finder (LFG) flow. It captures the group details visible on the search-result tile when the player applies, holds them across the application → invite → accept → join sequence, and resurfaces them once the player is actually in the group as a chat notification + popup dialog. The popup carries a teleport button for known dungeon teleport spells.
 
 The addon is observation-only. It never modifies LFG state, never auto-applies, and never blocks the join flow — both hooks are direct `hooksecurefunc` post-hooks (one on `C_LFGList.ApplyToGroup` for capture, one on `SetItemRef` filtered to `WhatGroup:` link clicks). No AceHook wrappers — those leave per-invocation closures that taint Blizzard's secure-execute chain on Logout.
 
-## Subsystems at a glance
+## Module Map
 
 ```
 LFG events ─▶ capture pipeline ─▶ pendingInfo
@@ -54,6 +54,100 @@ LFG events ─▶ capture pipeline ─▶ pendingInfo
 | Verification model (headless harness, mock fidelity, `--list` inventory + badge sync) | `tests/` | [docs/testing.md](./testing.md) |
 | Manual smoke tests (boot health, slash, settings panel, `/wg test`, real LFG, regression checks) | — | [docs/smoke-tests.md](./smoke-tests.md) |
 
+## Settings Schema
+
+Ten rows, all profile-scoped, declared in `settings/Schema.lua` and valued in `defaults/Profile.lua`
+(`NS.C`) — the schema owns the STRUCTURE, `NS.C` owns the VALUES (savedvariables-§2 / WG-24):
+
+| Path | Type | Panel group |
+|---|---|---|
+| `enabled` | bool | General — the master switch; its `onChange` off-flip calls `WhatGroup:WipeCapture()` |
+| `frame.autoShow` | bool | General — open the popup automatically on join |
+| `notify.enabled` | bool | General — print the chat summary on join |
+| `notify.delay` | number | Notify — seconds to wait before notify + popup (`0` = instant) |
+| `notify.showInstance` | bool | Notify — line toggles |
+| `notify.showType` | bool | Notify |
+| `notify.showLeader` | bool | Notify |
+| `notify.showPlaystyle` | bool | Notify |
+| `notify.showClickLink` | bool | Notify |
+| `notify.showTeleport` | bool | Notify |
+
+The account-wide `global` table carries `schemaVersion` and `windows` (standalone-window geometry,
+WG-26) and no schema rows. Reads and writes go through `Helpers.Get` / `Helpers.Set` — `Set` is the
+orchestrated single write-path (`RawSet` → the row's `onChange` → `RefreshAll`), and `Get` on an
+unknown path returns nil **without materializing parent tables**. Detail:
+[docs/settings-system.md](./settings-system.md).
+
+## Message Bus
+
+**There is none, because** WhatGroup is a single-addon capture pipeline with no cross-module
+publish/subscribe need: `grep -rn "SendMessage\|RegisterMessage" core modules settings defaults`
+returns nothing. The capture path calls `WhatGroup:_TryFireJoinNotify(reason)` directly, and that
+one entry point is the coordination seam a bus would otherwise provide — the `notifiedFor` identity
+flag, not a message, is what keeps the two trigger paths from double-firing. If a second consumer of
+join data ever appears, AceEvent-3.0's `SendMessage` is already mixed in and is the route to take.
+
+## Slash Commands
+
+`/wg` (alias `/whatgroup`), dispatched by `LibKa0s-Slash-1.0` over the `COMMANDS` table in
+`settings/Slash.lua`. Rows are **positional triples** — `{ name, description, handler }`, handler
+taking `rest` alone — and the same table is published as `WhatGroup.COMMANDS` so the settings
+landing page renders exactly what the dispatcher runs.
+
+| Verb | Owner | Does |
+|---|---|---|
+| `help` | library | Lists every row |
+| `show` | host | Re-opens the popup for the current group |
+| `test` | host | Injects synthetic group info and runs the full notify + frame flow |
+| `config` | host | Opens the settings panel (refused in combat, inside `OpenOptionsPanel`) |
+| `version` | library | Prints the addon version |
+| `list` / `get` / `set` | library | The schema CLI, over the ten rows above |
+| `reset` | host | Resets **one** path — `/wg reset <path>`, no confirmation (`LIBKA0S-13`) |
+| `resetall` | host | Resets everything, behind the shared `WHATGROUP_RESET_ALL` popup |
+| `debug` | host | Opens/closes the debug console; `on|off` toggles logging |
+
+`perf` stays a reserved verb (`slash-commands-§2`) and is deliberately not registered — see
+`## Documented deviations`. Detail: [docs/slash-dispatch.md](./slash-dispatch.md).
+
+## Event Subscriptions
+
+Small and deliberately so — the whole surface, from `grep -rn "RegisterEvent\|hooksecurefunc"`:
+
+| Registered | Where | Handler does |
+|---|---|---|
+| `GROUP_ROSTER_UPDATE` | `core/WhatGroup.lua` `OnEnable` | Detects the not-in → in transition and calls `_TryFireJoinNotify("ROSTER transition")`; on leave, `WipeCapture()` |
+| `LFG_LIST_APPLICATION_STATUS_UPDATED` | `core/WhatGroup.lua` `OnEnable` | Advances the application queue; on `inviteaccepted` sets `pendingInfo` and calls `_TryFireJoinNotify("inviteaccepted")` |
+| `PLAYER_REGEN_ENABLED` | `modules/Frame.lua` (two one-shot frames) | Re-runs the deferred `ConfigureTeleportButton` write, and the deferred first `buildFrame()` |
+| `hooksecurefunc(C_LFGList, "ApplyToGroup")` | `core/WhatGroup.lua`, file-load | Records the group applied to |
+| `hooksecurefunc("SetItemRef")` | `core/WhatGroup.lua`, file-load | Filtered to `WhatGroup:` links — re-opens the popup |
+
+Both hooks are **direct post-hooks installed at file load**, never AceHook and never in `OnEnable`.
+There is no `OnUpdate` handler, no repeating ticker and no repeating timer anywhere in the addon —
+the sweep behind that claim is in [`performance.md`](./performance.md), and it is what the
+no-combat-path exemption rests on.
+
+## Taint Notes
+
+- **No AceHook.** `SecureHook` / `RawHook` wrap the callback in a per-invocation bookkeeping closure,
+  and that closure taints the secure-execute chain Blizzard runs for the GameMenu Logout button
+  (`ADDON_ACTION_FORBIDDEN … 'callback()'`). Direct `hooksecurefunc` adds no closure of ours.
+- **Hooks at file load, secure frames at first use.** The two post-hooks install at file-load top
+  level so GameMenu's `InitButtons` sees a clean context; the popup's `SecureActionButtonTemplate`
+  teleport button, its `UISpecialFrames` insert and the `WHATGROUP_RESET_ALL` popup registration are
+  all deferred to first use.
+- **Two combat guards, both in `modules/Frame.lua`.** `ConfigureTeleportButton` stashes `info` and
+  reruns on `PLAYER_REGEN_ENABLED`; `ShowFrame` defers the first `buildFrame()` past combat with a
+  one-shot wait frame and says so in chat. Both guard genuine secure-frame writes.
+- **Category registration is not combat-gated** (options-ui-§9). Registering a canvas category
+  never taints, and eager registration at load is a MUST; only panel *open* is refused, and that
+  refusal lives inside `OpenOptionsPanel` so every caller gets it (options-ui-§2).
+  `Settings.Register()` carried a third, defense-in-depth `InCombatLockdown()` guard until
+  2026-08-05; it bought nothing and cost the AddOns-list entry on any `/reload` taken in combat.
+- **Two `C_Timer.After(0, …)` hops are taint avoidance, not timers.** They move the panel and frame
+  builds out of Blizzard's secure-execute chain; each carries a justification comment.
+- **The chat path stringifies through `NS.SafeToString`**, so a combat-protected value degrades to
+  `<secret>` instead of raising (events-frames-taint-§8 / WG-22).
+
 ## Invariants worth not breaking
 
 - **Observation-only, direct hooksecurefunc only.** WhatGroup never mutates LFG state, never auto-applies, never blocks the join flow. Both hooks are direct `hooksecurefunc` post-hooks: one on `C_LFGList.ApplyToGroup` (for capture) and one on `SetItemRef` filtered to `WhatGroup:` link clicks. No AceHook `SecureHook` / `RawHook` — AceHook adds a per-invocation bookkeeping closure around the callback, and that closure taints the secure-execute chain that Blizzard runs when the player clicks the GameMenu's Logout button (surfacing as `ADDON_ACTION_FORBIDDEN ... 'callback()'`). Direct `hooksecurefunc` has no closure on our side, no taint.
@@ -69,12 +163,12 @@ LFG events ─▶ capture pipeline ─▶ pendingInfo
 - **Capture state is session-only.** `captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`, `notifiedFor`, and the `self.notifyTimer` AceTimer handle never touch SavedVariables. Group-leave and the master-switch off-flip both route through `WhatGroup:WipeCapture()`, which clears all of them.
 - **`WhatGroup:WipeCapture()` is the master-switch wipe.** Flipping `db.profile.enabled` to false mid-flight (via panel checkbox or `/wg set enabled false`) calls `WipeCapture` so any pending capture, queued capture, or already-scheduled notify callback can't surface after the user has explicitly disabled the addon. Same method is reused on group-leave.
 - **Notify timer is an AceTimer one-shot, canceled by `WipeCapture`.** `_TryFireJoinNotify` schedules the notify via `self:ScheduleTimer(fn, notify.delay)` (AceTimer-3.0) and stashes the handle in `self.notifyTimer`; `WipeCapture` `self:CancelTimer`s it so a scheduled callback can't fire after group-leave or the master-switch off-flip. The callback also re-checks `self.pendingInfo` identity before firing, guarding a same-tick replacement. Prevents an empty-data popup auto-opening during the delay window.
-- **Combat-defer for the secure popup.** `modules/Frame.lua` guards three secure-frame writes against `InCombatLockdown()`: (a) `ConfigureTeleportButton` stashes `info` and reruns on `PLAYER_REGEN_ENABLED`; (b) `WhatGroup:ShowFrame` defers the first-time `buildFrame()` past combat with a one-shot wait frame, printing a `Popup deferred until combat ends.` chat hint; (c) `Settings.Register()` self-guards on `InCombatLockdown()` as defense-in-depth atop the `runConfig` slash-handler refusal. Without these guards, secure-attribute writes on `SecureActionButtonTemplate` would silently drop in combat and leave the teleport button stuck in a stale state.
+- **Combat-defer for the secure popup.** `modules/Frame.lua` guards two secure-frame writes against `InCombatLockdown()`: (a) `ConfigureTeleportButton` stashes `info` and reruns on `PLAYER_REGEN_ENABLED`; (b) `WhatGroup:ShowFrame` defers the first-time `buildFrame()` past combat with a one-shot wait frame, printing a `Popup deferred until combat ends.` chat hint. Without these guards, secure-attribute writes on `SecureActionButtonTemplate` would silently drop in combat and leave the teleport button stuck in a stale state. `Settings.Register()` is **not** a third case — canvas-category registration is not a secure write and is not gated (options-ui-§9).
 - **Cyan `[WG]` chat prefix on every user-facing line, through one secret-safe printer.** Every chat line funnels through `NS.Util.print` — `LibKa0s-Core-1.0`'s printer, built in `core/CoreSetup.lua` and exposed as `NS.Print` / `WhatGroup._print` and a file-local `p` in `core/WhatGroup.lua`. It prepends `NS.PREFIX = "\|cff00FFFF[WG]\|r"` and runs each argument through `NS.SafeToString`, so a combat-protected value degrades to `<secret>` instead of raising in the chat path (events-frames-taint-§8 / WG-22); call sites pass label and value as **separate args** rather than pre-concatenating (WG-23). **Debug output does not go to chat** — it routes to the on-screen debug console (`NS.Debug(tag, …)` → `LibKa0s-DebugLog-1.0`, wired in `core/DebugLogSetup.lua`), wearing the same shared Ka0s window edge the popup does, as required for any addon with a main window (debug-logging-§7). Each console line is `HH:MM:SS | [Tag] message`. The log carries a thin always-shown scrollbar synced both ways to its scroll offset and a `N / 500 lines` counter in the same monospace font (debug-logging-§11), driven only by the Lua mixin scroll API — the C getters are nil on a `ScrollingMessageFrame` (anti-pattern #41). Debug state is session-only (`NS.State.debug`), off on every login, never persisted. See [docs/debug-console.md](./debug-console.md).
 - **Debug state is session-only, and the console is the only sink.** `NS.State.debug` (debug-logging-§5 / WG-12) is **off** on every login, is **not** a schema row, and is never written to SavedVariables — don't reintroduce a `db.profile.debug`, and don't add a chat `[DBG]` sink. `/wg debug` toggles the console **window**; `/wg debug on|off` toggles logging — both route through the single `NS.DebugLog:SetEnabled` seam. See [docs/debug-console.md](./debug-console.md).
-- **English-only, but the locale shell is mandatory.** Every string the addon authors is routed through `NS.L[...]` (`locales/enUS.lua`), whose fall-back metatable returns the key, so English needs no translation table. Localization *content* is a deliberate non-goal ([docs/scope.md](./scope.md)); the locale *shell* (localization-§3 / WG-07) stays. Playstyle enum values still read Blizzard's `GROUP_FINDER_GENERAL_PLAYSTYLE1..4` globals — those are Blizzard's strings, not ours.
+- **English-only, but the locale shell is mandatory.** Every *player-facing* string the addon authors is routed through `NS.L[...]` (`locales/enUS.lua`), whose fall-back metatable returns the key, so English needs no translation table. Three classes stay unrouted on purpose — slash-CLI diagnostics, strings that double as identifiers (`"General"`, `"Ka0s WhatGroup"`), and strings `LibKa0s-Options-1.0` authors — and that partial routing is a **ratified deviation**, listed with its reasoning and its re-check trigger in [`## Documented deviations`](#documented-deviations) below. Localization *content* is a deliberate non-goal ([docs/scope.md](./scope.md)); the locale *shell* (localization-§3 / WG-07) stays. Playstyle enum values still read Blizzard's `GROUP_FINDER_GENERAL_PLAYSTYLE1..4` globals — those are Blizzard's strings, not ours.
 - **Delayed timers use AceTimer-3.0 (WG-17).** AceTimer is the standard's mandated timer lib and is mixed into the addon (`NewAddon(…, "AceTimer-3.0")`). The one-shot notify delay runs through `self:ScheduleTimer(fn, delay)` with the handle stashed in `self.notifyTimer` and canceled by `WipeCapture` via `self:CancelTimer`. The two `C_Timer.After(0, …)` calls that remain are next-frame secure-defer hops (moving panel/frame builds out of Blizzard's secure-execute chain) — a taint-avoidance idiom, not delayed timers, so they stay raw and each carries a justification comment.
-- **Debug console uses a vendored monospace font, not a Blizzard font (deliberate, WG-20).** The debug-logging standard (§2) requires the on-screen console to render monospace, but retail ships no guaranteed monospace face — so JetBrains Mono (OFL) is vendored under `media/fonts/` and registered with LibSharedMedia. It's the only non-Blizzard default font in the addon; every other FontString uses a `GameFont*` object. A deviation from the addon's Blizzard-default-only baseline, not from the standard. Justification comment at `NS.FONT_MONO` in `core/WhatGroup.lua`.
+- **Debug console uses a vendored monospace font, not a Blizzard font (deliberate, WG-20).** The debug-logging standard (§2) requires the on-screen console to render monospace, but retail ships no guaranteed monospace face — so JetBrains Mono (OFL) is vendored under `media/fonts/` and registered with LibSharedMedia. It's the only non-Blizzard default font in the addon; every other FontString uses a `GameFont*` object. A deviation from the addon's Blizzard-default-only baseline, not from the standard. Justification comment at `NS.FONT_MONO` in `core/WhatGroup.lua`. `core/DebugLogSetup.lua` probes the path with `CreateFont` before handing it to the library and substitutes `Fonts\\ARIALN.TTF` if the client cannot fetch it — §2's fetch-failure fallback, and the only thing standing between a dropped `media/fonts/` and a console silently rendering in a proportional font.
 - **Settings landing page shows a vendored brand-logo texture (deliberate, WG-21).** `settings/Panel.lua` draws the addon's own `media/logos/whatgroup.logo.tga` — the only non-Blizzard default texture in the addon; every backdrop, border, and divider elsewhere is a Blizzard asset (`WHITE8X8`, `UI-Tooltip-Border`, the `Options_HorizontalDivider` atlas, spell icons). Branding art, analogous to the TOC `IconTexture`; no standards section mandates Blizzard-only textures, so this is a deviation from the addon's Blizzard-default-only baseline, not from the standard.
 - **Lazy AceGUI panel build, plus this addon's extra frame hop.** The library owns *when* a page draws — first `OnShow`, and again when a refresh marked a hidden page dirty — and it calls the renderer and `EnsureDefaultsButton` **synchronously** inside that `OnShow`. WhatGroup does not: `settings/OptionsSetup.lua` wraps both members **on the instance** so the work runs on the next frame, because Blizzard's GameMenu / Logout flows can dispatch a settings canvas's `OnShow` inside a secure-execute chain and creating AceGUI frames there was tripping `ADDON_ACTION_FORBIDDEN` on the Logout button. Wrapped on the instance rather than beside it, because the library resolves both from `O` at call time. Host-shaped, so it stayed local (`LIBKA0S-07`); options-ui-§9 sanctions the library's synchronous form, and this is the addon keeping a belt it had already fastened. The AceGUI ScrollFrame parented to each panel hooks `OnSizeChanged` to forward dimensions into AceGUI's layout pipeline. Without this, parented-to-Blizzard containers stay at 0×0. The header's **Defaults button builds in that same deferred hop** rather than at `Settings.Register` time: it's an AceGUI widget, and UI skins restyle those by hooking `RegisterAsWidget`, so one created during load keeps Blizzard's stock red button art for the session (options-ui-§5). Its click handler is parked at registration as `panel.defaultsOnClick` and wired by the builder. See [docs/settings-system.md](./settings-system.md#lazy-panel-build) and [docs/wow-quirks.md](./wow-quirks.md#lazy-acegui-panel-build).
 - **Defaults button + `/wg resetall` share one popup.** Both routes call `StaticPopup_Show("WHATGROUP_RESET_ALL")`; the OnAccept body lives in `settings/Schema.lua` and calls `Helpers.RestoreAllDefaults()`. No second confirmation path can drift from the first. **`/wg reset` now takes a PATH** and resets one row without confirmation — a breaking change taken deliberately (`docs/pending/LEDGER.md`, `LIBKA0S-13`), because `reset` means one row everywhere else in the collection. A bare `/wg reset` is intercepted and answered with both replacements rather than with a usage line.
@@ -113,7 +207,7 @@ Every source file starts with `local addonName, NS = ...` — `NS` is the addon'
 private namespace, shared across files (WG-01). There is **no `_G.WhatGroup`**.
 
 1. **libs/** — `LibStub` → `CallbackHandler-1.0` → `AceAddon-3.0` → `AceEvent-3.0` → `AceConsole-3.0` → `AceTimer-3.0` → `AceDB-3.0` → `AceGUI-3.0` (via its `.xml`, because that pulls in `widgets/`) → `LibSharedMedia-3.0` (via its `lib.xml`) → **`LibKa0s`** (last, via its own `LibKa0s.xml`, which spells out `Core` → `DebugLog` → `Slash` → `Options` → `OptionsWidgets` → `OptionsScroll` → `Perf` → `PerfPanel`; four of the five majors refuse to register without `Core`, which is why the folder is vendored whole).
-2. **`locales/enUS.lua`** — `NS.L`, a metatable shell whose missing keys return themselves. Loads first among the addon files (the `# Locales` section precedes `# Core`, toc-file-§5 / WG-14), so `NS.L` is available to every later file; callers still reference `NS.L[...]` at runtime by convention. Every string the addon authors is routed through it (localization-§3 / WG-07).
+2. **`locales/enUS.lua`** — `NS.L`, a metatable shell whose missing keys return themselves. Loads first among the addon files (the `# Locales` section precedes `# Core`, toc-file-§5 / WG-14), so `NS.L` is available to every later file; callers still reference `NS.L[...]` at runtime by convention. Every *player-facing* string the addon authors routes through it; three classes deliberately do not, and the deviation table below carries the reasoning and the re-check trigger (localization-§3 / WG-07).
 3. **`core/CoreSetup.lua`** — wires `LibKa0s-Core-1.0` and publishes the seams under the keys the addon already reads: `NS.IsConcatSafe` / `NS.SafeToString` (the secret-safe stringifier, events-frames-taint-§8 / WG-22), `NS.Util.print` (the prefixed secret-safe chat printer, aliased to `NS.Print` / `WhatGroup._print` by `core/WhatGroup.lua`), and `NS.SKIN` / `NS.ApplySkin` / `NS.MakeCloseButton` (the shared Ka0s window chrome, standalone-windows). Also publishes `NS.LIBKA0S_MISSING`, the one cause clause every other seam appends to. **First** in `# Core`, and three facts put it there: `core/WhatGroup.lua` takes the printer as a file-scope upvalue (`local p = NS.Util.print`), so a seam that published later would be a silent no-op; the printer is published on `NS.Util.print` rather than `NS.Print`, out of reach of AceConsole's `:Print` embed (anti-patterns #36); and `NS.PREFIX` is defined two files later, so `prefix` is passed in its **function** form, which Core re-reads on every call. `sink` is passed explicitly too — this addon prints through the Lua global `print`, not `DEFAULT_CHAT_FRAME:AddMessage`.
 4. **`core/Util.lua`** — what the library does not own: `NS.Windows`, standalone-window geometry persistence (WG-26).
 5. **`core/Compat.lua`** — hangs `NS.Compat` on the shared namespace. Version-variant spell / LFG shims (`GetSpellName` / `GetSpellTexture` / `GetSpellLink` / `IsSpellKnown` / `GetActivityInfoTable`); the SOLE caller of `C_Spell.*` / legacy globals / `C_LFGList.GetActivityInfoTable`.
@@ -136,3 +230,41 @@ Lifecycle:
 `Settings.Register()` runs at `OnEnable` (and again as a no-op from `runConfig`). It defers the AceGUI body build to the parent and General subcategory's first `OnShow` (each behind its own one-shot guard). See [docs/settings-system.md](./settings-system.md#lazy-panel-build).
 
 If you add a new runtime file, put it in the right place in `WhatGroup.toc` (after libs, after the file it depends on).
+
+## Known Limitations
+
+Things the addon does not do, and the reason each is a boundary rather than a bug. Scope decisions
+are reasoned in [docs/scope.md](./scope.md); a limitation that is a *ratified standards deviation*
+lives in the table below this one, not here.
+
+- **Capture is session-only.** `captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup` and
+  `notifiedFor` never touch SavedVariables, so `/reload` mid-application loses the pending capture
+  and the join that follows prints nothing. Deliberate: the data describes a group you are in right
+  now, and persisting it would resurface a stale group after a relog.
+- **Only groups joined through the Premade Group Finder are captured.** A guild or party invite
+  carries no LFG search result, so there is nothing to observe. `/wg test` exists precisely because
+  the real path cannot be exercised on demand.
+- **Teleport is limited to dungeon Path-of spells the player has learned.** The button renders
+  grayed until `IsSpellKnown` says otherwise, and only for map IDs present in
+  `defaults/TeleportSpells.lua` — a hand-maintained table, so a newly added dungeon needs a data
+  update.
+- **English only.** The locale shell (`locales/enUS.lua`, `NS.L`) is mandatory and every authored
+  player-facing string routes through it, but translation content is a non-goal (localization-§3 /
+  WG-07). The partial routing is ratified in the deviation table, re-check trigger "the first
+  non-English locale file".
+- **No profiler wiring.** `LibKa0s-Perf-1.0` is vendored but not wired; see the deviation table.
+
+## Documented deviations
+
+The **single home** for a ratified deviation from the Ka0s WoW Addon Standard (`documentation-§3`).
+A decision may be *reasoned* at length in [`pending/LEDGER.md`](./pending/LEDGER.md) and the **Why**
+cell cites that id — but **a deviation not in this table is not ratified**, and an audit files it as
+an open MUST failure. **Re-check trigger** is the condition that ends the deviation, stated so a
+reader can tell whether it has already fired; a row without one is a permanent opt-out wearing a
+table's clothes. A row whose cited rule the standard has since changed is **retired**, not kept.
+
+| Rule | What differs | Why | Decided | Re-check trigger |
+|---|---|---|---|---|
+| `performance-§12` | The no-combat-path exemption is claimed: `libs/LibKa0s/` is vendored **whole**, Perf.lua included, but nothing is wired — no `core/PerfSetup.lua`, no `WhatGroupPerfDB`, no `perf` verb registration, no suspend/resume contract, no `tests/perf.lua`, no `docs/perf-runs/`. `perf` stays a reserved verb (`slash-commands-§2`); it is simply not registered. | **Criterion (a)** — no combat path — is proven by the committed whole-repo `RegisterEvent` / `SetScript("OnUpdate"` / `C_Timer` sweep in [`performance.md`](./performance.md), which names the per-event work for every hit: zero `OnUpdate`, zero repeating tickers, zero repeating timers, and the one handler reachable inside a combat window (`GROUP_ROSTER_UPDATE`) is an `IsInGroup()` and three comparisons. **Both (b) and (c) apply**: every declared bucket would read `0.000` by construction (`performance-§3` calls such a bucket a lie in every report), and `suspend` would suppress the data the addon exists to record — this is a *capture* addon, so an apply or an invite-accept inside a measurement window would never be recorded and the popup the player installed it for would silently not appear. Reasoned in full, and ratified with the user, at `LIBKA0S-15` in [`pending/LEDGER.md`](./pending/LEDGER.md). | 2026-08-02 | The first `OnUpdate` handler, repeating ticker, or in-combat event handler doing real work **re-arms the full wiring MUST**. Regenerate the sweep in `performance.md` before adding any of the three. |
+| `localization-§3` | **English-only, and the routing SHOULD is met in part.** Both MUSTs are unconditional and are met: the `NS.L` seam is exported from `locales/enUS.lua`, and `enUS.lua` ships and loads first (`toc-file-§5`). What deviates is the routing SHOULD — three classes of string stay unrouted literals. (1) **Slash-CLI diagnostics** — `"unknown command"`, `"Usage: …"`, `"Settings layer not ready yet"`, `"debug logging ON/OFF"`. (2) **Strings that double as identifiers** — `"General"` is at once the options page id (`Helpers.RegisterOptionsPage("general", "General", …)`), the `group` key on three `settings/Schema.lua` rows, and the Blizzard subcategory label; `"Ka0s WhatGroup"` is the brand, carried by the TOC `Title`, the parent category and the debug-console title. (3) **The library's own copy** — the `Defaults` button label and the combat-refusal notice are `LibKa0s-Options-1.0`'s `DEFAULTS_LABEL` / `COMBAT_REFUSED`, authored there. | English-only is a stated project non-goal ([`scope.md`](./scope.md)), so the routing SHOULD's only beneficiary is a translator who does not exist yet — and the seam plus the shipped `enUS.lua` are exactly what makes one cheap to onboard later. Routing class (2) would be actively wrong, not merely unnecessary: translating `"General"`'s display copy without translating the schema `group` key unmatches the two and empties the page, which is a live bug rather than a missing translation. Class (3) would install a second source of truth for a string the library owns. Class (1) is developer feedback on a command line, not player chrome. Five keys that no `L[…]` ever read — `"Ka0s WhatGroup"`, `"General"`, `"Defaults"`, and the combat-refusal notice, plus the landing heading — were the standing evidence that this had never been decided; four are deleted and `"Slash Commands"` is now routed, so the table states the real surface. `WG-R-06`. | 2026-08-05 | **The first non-English locale file.** Adding `locales/<X>.lua` re-arms the full routing SHOULD: audit every unrouted literal at that point, and resolve `"General"` by giving the page a stable non-display id before translating its label. |
+| `events-frames-taint-§8` | **The pre-formatting SHOULD is not met at every site, and two `pout` fallbacks end in the global `print`.** Chat and debug lines are built with `..` / `tostring` before they reach the seam — `core/WhatGroup.lua:460`, `:468`, `:476` (the join summary's gold-labelled rows) and every `NS.Debug(tag, "…" .. tostring(x))` call in `core/`, `modules/` and `settings/`. Separately, `settings/Panel.lua`'s and `settings/Schema.lua`'s file-local `pout` helpers fall back to a bare `print(...)` when `WhatGroup._print` is unset. | **Re-graded under the scoped rule (`M1-STD-11` option (a), 2026-08-05).** §8's pre-formatting MUST NOT is now scoped to call sites whose arguments can reach a value read from one of the named combat-protected APIs; everywhere else it is a SHOULD NOT, and the risk is future drift rather than a live raise. A committed whole-repo sweep — `grep -rnE 'UnitGetTotalAbsorbs\|UnitGetTotalHealAbsorbs\|UnitGetIncomingHeals\|UnitHealth\|UnitHealthMax\|UnitThreatSituation\|UnitDetailedThreatSituation\|C_UnitAuras\|GetPlayerAuraBySpellID\|"UNIT_AURA"'` over `core/ defaults/ locales/ modules/ settings/` — returns **zero** hits: WhatGroup reads LFG search-result data only (strings, integers, booleans from `C_LFGList`), so **no site in this addon is in the trigger set** and every one of them is a SHOULD. `grep -rcE 'print\(\(".*"\):format' settings/` is `0` in all four files. The seam's own guarantee is unaffected and is met: `NS.Print` is `LibKa0s-Core-1.0`'s prefixed printer and runs every argument through `NS.SafeToString` (WG-22), and `NS.Debug` routes through the library sink. The **two `pout` fallbacks are a separate matter and are NOT re-graded away** — §8 keeps the no-global-`print` prohibition unqualified. They stand because they are **unreachable**: `core/WhatGroup.lua` sets `WhatGroup._print` and the TOC loads it before `settings/`, so the branch cannot execute, which grades it Info (no user, no session, no SavedVariables reaches it). They are kept as load-order defense, not as sanctioned output. `WG-A-08`. | 2026-08-05 | **Two triggers, either one ends this row.** (1) The first call to any API in §8's trigger set, or any value derived from one, entering a chat or debug line — that site converts as a **MUST** and the sweep above is regenerated. (2) Anything that makes a `pout` fallback reachable — a TOC reorder putting a `settings/` file before `core/WhatGroup.lua`, or a caller invoking `pout` at file load — at which point the bare `print` is a live MUST-NOT failure and the fallback goes rather than being re-ratified. |
