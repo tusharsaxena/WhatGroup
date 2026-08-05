@@ -76,6 +76,22 @@ test("capture: master switch off means nothing is queued", function()
     assertNil(addon.pendingInfo)
 end)
 
+-- WG-R-01: the case above hides the fresh-fetch path by nil'ing the search
+-- result before the accept. With the result still live, a disabled addon must
+-- STILL capture nothing — the inviteaccepted branch re-fetches straight from
+-- the LFG API, so the gate in OnApplyToGroup alone does not cover it.
+test("capture: master switch off blocks the inviteaccepted fresh fetch too", function()
+    local NS, _, mock = T.bootAddon()
+    local addon = NS.addon
+    addon.db.profile.enabled = false
+    mock.searchResults[100] = baseInfo({ name = "Fresh", activityIDs = { 500 } })
+    mock.activities[500] = { fullName = "F", mapID = 111 }
+
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+
+    assertNil(addon.pendingInfo)
+end)
+
 -- ---------------------------------------------------------------------------
 -- CaptureGroupInfo — field mapping
 -- ---------------------------------------------------------------------------

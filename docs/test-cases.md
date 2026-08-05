@@ -246,12 +246,13 @@ badge and any count quoted in the docs must agree with it.
 - teleport: the FIRST known spell in a candidate list wins
 - teleport: the shipped mapping table is keyed by numbers only
 
-### test_capture.lua (28)
+### test_capture.lua (29)
 
 - capture: inviteaccepted prefers FRESH when both have mapID
 - capture: inviteaccepted falls back to QUEUED when fresh lacks mapID
 - capture: enabled queues so pendingInfo survives a nil fresh fetch
 - capture: master switch off means nothing is queued
+- capture: master switch off blocks the inviteaccepted fresh fetch too
 - capture: CaptureGroupInfo maps the search-result fields
 - capture: CaptureGroupInfo maps the activity fields
 - capture: CaptureGroupInfo returns nil when the search result is gone
@@ -482,10 +483,10 @@ badge and any count quoted in the docs must agree with it.
 | test_settings.lua | 41 |
 | test_slash.lua | 43 |
 | test_labels.lua | 31 |
-| test_capture.lua | 28 |
+| test_capture.lua | 29 |
 | test_notify.lua | 44 |
 | test_frame.lua | 31 |
 | test_panel.lua | 47 |
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 19 |
-| **Total** | **422** |
+| **Total** | **423** |
