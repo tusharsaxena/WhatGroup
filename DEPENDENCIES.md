@@ -123,7 +123,7 @@ lizard --version
 
 > `lizard` is written in Python, so installing it pulls in Python 3 as its host. That is the **only**
 > reason Python appears anywhere in this file: no script, test or build step in this repo is written
-> in Python. See §3.
+> in Python. See section 3.
 
 ### 2.4 git and diff — **required for the vendor gate**
 
@@ -153,7 +153,7 @@ Stated explicitly, because each of these is a reasonable guess that happens to b
 
 - **No Python** for anything in this repo's own code. The test harness, the runner and the `--list`
   inventory generator are all Lua (`tests/run.lua`, `tests/loader.lua`, `tests/_kit/`). Python
-  arrives only as `lizard`'s host (§2.3).
+  arrives only as `lizard`'s host (section 2.3).
 - **No Node.js, no npm.** There is no `package.json` anywhere outside `libs/`.
 - **No shell or Python scripts of any kind.** The repo contains no `.sh`, no `.py`, no `Makefile`,
   and no `scripts/` directory. Every documented command is typed directly.
@@ -178,7 +178,7 @@ to fix a typo.
   not build outputs. No image or font tooling is required, because nothing regenerates them from
   source in this repo. If a logo needs re-cutting, that happens outside the repo with whatever tool
   the author prefers; there is no committed pipeline to reproduce.
-- **`lizard`** (§2.3) is the one tool tied to the release rhythm, since the complexity report is
+- **`lizard`** (section 2.3) is the one tool tied to the release rhythm, since the complexity report is
   regenerated at release (performance-§10). It is listed under development because that is where it
   installs from and where a contributor may want it mid-cycle.
 
@@ -204,7 +204,7 @@ The vendor gate needs the sibling checkout and is documented in full at
 
 ## Keeping this file honest
 
-This file is **checked at release** along with the rest of the doc set (documentation-§5, §7). A new
+This file is **checked at release** along with the rest of the doc set (documentation-§5, section 7). A new
 tool, a new import, or a dropped dependency changes it **in the same change** — a dependency list
 that is wrong is what makes a new contributor's first hour their last.
 
