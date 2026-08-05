@@ -208,17 +208,24 @@ end)
 -- The secure teleport button
 -- ---------------------------------------------------------------------------
 
--- WG-R-05. A SecureActionButtonTemplate runs its secure action once per REGISTERED click edge, so
--- the edge COUNT is behavior, not decoration: registering both made one press cast twice. Adding
--- "AnyUp" back to the RegisterForClicks call in buildFrame turns this case red.
-test("frame: the teleport button registers exactly one click edge, so one press is one cast",
+-- WG-R-05. BOTH click edges are required and this case pins that, because losing one is SILENT:
+-- a bare SecureActionButtonTemplate with type="macro" does not run its macro on the down edge, so
+-- registering "AnyDown" alone leaves the button receiving the press (PreClick still prints its
+-- trace) and casting nothing, with no Lua error to notice. That shipped once, in [M4-24], on the
+-- reasoned-but-never-tested premise that two edges meant two casts; measured in the client it is
+-- one cast, on the up edge. The PreClick `down` gate is what keeps two edges to one debug line.
+-- Narrowing RegisterForClicks in buildFrame to either edge alone turns this case red.
+test("frame: the teleport button registers both click edges, because the up edge is the caster",
 function()
     local NS, _, mock = T.bootAddon()
     NS.addon.pendingInfo = pending()
     NS.addon:ShowFrame()
     local edges = teleportBtn(mock).__clicks
-    assertEqual(#edges, 1, "two registered edges fire the /cast macro twice per press")
-    assertEqual(edges[1], "AnyDown", "and it is the edge the PreClick trace gates on")
+    local seen = {}
+    for _, e in ipairs(edges) do seen[e] = true end
+    assertEqual(#edges, 2, "dropping an edge is silent — the button still clicks, it just never casts")
+    assertTrue(seen["AnyUp"], "AnyUp is the edge that actually executes the /cast macro")
+    assertTrue(seen["AnyDown"], "AnyDown is the edge the PreClick trace gates on")
 end)
 
 test("frame: a known teleport wires the secure /cast macro", function()

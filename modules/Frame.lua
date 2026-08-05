@@ -142,13 +142,21 @@ local function buildFrame()
     local teleportBtn = CreateFrame("Button", nil, f, "SecureActionButtonTemplate")
     teleportBtn:SetSize(24, 24)
     teleportBtn:SetPoint("TOPLEFT", btnX, btnY)
-    -- ONE click edge, not two. A SecureActionButtonTemplate runs its secure action once per
-    -- REGISTERED edge, so "AnyUp", "AnyDown" made a single press fire the `/cast` macro twice —
-    -- the second attempt landing on a spell already going out, which is where the spurious
-    -- "Another action is in progress" / "Spell is not ready yet" line came from. "AnyDown" is the
-    -- edge Blizzard's own action buttons cast on, and it is the edge the PreClick trace below
-    -- already gates for, so the debug line and the cast stay on the same event.
-    teleportBtn:RegisterForClicks("AnyDown")
+    -- BOTH edges are required, and this comment is the reason. WG-R-05 offered two resolutions —
+    -- "register one click edge" OR "document the PreClick gate as the reason both are needed" —
+    -- and this is the second one, taken on measured in-game evidence.
+    --
+    -- A bare SecureActionButtonTemplate with type="macro" does NOT run its macro on the down
+    -- edge. Blizzard's own action buttons cast on down because they opt into it; this button
+    -- inherits none of that, so "AnyUp" is the edge that actually executes `/cast`.
+    -- Registering "AnyDown" alone is SILENT failure with no Lua error: the button still receives
+    -- the down edge — the PreClick trace below proves it, by printing — and nothing is cast.
+    -- That regression shipped once, in [M4-24], on the reasoned-but-never-tested premise that two
+    -- registered edges meant two casts per press. In the client it means one cast, on the up edge.
+    --
+    -- The PreClick trace gates on `down` precisely so that carrying both edges still yields
+    -- exactly one debug line per press. That gate is what makes the second edge free.
+    teleportBtn:RegisterForClicks("AnyUp", "AnyDown")
     teleportBtn:Hide()
 
     local teleportIcon = teleportBtn:CreateTexture(nil, "ARTWORK")
