@@ -109,11 +109,12 @@ end
 
 ## Combat-defer
 
-`SecureActionButtonTemplate` attribute writes (`type`, `macrotext`) and `Show`/`Hide` are protected during `InCombatLockdown()` — silently dropped, not erroring. Three call sites are guarded:
+`SecureActionButtonTemplate` attribute writes (`type`, `macrotext`) and `Show`/`Hide` are protected during `InCombatLockdown()` — silently dropped, not erroring. Two call sites are guarded:
 
 - **`ConfigureTeleportButton`** (called every `PopulateFields`, i.e. every `ShowFrame`). When in combat: stash `info` on `f._pendingTeleportInfo`, register `PLAYER_REGEN_ENABLED` on the popup frame, and return. When the event fires, unregister and rerun `ConfigureTeleportButton` with the most recently-stashed info. Repeated calls during the same combat window safely overwrite the stash; `RegisterEvent` is idempotent. The button retains its prior visual state until the rerun.
 - **`WhatGroup:ShowFrame` first-build** (the `not f and InCombatLockdown()` branch above). Creating the popup itself is fine in combat, but `buildFrame()` creates a `SecureActionButtonTemplate` and inserts `"WhatGroupFrame"` into `UISpecialFrames` — both protected. So the very first show is queued via a one-shot `CreateFrame("Frame")` waiting on `PLAYER_REGEN_ENABLED`, with a `[WG] Popup deferred until combat ends.` chat hint. The captured `pendingInfo` is restored on combat-end only if it was cleared mid-wait (group-leave during the window). Subsequent in-combat shows route through `ConfigureTeleportButton`'s guard, since `f` already exists.
-- **`Settings.Register()`** in `settings/Panel.lua` self-guards on `InCombatLockdown()` after the idempotent check (defense-in-depth atop `runConfig`'s slash-handler refusal). Same combat-taint rationale as the popup's secure button — registering Settings categories mid-combat taints the GameMenu callback chain.
+
+`Settings.Register()` in `settings/Panel.lua` is deliberately **not** a third site. Registering a canvas Settings category is not a secure write and never taints, and `options-ui-§9` makes eager registration at load a MUST; a guard there only meant a `/reload` taken in combat left the addon out of the Settings → AddOns list. Panel *open* is still refused under lockdown, inside the library's `OpenOptionsPanel`.
 
 There is intentionally no programmatic Hide method. The frame is closed by:
 

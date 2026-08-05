@@ -369,8 +369,8 @@ badge and any count quoted in the docs must agree with it.
 - panel: OnEnable registers the parent category and the General subcategory
 - panel: the parent category is added to the AddOns list
 - panel: Register is idempotent — a second call registers nothing more
-- panel: registering during combat is refused and says why
-- panel: a combat-time bail still registers once combat ends
+- panel: registering during combat still registers (options-ui-§9)
+- panel: a login taken in combat needs no second registration
 - panel: registration validates the schema
 - panel: both panels start hidden
 - panel: registration creates no AceGUI widgets
@@ -443,7 +443,7 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: InitSummary is safe before the db exists
 - lifecycle: /wg config opens the parent settings category
 - lifecycle: /wg config is refused during combat (options-ui-§2)
-- lifecycle: /wg config registers the panel if login-in-combat skipped it
+- lifecycle: a login taken in combat still registers the panel
 - lifecycle: /wg test injects a synthetic capture and runs the full flow
 - lifecycle: /wg test bypasses the master switch
 - lifecycle: /wg test fires immediately, without the notify delay

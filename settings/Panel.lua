@@ -256,6 +256,11 @@ Helpers.RegisterOptionsPage("general", "General", buildGeneralPage)
 -- UISpecialFrames insert) stay deferred in modules/Frame.lua. See docs/wow-quirks.md → "Lazy popup
 -- and secure button" for the taint reasoning, and anti-patterns #22 for why deferring the CATEGORY
 -- behind `/wg config` is the wrong fix.
+--
+-- Deliberately NOT combat-gated (options-ui-§9): registration never taints, and eager registration
+-- at load is a MUST. Only panel *open* is combat-gated, and that gate lives inside the library's
+-- `OpenOptionsPanel` so every caller inherits it. A guard here only meant that a `/reload` taken in
+-- combat left WhatGroup missing from the Settings → AddOns list until the next login.
 
 function Settings.Register()
     if WhatGroup._settingsRegistered or not _G.Settings
@@ -264,17 +269,9 @@ function Settings.Register()
         return
     end
 
-    -- Defense in depth: `runConfig` already refuses under combat, but registering Settings
-    -- categories during combat taints the GameMenu callback chain. Refuse here too so any future
-    -- caller that bypasses the slash-handler guard doesn't reintroduce the Logout taint.
-    if InCombatLockdown() then
-        pout("Cannot register settings panel during combat.")
-        return
-    end
-
     -- Resolves AceGUI, runs the schema validation, registers the main canvas with its landing-page
     -- renderer, then runs every registered page builder. Idempotent in its own right; the flag
-    -- below keeps the combat guard above meaningful.
+    -- below makes the second (`runConfig`) call a cheap no-op.
     Helpers.CreateOptionsPanel()
 
     WhatGroup._settingsRegistered = true

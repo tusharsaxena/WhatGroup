@@ -155,8 +155,9 @@ function WhatGroup:OnEnable()
     -- popup show (Frame.lua). Panel widget bodies still build lazily on first
     -- OnShow (Panel.lua), so no AceGUI frame is created inside a secure-execute
     -- chain. Register() is idempotent (the `_settingsRegistered` guard), so
-    -- runConfig's call becomes a harmless no-op fallback (it also covers the rare
-    -- login-in-combat case where the InCombatLockdown guard makes this one bail).
+    -- runConfig's call becomes a harmless no-op fallback. Registration is not
+    -- combat-gated (options-ui-§9), so a `/reload` taken in combat still lands the
+    -- category in the list — only panel *open* is refused under lockdown.
     if self.Settings and self.Settings.Register then
         self.Settings.Register()
     end

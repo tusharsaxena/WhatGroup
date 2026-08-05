@@ -76,23 +76,26 @@ test("panel: Register is idempotent — a second call registers nothing more", f
     assertEqual(#mock.categories, 2)
 end)
 
-test("panel: registering during combat is refused and says why", function()
+-- options-ui-§9: category registration never taints, and eager registration at
+-- load is a MUST. A combat guard here would leave WhatGroup missing from the
+-- Settings → AddOns list after any `/reload` taken in combat, which is exactly
+-- what WG-A-12 filed. Restoring an `InCombatLockdown()` early-return in
+-- `Settings.Register` turns this case red.
+test("panel: registering during combat still registers (options-ui-§9)", function()
     local NS, _, mock = T.bootAddon()
     mock.combat = true
     NS.addon.Settings.Register()
-    assertEqual(#mock.categories, 0, "no category is registered mid-combat")
-    assertTrue(mock.prints[#mock.prints]:find("combat", 1, true) ~= nil)
-    assertFalse(NS.addon._settingsRegistered or false,
-        "the guard flag stays clear so a later call can still register")
+    assertEqual(#mock.categories, 2, "combat does not gate category registration")
+    assertTrue(NS.addon._settingsRegistered, "and the idempotence flag is set")
 end)
 
-test("panel: a combat-time bail still registers once combat ends", function()
+test("panel: a login taken in combat needs no second registration", function()
     local NS, _, mock = T.bootAddon()
     mock.combat = true
-    NS.addon.Settings.Register()
+    NS.addon:OnEnable()
     mock.combat = false
     NS.addon.Settings.Register()
-    assertEqual(#mock.categories, 2)
+    assertEqual(#mock.categories, 2, "the login registration stands; the second call is a no-op")
 end)
 
 test("panel: registration validates the schema", function()
