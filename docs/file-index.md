@@ -67,6 +67,7 @@ Libs are copied as-is from Ka0s KickCD (`/mnt/d/Profile/Users/Tushar/Documents/G
   - [frame.md](./frame.md) — popup dialog
   - [wow-quirks.md](./wow-quirks.md) — Blizzard-API gotchas
   - [common-tasks.md](./common-tasks.md) — recipes
+  - [performance.md](./performance.md) — the `performance-§12` no-combat-path exemption + the committed whole-repo combat-path sweep
   - [testing.md](./testing.md) — verification model: green gate, `--list` inventory, badge sync-discipline
   - [test-cases.md](./test-cases.md) — **generated** case inventory + authoritative pass count (never hand-edit)
   - [smoke-tests.md](./smoke-tests.md) — manual in-game smoke-test checklist
