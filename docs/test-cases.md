@@ -347,7 +347,7 @@ badge and any count quoted in the docs must agree with it.
 - frame: the Playstyle field falls back to the enum label
 - frame: playstyle None (0) renders the dim em-dash, not an empty row
 - frame: re-showing with a new capture re-renders the fields
-- frame: the teleport button registers exactly one click edge, so one press is one cast
+- frame: the teleport button registers both click edges, because the up edge is the caster
 - frame: a known teleport wires the secure /cast macro
 - frame: a known teleport renders at full alpha, undesaturated
 - frame: an unlearned teleport shows desaturated at half alpha and casts nothing
