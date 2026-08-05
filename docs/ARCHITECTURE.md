@@ -136,3 +136,16 @@ Lifecycle:
 `Settings.Register()` runs at `OnEnable` (and again as a no-op from `runConfig`). It defers the AceGUI body build to the parent and General subcategory's first `OnShow` (each behind its own one-shot guard). See [docs/settings-system.md](./settings-system.md#lazy-panel-build).
 
 If you add a new runtime file, put it in the right place in `WhatGroup.toc` (after libs, after the file it depends on).
+
+## Documented deviations
+
+The **single home** for a ratified deviation from the Ka0s WoW Addon Standard (`documentation-§3`).
+A decision may be *reasoned* at length in [`pending/LEDGER.md`](./pending/LEDGER.md) and the **Why**
+cell cites that id — but **a deviation not in this table is not ratified**, and an audit files it as
+an open MUST failure. **Re-check trigger** is the condition that ends the deviation, stated so a
+reader can tell whether it has already fired; a row without one is a permanent opt-out wearing a
+table's clothes. A row whose cited rule the standard has since changed is **retired**, not kept.
+
+| Rule | What differs | Why | Decided | Re-check trigger |
+|---|---|---|---|---|
+| `performance-§1` | `LibKa0s-Perf-1.0` is vendored but not **wired**: no `core/PerfSetup.lua`, no `WhatGroupPerfDB`, no `perf` verb, no suspend/resume contract, no `tests/perf.lua`. | Two independent structural reasons, reasoned in full at `LIBKA0S-15`. (1) **There is no hot path** — zero `OnUpdate`, zero tickers, zero repeating timers; every declared bucket would read `0.000` by construction, and `performance-§3` calls a bucket no bracket reaches a lie in every report. (2) **`suspend` would destroy user data** — this is a *capture* addon, so an apply or an invite-accept inside a measurement window would never be recorded and the popup the player installed it for would silently not appear. | 2026-08-02 | The first `OnUpdate` handler, repeating ticker, or event handler doing more than occasional work while the player is in combat. Any of the three re-arms the full wiring MUST. |
