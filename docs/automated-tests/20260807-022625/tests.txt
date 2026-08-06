@@ -1,0 +1,464 @@
+  PASS  harness: the runner is on the shared kit and reports its revision
+  PASS  harness: the addon's load list is DERIVED from the TOC, in TOC order (testing-§9)
+  PASS  harness: every derived addon path exists on disk
+  PASS  harness: no libs/ path leaked into the derived addon list
+  PASS  harness: the explicit LibKa0s list matches LibKa0s.xml, in XML order (anti-patterns #48)
+  PASS  harness: every LibKa0s file the runner loads exists on disk
+  PASS  harness: the libraries load BEFORE the addon's own files
+  PASS  libka0s: every vendored major registers under LibStub
+  PASS  libka0s: MODULES names every file of every major, at a positive integer minor
+  PASS  core: the published seams ARE the library's, not a lookalike
+  PASS  core: the printer emits <prefix><space><body> as one line
+  PASS  core: the prefix is read at CALL time, not captured at load
+  PASS  core: the sink is the Lua global print, so the harness can see chat output
+  PASS  debuglog: the console is the library's instance, and the sink is bound bare
+  PASS  debuglog: the descriptor keeps the frame globals the old console used
+  PASS  debuglog: the composed window title is unchanged
+  PASS  debuglog: the flag stays the addon's — the library never keeps a copy
+  PASS  debuglog: the [Init] summary is the addon's, reached through the descriptor
+  PASS  debuglog: the console's user-visible strings resolve to prose, not to their own keys
+  PASS  debuglog: the gated sink survives a format its arguments cannot satisfy (WG-22)
+  PASS  options: Settings.Helpers IS the library instance, decorated in place
+  PASS  options: the host's data seams survived the move onto the instance
+  PASS  options: the host's RestoreAllDefaults deliberately overrides the library's
+  PASS  options: a panel write takes the addon's single write seam
+  PASS  options: no layout constant is restated in this addon's own source
+  PASS  options: the panel body still builds on the NEXT frame, not inside OnShow
+  PASS  slash: the help header is the library's, with this addon's alias sentence
+  PASS  slash: a help row is the one command-row formatter, indented two spaces
+  PASS  slash: the landing page renders the SAME rows, un-indented (convergence #2)
+  PASS  slash: the landing page draws those rows and nothing of its own
+  PASS  slash: `list` renders through the shared key/value formatter
+  PASS  slash: a number row still renders through its schema `fmt`
+  PASS  slash: `toggle` survived the adoption, through the descriptor's parse adapter
+  PASS  slash: the descriptor's L overrides exactly one string and nothing else
+  PASS  slash: every user-visible CLI string resolves to prose, not to its own key
+  PASS  degraded: the addon loads with LibKa0s absent
+  PASS  degraded: the cause clause is published on BOTH paths
+  PASS  degraded: the printer announces the absence exactly ONCE, then prints normally
+  PASS  degraded: the fallback printer still degrades a secret in place
+  PASS  degraded: every DebugLog member the addon calls still answers
+  PASS  degraded: the console stub copies NO library formatter
+  PASS  degraded: the schema loads WHOLE with the options library absent (options-ui-§1)
+  PASS  degraded: the settings stub carries no widget maker and no layout constant
+  PASS  degraded: the settings panel explains itself once at load and once per config
+  PASS  degraded: `/wg debug on` still moves the flag and explains the missing window ONCE
+  PASS  parity: the Core seam's whole namespace surface survives the library's absence
+  PASS  parity: the DebugLog stub carries the whole live surface
+  PASS  parity: the Slash stub carries the whole live surface
+  PASS  parity: the Options helpers stub carries the whole live surface
+  PASS  libka0s: the L-trap matcher flags the table and the `or` spelling, not the `and` one
+  PASS  libka0s: no seam file hands a descriptor this addon's locale table (the L trap)
+  PASS  libka0s: Core has no STRINGS and reads no descriptor L (tripwire)
+  PASS  libka0s: Options reads no descriptor L (tripwire)
+  PASS  util: SafeToString handles nil / booleans / strings / numbers
+  PASS  util: SafeToString yields <secret> for a value that raises in concat
+  PASS  util: IsConcatSafe true for scalars, false for a raising value
+  PASS  util: NS.Print prepends the [WG] prefix and stringifies each arg
+  PASS  util: NS.Print degrades a secret-like arg in place, never raising
+  PASS  util: Windows.Save/Restore round-trips a frame point through db.global (WG-26)
+  PASS  util: Windows.Restore is a no-op when nothing is saved (WG-26)
+  PASS  util: SafeToString renders a negative and a fractional number
+  PASS  util: SafeToString degrades a function and a coroutine
+  PASS  util: IsConcatSafe reports a boolean as unsafe
+  PASS  util: IsConcatSafe reports nil as safe (concat of an empty table)
+  PASS  util: NS.Print with no arguments still prints the prefix
+  PASS  util: NS.Print joins several arguments with single spaces
+  PASS  util: NS.Print stringifies nil and boolean arguments in place
+  PASS  util: PointOf reads a frame's primary anchor
+  PASS  util: PointOf defaults relPoint to the point and offsets to zero
+  PASS  util: PointOf returns nil for a frame with no anchor yet
+  PASS  util: PointOf returns nil for nil or a non-frame
+  PASS  util: Save is a no-op before the db is ready
+  PASS  util: Save skips a frame that has no anchor
+  PASS  util: Save overwrites a previously stored point
+  PASS  util: windows are stored under independent names
+  PASS  util: Restore returns false for a frame that cannot be anchored
+  PASS  util: Restore is a no-op before the db is ready
+  PASS  util: Restore clears existing anchors before applying the saved one
+  PASS  util: a Save/Restore round trip survives through the real frame stub
+  PASS  util: FormatDuration renders hours, minutes and seconds
+  PASS  util: FormatDuration drops units above the largest non-zero one
+  PASS  util: FormatDuration keeps trailing zero units once a larger one is present
+  PASS  util: FormatDuration rounds fractional seconds up
+  PASS  util: FormatDuration renders a non-positive duration as 0s
+  PASS  compat: GetSpellName returns the C_Spell name
+  PASS  compat: GetSpellTexture is non-nil (caller supplies default)
+  PASS  compat: GetSpellLink returns a hyperlink for the spell
+  PASS  compat: IsSpellKnown true when learned
+  PASS  compat: IsSpellKnown false when not learned
+  PASS  compat: GetSpellCooldownRemaining is 0 for a spell that is ready
+  PASS  compat: GetSpellCooldownRemaining counts down from start + duration
+  PASS  compat: GetSpellCooldownRemaining is 0 once the cooldown has elapsed
+  PASS  compat: GetSpellCooldownRemaining ignores a global-cooldown-length window
+  PASS  compat: GetSpellCooldownRemaining reports 0 when the cooldown is disabled
+  PASS  compat: GetSpellCooldownRemaining returns 0 when the API is missing
+  PASS  compat: GetActivityInfoTable passes the table through
+  PASS  compat: GetSpellName falls back to the legacy GetSpellInfo global
+  PASS  compat: GetSpellName falls through when the modern API returns nil
+  PASS  compat: GetSpellName returns nil when no API exists at all
+  PASS  compat: GetSpellTexture falls back to the legacy global
+  PASS  compat: GetSpellTexture returns nil with no API (the caller supplies a default)
+  PASS  compat: GetSpellLink returns nil with no API (the caller renders plain text)
+  PASS  compat: IsSpellKnown normalizes to a plain boolean
+  PASS  compat: IsSpellKnown returns false when the API is missing
+  PASS  compat: GetActivityInfoTable returns nil for an unknown activity
+  PASS  compat: GetActivityInfoTable returns nil when C_LFGList is absent
+  PASS  compat: Compat is the sole namespace the addon reads variant APIs through
+  PASS  database: fresh DB lands at schemaVersion 1
+  PASS  database: RunMigrations is idempotent
+  PASS  database: RunMigrations re-seeds a missing schemaVersion
+  PASS  database: BuildDefaults seeds global.schemaVersion from NS.SCHEMA_VERSION
+  PASS  database: RunMigrations before the db exists is a no-op
+  PASS  database: an older saved DB is stepped up to the current version
+  PASS  database: a version move is logged, a no-op migration is silent (debug-logging-§8)
+  PASS  database: migrations run before any profile read (OnInitialize order)
+  PASS  database: the profile is untouched by a migration pass
+  PASS  settings: BuildDefaults threads profile + global defaults
+  PASS  settings: defaults source from NS.C (defaults/Profile.lua, WG-24)
+  PASS  settings: BuildDefaults seeds an empty global.windows table (WG-26)
+  PASS  settings: debug is not a persisted schema row (WG-12)
+  PASS  settings: ValidateSchema reports zero errors
+  PASS  settings: Get/Set round-trips through db.profile
+  PASS  settings: RestoreAllDefaults resets a changed value
+  PASS  settings: RestoreAllDefaults prunes orphaned profile keys (F1)
+  PASS  settings: RestoreAllDefaults deep-copies table defaults (F2)
+  PASS  settings: RestoreAllDefaults skips per-row onChange (F3)
+  PASS  settings: enabled=false onChange wipes capture
+  PASS  settings: every schema row declares the fields the panel and CLI need
+  PASS  settings: schema paths are unique
+  PASS  settings: every schema row carries a tooltip
+  PASS  settings: every number row declares min, max and step
+  PASS  settings: ValidateSchema counts each defect on a broken row
+  PASS  settings: ValidateSchema reports a non-table row
+  PASS  settings: a broken row does not stop the panel registering
+  PASS  settings: BuildDefaults nests dotted paths into real subtables
+  PASS  settings: BuildDefaults covers every schema row
+  PASS  settings: BuildDefaults deep-copies table defaults
+  PASS  settings: BuildDefaults is a fresh table each call
+  PASS  settings: Get returns nil before the db exists
+  PASS  settings: Set before the db exists is a harmless no-op
+  PASS  settings: a write creates the intermediate tables it walks through
+  PASS  settings: Get on an unknown deep path returns nil and creates no table
+  PASS  settings: Resolve replaces a non-table intermediate
+  PASS  settings: RawSet writes without firing onChange
+  PASS  settings: Set skipOnChange suppresses the side effect
+  PASS  settings: a throwing onChange is caught and reported, not propagated
+  PASS  settings: Set on a path with no schema row still writes
+  PASS  settings: FindSchema matches on the exact path
+  PASS  settings: RestoreAllDefaults restores every schema row
+  PASS  settings: RestoreAllDefaults leaves db.global untouched
+  PASS  settings: RefreshAll runs every refresher on the open page, in registration order
+  PASS  settings: a throwing refresher does not abort the sweep
+  PASS  settings: a hidden page is not refreshed — it is flagged dirty (options-ui-§11)
+  PASS  settings: Set skipRefresh suppresses the widget re-sync
+  PASS  settings: RestoreAllDefaults refreshes once, not once per row
+  PASS  settings: EnsureResetPopup is idempotent
+  PASS  settings: the reset dialog is a blocking, escapable confirmation
+  PASS  settings: accepting the reset dialog acknowledges in chat
+  PASS  slash: COMMANDS has a standalone version verb (WG-29)
+  PASS  slash: /wg version prints [WG] v<version> on its own line (WG-29)
+  PASS  slash: help header has no trailing colon (WG-19)
+  PASS  slash: a bare /wg prints the help index
+  PASS  slash: whitespace-only input is treated as bare /wg
+  PASS  slash: nil input is tolerated
+  PASS  slash: help lists one row per COMMANDS entry, plus the header
+  PASS  slash: every COMMANDS row carries a verb, a description and a handler
+  PASS  slash: an unknown verb says so and then prints the help index
+  PASS  slash: the verb is case-insensitive
+  PASS  slash: only the verb is lower-cased — the argument keeps its case
+  PASS  slash: /wg version reads the version from TOC metadata
+  PASS  slash: /wg version falls back to the in-code constant
+  PASS  slash: /wg list prints every schema row
+  PASS  slash: /wg list groups rows under their section header
+  PASS  slash: /wg list shows current values, not defaults
+  PASS  slash: /wg get prints key = value
+  PASS  slash: /wg get with no path prints usage
+  PASS  slash: /wg get reports an unknown path rather than printing nil
+  PASS  slash: /wg get formats a number through the schema fmt
+  PASS  slash: /wg set with no path prints usage
+  PASS  slash: /wg set reports an unknown path
+  PASS  slash: /wg set accepts 'true' as true
+  PASS  slash: /wg set accepts '1' as true
+  PASS  slash: /wg set accepts 'on' as true
+  PASS  slash: /wg set accepts 'yes' as true
+  PASS  slash: /wg set accepts 'false' as false
+  PASS  slash: /wg set accepts '0' as false
+  PASS  slash: /wg set accepts 'off' as false
+  PASS  slash: /wg set accepts 'no' as false
+  PASS  slash: /wg set bool words are case-insensitive
+  PASS  slash: /wg set toggle flips the current value
+  PASS  slash: /wg set rejects a non-boolean word and lists the accepted ones
+  PASS  slash: /wg set writes a number
+  PASS  slash: /wg set rejects a non-numeric value for a number row
+  PASS  slash: /wg set clamps a number below the schema min
+  PASS  slash: /wg set clamps a number above the schema max
+  PASS  slash: /wg set echoes the STORED value back, not the typed one
+  PASS  slash: /wg set with a missing value is rejected, not silently applied
+  PASS  slash: /wg set enabled false runs the master-switch onChange
+  PASS  slash: /wg debug with a bad subcommand prints both usage lines
+  PASS  slash: /wg debug (bare) toggles the console window's visibility
+  PASS  slash: /wg debug on does not open the window
+  PASS  labels: GetGroupTypeLabel Mythic+
+  PASS  labels: GetGroupTypeLabel Dungeon by categoryID
+  PASS  labels: GetGroupTypeLabel Raid by player count
+  PASS  labels: GetGroupTypeLabel fallback Group
+  PASS  labels: GetPlaystyleLabel prefers playstyleString
+  PASS  labels: GetPlaystyleLabel enum lookup when string empty
+  PASS  teleport: GetTeleportSpell picks the known spell from a list
+  PASS  teleport: GetTeleportSpell returns first + false when none known
+  PASS  teleport: GetTeleportSpell nil when no mapping
+  PASS  labels: GetGroupTypeLabel Raid (Current)
+  PASS  labels: GetGroupTypeLabel Heroic Raid
+  PASS  labels: GetGroupTypeLabel PvP by categoryID 2
+  PASS  labels: GetGroupTypeLabel Dungeon by a small player count
+  PASS  labels: GetGroupTypeLabel treats exactly 10 players as a Raid
+  PASS  labels: GetGroupTypeLabel treats 9 players as a Dungeon
+  PASS  labels: GetGroupTypeLabel falls back to Group at zero players
+  PASS  labels: Mythic+ outranks every other signal
+  PASS  labels: the raid flags outrank categoryID
+  PASS  labels: categoryID outranks the player count
+  PASS  labels: every playstyle enum maps to its Blizzard-localized wording
+  PASS  labels: playstyle None (0) has no label
+  PASS  labels: an unmapped playstyle enum yields an empty label, not nil
+  PASS  labels: playstyleString wins even when the enum is also set
+  PASS  labels: a nil playstyleString falls through to the enum
+  PASS  teleport: a scalar mapping returns (spellID, known) directly
+  PASS  teleport: a scalar mapping the player has not learned reports known=false
+  PASS  teleport: mapID takes precedence over activityID
+  PASS  teleport: activityID is the fallback when the mapID is unmapped
+  PASS  teleport: a nil mapID and nil activityID resolve to nothing
+  PASS  teleport: the FIRST known spell in a candidate list wins
+  PASS  teleport: the shipped mapping table is keyed by numbers only
+  PASS  teleport: the Midnight Keystone Hero rows match the spellbook-verified IDs
+  PASS  teleport: Siege of Boralus offers the spellbook-verified spell first
+  PASS  capture: inviteaccepted prefers FRESH when both have mapID
+  PASS  capture: inviteaccepted falls back to QUEUED when fresh lacks mapID
+  PASS  capture: enabled queues so pendingInfo survives a nil fresh fetch
+  PASS  capture: master switch off means nothing is queued
+  PASS  capture: master switch off blocks the inviteaccepted fresh fetch too
+  PASS  capture: CaptureGroupInfo maps the search-result fields
+  PASS  capture: CaptureGroupInfo maps the activity fields
+  PASS  capture: CaptureGroupInfo returns nil when the search result is gone
+  PASS  capture: missing search-result fields fall back to safe defaults
+  PASS  capture: an unknown activity leaves the activity fields at their defaults
+  PASS  capture: no activityIDs at all leaves activityID nil
+  PASS  capture: fullName falls back to the activity name
+  PASS  capture: the legacy `playstyle` field is used when generalPlaystyle is absent
+  PASS  capture: the raid flags are carried through
+  PASS  capture: applications are matched to captures in FIFO order
+  PASS  capture: an 'invited' status changes nothing — it waits for the accept
+  PASS  capture: an unrecognized status is ignored
+  PASS  capture: accepting clears the queue so a stale apply can't resurface
+  PASS  capture: 'applied' with nothing queued is a harmless no-op
+  PASS  capture: accepting with no data anywhere leaves pendingInfo nil
+  PASS  capture: re-enabling the master switch resumes capturing
+  PASS  capture: inviteaccepted resolves the searchResultID via GetApplicationInfo
+  PASS  capture: GetApplicationInfo may return a table; the id is read off it
+  PASS  capture: an unmapped application falls back to treating appID as the id
+  PASS  capture: a missing GetApplicationInfo degrades to the appID path
+  PASS  capture: a raising GetApplicationInfo is caught and falls back
+  PASS  capture: a search field holding false takes the default, not the false
+  PASS  capture: an activity field holding false takes the default, not the false
+  PASS  capture: a stored zero survives the defaults, because 0 is truthy in Lua
+  PASS  notify: no pendingInfo schedules no timer
+  PASS  notify: out of a group schedules no timer even with pendingInfo
+  PASS  notify: in a group with pendingInfo schedules exactly one timer
+  PASS  notify: the scheduled delay comes from notify.delay
+  PASS  notify: firing the timer prints the summary and clears the handle
+  PASS  notify: a second call for the SAME pendingInfo schedules nothing more
+  PASS  notify: both event paths together fire the summary exactly once
+  PASS  notify: a NEW pendingInfo is eligible to fire again
+  PASS  notify: a re-fire cancels the in-flight timer so two can't race
+  PASS  notify: a callback whose pendingInfo was replaced mid-flight prints nothing
+  PASS  notify: WipeCapture cancels an in-flight notify so it never fires
+  PASS  notify: WipeCapture clears pendingInfo
+  PASS  notify: WipeCapture re-arms a later capture (notifiedFor is cleared)
+  PASS  notify: the master-switch off-flip wipes an in-flight capture (Schema onChange)
+  PASS  notify: autoShow on opens the popup when the timer fires
+  PASS  notify: autoShow off prints the summary but never builds the popup
+  PASS  notify: autoShow is read at SCHEDULE time, not at fire time
+  PASS  notify: notify.enabled off prints nothing at all
+  PASS  notify: no pendingInfo prints nothing
+  PASS  notify: the default summary carries every row
+  PASS  notify: the Group row always prints, even with every toggle off
+  PASS  notify: notify.showInstance off drops the Instance: row
+  PASS  notify: notify.showInstance on keeps the Instance: row
+  PASS  notify: notify.showType off drops the Type: row
+  PASS  notify: notify.showType on keeps the Type: row
+  PASS  notify: notify.showLeader off drops the Leader: row
+  PASS  notify: notify.showLeader on keeps the Leader: row
+  PASS  notify: notify.showPlaystyle off drops the Playstyle: row
+  PASS  notify: notify.showPlaystyle on keeps the Playstyle: row
+  PASS  notify: notify.showTeleport off drops the Teleport: row
+  PASS  notify: notify.showTeleport on keeps the Teleport: row
+  PASS  notify: notify.showClickLink off drops the [Click here to view details] row
+  PASS  notify: notify.showClickLink on keeps the [Click here to view details] row
+  PASS  notify: the Instance row falls back to Unknown when fullName is empty
+  PASS  notify: the Type row prefers shortName over the derived label
+  PASS  notify: the Type row derives the label when shortName is empty
+  PASS  notify: the Playstyle row is skipped when the label resolves empty
+  PASS  notify: the Teleport row is skipped when the map has no teleport spell
+  PASS  notify: an unlearned teleport is tagged '(not learned)'
+  PASS  notify: a learned teleport carries no '(not learned)' tag
+  PASS  notify: a teleport on cooldown is tagged '(on cooldown)'
+  PASS  notify: the cooldown tag carries no countdown to go stale
+  PASS  notify: an unlearned teleport outranks a cooldown in chat too
+  PASS  notify: a ready teleport carries neither tag
+  PASS  notify: every summary line carries the shared [WG] prefix
+  PASS  notify: a secret-like title degrades in place instead of raising
+  PASS  notify: the Leader row still prints when leaderName is nil
+  PASS  notify: Playstyle and Teleport drop their rows while Leader keeps its own
+  PASS  frame: nothing is created at addon load
+  PASS  frame: the first ShowFrame builds and shows the popup
+  PASS  frame: buildFrame is one-shot — a second show reuses the same frame
+  PASS  frame: ESC-to-close is registered lazily, on the first show only
+  PASS  frame: the Close button hides the popup
+  PASS  frame: fields render the pending capture
+  PASS  frame: with no pendingInfo every field reads 'No data'
+  PASS  frame: the no-data playstyle renders the dim em-dash placeholder
+  PASS  frame: an empty fullName falls back to Unknown
+  PASS  frame: the Type field prefers shortName
+  PASS  frame: the Type field derives a label when shortName is empty
+  PASS  frame: the Playstyle field prefers the server-rendered string
+  PASS  frame: the Playstyle field falls back to the enum label
+  PASS  frame: playstyle None (0) renders the dim em-dash, not an empty row
+  PASS  frame: re-showing with a new capture re-renders the fields
+  PASS  frame: the teleport button registers both click edges, because the up edge is the caster
+  PASS  frame: a known teleport wires the secure /cast macro
+  PASS  frame: a known teleport renders at full alpha, undesaturated
+  PASS  frame: an unlearned teleport shows desaturated at half alpha and casts nothing
+  PASS  frame: a teleport on cooldown arms no macro, so the click casts nothing
+  PASS  frame: a teleport on cooldown renders desaturated and dimmed
+  PASS  frame: a teleport on cooldown says how long is left
+  PASS  frame: a teleport on cooldown arms the swipe with the real start and duration
+  PASS  frame: a ready teleport clears the note and the swipe
+  PASS  frame: an open popup ticks the cooldown note down each second
+  PASS  frame: closing the popup cancels the ticker
+  PASS  frame: re-opening the popup arms exactly one ticker, not a second
+  PASS  frame: a ready teleport arms no ticker at all
+  PASS  frame: the ticker rearms the cast the moment the cooldown expires
+  PASS  frame: an unlearned teleport says so beside the button
+  PASS  frame: an unlearned teleport is never labelled as on cooldown
+  PASS  frame: a map with no teleport hides the button entirely
+  PASS  frame: the button clears a stale macro when re-shown for a teleport-less map
+  PASS  frame: the teleport icon uses the spell's texture
+  PASS  frame: no pendingInfo hides the teleport button
+  PASS  frame: a first show in combat defers the build and says so
+  PASS  frame: leaving combat builds the deferred popup
+  PASS  frame: the deferred show restores a pendingInfo cleared during the wait
+  PASS  frame: repeated in-combat shows queue exactly one wait frame
+  PASS  frame: once built, showing during combat is allowed
+  PASS  frame: reconfiguring the teleport button in combat stashes and replays it
+  PASS  frame: a fresh profile leaves the popup at its default center anchor
+  PASS  frame: dragging the title bar persists the popup position
+  PASS  frame: a saved position is restored on the next build
+  PASS  panel: OnEnable registers the parent category and the General subcategory
+  PASS  panel: the parent category is added to the AddOns list
+  PASS  panel: Register is idempotent — a second call registers nothing more
+  PASS  panel: registering during combat still registers (options-ui-§9)
+  PASS  panel: a login taken in combat needs no second registration
+  PASS  panel: registration validates the schema
+  PASS  panel: both panels start hidden
+  PASS  panel: registration creates no AceGUI widgets
+  PASS  panel: OnShow itself builds nothing; the deferred hop does
+  PASS  panel: the build is one-shot across repeated shows
+  PASS  panel: two OnShows before the hop runs still build only once
+  PASS  panel: the Defaults button is built lazily, on the General page only
+  PASS  panel: clicking Defaults raises the confirmation popup rather than resetting
+  PASS  panel: confirming the popup restores defaults
+  PASS  panel: the reset dialog is not registered before it is needed (taint)
+  PASS  panel: every schema row renders a widget
+  PASS  panel: bool rows render checkboxes and number rows render sliders
+  PASS  panel: widgets open showing the current profile value
+  PASS  panel: the slider inherits its bounds and step from the schema row
+  PASS  panel: each section renders a heading
+  PASS  panel: paired rows get half width, solo rows go full width
+  PASS  panel: the General group renders its Test action button
+  PASS  panel: the Test button runs the same path as /wg test
+  PASS  panel: a throwing button onClick is caught, not propagated
+  PASS  panel: the Debug console checkbox renders as a non-schema extra
+  PASS  panel: ticking Debug console shows the window without touching db.profile
+  PASS  panel: unticking Debug console hides the window
+  PASS  panel: opening the console while General is OPEN moves the checkbox
+  PASS  panel: re-opening General re-syncs the Debug console checkbox
+  PASS  panel: ticking a checkbox writes through to db.profile
+  PASS  panel: a checkbox coerces its value to a real boolean
+  PASS  panel: releasing the slider writes through to db.profile
+  PASS  panel: the slider snaps its committed value to the schema step
+  PASS  panel: unticking Enable fires the master-switch onChange
+  PASS  panel: rendering registers one refresher per rendered widget
+  PASS  panel: a re-render REPLACES the refresher list rather than growing it
+  PASS  panel: a /wg set re-syncs the open widget
+  PASS  panel: RestoreAllDefaults re-syncs every open widget once
+  PASS  panel: a throwing refresher does not abort the remaining ones
+  PASS  panel: the scroll container is patched to always show its scrollbar
+  PASS  panel: the patch is one-shot per widget
+  PASS  panel: releasing the widget restores AceGUI's stock behavior
+  PASS  panel: the landing page lists one row per slash command
+  PASS  panel: the landing page shows the TOC Notes line
+  PASS  panel: the landing page renders the Slash Commands heading and the logo
+  PASS  panel: the landing page adds logo, notes, heading and command rows in that order
+  PASS  panel: a dirty landing page re-renders in place instead of stacking a second copy
+  PASS  lifecycle: the addon exposes no public global (WG-01)
+  PASS  lifecycle: NS IS the addon object (AceAddon mixes into the namespace)
+  PASS  lifecycle: earlier files' fields survive NewAddon
+  PASS  lifecycle: the shared chat prefix is the cyan [WG] tag
+  PASS  lifecycle: NS.Print, WhatGroup._print and NS.Util.print are one seam
+  PASS  lifecycle: debug state is session-only and starts off
+  PASS  lifecycle: OnInitialize builds the db from the schema defaults
+  PASS  lifecycle: OnInitialize registers both slash verbs
+  PASS  lifecycle: OnEnable registers the two capture events
+  PASS  lifecycle: no events are registered before OnEnable
+  PASS  lifecycle: OnEnable seeds wasInGroup from the current roster state
+  PASS  lifecycle: the ApplyToGroup and SetItemRef hooks install at file load
+  PASS  lifecycle: the ApplyToGroup hook routes into the capture pipeline
+  PASS  lifecycle: the SetItemRef hook ignores links that aren't ours
+  PASS  lifecycle: the SetItemRef hook ignores a non-string link argument
+  PASS  lifecycle: clicking the chat link opens the popup
+  PASS  lifecycle: a stale chat link prints a hint instead of an empty popup
+  PASS  lifecycle: joining a group with a capture waiting fires the notify
+  PASS  lifecycle: a roster tick while already grouped is not a transition
+  PASS  lifecycle: leaving the group wipes the capture
+  PASS  lifecycle: leaving the group cancels an in-flight notify
+  PASS  lifecycle: rejoining after a leave fires a fresh notify
+  PASS  lifecycle: the retail ordering (ROSTER before inviteaccepted) still notifies
+  PASS  lifecycle: InitSummary reflects live runtime state
+  PASS  lifecycle: InitSummary is safe before the db exists
+  PASS  lifecycle: /wg config opens the parent settings category
+  PASS  lifecycle: /wg config is refused during combat (options-ui-§2)
+  PASS  lifecycle: a login taken in combat still registers the panel
+  PASS  lifecycle: /wg test injects a synthetic capture and runs the full flow
+  PASS  lifecycle: /wg test bypasses the master switch
+  PASS  lifecycle: /wg test fires immediately, without the notify delay
+  PASS  lifecycle: /wg show opens the popup when a capture exists
+  PASS  lifecycle: /wg show with no capture prints a hint and opens nothing
+  PASS  lifecycle: /wg reset <path> resets one setting, with no confirmation
+  PASS  lifecycle: a bare /wg reset explains the change rather than resetting or erroring
+  PASS  lifecycle: /wg resetall asks for confirmation rather than resetting outright
+  PASS  lifecycle: /wg resetall and the Defaults button share one OnAccept body
+  PASS  debuglog: FONT_MONO points at the vendored JetBrains Mono TTF
+  PASS  debuglog: the console renders in the vendored TTF when the client can fetch it
+  PASS  debuglog: a TTF the client cannot fetch falls back to a Blizzard font (debug-logging-§2)
+  PASS  debuglog: FormatPlain wraps the tag in brackets, single-space separators
+  PASS  debuglog: FormatPlain tolerates a nil tag
+  PASS  debuglog: FormatColored colors timestamp + tag; pipe and content default
+  PASS  debuglog: /wg debug on enables session state
+  PASS  debuglog: /wg debug off disables session state
+  PASS  debuglog: /wg debug (no arg) toggles the window, not the state
+  PASS  debuglog: header toggle click flips debug state
+  PASS  debuglog: enabling writes a '[Debug] logging enabled' console line
+  PASS  debuglog: enabling debug appends the [Init] session summary after the bracket (debug-logging-§5)
+  PASS  debuglog: [Init] fires only on enable, not on disable (debug-logging-§5)
+  PASS  debuglog: disabling still appends a '[Debug] logging disabled' line
+  PASS  debuglog: NS.Debug survives an unsafe format arg without raising (WG-22)
+  PASS  debuglog: NS.Debug is a no-op (no console write) when debug is off
+  PASS  debuglog: §11 scrollbar + line-counter sync is a safe no-op under the mock
+  PASS  debuglog: settings change logs one [Set] line at the write seam (debug-logging-§10)
+  PASS  debuglog: RestoreAllDefaults coalesces to one [Reset], zero [Set] (debug-logging-§9)
+  PASS  debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state
+  PASS  debuglog: enable ack is color-coded green/red matching the header (debug-logging-§5)
+  PASS  libs/LibKa0s is the LibKa0s release CLAUDE.md says this addon bundles
+  PASS  tests/_kit is the test kit that shipped with that release
+
+462 passed, 0 failed, 0 skipped, 462 total
