@@ -15,7 +15,7 @@ self:RegisterChatCommand("whatgroup", "OnSlashCommand")
 
 ## Case-preserving parse
 
-The dispatcher (`libs/LibKa0s/Slash.lua:505`) lowercases only the command name — the rest of the input is passed through untouched:
+The dispatcher (`libs/LibKa0s/Slash.lua:586`) lowercases only the command name — the rest of the input is passed through untouched:
 
 ```lua
 local cmd, rest = raw:match("^(%S+)%s*(.*)$")

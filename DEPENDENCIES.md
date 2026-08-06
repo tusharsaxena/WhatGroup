@@ -155,8 +155,13 @@ Stated explicitly, because each of these is a reasonable guess that happens to b
   inventory generator are all Lua (`tests/run.lua`, `tests/loader.lua`, `tests/_kit/`). Python
   arrives only as `lizard`'s host (section 2.3).
 - **No Node.js, no npm.** There is no `package.json` anywhere outside `libs/`.
-- **No shell or Python scripts of any kind.** The repo contains no `.sh`, no `.py`, no `Makefile`,
-  and no `scripts/` directory. Every documented command is typed directly.
+- **No Python scripts, no `Makefile`, no `scripts/` directory.** The repo contains no `.py` file of
+  its own, no `Makefile` and no `scripts/`. There is **one** shell script:
+  `tests/_kit/run-automated-tests.sh`, the vendored automated-test runner that ships whole with the
+  LibKa0s test kit (`docs/testing.md:211-213`, [`docs/automated-tests/README.md`](docs/automated-tests/README.md)).
+  It needs **bash**, which Ubuntu already has, and it is a convenience wrapper — it shells out to
+  the same `luacheck` / `lua tests/run.lua` / `lizard` above and treats a missing tool as a `skip`,
+  never a failure. Every other documented command is typed directly.
 - **No CI.** There is no `.github/` directory and no workflow. `docs/testing.md:121-124` says so
   outright: the README `tests` badge is static and hand-maintained, with no GitHub Action behind it.
 - **No test dependency on external processes.** The suites call neither `io.popen` nor `os.execute`

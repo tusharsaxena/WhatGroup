@@ -2,17 +2,21 @@
 
 **Ka0s WhatGroup brackets nothing, and this page is why.**
 
-This addon claims the **no-combat-path exemption** (`performance-§12`). It vendors
-`libs/LibKa0s/` whole — Perf.lua included, because the folder is copied whole or not at all
-(library-stack-§7, anti-patterns #48) — and does **not** wire it: there is no
-`core/PerfSetup.lua`, no `WhatGroupPerfDB`, no `perf` verb registration, no suspend/resume
-contract, no `tests/perf.lua` and no `docs/perf-runs/`. The `perf` verb stays **reserved**
-(slash-commands-§2) so it can never come to mean anything else here; it is simply not registered.
+This addon claimed the **no-combat-path exemption** (`performance-§12`) until **2026-08-06**, when
+the teleport cooldown countdown ticker ended criterion (a). The wiring is **still declined** — now
+as a ratified deviation in its own right, on criteria (b) and (c), which the ticker does not touch.
+Either way the outcome on disk is the same: it vendors `libs/LibKa0s/` whole — Perf.lua included,
+because the folder is copied whole or not at all (library-stack-§7, anti-patterns #48) — and does
+**not** wire it: there is no `core/PerfSetup.lua`, no `WhatGroupPerfDB`, no `perf` verb
+registration, no suspend/resume contract, no `tests/perf.lua` and no `docs/perf-runs/`. The `perf`
+verb stays **reserved** (slash-commands-§2) so it can never come to mean anything else here; it is
+simply not registered.
 
-The exemption is ratified once, as a row in
+Both the original exemption and the deviation that replaced it are ratified as rows in
 [`ARCHITECTURE.md` → `## Documented deviations`](./ARCHITECTURE.md#documented-deviations). This
-page is the answer to *"how much does this addon cost?"* — **nothing measurable, and here is how we
-know**.
+page is the answer to *"how much does this addon cost?"* — **one `C_Spell.GetSpellCooldown` and one
+`SetText` per second while an open popup is showing a live cooldown, and nothing else measurable —
+and here is how we know**.
 
 ## Criterion (a) — no combat path: the whole-repo sweep
 
@@ -31,14 +35,14 @@ Every hit, with the per-hit work:
 | `core/WhatGroup.lua:62` | `hooksecurefunc("SetItemRef", …)` | Fires only on a **chat-link click**. One prefix compare, then a return for every link that is not ours. |
 | `core/WhatGroup.lua:145` | `RegisterEvent("GROUP_ROSTER_UPDATE")` | The one handler that can fire mid-combat. `IsInGroup()` plus three comparisons; the debug line is suppressed unless the in-group state actually transitioned. On most pulls it fires **zero** times. |
 | `core/WhatGroup.lua:146` | `RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")` | Fires on an LFG application status change — a state the player reaches out of combat. |
-| `core/WhatGroup.lua:563` | `self:ScheduleTimer(…)` | **One-shot** AceTimer, armed once per group join, for the notify delay. Not repeating. |
+| `core/WhatGroup.lua:577` | `self:ScheduleTimer(…)` | **One-shot** AceTimer, armed once per group join, for the notify delay. Not repeating. |
 | `modules/Frame.lua:253` | `f:RegisterEvent("PLAYER_REGEN_ENABLED")` | Registered **only** when a secure-attribute write was blocked by `InCombatLockdown()`, and the handler **unregisters itself** on the first fire. It exists to do its work strictly *after* combat. |
-| `modules/Frame.lua:321` | `WhatGroup:ScheduleRepeatingTimer(…, 1)` | **The one repeating timer in the addon**, and the reason criterion (a) no longer holds. Armed only when the popup is open *and* the dungeon's teleport is on cooldown; cancelled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. Per tick: one `C_Spell.GetSpellCooldown` call and one `SetText`. It can fire during combat — the popup can be open then — so this is the addon's first in-combat repeating work, however small. |
-| `modules/Frame.lua:447` | `waitFrame:RegisterEvent("PLAYER_REGEN_ENABLED")` | Same shape: a transient frame that defers the popup build to combat-end and then `UnregisterAllEvents()`. |
+| `modules/Frame.lua:327` | `WhatGroup:ScheduleRepeatingTimer(…, 1)` | **The one repeating timer in the addon**, and the reason criterion (a) no longer holds. Armed only when the popup is open *and* the dungeon's teleport is on cooldown; cancelled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. Per tick: one `C_Spell.GetSpellCooldown` call and one `SetText`. It can fire during combat — the popup can be open then — so this is the addon's first in-combat repeating work, however small. |
+| `modules/Frame.lua:453` | `waitFrame:RegisterEvent("PLAYER_REGEN_ENABLED")` | Same shape: a transient frame that defers the popup build to combat-end and then `UnregisterAllEvents()`. |
 | `settings/OptionsSetup.lua:172`, `:180` | `C_Timer.After(0, …)` | Two **next-frame** secure-defer hops in the settings panel build. One-shot, and only ever reached from a settings-panel `OnShow`. |
 
 **Zero `OnUpdate` handlers. One repeating timer** — the cooldown countdown at
-`modules/Frame.lua:321`, added 2026-08-06. Everything else above is one-shot or self-unregistering,
+`modules/Frame.lua:327`, added 2026-08-06. Everything else above is one-shot or self-unregistering,
 and the only *event* handler reachable inside a combat window is `GROUP_ROSTER_UPDATE`, whose body
 is an `IsInGroup()` and three comparisons.
 
@@ -68,10 +72,13 @@ The long-form reasoning, and the date the user ratified it, are at
 
 ## The re-check trigger
 
-The exemption is **conditional on criterion (a) still being true**. The first `OnUpdate` handler,
-the first repeating ticker, or the first event handler doing more than occasional work while the
-player is in combat **re-arms the full wiring MUST** — regenerate the sweep above before adding any
-of the three.
+The exemption was **conditional on criterion (a) still being true**, and it fired on 2026-08-06 with
+the countdown ticker. What now governs is the re-check trigger on the *replacement* row in
+[`ARCHITECTURE.md`](./ARCHITECTURE.md) `## Documented deviations`: the wiring gets wired, not
+re-argued, if the ticker stops being window-bounded, if a second repeating timer appears, or if any
+repeating work starts running with the popup closed. Adding an `OnUpdate` handler, a second ticker,
+or an event handler doing more than occasional work in combat means regenerating the sweep above
+first.
 
 ## What this page does not excuse
 
