@@ -3,7 +3,7 @@
 ![WoW](https://img.shields.io/badge/WoW-Midnight_12.0.7-purple)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
-[![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
+![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
 ![Tests](https://img.shields.io/badge/Tests-462%2F462_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1794/926/whatgroup-logo-png.png)
@@ -14,8 +14,6 @@ WhatGroup remembers the details of any group you join through the Premade Group 
 *   A **popup window** with the same details and a teleport button for the dungeon (grayed out until you learn the spell, and while it's on cooldown — with the time remaining shown beside it). Drag it anywhere, close it with `ESC`, or re-open it with `/wg show` while you're still in the group.
 
 Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Settings panel, or with the `/wg` commands below.
-
-Everything this addon needs ships inside it — nothing else has to be installed. Alongside Ace3 and LibSharedMedia-3.0, it bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.8.0 (MIT), the shared Ka0s library behind the chat printer, the debug console, the `/wg` command line and the settings panel. Its license travels with the code at `libs/LibKa0s/LICENSE`.
 
 ## What's new in 1.3.0
 

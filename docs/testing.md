@@ -180,8 +180,11 @@ downstream, and the step people reach for after a re-vendor that did not work is
 exactly the one this discipline forbids.
 
 Which version is vendored is answerable without grepping eight minor constants
-out of the source: the README carries a provenance line naming the LibKa0s
-release, and it moves in the same commit as the bytes.
+out of the source: the root `CLAUDE.md` carries a provenance line naming the
+LibKa0s release, and it moves in the same commit as the bytes. Kit revision 9
+moved that line out of `README.md`, and the gate has no fallback — a repo that
+has not moved its line reads as carrying no provenance line at all and fails,
+naming `CLAUDE.md`.
 
 ## Lint scope
 

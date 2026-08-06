@@ -2,10 +2,10 @@
 -- `tests/_kit/vendor_sync.lua`, inside the payload it checks; this file is the call.
 --
 -- WHAT IT CHECKS: that `libs/LibKa0s/` and `tests/_kit/` in this repo are exactly what the LibKa0s
--- repo published at the tag THIS README says it bundles.
+-- repo published at the tag THIS REPO'S `CLAUDE.md` says it bundles.
 --
--- THE PROVENANCE LINE IS AN INPUT, NOT A CONSTANT. It is read out of README.md rather than
--- hardcoded: a provenance line and a vendored payload that disagree is precisely the drift this
+-- THE PROVENANCE LINE IS AN INPUT, NOT A CONSTANT. It is read out of the root CLAUDE.md rather
+-- than hardcoded: a provenance line and a vendored payload that disagree is precisely the drift this
 -- gate exists to catch, so the claim has to be the thing under test. Bump the line and the bytes
 -- in the same commit.
 --

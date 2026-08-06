@@ -60,6 +60,15 @@ are **frozen history** — never treat them as a live requirement, and never "re
   `settings/OptionsSetup.lua` and `settings/Slash.lua`; **Perf is declined** on structural
   grounds (`docs/pending/LEDGER.md`, `LIBKA0S-15`).
 
+## Bundled LibKa0s
+
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.8.1 (MIT). That line is the
+repo's provenance claim — the tag `libs/LibKa0s/` and `tests/_kit/` were copied from — and
+`tests/test_vendor_sync.lua` reads it out of *this* file and compares both payloads against
+that tag in the sibling checkout. It is an input to the gate, not a comment: bump the version
+here in the **same commit** as the vendored bytes, or the gate fails. LibKa0s's own license
+travels with the code at `libs/LibKa0s/LICENSE`.
+
 ## Response style
 
 Terse — state the change, not the deliberation. Cite `file_path:line_number`. Don't write
