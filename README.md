@@ -4,14 +4,14 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 [![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)](https://github.com/tusharsaxena/WowAddonStandards)
-![Tests](https://img.shields.io/badge/Tests-435%2F435_passing-green)
+![Tests](https://img.shields.io/badge/Tests-462%2F462_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1794/926/whatgroup-logo-png.png)
 
 WhatGroup remembers the details of any group you join through the Premade Group Finder, so you can close the LFG window and still know what you signed up for. It shows those details two ways:
 
-*   A **chat message** a moment after you join. It lists the group name, the instance, the type (Mythic+, Raid, Dungeon, PvP, and so on), the leader, and the group's playstyle. If the dungeon has a teleport spell, that's shown too (tagged if you haven't learned it), plus a "view details" link that re-opens the popup.
-*   A **popup window** with the same details and a teleport button for the dungeon (grayed out until you learn the spell). Drag it anywhere, close it with `ESC`, or re-open it with `/wg show` while you're still in the group.
+*   A **chat message** a moment after you join. It lists the group name, the instance, the type (Mythic+, Raid, Dungeon, PvP, and so on), the leader, and the group's playstyle. If the dungeon has a teleport spell, that's shown too — tagged `(not learned)` or `(on cooldown)` if you can't use it right now — plus a "view details" link that re-opens the popup.
+*   A **popup window** with the same details and a teleport button for the dungeon (grayed out until you learn the spell, and while it's on cooldown — with the time remaining shown beside it). Drag it anywhere, close it with `ESC`, or re-open it with `/wg show` while you're still in the group.
 
 Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Settings panel, or with the `/wg` commands below.
 
@@ -89,7 +89,7 @@ The group info is only remembered for your current play session and clears when 
 | How do I preview the popup without joining a real group? | Use `/wg test`, or the **Test** button in Settings. Both run the full message and popup with sample data. |
 | Can I delay the message and popup instead of getting them instantly? | Yes. They appear instantly by default; set a pause under **Notify → Notification Delay** (0–10 seconds). |
 | What is the **Debug console**, and how do I turn on debug logging? | `/wg debug` opens the on-screen debug window; `/wg debug on` starts logging into it, `off` stops it. Logging is session-only and starts off after every login. The **Debug console** checkbox in **General** only shows or hides the window — it doesn't turn logging on. |
-| Why is the teleport button or teleport line grayed out or missing? | Either you haven't learned the spell (the button grays out and the chat line is tagged), or that dungeon has no teleport (the line is skipped). |
+| Why is the teleport button or teleport line grayed out or missing? | Three reasons, and the popup says which: you haven't learned the spell (`Teleport spell not learned` beside the button), you have it but it's still recharging (`On cooldown — 7h 58m 12s`, counting down, with a cooldown swipe over the icon), or that dungeon has no teleport at all (the row is skipped entirely). |
 | Can I keep the chat message but hide the popup, or the reverse? | Yes. Turn **Auto Show** off to skip the popup, or **Print to Chat** off to skip the message. They work independently. |
 | Are there per-character settings? | No. Your settings are shared across all your characters. |
 

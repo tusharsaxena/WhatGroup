@@ -40,8 +40,9 @@ local function popup(mock) return mock.frames["WhatGroupFrame"] end
 
 -- The popup's five value FontStrings, by name. buildFrame creates them on the
 -- `content` frame in a fixed label/value/label/value order (MakeLabel emits the
--- gold label then its value), followed by the standalone "Teleport:" label — so
--- content holds 11 FontStrings and the values sit at the even indices. Locating
+-- gold label then its value), followed by the standalone "Teleport:" label and
+-- the cooldown note that sits beside the button — so content holds 12
+-- FontStrings and the five row values sit at the even indices. Locating
 -- `content` as the frame carrying the most FontStrings keeps this independent of
 -- how many frames buildFrame creates around it.
 local function fields(mock)
@@ -57,7 +58,15 @@ local function fields(mock)
         type      = fs[6],
         leader    = fs[8],
         playstyle = fs[10],
+        note      = fs[12],
     }
+end
+
+-- The cooldown swipe is the only Cooldown-type frame.
+local function teleportCooldown(mock)
+    for _, f in ipairs(mock.frames) do
+        if f.__kind == "Cooldown" then return f end
+    end
 end
 
 -- The secure cast button is the only SecureActionButtonTemplate frame.
@@ -263,6 +272,197 @@ test("frame: an unlearned teleport shows desaturated at half alpha and casts not
     assertTrue(btn.__textures[1]:IsDesaturated())
     assertNil(btn:GetAttribute("type"), "no secure action is wired")
     assertNil(btn:GetAttribute("macrotext"))
+end)
+
+-- ---------------------------------------------------------------------------
+-- The cooldown state (WG-31)
+-- ---------------------------------------------------------------------------
+--
+-- A teleport the player HAS but cannot cast yet is a fourth state, distinct from "not learned":
+-- the spell is theirs, so hiding it or tagging it unlearned would both be lies. It renders like
+-- the unlearned state (desaturated, dimmed, no armed macro) but says why, and it recovers on its
+-- own the next time the popup opens.
+
+local function onCooldown(mock, spellID, remaining)
+    mock.spellCooldowns[spellID] =
+        { startTime = mock.now - 60, duration = 60 + remaining, isEnabled = true, modRate = 1 }
+end
+
+test("frame: a teleport on cooldown arms no macro, so the click casts nothing", function()
+    local NS, _, mock = T.bootAddon()
+    mock.spellNames[445269] = "Path of the Corrupted Foundry"
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    onCooldown(mock, 445269, 28692)
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    local btn = teleportBtn(mock)
+    assertTrue(btn:IsShown(), "the player owns the spell, so the icon stays visible")
+    assertNil(btn:GetAttribute("type"), "no secure action is armed while it is recharging")
+    assertNil(btn:GetAttribute("macrotext"))
+end)
+
+test("frame: a teleport on cooldown renders desaturated and dimmed", function()
+    local NS, _, mock = T.bootAddon()
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    onCooldown(mock, 445269, 28692)
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    local btn = teleportBtn(mock)
+    assertEqual(btn:GetAlpha(), 0.5)
+    assertTrue(btn.__textures[1]:IsDesaturated())
+end)
+
+test("frame: a teleport on cooldown says how long is left", function()
+    local NS, _, mock = T.bootAddon()
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    onCooldown(mock, 445269, 28692)
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    local note = fields(mock).note
+    assertTrue(note:GetText():find("7h 58m 12s", 1, true) ~= nil,
+        "the note must carry the formatted remaining time, got: " .. tostring(note:GetText()))
+    assertTrue(note:IsShown())
+end)
+
+-- The swipe is the only part of this that stays live: the widget animates engine-side, so the
+-- popup gets a moving readout without the addon owning an OnUpdate or a repeating timer — the
+-- condition LIBKA0S-15 rests on (docs/performance.md).
+test("frame: a teleport on cooldown arms the swipe with the real start and duration", function()
+    local NS, _, mock = T.bootAddon()
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    onCooldown(mock, 445269, 28692)
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    local cd = teleportCooldown(mock)
+    assertTrue(cd ~= nil, "the swipe frame must exist")
+    assertEqual(cd.__cooldown.start, mock.now - 60)
+    assertEqual(cd.__cooldown.duration, 60 + 28692)
+end)
+
+test("frame: a ready teleport clears the note and the swipe", function()
+    local NS, _, mock = T.bootAddon()
+    mock.spellNames[445269] = "Path of the Corrupted Foundry"
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    onCooldown(mock, 445269, 28692)
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    -- The cooldown finishes while the popup is closed; re-opening must rearm the cast.
+    mock.spellCooldowns[445269] = nil
+    NS.addon:ShowFrame()
+    local btn = teleportBtn(mock)
+    assertEqual(btn:GetAttribute("macrotext"), "/cast Path of the Corrupted Foundry")
+    assertEqual(btn:GetAlpha(), 1.0)
+    assertFalse(btn.__textures[1]:IsDesaturated())
+    assertFalse(fields(mock).note:IsShown(), "a stale countdown must not outlive the cooldown")
+    assertEqual(teleportCooldown(mock).__cooldown.duration, 0)
+end)
+
+-- The ticker (WG-31). A repeating timer is the thing this addon spent its whole life not having —
+-- it ends the performance-§12 exemption, which is ratified in ARCHITECTURE.md's register. What
+-- makes it defensible is that it cannot outlive the popup, so that is what these pin.
+
+test("frame: an open popup ticks the cooldown note down each second", function()
+    local NS, _, mock = T.bootAddon()
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    onCooldown(mock, 445269, 12)
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    assertTrue(fields(mock).note:GetText():find("12s", 1, true) ~= nil)
+
+    mock.now = mock.now + 1
+    assertEqual(mock.fireAceTimers(), 1, "exactly one repeating timer is armed")
+    assertTrue(fields(mock).note:GetText():find("11s", 1, true) ~= nil,
+        "got: " .. tostring(fields(mock).note:GetText()))
+end)
+
+test("frame: closing the popup cancels the ticker", function()
+    local NS, _, mock = T.bootAddon()
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    onCooldown(mock, 445269, 3600)
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    popup(mock):Hide()
+    assertEqual(mock.fireAceTimers(), 0,
+        "a ticker that survives the window it belongs to runs for the rest of the session")
+end)
+
+test("frame: re-opening the popup arms exactly one ticker, not a second", function()
+    local NS, _, mock = T.bootAddon()
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    onCooldown(mock, 445269, 3600)
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    NS.addon:ShowFrame()
+    NS.addon:ShowFrame()
+    assertEqual(mock.fireAceTimers(), 1, "each show must replace the ticker, never stack one")
+end)
+
+test("frame: a ready teleport arms no ticker at all", function()
+    local NS, _, mock = T.bootAddon()
+    mock.spellNames[445269] = "Path of the Corrupted Foundry"
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    assertEqual(mock.fireAceTimers(), 0, "nothing to count down")
+end)
+
+test("frame: the ticker rearms the cast the moment the cooldown expires", function()
+    local NS, _, mock = T.bootAddon()
+    mock.spellNames[445269] = "Path of the Corrupted Foundry"
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    onCooldown(mock, 445269, 2)
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    assertNil(teleportBtn(mock):GetAttribute("macrotext"))
+
+    mock.now = mock.now + 2
+    mock.spellCooldowns[445269] = nil
+    mock.fireAceTimers()
+
+    local btn = teleportBtn(mock)
+    assertEqual(btn:GetAttribute("macrotext"), "/cast Path of the Corrupted Foundry",
+        "the popup must become usable without being closed and re-opened")
+    assertEqual(btn:GetAlpha(), 1.0)
+    assertFalse(btn.__textures[1]:IsDesaturated())
+    assertFalse(fields(mock).note:IsShown())
+    assertEqual(mock.fireAceTimers(), 0, "and the ticker stops itself once there is nothing left")
+end)
+
+-- The note carries BOTH reasons a teleport is unusable, in the same place, so the popup never just
+-- greys out and says nothing.
+test("frame: an unlearned teleport says so beside the button", function()
+    local NS, _, mock = T.bootAddon()
+    NS.TeleportSpells[2652] = 445269   -- never marked known
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    local note = fields(mock).note
+    assertTrue(note:IsShown())
+    assertTrue(note:GetText():find("not learned", 1, true) ~= nil,
+        "got: " .. tostring(note:GetText()))
+end)
+
+-- "Not learned" outranks "on cooldown". A spell the player has never learned may still report a
+-- cooldown, and saying so answers a question nobody asked while burying the one that matters.
+test("frame: an unlearned teleport is never labelled as on cooldown", function()
+    local NS, _, mock = T.bootAddon()
+    NS.TeleportSpells[2652] = 445269   -- never marked known
+    onCooldown(mock, 445269, 28692)
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    local note = fields(mock).note
+    assertTrue(note:GetText():find("not learned", 1, true) ~= nil)
+    assertNil(note:GetText():find("7h 58m", 1, true))
+    assertEqual(mock.fireAceTimers(), 0, "and it arms no countdown for a spell they cannot cast")
 end)
 
 test("frame: a map with no teleport hides the button entirely", function()

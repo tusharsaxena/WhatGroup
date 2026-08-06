@@ -65,7 +65,7 @@ badge and any count quoted in the docs must agree with it.
 - libka0s: Core has no STRINGS and reads no descriptor L (tripwire)
 - libka0s: Options reads no descriptor L (tripwire)
 
-### test_util.lua (26)
+### test_util.lua (31)
 
 - util: SafeToString handles nil / booleans / strings / numbers
 - util: SafeToString yields <secret> for a value that raises in concat
@@ -93,14 +93,25 @@ badge and any count quoted in the docs must agree with it.
 - util: Restore is a no-op before the db is ready
 - util: Restore clears existing anchors before applying the saved one
 - util: a Save/Restore round trip survives through the real frame stub
+- util: FormatDuration renders hours, minutes and seconds
+- util: FormatDuration drops units above the largest non-zero one
+- util: FormatDuration keeps trailing zero units once a larger one is present
+- util: FormatDuration rounds fractional seconds up
+- util: FormatDuration renders a non-positive duration as 0s
 
-### test_compat.lua (17)
+### test_compat.lua (23)
 
 - compat: GetSpellName returns the C_Spell name
 - compat: GetSpellTexture is non-nil (caller supplies default)
 - compat: GetSpellLink returns a hyperlink for the spell
 - compat: IsSpellKnown true when learned
 - compat: IsSpellKnown false when not learned
+- compat: GetSpellCooldownRemaining is 0 for a spell that is ready
+- compat: GetSpellCooldownRemaining counts down from start + duration
+- compat: GetSpellCooldownRemaining is 0 once the cooldown has elapsed
+- compat: GetSpellCooldownRemaining ignores a global-cooldown-length window
+- compat: GetSpellCooldownRemaining reports 0 when the cooldown is disabled
+- compat: GetSpellCooldownRemaining returns 0 when the API is missing
 - compat: GetActivityInfoTable passes the table through
 - compat: GetSpellName falls back to the legacy GetSpellInfo global
 - compat: GetSpellName falls through when the modern API returns nil
@@ -285,7 +296,7 @@ badge and any count quoted in the docs must agree with it.
 - capture: an activity field holding false takes the default, not the false
 - capture: a stored zero survives the defaults, because 0 is truthy in Lua
 
-### test_notify.lua (44)
+### test_notify.lua (48)
 
 - notify: no pendingInfo schedules no timer
 - notify: out of a group schedules no timer even with pendingInfo
@@ -327,12 +338,16 @@ badge and any count quoted in the docs must agree with it.
 - notify: the Teleport row is skipped when the map has no teleport spell
 - notify: an unlearned teleport is tagged '(not learned)'
 - notify: a learned teleport carries no '(not learned)' tag
+- notify: a teleport on cooldown is tagged '(on cooldown)'
+- notify: the cooldown tag carries no countdown to go stale
+- notify: an unlearned teleport outranks a cooldown in chat too
+- notify: a ready teleport carries neither tag
 - notify: every summary line carries the shared [WG] prefix
 - notify: a secret-like title degrades in place instead of raising
 - notify: the Leader row still prints when leaderName is nil
 - notify: Playstyle and Teleport drop their rows while Leader keeps its own
 
-### test_frame.lua (32)
+### test_frame.lua (44)
 
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
@@ -353,6 +368,18 @@ badge and any count quoted in the docs must agree with it.
 - frame: a known teleport wires the secure /cast macro
 - frame: a known teleport renders at full alpha, undesaturated
 - frame: an unlearned teleport shows desaturated at half alpha and casts nothing
+- frame: a teleport on cooldown arms no macro, so the click casts nothing
+- frame: a teleport on cooldown renders desaturated and dimmed
+- frame: a teleport on cooldown says how long is left
+- frame: a teleport on cooldown arms the swipe with the real start and duration
+- frame: a ready teleport clears the note and the swipe
+- frame: an open popup ticks the cooldown note down each second
+- frame: closing the popup cancels the ticker
+- frame: re-opening the popup arms exactly one ticker, not a second
+- frame: a ready teleport arms no ticker at all
+- frame: the ticker rearms the cast the moment the cooldown expires
+- frame: an unlearned teleport says so beside the button
+- frame: an unlearned teleport is never labelled as on cooldown
 - frame: a map with no teleport hides the button entirely
 - frame: the button clears a stale macro when re-shown for a teleport-less map
 - frame: the teleport icon uses the spell's texture
@@ -492,17 +519,17 @@ badge and any count quoted in the docs must agree with it.
 |-------|------:|
 | test_harness.lua | 7 |
 | test_libka0s.lua | 46 |
-| test_util.lua | 26 |
-| test_compat.lua | 17 |
+| test_util.lua | 31 |
+| test_compat.lua | 23 |
 | test_database.lua | 9 |
 | test_settings.lua | 42 |
 | test_slash.lua | 43 |
 | test_labels.lua | 33 |
 | test_capture.lua | 29 |
-| test_notify.lua | 44 |
-| test_frame.lua | 32 |
+| test_notify.lua | 48 |
+| test_frame.lua | 44 |
 | test_panel.lua | 47 |
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **435** |
+| **Total** | **462** |

@@ -403,6 +403,67 @@ test("notify: a learned teleport carries no '(not learned)' tag", function()
     assertFalse(anyLine(lines, "(not learned)"))
 end)
 
+test("notify: a teleport on cooldown is tagged '(on cooldown)'", function()
+    local NS, _, mock = T.bootAddon()
+    NS.TeleportSpells[770003] = 424244
+    mock.knownSpells[424244] = true
+    mock.spellCooldowns[424244] =
+        { startTime = mock.now - 60, duration = 28800, isEnabled = true, modRate = 1 }
+    NS.addon.pendingInfo = pending({ mapID = 770003 })
+    local mark = #mock.prints
+    NS.addon:ShowNotification()
+    local lines = linesSince(mock, mark)
+    assertTrue(anyLine(lines, "(on cooldown)"))
+    assertFalse(anyLine(lines, "(not learned)"), "they own it — only the popup's note differs")
+end)
+
+-- The chat line is a one-shot snapshot with no way to refresh itself, so it deliberately carries
+-- NO time remaining: a figure printed once would be wrong within a second and stay wrong in the
+-- player's scrollback. The popup is where the countdown lives.
+test("notify: the cooldown tag carries no countdown to go stale", function()
+    local NS, _, mock = T.bootAddon()
+    NS.TeleportSpells[770004] = 424245
+    mock.knownSpells[424245] = true
+    mock.spellCooldowns[424245] =
+        { startTime = mock.now - 60, duration = 28800, isEnabled = true, modRate = 1 }
+    NS.addon.pendingInfo = pending({ mapID = 770004 })
+    local mark = #mock.prints
+    NS.addon:ShowNotification()
+    local teleportLine
+    for _, l in ipairs(linesSince(mock, mark)) do
+        if l:find("Teleport:", 1, true) then teleportLine = l end
+    end
+    assertTrue(teleportLine ~= nil, "the teleport row printed")
+    assertNil(teleportLine:match("%d+h %d+m"),
+        "no '7h 58m 12s' in a line that never updates: " .. teleportLine)
+end)
+
+test("notify: an unlearned teleport outranks a cooldown in chat too", function()
+    local NS, _, mock = T.bootAddon()
+    NS.TeleportSpells[770005] = 424246    -- never marked known
+    mock.spellCooldowns[424246] =
+        { startTime = mock.now - 60, duration = 28800, isEnabled = true, modRate = 1 }
+    NS.addon.pendingInfo = pending({ mapID = 770005 })
+    local mark = #mock.prints
+    NS.addon:ShowNotification()
+    local lines = linesSince(mock, mark)
+    assertTrue(anyLine(lines, "(not learned)"))
+    assertFalse(anyLine(lines, "(on cooldown)"))
+end)
+
+test("notify: a ready teleport carries neither tag", function()
+    local NS, _, mock = T.bootAddon()
+    NS.TeleportSpells[770006] = 424247
+    mock.knownSpells[424247] = true
+    NS.addon.pendingInfo = pending({ mapID = 770006 })
+    local mark = #mock.prints
+    NS.addon:ShowNotification()
+    local lines = linesSince(mock, mark)
+    assertTrue(anyLine(lines, "Teleport:"))
+    assertFalse(anyLine(lines, "(on cooldown)"))
+    assertFalse(anyLine(lines, "(not learned)"))
+end)
+
 test("notify: every summary line carries the shared [WG] prefix", function()
     local NS, _, mock = T.bootAddon()
     NS.addon.pendingInfo = pending()

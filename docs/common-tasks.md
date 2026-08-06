@@ -128,7 +128,7 @@ After adding the row:
 
 - The chat notification gains a Teleport line on next group-join (when `notify.showTeleport` is on).
 - The popup's Teleport button shows the spell icon, desaturated if `IsSpellKnown(spellID)` is false. The button is `SecureActionButtonTemplate` with `type="macro"` + `macrotext="/cast <SpellName>"` — clicking runs the cast through Blizzard's secure handler.
-- The cyan `[WG]` chat output says `(not learned)` next to the spell link when the player doesn't have the teleport.
+- The cyan `[WG]` chat output tags the spell link `(not learned)` when the player doesn't have the teleport, or `(on cooldown)` when they do but it is still recharging.
 
 No other code touches the table; the row is fire-and-forget.
 
@@ -240,7 +240,7 @@ If `C_LFGList.GetSearchResultInfo` or `C_LFGList.GetActivityInfoTable` exposes a
 /wg test
 ```
 
-Injects synthetic `pendingInfo` (a Mythic+ Stonevault group) and runs `ShowNotification` + `ShowFrame` directly. Bypasses `OnApplyToGroup`, the queue, the LFG event sequence, and the `wasInGroup` join gate.
+Injects synthetic `pendingInfo` (a Mythic+ Windrunner Spire group) and runs `ShowNotification` + `ShowFrame` directly. Bypasses `OnApplyToGroup`, the queue, the LFG event sequence, and the `wasInGroup` join gate.
 
 The Settings panel's Test button runs the same code path — both invoke `WhatGroup:RunTest()`. See [slash-dispatch.md](./slash-dispatch.md#why-runtest-is-split-between-wg-test-and-whatgroupruntest).
 

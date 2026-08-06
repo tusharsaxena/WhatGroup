@@ -30,6 +30,56 @@ test("compat: IsSpellKnown false when not learned", function()
     assertFalse(NS.Compat.IsSpellKnown(12345))
 end)
 
+test("compat: GetSpellCooldownRemaining is 0 for a spell that is ready", function()
+    local NS = T.newAddon()
+    assertEqual(NS.Compat.GetSpellCooldownRemaining(445269), 0)
+end)
+
+test("compat: GetSpellCooldownRemaining counts down from start + duration", function()
+    local NS, _, mock = T.newAddon()
+    mock.now = 10000
+    mock.spellCooldowns[445269] =
+        { startTime = 9000, duration = 28800, isEnabled = true, modRate = 1 }
+    assertEqual(NS.Compat.GetSpellCooldownRemaining(445269), 27800)
+end)
+
+test("compat: GetSpellCooldownRemaining is 0 once the cooldown has elapsed", function()
+    local NS, _, mock = T.newAddon()
+    mock.now = 40000
+    mock.spellCooldowns[445269] =
+        { startTime = 9000, duration = 28800, isEnabled = true, modRate = 1 }
+    assertEqual(NS.Compat.GetSpellCooldownRemaining(445269), 0,
+        "an expired cooldown must never report negative remaining")
+end)
+
+-- The GCD is a cooldown by the API's reckoning, so without this floor every teleport would read
+-- "on cooldown" for 1.5s after any unrelated cast — a flicker on a spell whose real cooldown is
+-- eight hours.
+test("compat: GetSpellCooldownRemaining ignores a global-cooldown-length window", function()
+    local NS, _, mock = T.newAddon()
+    mock.now = 10000
+    mock.spellCooldowns[445269] =
+        { startTime = 9999.5, duration = 1.5, isEnabled = true, modRate = 1 }
+    assertEqual(NS.Compat.GetSpellCooldownRemaining(445269), 0)
+end)
+
+-- isEnabled = false means "do not draw a cooldown" (the spell is mid-cast), not "unusable
+-- forever". Treating it as a cooldown would grey the button out during any cast.
+test("compat: GetSpellCooldownRemaining reports 0 when the cooldown is disabled", function()
+    local NS, _, mock = T.newAddon()
+    mock.now = 10000
+    mock.spellCooldowns[445269] =
+        { startTime = 9000, duration = 28800, isEnabled = false, modRate = 1 }
+    assertEqual(NS.Compat.GetSpellCooldownRemaining(445269), 0)
+end)
+
+test("compat: GetSpellCooldownRemaining returns 0 when the API is missing", function()
+    local NS, env = T.newAddon()
+    env.C_Spell.GetSpellCooldown = nil
+    env.GetSpellCooldown = nil
+    assertEqual(NS.Compat.GetSpellCooldownRemaining(445269), 0)
+end)
+
 test("compat: GetActivityInfoTable passes the table through", function()
     local NS, _, mock = T.newAddon()
     mock.activities[500] = { mapID = 2652, fullName = "The Stonevault" }

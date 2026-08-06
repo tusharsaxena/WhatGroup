@@ -58,6 +58,9 @@ L["Playstyle:"]               = "Playstyle:"
 L["Teleport:"]                = "Teleport:"
 L["[Click here to view details]"] = "[Click here to view details]"
 L["(not learned)"]            = "(not learned)"
+L["(on cooldown)"]            = "(on cooldown)"
+L["On cooldown"]              = "On cooldown"
+L["Teleport spell not learned"] = "Teleport spell not learned"
 L["Unknown"]                  = "Unknown"
 
 -- Popup dialog
