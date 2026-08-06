@@ -255,7 +255,7 @@ Helpers.RegisterOptionsPage("general", "General", buildGeneralPage)
 -- Called from `OnEnable` (PLAYER_LOGIN) so the panel is in the Settings → AddOns list at login, and
 -- again as an idempotent no-op from `runConfig`. Registering a canvas category at login is
 -- taint-safe — WhatGroup's real GameMenu-taint sources (the secure teleport button + the
--- UISpecialFrames insert) stay deferred in modules/Frame.lua. See docs/wow-quirks.md → "Lazy popup
+-- UISpecialFrames insert) stay deferred in modules/Frame.lua. See docs/midnight-quirks.md → "Lazy popup
 -- and secure button" for the taint reasoning, and anti-patterns #22 for why deferring the CATEGORY
 -- behind `/wg config` is the wrong fix.
 --

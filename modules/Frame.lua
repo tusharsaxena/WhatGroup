@@ -16,7 +16,7 @@
 -- Blizzard's secure-execute or UISpecialFrames lists during the boot
 -- sequence, so GameMenu's `InitButtons` runs in a clean context and
 -- the closures it builds for Logout / Settings / Macros are
--- taint-free. See [docs/wow-quirks.md] for the full taint analysis.
+-- taint-free. See [docs/midnight-quirks.md] for the full taint analysis.
 
 local addonName, NS = ...
 local WhatGroup = NS.addon

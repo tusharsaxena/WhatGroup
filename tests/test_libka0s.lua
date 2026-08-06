@@ -291,7 +291,7 @@ test("options: the panel body still builds on the NEXT frame, not inside OnShow"
     -- The one adapter this adoption needed. LibKa0s-Options-1.0's SetRenderer calls the renderer —
     -- and EnsureDefaultsButton — synchronously inside its own OnShow; this addon wraps both on the
     -- instance so neither creates an AceGUI frame inside a secure-execute chain, which is the fix
-    -- docs/wow-quirks.md records and the contract tests/test_panel.lua has pinned since.
+    -- docs/midnight-quirks.md records and the contract tests/test_panel.lua has pinned since.
     -- red under: drop the C_Timer.After wrappers in settings/OptionsSetup.lua.
     local _, _, mock = T.enableAddon()
     local panel = mock.frames["WhatGroupGeneralPanel"]

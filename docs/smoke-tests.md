@@ -48,7 +48,7 @@ Repeat after each of these to make sure no surface re-introduces the leak:
 - After clicking the teleport button on the popup
 - After applying to a real LFG group
 
-If **any** of these tests reproduces the taint error, the boot path has regressed — see [wow-quirks.md → Taint propagation in the boot window](./wow-quirks.md) and [common-tasks.md → Adding a Blizzard-protected surface touch](./common-tasks.md).
+If **any** of these tests reproduces the taint error, the boot path has regressed — see [midnight-quirks.md → Taint propagation in the boot window](./midnight-quirks.md) and [common-tasks.md → Adding a Blizzard-protected surface touch](./common-tasks.md).
 
 ---
 
@@ -327,7 +327,7 @@ Run after bumping the `## Interface:` line in `WhatGroup.toc` for a major patch.
 3. Run section 4 (Synthetic flow — `/wg test`).
 4. Run section 5.1 (Real LFG flow, single application).
 
-If any Blizzard API broke (e.g. fields renamed on `C_LFGList.GetActivityInfoTable`), the most likely failure point is `CaptureGroupInfo` returning incomplete data — see [capture-pipeline.md → Captured info](./capture-pipeline.md#captured-info) for the field list and remediation steps.
+If any Blizzard API broke (e.g. fields renamed on `C_LFGList.GetActivityInfoTable`), the most likely failure point is `CaptureGroupInfo` returning incomplete data — see [data-flow.md → Captured info](./data-flow.md#captured-info) for the field list and remediation steps.
 
 ---
 

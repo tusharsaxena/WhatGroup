@@ -96,5 +96,5 @@ window-geometry logging, version bump, git commit.
 - Extend `tests/test_debuglog.lua`: `[Set]` fires once at the seam; `RestoreDefaults`
   emits one `[Reset]` and zero `[Set]`; `LogState` emits `[Init]`; the merged
   `[Apply]` summary; all when debug on, nothing when off.
-- Sync `docs/debug-console.md`, `docs/common-tasks.md`, `docs/smoke-tests.md`.
+- Sync `docs/debug.md`, `docs/common-tasks.md`, `docs/smoke-tests.md`.
 - No auto-commit (repo hard rule) — working tree only.

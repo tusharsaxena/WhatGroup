@@ -659,7 +659,7 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
         local queued = pendingApplications[appID]
         -- Re-fetch through the application id, not by feeding appID to
         -- GetSearchResultInfo directly (F-004) — see
-        -- CaptureGroupInfoFromApplication and docs/capture-pipeline.md.
+        -- CaptureGroupInfoFromApplication and docs/data-flow.md.
         local fresh  = self:CaptureGroupInfoFromApplication(appID)
         local final, source
         if fresh and fresh.mapID then

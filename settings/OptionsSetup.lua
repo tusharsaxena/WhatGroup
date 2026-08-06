@@ -146,7 +146,7 @@ local O = lib:New({
 --
 -- The library's SetRenderer wires its own OnShow and calls the renderer — and EnsureDefaultsButton
 -- — SYNCHRONOUSLY inside it. This addon does not, and the reason is written down at length in
--- docs/wow-quirks.md: Blizzard's GameMenu / Logout flows can dispatch a settings canvas's OnShow
+-- docs/midnight-quirks.md: Blizzard's GameMenu / Logout flows can dispatch a settings canvas's OnShow
 -- inside a secure-execute chain, and creating AceGUI frames there was tripping
 -- ADDON_ACTION_FORBIDDEN on the Logout button. Keeping OnShow itself a no-op and building on the
 -- next frame moves the work out of the protected context entirely, and `tests/test_panel.lua` has

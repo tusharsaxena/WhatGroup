@@ -214,7 +214,7 @@ end)
 
 Without this forwarder, AceGUI containers parented to a Blizzard frame stay at width 0 even after Blizzard sets a width on the outer panel. The forwarder pushes Blizzard's `SetSize` events into AceGUI's layout pipeline.
 
-See [wow-quirks.md](./wow-quirks.md#lazy-acegui-panel-build) for the broader rule.
+See [midnight-quirks.md](./midnight-quirks.md#lazy-acegui-panel-build) for the broader rule.
 
 ## `Settings.Register()`
 
@@ -222,7 +222,7 @@ Idempotent (`WhatGroup._settingsRegistered` guard), and thin: it delegates to `H
 
 **Not combat-guarded** (`options-ui-§9`). Registering a canvas Settings category never taints, and eager registration at load is a MUST — so `Settings.Register()` runs whether or not the player is in combat. It carried an `InCombatLockdown()` early-return until 2026-08-05, and the cost was real: a `/reload` taken mid-pull left WhatGroup out of the Settings → AddOns list for the rest of that session, since `runConfig`'s fallback call only fires if the player thinks to run `/wg config`. Opening is a different question and is refused separately, inside `Helpers.OpenOptionsPanel` — the *open* path drives Blizzard's protected category switch; the registration path does not.
 
-**Called at login** — from `OnEnable` (PLAYER_LOGIN), so the panel is in the Settings → AddOns list from the moment the player logs in, and again as an idempotent no-op from `runConfig`. This matches every other Ka0s addon: registering a canvas Settings category at login is taint-safe. (An earlier revision deferred this to first `/wg config`, believing the registration tainted GameMenu — a misdiagnosis confounded with the since-removed AceHook closures; see [wow-quirks.md](./wow-quirks.md).) WhatGroup's genuine boot-taint sources — the secure teleport button and `UISpecialFrames` insert — stay deferred in `modules/Frame.lua`.
+**Called at login** — from `OnEnable` (PLAYER_LOGIN), so the panel is in the Settings → AddOns list from the moment the player logs in, and again as an idempotent no-op from `runConfig`. This matches every other Ka0s addon: registering a canvas Settings category at login is taint-safe. (An earlier revision deferred this to first `/wg config`, believing the registration tainted GameMenu — a misdiagnosis confounded with the since-removed AceHook closures; see [midnight-quirks.md](./midnight-quirks.md).) WhatGroup's genuine boot-taint sources — the secure teleport button and `UISpecialFrames` insert — stay deferred in `modules/Frame.lua`.
 
 
 
@@ -290,7 +290,7 @@ global = {
 }
 ```
 
-There is **no `debug` key** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). The General panel's "Debug console" checkbox toggles the console *window's* visibility only (see [Action buttons](#action-buttons-aftergroup)); it drives neither a profile key nor the debug logging flag. Capture / pending state (`captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [capture-pipeline.md](./capture-pipeline.md#state) for why.
+There is **no `debug` key** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). The General panel's "Debug console" checkbox toggles the console *window's* visibility only (see [Action buttons](#action-buttons-aftergroup)); it drives neither a profile key nor the debug logging flag. Capture / pending state (`captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [data-flow.md](./data-flow.md#state) for why.
 
 ## Current schema rows
 

@@ -176,7 +176,7 @@ The `pendingInfo == nil` guard sits ahead of `ShowFrame` because `pendingInfo` i
 
 An earlier version used `AceHook:RawHook("SetItemRef", "OnSetItemRef", true)` to short-circuit on our prefix. That works visually but replaces the global `SetItemRef` with a non-secure wrapper. The replacement leaves a taint trace that surfaces much later — when the player presses the GameMenu's **Logout** button, Blizzard's secure-execute chain (which calls `Logout()` from `Blizzard_GameMenu/Shared/GameMenuFrame.lua:69` inside a wrapper named `callback()`) detects the taint and fires `ADDON_ACTION_FORBIDDEN ... 'callback()'` attributed to WhatGroup. Switching to `hooksecurefunc` (which leaves the global function in place and just chains a callback after) eliminates the taint with no visible behavioral change.
 
-See [wow-quirks.md](./wow-quirks.md#hook-discipline) for the rules on when each hook type is appropriate.
+See [midnight-quirks.md](./midnight-quirks.md#hook-discipline) for the rules on when each hook type is appropriate.
 
 ## Captured info
 

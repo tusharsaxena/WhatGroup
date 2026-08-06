@@ -29,7 +29,7 @@ local sub = Settings.RegisterCanvasLayoutSubcategory(parent, generalPanel, "Gene
 
 Practical implication: don't put schema widgets on the parent panel. They won't render. Make the parent a thin landing page (just a title + a hint pointing at the subcategory) and put every actual setting on a subcategory.
 
-WhatGroup follows this — see [settings-system.md](./settings-system.md#settingsregister) for the parent / General split.
+WhatGroup follows this — see [settings-panel.md](./settings-panel.md#settingsregister) for the parent / General split.
 
 ## `Settings.OpenToCategory` requires the integer ID
 
@@ -62,7 +62,7 @@ end)
 
 Without this, widgets inside the AceGUI container stay at width 0 even after Blizzard sets a width on the outer panel.
 
-WhatGroup's General subcategory uses both — see [settings-system.md](./settings-system.md#lazy-panel-build) for the full snippet.
+WhatGroup's General subcategory uses both — see [settings-panel.md](./settings-panel.md#lazy-panel-build) for the full snippet.
 
 ## Lowercase only the slash command name
 

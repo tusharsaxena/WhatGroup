@@ -1,6 +1,6 @@
 # Common tasks
 
-Recipes for the routine modifications. For deeper context on any subsystem, see [settings-system.md](./settings-system.md), [slash-dispatch.md](./slash-dispatch.md), [capture-pipeline.md](./capture-pipeline.md), and [wow-quirks.md](./wow-quirks.md).
+Recipes for the routine modifications. For deeper context on any subsystem, see [settings-panel.md](./settings-panel.md), [slash-dispatch.md](./slash-dispatch.md), [data-flow.md](./data-flow.md), and [midnight-quirks.md](./midnight-quirks.md).
 
 ## Add a setting
 
@@ -193,7 +193,7 @@ When a major WoW patch ships, the `## Interface:` line in `WhatGroup.toc` moves 
 
 **Move the README `[wow]` badge in the same change** (documentation-§1 / toc-file-§3). The static `WoW-<Expansion>_<X.Y.Z>-purple` badge and `## Interface:` MUST show the same patch and travel together — it renders fixed text, so it goes stale silently if deferred to a follow-up.
 
-After bumping, run the [Patch-day smoke](./smoke-tests.md#7-patch-day-smoke--5-min) section. If a Blizzard API broke (e.g. `C_LFGList.GetActivityInfoTable` fields renamed), [capture-pipeline.md → Captured info](./capture-pipeline.md#captured-info) is the table that lists every field WhatGroup reads.
+After bumping, run the [Patch-day smoke](./smoke-tests.md#7-patch-day-smoke--5-min) section. If a Blizzard API broke (e.g. `C_LFGList.GetActivityInfoTable` fields renamed), [data-flow.md → Captured info](./data-flow.md#captured-info) is the table that lists every field WhatGroup reads.
 
 ## Bump the addon version
 
@@ -231,7 +231,7 @@ If `C_LFGList.GetSearchResultInfo` or `C_LFGList.GetActivityInfoTable` exposes a
    - Add a populator branch in `PopulateFields` reading `info.<field>`.
    - The `content` frame's size is fixed by its TOPLEFT + BOTTOMRIGHT anchors, so no SetHeight tweak is needed for layout. If the new row would push past `FRAME_HEIGHT - 38 - 44 ≈ 178 px`, bump `FRAME_HEIGHT` instead (step 5 below).
 3. If it's surfaced in chat, add an entry to the module-level `NOTIFY_ROWS` table above `ShowNotification` — `{ flag = "show<Name>", label = "<Name>:", value = function(self, info) ... end }` — placed at the position in the table where you want the row printed, since the table order *is* the chat order. `ShowNotification` itself no longer carries a branch per row; it loops the table and gates each entry on `n[row.flag]`. Add `omitWhenNil = true` only if the row should vanish entirely when there is nothing to show — the default is to print the row with the value degraded by the `NS.SafeToString` seam, which is what the Leader row relies on. Add the matching `notify.show<Name>` schema row.
-4. Update the captured-info table in [capture-pipeline.md](./capture-pipeline.md#captured-info).
+4. Update the captured-info table in [data-flow.md](./data-flow.md#captured-info).
 5. If the popup's height needs to grow to fit a new row, also bump `FRAME_HEIGHT` at the top of `modules/Frame.lua`.
 
 ## Test the full pipeline without joining a group
@@ -257,7 +257,7 @@ like the main popup, in a monospace font — **not** the chat frame. This is the
 standard's requirement for any addon that ships a main window (debug-logging-§7);
 the console is `LibKa0s-DebugLog-1.0`'s, wired in `core/DebugLogSetup.lua`. Each line is
 `HH:MM:SS | [Tag] message`. Full
-detail in [debug-console.md](./debug-console.md).
+detail in [debug.md](./debug.md).
 
 `NS.State.debug` is session-only (default off, never persisted, off again on the
 next login). Logging and the window are independent — capture runs even with the
