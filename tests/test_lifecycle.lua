@@ -294,7 +294,7 @@ test("lifecycle: /wg test injects a synthetic capture and runs the full flow", f
     local mark = #mock.prints
     runCmd(NS, "test")
     assertTrue(NS.addon.pendingInfo ~= nil)
-    assertEqual(NS.addon.pendingInfo.mapID, 2652)
+    assertEqual(NS.addon.pendingInfo.mapID, 2805, "RunTest's fixture: Windrunner Spire")
     assertTrue(#mock.prints > mark, "the chat summary printed")
     assertTrue(mock.frames["WhatGroupFrame"]:IsShown(), "and the popup opened")
 end)

@@ -404,16 +404,30 @@ local Labels = WhatGroup.Labels
 
 local GOLD = "FFD700"
 
--- The teleport row's value: the spell link, plus a gray "(not learned)" note when the player does
--- not have it. Returns nil when there is no teleport for this activity/map at all — the row is then
--- absent, not empty.
+-- The teleport row's value: the spell link, plus a gray note saying why it is unusable — either
+-- "(not learned)" or "(on cooldown)". Returns nil when there is no teleport for this activity/map
+-- at all — the row is then absent, not empty.
+--
+-- "Not learned" is checked first and wins: an unlearned spell can still report a cooldown, and
+-- naming the cooldown would bury the reason the player cannot use it.
+--
+-- The cooldown tag deliberately carries NO time remaining. This line is printed once into the
+-- player's scrollback with no way to refresh itself, so a figure here would be wrong a second
+-- later and stay wrong. The popup's countdown is the live one.
 local function teleportValue(self, info)
     local spellID, known = self:GetTeleportSpell(info.activityID, info.mapID)
     if not spellID then return nil end
     local spellLink = NS.Compat.GetSpellLink(spellID)
                       or ("|cff71d5ff[Spell " .. spellID .. "]|r")
-    local note = known and "" or (" |cff888888" .. NS.L["(not learned)"] .. "|r")
-    return spellLink .. note
+
+    local tag
+    if not known then
+        tag = NS.L["(not learned)"]
+    elseif NS.Compat.GetSpellCooldownRemaining(spellID) > 0 then
+        tag = NS.L["(on cooldown)"]
+    end
+
+    return spellLink .. (tag and (" |cff888888" .. tag .. "|r") or "")
 end
 
 -- The independently-toggled notification rows, IN THE ORDER they print. Built once at file load
@@ -696,27 +710,31 @@ end
 -- Public method so the Settings panel's Test button can invoke the
 -- same code path as /wg test without going through the slash dispatch.
 function WhatGroup:RunTest()
-    -- mapID 2652 is The Stonevault — exercises the mapID-keyed teleport
-    -- lookup (445269 in TeleportSpells). generalPlaystyle exercises the
-    -- enum-based label path; leave playstyleString empty so the lookup
+    -- mapID 2805 is Windrunner Spire — exercises the mapID-keyed teleport
+    -- lookup (1254400, Path of the Windrunners). generalPlaystyle exercises
+    -- the enum-based label path; leave playstyleString empty so the lookup
     -- falls through to WhatGroup.Labels.PLAYSTYLE instead of using the
     -- pre-rendered string.
+    --
+    -- activityID is synthetic and deliberately NOT a key in TeleportSpells:
+    -- the resolver checks mapID first, so a fixture whose activityID also
+    -- named a real row would still pass with the mapID path broken.
     self.pendingInfo = {
-        title             = "Test Group — Stonevault +12",
+        title             = "Test Group — Windrunner Spire +12",
         leaderName        = "Testadin-Silvermoon",
         numMembers        = 3,
         voiceChat         = "",
         age               = 127,
-        activityIDs       = {2516},
-        activityID        = 2516,
-        fullName          = "Dungeons > Mythic+ > The Stonevault",
-        activityName      = "The Stonevault",
+        activityIDs       = {990001},
+        activityID        = 990001,
+        fullName          = "Dungeons > Mythic+ > Windrunner Spire",
+        activityName      = "Windrunner Spire",
         maxNumPlayers     = 5,
         isMythicPlus      = true,
         isCurrentRaid     = false,
         isHeroicRaid      = false,
         categoryID        = 1,
-        mapID             = 2652,
+        mapID             = 2805,
         generalPlaystyle  = Enum.LFGEntryGeneralPlaystyle.FunSerious,
         playstyle         = Enum.LFGEntryGeneralPlaystyle.FunSerious,
         playstyleString   = "",

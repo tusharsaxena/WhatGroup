@@ -222,3 +222,32 @@ test("teleport: the shipped mapping table is keyed by numbers only", function()
     end
     assertTrue(n > 0, "the shipped table must not be empty")
 end)
+
+-- The Midnight rows are the ones a name-based lookup gets wrong: "Path of the Fractured Core"
+-- contains neither "Nexus-Point Xenas" nor anything else derivable from the dungeon, so the wiki
+-- and Wowhead have both handed back a near-miss ID here (1254553, one digit off, is a different
+-- spell named "Hero's Path"). These four are pinned against a spellbook dump — every learned
+-- "Path of ..." with its spellID, read off a character that owns them.
+test("teleport: the Midnight Keystone Hero rows match the spellbook-verified IDs", function()
+    local NS = T.newAddon()
+    for mapID, spellID in pairs({
+        [2805] = 1254400,   -- Windrunner Spire    — Path of the Windrunners
+        [2811] = 1254572,   -- Magisters' Terrace  — Path of Devoted Magistry
+        [2874] = 1254559,   -- Maisara Caverns     — Path of Cavernous Depths
+        [2915] = 1254563,   -- Nexus-Point Xenas   — Path of the Fractured Core
+    }) do
+        assertEqual(NS.TeleportSpells[mapID], spellID,
+            "mapID " .. mapID .. " must map to its verified Keystone Hero spell")
+    end
+end)
+
+-- Siege of Boralus shipped with an unconfirmed wiki ID as its only value, so a player holding the
+-- real spell saw the same greyed-out row. The verified spell must stay FIRST: that is the entry
+-- pickKnownSpell falls back to when the player knows neither candidate.
+test("teleport: Siege of Boralus offers the spellbook-verified spell first", function()
+    local NS = T.newAddon()
+    assertEqual(NS.TeleportSpells[1822][1], 445418)
+    local sid, known = NS.addon:GetTeleportSpell(nil, 1822)
+    assertEqual(sid, 445418, "an unknown-to-this-player row falls back to the verified candidate")
+    assertFalse(known)
+end)

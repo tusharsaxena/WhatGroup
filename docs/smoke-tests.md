@@ -162,16 +162,16 @@ Exercises the notify + popup pipeline end-to-end without needing a real LFG appl
 
 ```
 [WG] You have joined a group!
-[WG]   - Group: Test Group — Stonevault +12
-[WG]   - Instance: Dungeons > Mythic+ > The Stonevault
+[WG]   - Group: Test Group — Windrunner Spire +12
+[WG]   - Instance: Dungeons > Mythic+ > Windrunner Spire
 [WG]   - Type: Mythic+
 [WG]   - Leader: Testadin-Silvermoon
 [WG]   - Playstyle: Fun (Serious)
-[WG]   - Teleport: [Path of the Corrupted Foundry]   (or "(not learned)" if you don't have the spell)
+[WG]   - Teleport: [Path of the Windrunners]   (plus "(not learned)" or "(on cooldown)" if either applies)
 [WG]   - [Click here to view details]
 ```
 
-**Expected popup:** All six rows populated (Group / Instance / Type / Leader / Playstyle / Teleport). Teleport icon is full-alpha if you know `Path of the Corrupted Foundry`, desaturated 50%-alpha otherwise.
+**Expected popup:** All six rows populated (Group / Instance / Type / Leader / Playstyle / Teleport). Teleport icon is full-alpha if you know `Path of the Windrunners` and it is off cooldown, desaturated 50%-alpha otherwise.
 
 ### 4.1 Teleport button click
 
@@ -184,6 +184,36 @@ Exercises the notify + popup pipeline end-to-end without needing a real LFG appl
 - If not learned: nothing happens (button is `EnableMouse(false)`).
 - **No `ADDON_ACTION_FORBIDDEN` line in chat.** This is the secure-button regression test.
 - With `/wg debug on` first: the console shows **one** `[Frame] teleport button pressed → /cast <Spell> (spellID=<N>, button=<btn>)` line per press (gated to the down edge, so exactly one line even though the button registers both click edges).
+
+### 4.1a Teleport on cooldown
+
+Needs a teleport you have learned **and recently used** — the eight-hour Keystone Hero cooldown makes this easy to arrange and slow to undo, so do it on a dungeon you were going to port to anyway. `/wg test` uses Windrunner Spire (`Path of the Windrunners`).
+
+1. Cast the teleport.
+2. Run `/wg test` and look at the Teleport row.
+
+**Expected:**
+- Icon desaturated at 50% alpha, with a **cooldown swipe** over it that visibly sweeps.
+- Beside the button: a dim `On cooldown — 7h 58m 12s`, matching the spell tooltip's own "Cooldown remaining".
+- Hovering still shows the tooltip — the cooldown state keeps it, unlike the not-learned state.
+- **Clicking does nothing.** No cast, no error, no `ADDON_ACTION_FORBIDDEN`.
+- The text **counts down once a second** while the popup is open. Watch it for ~5 seconds and confirm it decrements smoothly and does not jump or stall.
+- Close the popup, wait ~10 seconds, re-open: the time shown must have dropped by roughly that much — i.e. the ticker stopped when the window closed and did not keep a stale value alive.
+- Open and close the popup five times in a row, then leave it open: the countdown decrements by **one** second per second, not five. (A stacked ticker is the failure this catches, and it is invisible any other way.)
+- With `/wg debug on`: one `[Frame] teleport on cooldown, <time> remaining (spellID=<N>)` line.
+- The chat summary's Teleport row is tagged `(on cooldown)` — a bare tag with no figure, since that line cannot refresh itself.
+
+Then, once the cooldown has expired, `/wg test` again: full alpha, no swipe, no note, and the click casts. Better still, catch it live — leave the popup open across the expiry and the button must rearm itself: swipe gone, note gone, full alpha, and a click that casts, with no close-and-reopen.
+
+### 4.1b Teleport not learned
+
+1. Join or `/wg test` for a dungeon whose teleport you have **not** learned.
+
+**Expected:**
+- Icon desaturated at 50% alpha, no cooldown swipe.
+- Beside the button: `Teleport spell not learned` — never the cooldown wording, even if the spell reports a cooldown.
+- Hovering shows **no** tooltip (the not-learned state drops the mouse, unlike the cooldown state).
+- Clicking does nothing, with no error.
 
 ### 4.2 Chat link round-trip
 
@@ -388,6 +418,8 @@ For a fast pre-release pass, run at minimum:
 - [ ] sections 2.1, 2.10, 2.12, 2.13 — `/wg help`, `/wg test`, `/wg config`, `/wg reset`
 - [ ] section 3.4 — Defaults button confirm flow
 - [ ] section 4.1 — Click teleport button (no taint)
+- [ ] section 4.1a — Teleport on cooldown: swipe, ticking note, and a click that casts nothing
+- [ ] section 4.1b — Teleport not learned: the note says so, and never says cooldown
 - [ ] section 5.1 — One real LFG apply → join
 - [ ] section 10 — no `SCREAMING_SNAKE` string on any page, in the console, or in chat
 - [ ] sections 11.5 / 11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset

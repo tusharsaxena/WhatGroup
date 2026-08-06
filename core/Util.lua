@@ -24,6 +24,32 @@ local addonName, NS = ...
 -- harmless no-op rather than a nil index. Frame wiring: capture on OnDragStop, restore on the show
 -- path.
 
+-- ---------------------------------------------------------------------------
+-- Duration rendering
+-- ---------------------------------------------------------------------------
+
+--- Seconds → "7h 58m 12s". Units above the largest non-zero one are dropped
+--- (a 90-second wait reads "1m 30s", not "0h 1m 30s"); units below it are kept,
+--- so the string holds a stable shape while it is on screen.
+---
+--- Rounds UP, because the caller is telling a player how long they must wait:
+--- rounding down would let a spell that still refuses to cast read "0s".
+--- Deliberately NOT localized — h/m/s are the units Blizzard's own cooldown
+--- text uses in every locale this addon ships (localization-§1 covers prose,
+--- and these are symbols).
+function NS.FormatDuration(seconds)
+    seconds = math.ceil(tonumber(seconds) or 0)
+    if seconds <= 0 then return "0s" end
+
+    local h = math.floor(seconds / 3600)
+    local m = math.floor((seconds % 3600) / 60)
+    local s = seconds % 60
+
+    if h > 0 then return string.format("%dh %dm %ds", h, m, s) end
+    if m > 0 then return string.format("%dm %ds", m, s) end
+    return string.format("%ds", s)
+end
+
 NS.Windows = NS.Windows or {}
 
 -- Read a frame's primary anchor into a plain, persistable table, or nil if the frame has no point

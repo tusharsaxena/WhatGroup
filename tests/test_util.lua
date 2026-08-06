@@ -224,3 +224,42 @@ test("util: a Save/Restore round trip survives through the real frame stub", fun
     assertEqual(x, 33)
     assertEqual(y, 44)
 end)
+
+-- ---------------------------------------------------------------------------
+-- NS.FormatDuration — the cooldown readout's h/m/s renderer
+-- ---------------------------------------------------------------------------
+
+test("util: FormatDuration renders hours, minutes and seconds", function()
+    local NS = T.newAddon()
+    assertEqual(NS.FormatDuration(28692), "7h 58m 12s")
+end)
+
+-- Leading zero units are dropped rather than rendered as "0h": a 90-second cooldown reading
+-- "0h 1m 30s" is noise, and the unit that matters is always the largest non-zero one.
+test("util: FormatDuration drops units above the largest non-zero one", function()
+    local NS = T.newAddon()
+    assertEqual(NS.FormatDuration(3492), "58m 12s")
+    assertEqual(NS.FormatDuration(12), "12s")
+end)
+
+-- Trailing zero units stay, so the string keeps a stable shape while it is on screen: an
+-- exactly-two-hour cooldown reads "2h 0m 0s", not "2h".
+test("util: FormatDuration keeps trailing zero units once a larger one is present", function()
+    local NS = T.newAddon()
+    assertEqual(NS.FormatDuration(7200), "2h 0m 0s")
+    assertEqual(NS.FormatDuration(60), "1m 0s")
+end)
+
+-- The client hands back fractional seconds. Rounding UP means the readout never claims less time
+-- than is left, so it never reads "0s" on a spell that is still refusing to cast.
+test("util: FormatDuration rounds fractional seconds up", function()
+    local NS = T.newAddon()
+    assertEqual(NS.FormatDuration(11.2), "12s")
+    assertEqual(NS.FormatDuration(0.1), "1s")
+end)
+
+test("util: FormatDuration renders a non-positive duration as 0s", function()
+    local NS = T.newAddon()
+    assertEqual(NS.FormatDuration(0), "0s")
+    assertEqual(NS.FormatDuration(-5), "0s")
+end)

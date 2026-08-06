@@ -250,7 +250,7 @@ test("panel: the Test button runs the same path as /wg test", function()
     local NS, _, mock = openGeneral()
     widget(mock, "Button", "Test"):Fire("OnClick")
     assertTrue(NS.addon.pendingInfo ~= nil, "a synthetic capture was injected")
-    assertEqual(NS.addon.pendingInfo.mapID, 2652)
+    assertEqual(NS.addon.pendingInfo.mapID, 2805, "RunTest's fixture: Windrunner Spire")
 end)
 
 test("panel: a throwing button onClick is caught, not propagated", function()

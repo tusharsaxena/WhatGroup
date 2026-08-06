@@ -60,6 +60,8 @@ local function build()
     mock.activities    = {}   -- [id] -> C_LFGList.GetActivityInfoTable table
     mock.knownSpells   = {}   -- [spellID] -> true when learned
     mock.spellNames    = {}   -- [spellID] -> localized name (optional override)
+    mock.spellCooldowns = {}  -- [spellID] -> C_Spell.GetSpellCooldown table; absent = ready
+    mock.now           = 10000 -- GetTime()'s answer; seed cooldown starts relative to this
     mock.inGroup       = false
     mock.combat        = false
     mock.timers        = {}   -- queued C_Timer.After callbacks (fn list)
@@ -235,6 +237,15 @@ local function build()
             return f
         end
 
+        -- Cooldown swipe, recorded rather than caught by the PascalCase catch-all: whether the
+        -- swipe was armed with the spell's real start/duration — or cleared to (0, 0) when the
+        -- teleport comes off cooldown — is behavior the popup is responsible for, and a
+        -- self-returning no-op would make "armed correctly" and "never called" identical.
+        api.SetCooldown = function(_, start, duration)
+            f.__cooldown = { start = start, duration = duration }
+            return f
+        end
+
         api.SetFont = function(_, path, size, flags)
             if mock.fontFetchFails[path] then return false end
             f.__font = { path, size, flags }
@@ -336,6 +347,16 @@ local function build()
                 mock.aceTimers[#mock.aceTimers + 1] = handle
                 return handle
             end
+            -- A repeating timer is a DIFFERENT object from a one-shot, and the difference is the
+            -- whole risk: a repeating handle that is never canceled outlives the window that armed
+            -- it and keeps firing for the rest of the session. Modelled so `fireAceTimers` can be
+            -- called twice and a test can prove the second call does — or does not — fire it.
+            obj.ScheduleRepeatingTimer = function(_, callback, delay)
+                local handle = { callback = callback, delay = delay,
+                                 canceled = false, repeating = true }
+                mock.aceTimers[#mock.aceTimers + 1] = handle
+                return handle
+            end
             obj.CancelTimer = function(_, handle)
                 if type(handle) == "table" then handle.canceled = true end
             end
@@ -355,6 +376,12 @@ local function build()
         for _, handle in ipairs(due) do
             if not handle.canceled then
                 fired = fired + 1
+                -- Re-queued BEFORE the callback runs, so a callback that cancels its own handle
+                -- (the cooldown ticker's exit path) still takes effect: the cancel lands on the
+                -- handle already back in the queue, and the next fire skips it.
+                if handle.repeating then
+                    mock.aceTimers[#mock.aceTimers + 1] = handle
+                end
                 handle.callback()
             end
         end
@@ -484,8 +511,16 @@ local function build()
 
     mock.IsSpellKnown = function(id) return mock.knownSpells[id] and true or false end
 
+    mock.GetTime = function() return mock.now end
+
     mock.C_Spell = {
         GetSpellName    = function(id) return mock.spellNames[id] or ("Spell " .. tostring(id)) end,
+        -- Retail's table form. A spell with no entry returns the ready shape the client returns
+        -- (startTime 0), not nil — nil is the API-missing case, which Compat handles separately.
+        GetSpellCooldown = function(id)
+            return mock.spellCooldowns[id]
+                or { startTime = 0, duration = 0, isEnabled = true, modRate = 1 }
+        end,
         GetSpellTexture = function(id) return 100000 + (tonumber(id) or 0) end,
         GetSpellLink    = function(id) return "|Hspell:" .. tostring(id) .. "|h[Spell " .. tostring(id) .. "]|h" end,
         GetSpellInfo    = function(id) return { name = "Spell " .. tostring(id), iconID = 100000 + (tonumber(id) or 0) } end,

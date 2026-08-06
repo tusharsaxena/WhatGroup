@@ -33,6 +33,25 @@ local yGap         = -18
 -- by the time those functions execute.
 local f, fields, ConfigureTeleportButton
 
+-- The cooldown countdown's repeating timer, and the ONLY repeating anything in this addon. It is a
+-- ratified deviation, not an oversight: it ends `performance-§12`'s no-combat-path exemption, and
+-- the row that records that — with the reasoning and the re-check trigger — is in
+-- `docs/ARCHITECTURE.md`'s `## Documented deviations`.
+--
+-- What makes it defensible is that it cannot outlive the window that armed it. It exists only
+-- while the popup is BOTH open and showing a live cooldown; `stopCooldownTicker` is called from
+-- the popup's OnHide, from the top of every ConfigureTeleportButton run, and from the tick that
+-- sees the cooldown reach zero. A single handle, replaced rather than stacked, so re-opening the
+-- popup ten times leaves one timer and closing it leaves none.
+local cooldownTimer
+
+local function stopCooldownTicker()
+    if cooldownTimer then
+        WhatGroup:CancelTimer(cooldownTimer)
+        cooldownTimer = nil
+    end
+end
+
 local function buildFrame()
     if f then return end   -- one-shot
 
@@ -49,6 +68,10 @@ local function buildFrame()
     -- aligned wherever f ends up.
     NS.Windows.Restore("popup", f)
     f:Hide()
+
+    -- The ticker's hard stop. OnHide covers every way the popup can close — the Close button, ESC
+    -- through UISpecialFrames, a `f:Hide()` from anywhere — so no exit path has to remember.
+    f:SetScript("OnHide", stopCooldownTicker)
 
     -- The whole look — backdrop AND colors — now comes from LibKa0s-Core-1.0's shared SKIN
     -- through NS.ApplySkin (standalone-windows: the Ka0s window edge is normative, and a window
@@ -162,6 +185,23 @@ local function buildFrame()
     local teleportIcon = teleportBtn:CreateTexture(nil, "ARTWORK")
     teleportIcon:SetAllPoints()
 
+    -- The swipe is the ONLY live element in this popup, and it is live without costing the addon
+    -- an OnUpdate or a repeating timer: the Cooldown widget animates engine-side once armed. That
+    -- distinction is load-bearing — zero Lua-side repeat is the condition LIBKA0S-15 rests on for
+    -- declining LibKa0s-Perf (docs/performance.md). The numbers are hidden because at 24px they
+    -- are unreadable, and the note beside the button carries the figure instead.
+    local teleportSwipe = CreateFrame("Cooldown", nil, teleportBtn, "CooldownFrameTemplate")
+    teleportSwipe:SetAllPoints()
+    teleportSwipe:SetHideCountdownNumbers(true)
+
+    -- Sits beside the button rather than on it, for the same reason: a readable sentence at the
+    -- popup's own font size, where a 24px overlay would be a smear. Anchored to the Teleport label
+    -- (a plain frame region) rather than to the secure button, whose anchoring is restricted.
+    local teleportNote = content:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    teleportNote:SetPoint("TOPLEFT", lblPort, "TOPLEFT", LABEL_WIDTH + 6 + 24 + 8, -6)
+    teleportNote:SetJustifyH("LEFT")
+    teleportNote:Hide()
+
     -- (No content:SetHeight here — content's TOPLEFT and BOTTOMRIGHT
     -- anchors fully determine its size, so a SetHeight call would be a
     -- no-op overridden by the anchors.)
@@ -187,8 +227,10 @@ local function buildFrame()
         type         = valType,
         leader       = valLead,
         playstyle    = valStyle,
-        teleportBtn  = teleportBtn,
-        teleportIcon = teleportIcon,
+        teleportBtn   = teleportBtn,
+        teleportIcon  = teleportIcon,
+        teleportSwipe = teleportSwipe,
+        teleportNote  = teleportNote,
     }
 
     -- ConfigureTeleportButton is closed over `teleportBtn` /
@@ -196,6 +238,10 @@ local function buildFrame()
     -- here (inside buildFrame) means it doesn't exist until the popup
     -- exists, which keeps it out of any addon-load-time iteration.
     ConfigureTeleportButton = function(btn, icon, info)
+        -- Unconditionally first: every path out of this function either arms a fresh ticker or
+        -- wants none, and dropping the old handle here is what keeps repeated shows from stacking.
+        stopCooldownTicker()
+
         -- Secure-button attribute writes (`type`, `macrotext`) and
         -- Show/Hide are protected while in combat — silently dropped,
         -- not erroring. Stash the info, queue a re-run on combat-end,
@@ -227,17 +273,73 @@ local function buildFrame()
             btn:SetAttribute("type", nil)
             btn:SetAttribute("macrotext", nil)
             btn:Hide()
+            fields.teleportNote:Hide()
             return
         end
 
         local spellName = NS.Compat.GetSpellName(spellID)
         local texID     = NS.Compat.GetSpellTexture(spellID) or 134400
 
-        icon:SetTexture(texID)
-        icon:SetDesaturated(not known)
-        btn:SetAlpha(known and 1.0 or 0.5)
+        -- A learned teleport that is still recharging is its own state (WG-31). The player owns
+        -- the spell, so "not learned" would be a lie and hiding the icon would be worse; it
+        -- renders like the unlearned state but says why, and the swipe below shows the wait
+        -- draining. Only asked of a spell the player actually has: an unlearned one has no
+        -- meaningful cooldown, and answering with one answers a question nobody asked.
+        local remaining = known and NS.Compat.GetSpellCooldownRemaining(spellID) or 0
+        local ready     = known and remaining <= 0
 
-        if known and spellName then
+        if remaining > 0 then
+            NS.Debug("Frame", "teleport on cooldown, %s remaining (spellID=%s)",
+                NS.FormatDuration(remaining), NS.SafeToString(spellID))
+        end
+
+        icon:SetTexture(texID)
+        icon:SetDesaturated(not ready)
+        btn:SetAlpha(ready and 1.0 or 0.5)
+
+        -- Armed with the RAW pair, not the GCD-floored one: the widget draws what it is handed,
+        -- and (0, 0) is how a Cooldown frame is cleared. Both branches call it, so a swipe never
+        -- outlives the cooldown that armed it.
+        local swipe = fields.teleportSwipe
+        if remaining > 0 then
+            swipe:SetCooldown(NS.Compat.GetSpellCooldownTimes(spellID))
+        else
+            swipe:SetCooldown(0, 0)
+        end
+
+        local note = fields.teleportNote
+        local function renderNote(secondsLeft)
+            note:SetText("|cff888888" .. L["On cooldown"] .. " — "
+                .. NS.FormatDuration(secondsLeft) .. "|r")
+            note:Show()
+        end
+
+        -- Three states, one note. Order matters: an unlearned spell can still report a cooldown,
+        -- and "on cooldown" would answer a question nobody asked while burying the one that
+        -- explains the grey icon. A ready teleport needs no explanation, so the note goes.
+        if not known then
+            note:SetText("|cff888888" .. L["Teleport spell not learned"] .. "|r")
+            note:Show()
+        elseif remaining > 0 then
+            renderNote(remaining)
+            -- One second: the smallest unit the note renders, so a faster tick would repaint an
+            -- identical string and a slower one would visibly skip.
+            cooldownTimer = WhatGroup:ScheduleRepeatingTimer(function()
+                local left = NS.Compat.GetSpellCooldownRemaining(spellID)
+                if left > 0 then return renderNote(left) end
+                -- Reaching zero is the interesting tick: stop first so the reconfigure below sees
+                -- no live handle, then re-run the whole state machine rather than hand-reversing
+                -- the four things the cooldown branch changed. The player gets a usable button
+                -- without closing the popup, which is the entire point of ticking.
+                stopCooldownTicker()
+                ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, info)
+            end, 1)
+        else
+            note:SetText("")
+            note:Hide()
+        end
+
+        if ready and spellName then
             -- Secure-handler macro path: clicking runs `/cast <SpellName>`
             -- through Blizzard's secure action system, side-stepping the
             -- ADDON_ACTION_FORBIDDEN that a non-secure CastSpellByID hits.
@@ -264,12 +366,30 @@ local function buildFrame()
                 end
             end)
         else
+            -- Clearing the attributes IS the disable: the button still takes the click, the
+            -- secure handler finds no action to run, and nothing is cast. Calling :Disable() would
+            -- be the obvious alternative and is the wrong tool — this is a protected frame, and
+            -- the state has to be reachable from the same code path that runs in combat.
             btn:SetAttribute("type", nil)
             btn:SetAttribute("macrotext", nil)
-            btn:EnableMouse(false)
-            btn:SetScript("OnEnter", nil)
-            btn:SetScript("OnLeave", nil)
             btn:SetScript("PreClick", nil)
+            -- The tooltip survives a cooldown but not an unlearned spell. On cooldown it is the
+            -- one place the exact time-remaining and the spell's own text live, and a player who
+            -- owns the teleport is entitled to it; unlearned, there is nothing to hover for and
+            -- the note beside the button already says so.
+            if known then
+                btn:EnableMouse(true)
+                btn:SetScript("OnEnter", function(self)
+                    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                    GameTooltip:SetSpellByID(spellID)
+                    GameTooltip:Show()
+                end)
+                btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+            else
+                btn:EnableMouse(false)
+                btn:SetScript("OnEnter", nil)
+                btn:SetScript("OnLeave", nil)
+            end
         end
 
         btn:Show()
@@ -286,6 +406,7 @@ local function PopulateFields()
         fields.leader:SetText(noData)
         fields.playstyle:SetText("|cff888888—|r")
         fields.teleportBtn:Hide()
+        fields.teleportNote:Hide()
         return
     end
 

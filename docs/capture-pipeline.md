@@ -220,11 +220,11 @@ For the recipe to add a row (or sweep the table for a new season), see [common-t
 
 The lookup is consumed by:
 
-- `ShowNotification` — only emits the Teleport line if `spellID` is non-nil and `notify.showTeleport` is on; the line includes `IsSpellKnown(spellID)` as a `(not learned)` tag when false.
+- `ShowNotification` — only emits the Teleport line if `spellID` is non-nil and `notify.showTeleport` is on. The line carries a dim tag saying why the teleport is unusable: `(not learned)` when `IsSpellKnown(spellID)` is false, else `(on cooldown)` when `NS.Compat.GetSpellCooldownRemaining(spellID) > 0`, else nothing. Not-learned wins, because an unlearned spell can still report a cooldown. The cooldown tag carries **no** time remaining — chat is a one-shot snapshot with no way to refresh itself, so a figure printed here would be wrong a second later and stay wrong in the scrollback; the popup owns the live countdown.
 - `ConfigureTeleportButton` (popup) — desaturates the icon and sets `EnableMouse(false)` when `IsSpellKnown` is false; the button is hidden entirely when `spellID` is nil. The button is a `SecureActionButtonTemplate` parented directly to the popup frame `f` with `type="macro"` + `macrotext="/cast <SpellName>"` — `CastSpellByID` from a non-secure click hits `ADDON_ACTION_FORBIDDEN` in retail. See [frame.md → Teleport button](./frame.md#teleport-button).
 
 ## Test path
 
-`WhatGroup:RunTest()` injects synthetic `pendingInfo` (a Mythic+ Stonevault group) and runs `ShowNotification()` + `ShowFrame()` directly — bypassing `OnApplyToGroup`, the queue, the LFG event sequence, and the `_TryFireJoinNotify` join gate. Both `/wg test` and the panel's Test button route through this method, so the two affordances stay in lockstep.
+`WhatGroup:RunTest()` injects synthetic `pendingInfo` (a Mythic+ Windrunner Spire group) and runs `ShowNotification()` + `ShowFrame()` directly — bypassing `OnApplyToGroup`, the queue, the LFG event sequence, and the `_TryFireJoinNotify` join gate. Both `/wg test` and the panel's Test button route through this method, so the two affordances stay in lockstep.
 
 `/wg show` is the read-only equivalent: it opens the popup with whatever `pendingInfo` happens to be set (the most recent real capture), or prints a hint if `pendingInfo` is nil.
