@@ -111,7 +111,7 @@ NS.SafeToString = lib.SafeToString
 -- `ApplySkin` takes an OPTIONAL override rather than the caller's own backdrop — the old
 -- two-argument form let each window carry its own border geometry, which is precisely how the
 -- collection's five windows stopped reading as one suite of addons. Supersedes the WG-28 accepted
--- deviation recorded in docs/pending/LEDGER.md (PLAN-02): the shared table now carries the backdrop
+-- deviation recorded in closed issue #6 (PLAN-02): the shared table now carries the backdrop
 -- fields as well as the colors, so there is nothing left to justify keeping apart.
 NS.SKIN            = lib.SKIN
 NS.ApplySkin       = lib.ApplySkin

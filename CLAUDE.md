@@ -37,7 +37,7 @@ the addon on the day it was born, forever, and because it loads as *working cont
 does not go quiet, it gets **followed** (documentation-§3). This root `CLAUDE.md` is the repo's
 only agent brief.
 
-Older audit bundles, review bundles, ledgers and plans under `docs/` predate v2.17.0 and still
+Older audit bundles, review bundles and plans under `docs/` predate v2.17.0 and still
 name the file, and some describe a four-file or a pre-v2.3.0 `agent-context.md`-based set. Those
 are **frozen history** — never treat them as a live requirement, and never "restore" the file.
 
@@ -58,7 +58,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
   reverts it. The addon takes four of LibKa0s's five majors (Core, DebugLog, Options,
   Slash) through the four seam files `core/CoreSetup.lua`, `core/DebugLogSetup.lua`,
   `settings/OptionsSetup.lua` and `settings/Slash.lua`; **Perf is declined** on structural
-  grounds (`docs/pending/LEDGER.md`, `LIBKA0S-15`).
+  grounds ([`LIBKA0S-15`](https://github.com/tusharsaxena/WhatGroup/issues/7)).
 
 ## Bundled LibKa0s
 
@@ -81,7 +81,7 @@ This root file is a **stub** (documentation-§2). The real detail lives in `docs
   overview, subsystem map, invariants, working environment, load order. **Read first.**
 - **[docs/testing.md](docs/testing.md)** — how to verify: the green gate, mock fidelity,
   the generated `docs/test-cases.md` inventory and the README `tests` badge.
-- Topic detail (file index, scope, capture pipeline, settings system, slash dispatch,
+- Topic detail (module map, scope, schema, capture pipeline, settings system, slash dispatch,
   debug console, frame, WoW quirks, common tasks, smoke tests) sits alongside them —
   including the generated **[docs/automated-tests/RESULTS.md](docs/automated-tests/RESULTS.md)**, refreshed at
   every release and never hand-edited (performance-§10).

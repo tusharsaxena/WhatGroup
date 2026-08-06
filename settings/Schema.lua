@@ -366,7 +366,7 @@ end
 -- bypass the popup.
 --
 -- It is named for, and DELIBERATELY OVERRIDES, LibKa0s-Options-1.0's own
--- RestoreAllDefaults (docs/pending/LEDGER.md, LIBKA0S-08). The library's form is
+-- RestoreAllDefaults (issue #10, LIBKA0S-08). The library's form is
 -- row-by-row over every row; this one wipes first and coalesces, and both halves
 -- of that are load-bearing:
 --

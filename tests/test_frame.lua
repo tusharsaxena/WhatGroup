@@ -329,7 +329,7 @@ end)
 
 -- The swipe is the only part of this that stays live: the widget animates engine-side, so the
 -- popup gets a moving readout without the addon owning an OnUpdate or a repeating timer — the
--- condition LIBKA0S-15 rests on (docs/performance.md).
+-- condition LIBKA0S-15 (issue #7) rests on (docs/performance.md).
 test("frame: a teleport on cooldown arms the swipe with the real start and duration", function()
     local NS, _, mock = T.bootAddon()
     mock.knownSpells[445269] = true

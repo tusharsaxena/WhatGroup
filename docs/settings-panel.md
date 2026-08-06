@@ -64,7 +64,7 @@ local AFTER_GROUP = {
 }
 ```
 
-`Helpers.InlineButton` is host-owned and the only widget maker that is: the library's `InlineButtonPair` lays *two* buttons across one Flow row at `BUTTON_PAIR_REL` each, and passing it a single spec renders this button at half the panel width. A fixed 160-px left-aligned control is not expressible there, so declining was the smaller change (`LIBKA0S-09` in [docs/pending/LEDGER.md](./pending/LEDGER.md)). It still reads `Helpers.AceGUI`, `Helpers.EnsureScroll`, `Helpers.AttachTooltip`, `Helpers.AddSpacer` and `Helpers.ROW_VSPACER` off the instance rather than restating any of them — a host copy of a library constant is the copy that goes stale.
+`Helpers.InlineButton` is host-owned and the only widget maker that is: the library's `InlineButtonPair` lays *two* buttons across one Flow row at `BUTTON_PAIR_REL` each, and passing it a single spec renders this button at half the panel width. A fixed 160-px left-aligned control is not expressible there, so declining was the smaller change ([`LIBKA0S-09`](https://github.com/tusharsaxena/WhatGroup/issues/9)). It still reads `Helpers.AceGUI`, `Helpers.EnsureScroll`, `Helpers.AttachTooltip`, `Helpers.AddSpacer` and `Helpers.ROW_VSPACER` off the instance rather than restating any of them — a host copy of a library constant is the copy that goes stale.
 
 `WhatGroup:RunTest()` is the same code path `/wg test` invokes, so the two affordances stay in lockstep.
 
@@ -74,7 +74,7 @@ local AFTER_GROUP = {
 
 The direction matters. Copying the library's members onto the host's table would look equivalent and is not: `RenderRows` resolves `RenderField` from the instance at call time, so a test that swapped a member on a copy-across table would be spying on a function nobody calls. `settings/Schema.lua`'s file-local `Helpers` upvalue still points at the pre-move table — harmless, because the members are the same function objects and no state lives on either table.
 
-The copy is unconditional, and the one collision is deliberate: **`Helpers.RestoreAllDefaults` overrides the library's member of the same name** (`LIBKA0S-08`). Copying only where the instance was nil silently handed every caller the library's row-by-row form, and the suite said so. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched — nothing calls it today, because this addon's Defaults button is confirmation-gated and goes through the popup instead.
+The copy is unconditional, and the one collision is deliberate: **`Helpers.RestoreAllDefaults` overrides the library's member of the same name** ([`LIBKA0S-08`](https://github.com/tusharsaxena/WhatGroup/issues/10)). Copying only where the instance was nil silently handed every caller the library's row-by-row form, and the suite said so. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched — nothing calls it today, because this addon's Defaults button is confirmation-gated and goes through the popup instead.
 
 All schema reads and writes go through a private `Resolve(path)` helper that walks dotted paths into `db.profile` and returns `(parent, key)` so the caller can read `parent[key]` or write `parent[key] = value`. If any intermediate segment is missing, `Resolve` creates an empty table at that segment so writes don't error on first-use paths. Public callers go through `Helpers.Get` / `Helpers.Set`.
 

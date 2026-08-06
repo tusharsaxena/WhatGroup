@@ -187,7 +187,7 @@ local function buildFrame()
 
     -- The swipe is the ONLY live element in this popup, and it is live without costing the addon
     -- an OnUpdate or a repeating timer: the Cooldown widget animates engine-side once armed. That
-    -- distinction is load-bearing — zero Lua-side repeat is the condition LIBKA0S-15 rests on for
+    -- distinction is load-bearing — zero Lua-side repeat is the condition LIBKA0S-15 (issue #7) rests on for
     -- declining LibKa0s-Perf (docs/performance.md). The numbers are hidden because at 24px they
     -- are unreadable, and the note beside the button carries the figure instead.
     local teleportSwipe = CreateFrame("Cooldown", nil, teleportBtn, "CooldownFrameTemplate")

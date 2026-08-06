@@ -112,7 +112,7 @@ an implementation this repo owns.
 - **It does not remember its position.** The library owns the drag bar and
   exposes neither it nor a geometry hook, so `NS.Windows` (WG-26) has nothing to
   attach to — there is no adapter, only a fork. Accepted as a gap —
-  `LIBKA0S-05` in [docs/pending/LEDGER.md](./pending/LEDGER.md). The popup, the
+  [`LIBKA0S-05`](https://github.com/tusharsaxena/WhatGroup/issues/11). The popup, the
   window a player actually positions, keeps its own persistence.
 - Title bar: draggable, titled `Ka0s WhatGroup — Debug`, 1px divider.
   - **Left:** the `Debug: ON` (green) / `Debug: OFF` (red) state toggle — clicking

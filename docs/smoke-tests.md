@@ -404,7 +404,7 @@ Framed as *"nothing moved"*: anything that looks different from the previous bui
 9. Drag the **popup** somewhere, `/reload`, `/wg show`.
    **Expected:** it is where you left it.
 10. Drag the **console** somewhere, `/reload`, `/wg debug`.
-    **Expected:** it is back at its default position. The console no longer remembers where you put it — the library owns that window and offers no geometry hook. Deliberate, recorded at `LIBKA0S-05`; it is a **known loss**, not a regression to file.
+    **Expected:** it is back at its default position. The console no longer remembers where you put it — the library owns that window and offers no geometry hook. Deliberate, recorded at [`LIBKA0S-05`](https://github.com/tusharsaxena/WhatGroup/issues/11); it is a **known loss**, not a regression to file.
 
 ---
 

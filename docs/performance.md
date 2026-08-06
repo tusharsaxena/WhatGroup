@@ -63,8 +63,8 @@ cite, and the sweep above is what an audit reads first.
   that window is **never recorded** — so the popup and the chat summary the player installed it for
   silently do not appear. The capture would cost the user the feature, not pause a display.
 
-The long-form reasoning, and the date the user ratified it, are at `LIBKA0S-15` in
-[`pending/LEDGER.md`](./pending/LEDGER.md).
+The long-form reasoning, and the date the user ratified it, are at
+[`LIBKA0S-15`](https://github.com/tusharsaxena/WhatGroup/issues/7).
 
 ## The re-check trigger
 

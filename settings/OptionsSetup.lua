@@ -5,7 +5,7 @@
 -- tooltip helper, the spacer helper, the section heading, the two widget makers, the two-column
 -- flow engine, the page registry, the panel-open with its combat gate, and the refresh fan-out.
 --
--- What stayed the host's, and why, is recorded below the descriptor and in docs/pending/LEDGER.md.
+-- What stayed the host's, and why, is recorded below the descriptor and in this repo's GitHub issues.
 --
 -- TOC slot: after settings/Schema.lua, whose Get/Set/FindSchema the descriptor reads, and before
 -- settings/Panel.lua, which registers its page at file load (options-ui-§1).
@@ -192,7 +192,7 @@ end
 -- becomes Settings.Helpers.
 --
 -- UNCONDITIONAL, and the one collision is the point. `RestoreAllDefaults` exists on both sides and
--- the HOST's wins, deliberately (docs/pending/LEDGER.md, LIBKA0S-08): the library's is row-by-row
+-- the HOST's wins, deliberately (issue #10, LIBKA0S-08): the library's is row-by-row
 -- over every row, while this addon's wipes `db.profile` first — which is what drops a key from a
 -- removed or renamed schema row instead of leaving it in the profile forever — and coalesces the
 -- per-row [Set] lines into one [Reset] summary (debug-logging-§9). Copying only where the instance
