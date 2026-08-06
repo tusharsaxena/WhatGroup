@@ -110,7 +110,17 @@ Find the `mapID`:
 - Or look it up on Wowhead's instance page (the URL pattern is `wowhead.com/zone=<mapID>` for the instance).
 - Or `/wg debug` and apply to a real LFG group for the dungeon — the `[Apply]` log line (`id=… captured "…" (activity=… map=…)`) shows the `mapID` the LFG API hands us.
 
-For the spell ID, the primary source is the Warcraft Wiki: every "Path of …" page (e.g. [`Path of the Corrupted Foundry`](https://warcraft.wiki.gg/wiki/Path_of_the_Corrupted_Foundry)) lists the canonical spell ID and destination in its infobox. Browse [`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities) to find the page for the dungeon you need. Wowhead (URL pattern `wowhead.com/spell=<id>`) is a reasonable cross-check. For an in-game lookup, hover the spell in the spellbook with a tooltip-id addon active, or `/dump C_Spell.GetSpellInfo("Path of …")` if you know the localized name.
+Find the **spell ID** from a spellbook that owns the teleport — that is the only source that cannot be a near-miss. Paste this on a character who has learned it:
+
+```
+/run local B=Enum.SpellBookSpellBank.Player for i=1,600 do local s=C_SpellBook.GetSpellBookItemInfo(i,B) if s and s.name and s.name:find("Path of") then print(s.name,s.spellID) end end
+```
+
+It prints every learned "Path of …" with its ID, alphabetically. Take the ID from that list verbatim.
+
+The Warcraft Wiki ([`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities), e.g. [`Path of the Corrupted Foundry`](https://warcraft.wiki.gg/wiki/Path_of_the_Corrupted_Foundry)) and Wowhead (`wowhead.com/spell=<id>`) are the fallback when nobody available has the spell, and a reasonable cross-check otherwise — but treat them as unverified. **The spell name never contains the dungeon name**, so searching by dungeon returns something adjacent rather than nothing, and neighbouring IDs in the same patch block are different spells entirely: `1254553` (one digit off Nexus-Point Xenas' real `1254563`) is a spell called "Hero's Path", and it shipped twice from name-based lookups before a spellbook dump caught it.
+
+A wrong ID does not error. The row renders desaturated with a `(not learned)` tag for a player who owns the teleport, and the button's `/cast` names a spell nobody has — so "it looks fine, just greyed out" is the failure mode to watch for, not a clue that the player is missing the teleport.
 
 `WhatGroup:GetTeleportSpell(activityID, mapID)` checks `mapID` first; the `activityID` parameter is kept for back-compat but the table no longer carries activityID-keyed rows (Blizzard rotates activity IDs every season, so they're not a reliable key). When the value is a list, the lookup picks the first spell the player has learned via `IsSpellKnown`; if none are known, it falls back to the first entry so the popup at least shows the icon (desaturated).
 
@@ -130,7 +140,7 @@ When Blizzard ships a new M+ season or a patch that adds/changes dungeon telepor
 2. **Cross-reference the wiki.** Open [`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities) — every learnable "Path of …" spell is listed there. New season teleports usually appear within hours of patch day. The wiki is the canonical source: each spell page's infobox shows the spell ID and destination dungeon/raid.
 3. **For each new dungeon, get the mapID and spellID:**
    - mapID: `/dump select(8, GetInstanceInfo())` at the dungeon entrance, or `/wg debug` + apply to an LFG group and read the debug log's `mapID=` value.
-   - spellID: from the wiki spell page (preferred). Wowhead is a reasonable cross-check.
+   - spellID: from the spellbook sweep above, on a character that owns the teleport (authoritative). The wiki spell page and Wowhead are the fallback when nobody has it yet, and stay unverified until a spellbook confirms them.
 4. **Add the row** under the appropriate `===== <Expansion> =====` section, with a trailing comment giving the dungeon name (e.g. `-- The Stonevault`). Keep entries sorted by mapID within each expansion for easy diffing.
 5. **Check old dungeons that have been re-issued.** Sometimes Blizzard adds a *new* spellID for an existing dungeon (e.g. a Midnight-prepatch refresh — Skyreach picked up `1254557` alongside the original `159898`). If you find a second wiki spell page that points at a mapID already in the table, change the value from a single number to a `{ original, new }` list — the lookup resolves to whichever the player knows.
 6. **Verify in-game.** With `/wg debug` on, apply to one group per new dungeon, open the popup, and confirm the `[Frame]` log line (`teleport spellID=… known=… (activity=… map=…)`) shows the right spell for that `mapID`, then click the popup's teleport icon and confirm the cast fires (or reports "you don't know that spell" if you haven't learned it — that's also success).

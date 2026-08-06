@@ -217,7 +217,7 @@ badge and any count quoted in the docs must agree with it.
 - slash: /wg debug (bare) toggles the console window's visibility
 - slash: /wg debug on does not open the window
 
-### test_labels.lua (31)
+### test_labels.lua (33)
 
 - labels: GetGroupTypeLabel Mythic+
 - labels: GetGroupTypeLabel Dungeon by categoryID
@@ -250,6 +250,8 @@ badge and any count quoted in the docs must agree with it.
 - teleport: a nil mapID and nil activityID resolve to nothing
 - teleport: the FIRST known spell in a candidate list wins
 - teleport: the shipped mapping table is keyed by numbers only
+- teleport: the Midnight Keystone Hero rows match the spellbook-verified IDs
+- teleport: Siege of Boralus offers the spellbook-verified spell first
 
 ### test_capture.lua (29)
 
@@ -495,7 +497,7 @@ badge and any count quoted in the docs must agree with it.
 | test_database.lua | 9 |
 | test_settings.lua | 42 |
 | test_slash.lua | 43 |
-| test_labels.lua | 31 |
+| test_labels.lua | 33 |
 | test_capture.lua | 29 |
 | test_notify.lua | 44 |
 | test_frame.lua | 32 |
@@ -503,4 +505,4 @@ badge and any count quoted in the docs must agree with it.
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **433** |
+| **Total** | **435** |
