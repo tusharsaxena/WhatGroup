@@ -1,4 +1,4 @@
--- .luacheckrc — lint config for the Ka0s WhatGroup addon (§14).
+-- .luacheckrc — lint config for the Ka0s WhatGroup addon (lint).
 -- Run `luacheck .` with 0 errors before every commit.
 
 std = "lua51"

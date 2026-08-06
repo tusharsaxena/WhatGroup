@@ -15,9 +15,12 @@ against the standard** — check every change against it as you go.
 notice existing code/docs that already deviate — **stop and flag it to the
 user.** Never silently conform and never silently deviate. The user decides
 whether it should be:
-1. an **accepted deviation** in this addon (record it with an in-code
-   SHOULD-justification comment, as the existing accepted deviations do, and
-   note it where relevant), or
+1. an **accepted deviation** — this addon intentionally differs; record it as a
+   row in `docs/ARCHITECTURE.md` → `## Documented deviations`, shaped
+   `| Rule | What differs | Why | Decided | Re-check trigger |`, where Rule is
+   the `filename-§N` reference. That register is the single home: the reasoning
+   may live in the issue-audit GitHub issue or an audit bundle and the row cites
+   it, but a deviation not in the register is not ratified; or
 2. a **change to the standard definition** itself (a PR/edit to the
    WowAddonStandards repo).
 

@@ -2,7 +2,7 @@
 
 The on-screen debug console is **LibKa0s-DebugLog-1.0**, wired by
 `core/DebugLogSetup.lua` from a descriptor. It exists because the **Ka0s WoW
-Addon Standard** (`debug-logging §`) requires any addon that ships a main window
+Addon Standard** (`debug-logging`) requires any addon that ships a main window
 — WhatGroup has `WhatGroupFrame` — to route debug output to a **dedicated
 on-screen console styled like its own window**, never to the chat frame
 (debug-logging-§7). One console is shared across the collection, so this addon
@@ -73,7 +73,7 @@ Everything hangs off the shared namespace (`local addonName, NS = ...`):
     bracket lines). Routes `msg` through `safeToString`.
   - `D:Clear()` / `D:ShowCopy()` / `D:CopyText()` — Clear and Copy actions, plus
     exactly what the copy window puts in front of the user.
-  - `D:UpdateScrollBar()` / `D:UpdateStatus()` — re-sync the §11 scrollbar thumb
+  - `D:UpdateScrollBar()` / `D:UpdateStatus()` — re-sync the debug-logging-§11 scrollbar thumb
     and the line counter. Called on every `Add`, on `Clear`, and on wheel-scroll;
     both no-op until the frame exists.
   - `D.FormatPlain(ts, tag, msg)` / `D.FormatColored(ts, tag, msg)` — the two
@@ -288,7 +288,7 @@ formatters, the `NS.FONT_MONO` constant, the window-vs-flag `/wg debug`
 semantics, the header-toggle flip, the enable/disable bracket lines, the `[Init]`
 summary's content and its position after the bracket, the color-coded ack, the
 zero-write-when-off contract, the `%d`-with-a-secret path, the one-`[Set]`-per-change
-and one-`[Reset]`-per-wipe content rules, and that the §11 scrollbar/counter sync
+and one-`[Reset]`-per-wipe content rules, and that the debug-logging-§11 scrollbar/counter sync
 stays a safe no-op under the mock.
 
 `tests/test_libka0s.lua` covers the seam itself: that `NS.DebugLog` is the
