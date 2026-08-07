@@ -20,6 +20,7 @@ not selected, which is a different fact again.
 
 | Run | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20260807-114405`](20260807-114405/) | 1.3.0 | 0/0 | 14 | 462/462 | skip | 6095 | 866 | 6.4 | 1.7 | 20 | 1 | **green** |
 | [`20260807-110421`](20260807-110421/) | 1.3.0 | 0/0 | 14 | 462/462 | skip | 6095 | 866 | 6.4 | 1.7 | 20 | 1 | **green** |
 | [`20260807-022625`](20260807-022625/) | 1.3.0 | 0/0 | 14 | 462/462 | skip | 6095 | 866 | 6.4 | 1.7 | 20 | 1 | **green** |
 | [`20260804-233335`](20260804-233335/) | 1.3.0 | 0/0 | 14 | 422/422 | skip | 5573 | 808 | 6.3 | 1.7 | 13 | 0 | **green** |
@@ -41,40 +42,50 @@ note is how the correction is made instead.
 
 ## Test suite
 
-Current state as of [`20260807-022625`](20260807-022625/): **462 cases**, all passing, **none
+Current state as of [`20260807-114405`](20260807-114405/): **462 cases**, all passing, **none
 skipped** — across capture, labels, notifications, lifecycle, the settings surface, the teleport
-button and the vendored-payload gate. The count moved with the code this cycle
-(422 → 462, +40): the new cases pin the WG-31 teleport cooldown states — unlearned, recharging and
-ready — the ticker's single-handle lifecycle, and the re-vendored test kit's own seams. The
-generated inventory [`20260807-022625/test-cases.md`](20260807-022625/test-cases.md) is the
-authority on exactly which cases exist at that point.
+button and the vendored-payload gate. The generated inventory
+[`20260807-114405/test-cases.md`](20260807-114405/test-cases.md) is the authority on exactly which
+cases exist.
+
+The count has now held at 462 across three consecutive runs
+([`20260807-022625`](20260807-022625/), [`20260807-110421`](20260807-110421/) and this one), which
+is normally the shape of a coverage gap — but it is not one here, because the addon has not moved
+either: `NLOC` has held at 6095 and the function count at 866 over the same three runs, and this
+run's `test-cases.md` is byte-identical to the previous run's. A suite that stops growing while the
+addon does is the thing to flag; a suite that stops growing while the addon is still is just a
+quiet fortnight. The count last moved at [`20260807-022625`](20260807-022625/) (422 → 462, +40),
+when the WG-31 teleport cooldown states, the ticker's single-handle lifecycle and the re-vendored
+kit's own seams were pinned.
 
 A skipped case is reported as a skip and folded into neither figure (`testing-§5`, `testing-§11`);
 this run has none, so `462 passed` and `462 total` are the same set.
 
 ## Lint
 
-Current state as of [`20260807-022625`](20260807-022625/): clean over **14 files**, 0 warnings and
-0 errors ([`20260807-022625/lint.txt`](20260807-022625/lint.txt)). Scope matters as much as the
+Current state as of [`20260807-114405`](20260807-114405/): clean over **14 files**, 0 warnings and
+0 errors ([`20260807-114405/lint.txt`](20260807-114405/lint.txt)). Scope matters as much as the
 result, and here it is narrower than the `0/0` suggests: `.luacheckrc` sets
 `exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "tests/" }`, so the 14 files are the
 addon's shipped source only — `core/Compat.lua`, `core/CoreSetup.lua`, `core/Database.lua`,
 `core/DebugLogSetup.lua`, `core/Util.lua`, `core/WhatGroup.lua`, `defaults/Profile.lua`,
 `defaults/TeleportSpells.lua`, `locales/enUS.lua`, `modules/Frame.lua`,
 `settings/OptionsSetup.lua`, `settings/Panel.lua`, `settings/Schema.lua`, `settings/Slash.lua`.
+
 The vendored `libs/` and the frozen audit and review bundles are excluded because they are not this
-repo's to fix; **`tests/` is excluded too**, which puts **7212 lines of Lua across 22 files**
+repo's to fix. **`tests/` is excluded too**, which puts **7212 lines of Lua across 22 files**
 permanently outside the lint gate — the 15 `test_*.lua` suites (`capture`, `compat`, `database`,
 `debuglog`, `frame`, `harness`, `labels`, `libka0s`, `lifecycle`, `notify`, `panel`, `settings`,
 `slash`, `util`, `vendor_sync`), the runner pair `run.lua` / `loader.lua`, the `wow_mock.lua` API
 stub, and the four vendored kit files `_kit/framework.lua`, `_kit/loader.lua`, `_kit/mock_base.lua`
 and `_kit/vendor_sync.lua`. That is a standing fact about the config
-([`../testing.md`](../testing.md)'s "Lint scope" says the same), not this run's news — though the
-excluded tree has grown by over a thousand lines since it was last stated here.
+([`../testing.md`](../testing.md)'s "Lint scope" says the same), not this run's news — but it is
+worth restating that the excluded tree is now **larger than the linted one**: 7212 lines outside
+the gate against 6095 total NLOC measured across the whole repo.
 
 ## Perf
 
-Current state as of [`20260807-022625`](20260807-022625/): **skip — zero scenarios, nothing
+Current state as of [`20260807-114405`](20260807-114405/): **skip — zero scenarios, nothing
 measured.** This addon ships no `tests/perf.lua`, so the `perf` column is a permanent `skip` rather
 than a transient tooling gap, and every bundle records it as a `skip` with that reason rather than
 as a pass. Two things follow, and both are standing facts rather than this run's news: the record
@@ -88,9 +99,17 @@ wiring was still declined — reasoned and recorded as the `performance-§12 (re
 re-check triggers. Adding scenarios is the only thing that changes the `perf` column, and per that
 row it is an upstream amendment or a ticker that outgrows its window which changes the decision.
 
+One gap is worth naming, and it is the kit's rather than this repo's: `automated-tests-§3` sanctions
+**two** `perf` skip reasons and says the `performance-§12` exemption **MUST** be recorded when it
+applies. It applies here, but the manifest carries only the bare *ships no `tests/perf.lua`*,
+because the runner has no way to read the deviation register. A reader of the bundle alone therefore
+cannot tell this addon's ratified exemption from a suite somebody forgot to write — the register
+above is the only place that distinction lives. Raising it upstream is
+[`20260807-114405/ANALYSIS.md`](20260807-114405/ANALYSIS.md)'s action 2.
+
 ## Complexity watch list
 
-Current state as of [`20260807-022625`](20260807-022625/) — not that run's diff.
+Current state as of [`20260807-114405`](20260807-114405/) — not that run's diff.
 Every function `lizard` warned on, and every file at or above `layout-§1`'s 1000-LOC
 on-notice threshold, each with a one-line disposition.
 
@@ -98,29 +117,40 @@ on-notice threshold, each with a one-line disposition.
 
 | Function | CCN | Location | Disposition |
 |---|---|---|---|
-| `ConfigureTeleportButton` | 20 | `modules/Frame.lua:240-396` | **Peel next — NEWLY CROSSED at [`20260807-022625`](20260807-022625/).** Genuine control flow, not `or`-defaulting. Above CCN 15, so it blocks the release gate as it stands. Not accepted. |
+| `ConfigureTeleportButton` | 20 | `modules/Frame.lua:240-396` | **Peel next.** Crossed at [`20260807-022625`](20260807-022625/) and carried unchanged since. Genuine control flow, not `or`-defaulting. Above CCN 15, so it blocks the release gate as it stands. Not accepted. |
 
-**This is the first warned entry since the list emptied**, and it is deliberately not dispositioned
-as *Accepted*: a disposition has a shelf life, and an `Accepted` written on an entry's first
-appearance is how a watch list becomes a backlog (`automated-tests-§4`, anti-pattern #53). The
-three entries the list carried at the [`20260804-182231`](20260804-182231/) baseline —
-`WhatGroup:CaptureGroupInfo` at 22, `WhatGroup:ShowNotification` at 22 and `Helpers.BuildMainContent`
-at 17 — were each split into named units and are retired, not carried forward; none of them is this
-one.
+**Nothing newly crossed at this run**, and the single entry is deliberately still not dispositioned
+as *Accepted*. A disposition has a shelf life, and an `Accepted` is how a watch list becomes a
+backlog (`automated-tests-§4`, anti-pattern #53) — but note what the shelf-life clock actually
+counts: **three consecutive *release* runs**. This entry has now been carried across three
+consecutive runs, and **none of them was a release run** (`"release": null` in all three manifests),
+so the clock has not started. That is not a reprieve. The entry is above CCN 15, which means
+`/wow-addon:bump-version` will refuse the next tag until it is peeled, and the shelf-life question
+never gets asked because the release gate arrives first.
 
-The cause is known and local. `ConfigureTeleportButton` measured **CCN 12** at
-[`20260804-233335`](20260804-233335/) and **CCN 20** now, roughly doubling on NLOC (40 → 72), tokens
-(296 → 486) and length (78 → 157) as the WG-31 cooldown states landed inside it. `lizard` counts
-every `and`/`or` short-circuit as a decision, so the usual Lua reading is "this function defaults a
-lot of fields" — that reading does **not** apply here. There are three defaulting expressions in the
-whole function; the rest is a combat-lockdown stash-and-bail, a no-spell teardown-and-bail, a
-three-way note state machine (unlearned / on cooldown / ready), a ready-vs-not attribute arming
-branch and a `known`-vs-unknown tooltip branch nested inside it. It wants decomposition, not a
-defaulting rewrite, and `performance-§11` bounds what that refactor may do.
+The three entries the list carried at the [`20260804-182231`](20260804-182231/) baseline —
+`WhatGroup:CaptureGroupInfo` at 22, `WhatGroup:ShowNotification` at 22 and
+`Helpers.BuildMainContent` at 17 — were each split into named units and are **retired**, not carried
+forward. They were the only entries this repo has ever dispositioned *Accepted*, and both were
+resolved by fix rather than by renewal, so no entry in this repo's history has ever aged into the
+§4 problem.
 
-The next four functions are headroom rather than watch-list entries: `WhatGroup:_TryFireJoinNotify`
-at 13, then three at 12. See
-[`20260807-022625/complexity.txt`](20260807-022625/complexity.txt) for the full per-function table.
+The cause of the one live entry is known and local. `ConfigureTeleportButton` measured **CCN 12** at
+[`20260804-233335`](20260804-233335/) and **CCN 20** since, roughly doubling on NLOC (40 → 72),
+tokens (296 → 486) and length (78 → 157) as the WG-31 cooldown states landed inside it. `lizard`
+counts every `and`/`or` short-circuit as a decision, so the usual Lua reading is "this function
+defaults a lot of fields" — that reading does **not** apply here. There are three defaulting
+expressions in the whole function; the rest is a combat-lockdown stash-and-bail, a no-spell
+teardown-and-bail, a three-way note state machine (unlearned / on cooldown / ready), a
+ready-vs-not attribute arming branch and a `known`-vs-unknown tooltip branch nested inside it. It
+wants decomposition, not a defaulting rewrite, and `performance-§11` bounds what that refactor may
+do.
+
+Below the warn line, the runner-up is now **`WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED` at CCN
+15** (`core/WhatGroup.lua:634-697`) — exactly **on** the release gate's boundary, which is a pass by
+one point and worth watching rather than acting on. Then `Compat.GetSpellCooldownRemaining` and
+`WhatGroup:_TryFireJoinNotify` at 13, and `WhatGroup:InitSummary` at 12. See
+[`20260807-114405/complexity.txt`](20260807-114405/complexity.txt) for the full per-function table.
 
 ### Files by `layout-§1` band
 
@@ -128,7 +158,7 @@ at 13, then three at 12. See
 |---|---|---|---|
 | — | — | — | **None.** |
 
-No file reaches 1000 LOC — [`20260807-022625/manifest.json`](20260807-022625/manifest.json)
+No file reaches 1000 LOC — [`20260807-114405/manifest.json`](20260807-114405/manifest.json)
 records `bandFiles: 0` and `overCapFiles: 0`. The three largest by raw line count are
 `core/WhatGroup.lua` at 746, `tests/test_libka0s.lua` at 716 and `tests/test_frame.lua` at 627, so
 the closest file sits roughly 254 lines below the on-notice threshold.
