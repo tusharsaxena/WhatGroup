@@ -52,6 +52,154 @@ local function stopCooldownTicker()
     end
 end
 
+-- Secure-button attribute writes (`type`, `macrotext`) and Show/Hide are protected while in
+-- combat — silently dropped, not erroring. Stash the info, queue a re-run on combat-end, and tell
+-- the caller to bail. The button retains its prior visual state until PLAYER_REGEN_ENABLED fires;
+-- at that point we Configure with the most recently-stashed info.
+--
+-- Returns true when the work was deferred, so the caller's guard reads as one line.
+-- Resolves everything the button's appearance depends on, in one place, and returns nil when this
+-- activity has no teleport at all — the caller's cue to clear the button rather than paint it.
+--
+-- A learned teleport that is still recharging is its own state (WG-31). The player owns the spell,
+-- so "not learned" would be a lie and hiding the icon would be worse; it renders like the unlearned
+-- state but says why, and the swipe shows the wait draining. `remaining` is only asked of a spell
+-- the player actually has: an unlearned one has no meaningful cooldown, and answering with one
+-- answers a question nobody asked.
+-- The note beneath the button: three states, one line of text, and the only place the cooldown
+-- countdown lives.
+-- Arms or disarms the click. Everything here is protected-frame work, which is why the caller
+-- has already established it is out of combat.
+local function applyTeleportAction(btn, spellID, spellName, known, ready)
+    if ready and spellName then
+        -- Secure-handler macro path: clicking runs `/cast <SpellName>`
+        -- through Blizzard's secure action system, side-stepping the
+        -- ADDON_ACTION_FORBIDDEN that a non-secure CastSpellByID hits.
+        btn:SetAttribute("type", "macro")
+        btn:SetAttribute("macrotext", "/cast " .. spellName)
+        btn:EnableMouse(true)
+        btn:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetSpellByID(spellID)
+            GameTooltip:Show()
+        end)
+        btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        -- Material-effect trace (debug-logging-§10): log the actual press.
+        -- The button registers the down edge only (see RegisterForClicks in buildFrame), so
+        -- one press is one line. The `down` check stays as a guard rather than a filter: it
+        -- costs nothing and keeps the trace honest if the registration is ever widened again.
+        -- PreClick is non-secure work that runs alongside the secure /cast, so it's taint-free
+        -- even in combat.
+        btn:SetScript("PreClick", function(_, mouseButton, down)
+            if down then
+                NS.Debug("Frame", "teleport button pressed \226\134\146 /cast "
+                    .. spellName .. " (spellID=" .. tostring(spellID)
+                    .. ", button=" .. tostring(mouseButton) .. ")")
+            end
+        end)
+    else
+        -- Clearing the attributes IS the disable: the button still takes the click, the
+        -- secure handler finds no action to run, and nothing is cast. Calling :Disable() would
+        -- be the obvious alternative and is the wrong tool — this is a protected frame, and
+        -- the state has to be reachable from the same code path that runs in combat.
+        btn:SetAttribute("type", nil)
+        btn:SetAttribute("macrotext", nil)
+        btn:SetScript("PreClick", nil)
+        -- The tooltip survives a cooldown but not an unlearned spell. On cooldown it is the
+        -- one place the exact time-remaining and the spell's own text live, and a player who
+        -- owns the teleport is entitled to it; unlearned, there is nothing to hover for and
+        -- the note beside the button already says so.
+        if known then
+            btn:EnableMouse(true)
+            btn:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetSpellByID(spellID)
+                GameTooltip:Show()
+            end)
+            btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        else
+            btn:EnableMouse(false)
+            btn:SetScript("OnEnter", nil)
+            btn:SetScript("OnLeave", nil)
+        end
+    end
+end
+
+local function applyTeleportNote(spellID, known, remaining, info)
+    local note = fields.teleportNote
+    local function renderNote(secondsLeft)
+        note:SetText("|cff888888" .. L["On cooldown"] .. " — "
+            .. NS.FormatDuration(secondsLeft) .. "|r")
+        note:Show()
+    end
+
+    -- Three states, one note. Order matters: an unlearned spell can still report a cooldown,
+    -- and "on cooldown" would answer a question nobody asked while burying the one that
+    -- explains the grey icon. A ready teleport needs no explanation, so the note goes.
+    if not known then
+        note:SetText("|cff888888" .. L["Teleport spell not learned"] .. "|r")
+        note:Show()
+    elseif remaining > 0 then
+        renderNote(remaining)
+        -- One second: the smallest unit the note renders, so a faster tick would repaint an
+        -- identical string and a slower one would visibly skip.
+        cooldownTimer = WhatGroup:ScheduleRepeatingTimer(function()
+            local left = NS.Compat.GetSpellCooldownRemaining(spellID)
+            if left > 0 then return renderNote(left) end
+            -- Reaching zero is the interesting tick: stop first so the reconfigure below sees
+            -- no live handle, then re-run the whole state machine rather than hand-reversing
+            -- the four things the cooldown branch changed. The player gets a usable button
+            -- without closing the popup, which is the entire point of ticking.
+            stopCooldownTicker()
+            ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, info)
+        end, 1)
+    else
+        note:SetText("")
+        note:Hide()
+    end
+end
+
+local function resolveTeleportState(info)
+    local spellID, known = WhatGroup:GetTeleportSpell(info and info.activityID, info and info.mapID)
+    NS.Debug("Frame", "teleport spellID=" .. tostring(spellID)
+        .. " known=" .. tostring(known)
+        .. " (activity=" .. tostring(info and info.activityID)
+        .. " map=" .. tostring(info and info.mapID) .. ")")
+    if not spellID then return nil end
+
+    local remaining = known and NS.Compat.GetSpellCooldownRemaining(spellID) or 0
+    if remaining > 0 then
+        NS.Debug("Frame", "teleport on cooldown, %s remaining (spellID=%s)",
+            NS.FormatDuration(remaining), NS.SafeToString(spellID))
+    end
+
+    return {
+        spellID   = spellID,
+        known     = known,
+        remaining = remaining,
+        ready     = known and remaining <= 0,
+        spellName = NS.Compat.GetSpellName(spellID),
+        texID     = NS.Compat.GetSpellTexture(spellID) or 134400,
+    }
+end
+
+local function deferTeleportUntilCombatEnds(info)
+    if not InCombatLockdown() then return false end
+    f._pendingTeleportInfo = info
+    f:RegisterEvent("PLAYER_REGEN_ENABLED")
+    f:SetScript("OnEvent", function(self, ev)
+        if ev ~= "PLAYER_REGEN_ENABLED" then return end
+        self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+        self:SetScript("OnEvent", nil)
+        local pending = self._pendingTeleportInfo
+        self._pendingTeleportInfo = nil
+        if pending then
+            ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, pending)
+        end
+    end)
+    return true
+end
+
 local function buildFrame()
     if f then return end   -- one-shot
 
@@ -242,56 +390,18 @@ local function buildFrame()
         -- wants none, and dropping the old handle here is what keeps repeated shows from stacking.
         stopCooldownTicker()
 
-        -- Secure-button attribute writes (`type`, `macrotext`) and
-        -- Show/Hide are protected while in combat — silently dropped,
-        -- not erroring. Stash the info, queue a re-run on combat-end,
-        -- and bail. The button retains its prior visual state until
-        -- PLAYER_REGEN_ENABLED fires; at that point we Configure with
-        -- the most recently-stashed info.
-        if InCombatLockdown() then
-            f._pendingTeleportInfo = info
-            f:RegisterEvent("PLAYER_REGEN_ENABLED")
-            f:SetScript("OnEvent", function(self, ev)
-                if ev ~= "PLAYER_REGEN_ENABLED" then return end
-                self:UnregisterEvent("PLAYER_REGEN_ENABLED")
-                self:SetScript("OnEvent", nil)
-                local pending = self._pendingTeleportInfo
-                self._pendingTeleportInfo = nil
-                if pending then
-                    ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, pending)
-                end
-            end)
-            return
-        end
+        if deferTeleportUntilCombatEnds(info) then return end
 
-        local spellID, known = WhatGroup:GetTeleportSpell(info and info.activityID, info and info.mapID)
-        NS.Debug("Frame", "teleport spellID=" .. tostring(spellID)
-            .. " known=" .. tostring(known)
-            .. " (activity=" .. tostring(info and info.activityID)
-            .. " map=" .. tostring(info and info.mapID) .. ")")
-        if not spellID then
+        local st = resolveTeleportState(info)
+        if not st then
             btn:SetAttribute("type", nil)
             btn:SetAttribute("macrotext", nil)
             btn:Hide()
             fields.teleportNote:Hide()
             return
         end
-
-        local spellName = NS.Compat.GetSpellName(spellID)
-        local texID     = NS.Compat.GetSpellTexture(spellID) or 134400
-
-        -- A learned teleport that is still recharging is its own state (WG-31). The player owns
-        -- the spell, so "not learned" would be a lie and hiding the icon would be worse; it
-        -- renders like the unlearned state but says why, and the swipe below shows the wait
-        -- draining. Only asked of a spell the player actually has: an unlearned one has no
-        -- meaningful cooldown, and answering with one answers a question nobody asked.
-        local remaining = known and NS.Compat.GetSpellCooldownRemaining(spellID) or 0
-        local ready     = known and remaining <= 0
-
-        if remaining > 0 then
-            NS.Debug("Frame", "teleport on cooldown, %s remaining (spellID=%s)",
-                NS.FormatDuration(remaining), NS.SafeToString(spellID))
-        end
+        local spellID, known, remaining, ready = st.spellID, st.known, st.remaining, st.ready
+        local spellName, texID = st.spellName, st.texID
 
         icon:SetTexture(texID)
         icon:SetDesaturated(not ready)
@@ -307,90 +417,9 @@ local function buildFrame()
             swipe:SetCooldown(0, 0)
         end
 
-        local note = fields.teleportNote
-        local function renderNote(secondsLeft)
-            note:SetText("|cff888888" .. L["On cooldown"] .. " — "
-                .. NS.FormatDuration(secondsLeft) .. "|r")
-            note:Show()
-        end
+        applyTeleportNote(spellID, known, remaining, info)
 
-        -- Three states, one note. Order matters: an unlearned spell can still report a cooldown,
-        -- and "on cooldown" would answer a question nobody asked while burying the one that
-        -- explains the grey icon. A ready teleport needs no explanation, so the note goes.
-        if not known then
-            note:SetText("|cff888888" .. L["Teleport spell not learned"] .. "|r")
-            note:Show()
-        elseif remaining > 0 then
-            renderNote(remaining)
-            -- One second: the smallest unit the note renders, so a faster tick would repaint an
-            -- identical string and a slower one would visibly skip.
-            cooldownTimer = WhatGroup:ScheduleRepeatingTimer(function()
-                local left = NS.Compat.GetSpellCooldownRemaining(spellID)
-                if left > 0 then return renderNote(left) end
-                -- Reaching zero is the interesting tick: stop first so the reconfigure below sees
-                -- no live handle, then re-run the whole state machine rather than hand-reversing
-                -- the four things the cooldown branch changed. The player gets a usable button
-                -- without closing the popup, which is the entire point of ticking.
-                stopCooldownTicker()
-                ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, info)
-            end, 1)
-        else
-            note:SetText("")
-            note:Hide()
-        end
-
-        if ready and spellName then
-            -- Secure-handler macro path: clicking runs `/cast <SpellName>`
-            -- through Blizzard's secure action system, side-stepping the
-            -- ADDON_ACTION_FORBIDDEN that a non-secure CastSpellByID hits.
-            btn:SetAttribute("type", "macro")
-            btn:SetAttribute("macrotext", "/cast " .. spellName)
-            btn:EnableMouse(true)
-            btn:SetScript("OnEnter", function(self)
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetSpellByID(spellID)
-                GameTooltip:Show()
-            end)
-            btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-            -- Material-effect trace (debug-logging-§10): log the actual press.
-            -- The button registers the down edge only (see RegisterForClicks in buildFrame), so
-            -- one press is one line. The `down` check stays as a guard rather than a filter: it
-            -- costs nothing and keeps the trace honest if the registration is ever widened again.
-            -- PreClick is non-secure work that runs alongside the secure /cast, so it's taint-free
-            -- even in combat.
-            btn:SetScript("PreClick", function(_, mouseButton, down)
-                if down then
-                    NS.Debug("Frame", "teleport button pressed \226\134\146 /cast "
-                        .. spellName .. " (spellID=" .. tostring(spellID)
-                        .. ", button=" .. tostring(mouseButton) .. ")")
-                end
-            end)
-        else
-            -- Clearing the attributes IS the disable: the button still takes the click, the
-            -- secure handler finds no action to run, and nothing is cast. Calling :Disable() would
-            -- be the obvious alternative and is the wrong tool — this is a protected frame, and
-            -- the state has to be reachable from the same code path that runs in combat.
-            btn:SetAttribute("type", nil)
-            btn:SetAttribute("macrotext", nil)
-            btn:SetScript("PreClick", nil)
-            -- The tooltip survives a cooldown but not an unlearned spell. On cooldown it is the
-            -- one place the exact time-remaining and the spell's own text live, and a player who
-            -- owns the teleport is entitled to it; unlearned, there is nothing to hover for and
-            -- the note beside the button already says so.
-            if known then
-                btn:EnableMouse(true)
-                btn:SetScript("OnEnter", function(self)
-                    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                    GameTooltip:SetSpellByID(spellID)
-                    GameTooltip:Show()
-                end)
-                btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-            else
-                btn:EnableMouse(false)
-                btn:SetScript("OnEnter", nil)
-                btn:SetScript("OnLeave", nil)
-            end
-        end
+        applyTeleportAction(btn, spellID, spellName, known, ready)
 
         btn:Show()
     end
