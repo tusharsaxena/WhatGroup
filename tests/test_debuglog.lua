@@ -167,7 +167,7 @@ test("debuglog: NS.Debug is a no-op (no console write) when debug is off", funct
     assertEqual(#NS.DebugLog.buffer, before)
 end)
 
-test("debuglog: §11 scrollbar + line-counter sync is a safe no-op under the mock", function()
+test("debuglog: debug-logging-§11 scrollbar + line-counter sync is a safe no-op under the mock", function()
     -- Anti-pattern #41 failure mode: the sync raises on first open (e.g. by
     -- calling the nil C getters GetNumLinesDisplayed / GetCurrentScroll). The
     -- mock's stub frame returns non-numbers from the scroll getters, so the

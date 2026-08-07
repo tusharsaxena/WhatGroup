@@ -502,7 +502,7 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: disabling still appends a '[Debug] logging disabled' line
 - debuglog: NS.Debug survives an unsafe format arg without raising (WG-22)
 - debuglog: NS.Debug is a no-op (no console write) when debug is off
-- debuglog: §11 scrollbar + line-counter sync is a safe no-op under the mock
+- debuglog: debug-logging-§11 scrollbar + line-counter sync is a safe no-op under the mock
 - debuglog: settings change logs one [Set] line at the write seam (debug-logging-§10)
 - debuglog: RestoreAllDefaults coalesces to one [Reset], zero [Set] (debug-logging-§9)
 - debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state
