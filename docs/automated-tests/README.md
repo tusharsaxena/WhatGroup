@@ -49,4 +49,4 @@ release gate a `skip` is **not evaluated** rather than passed.
 
 Offline perf records live in the bundle with the run that produced them. **In-game** captures cannot
 be produced by a script — a human runs the `perf` verb in a live client and exports the record — so
-they keep their own standing store at [`../perf-runs/`](../perf-runs/).
+they keep their own standing store at [`../perf-analysis/`](../perf-analysis/).

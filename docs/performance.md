@@ -8,7 +8,7 @@ as a ratified deviation in its own right, on criteria (b) and (c), which the tic
 Either way the outcome on disk is the same: it vendors `libs/LibKa0s/` whole — Perf.lua included,
 because the folder is copied whole or not at all (library-stack-§7, anti-patterns #48) — and does
 **not** wire it: there is no `core/PerfSetup.lua`, no `WhatGroupPerfDB`, no `perf` verb
-registration, no suspend/resume contract, no `tests/perf.lua` and no `docs/perf-runs/`. The `perf`
+registration, no suspend/resume contract, no `tests/perf.lua` and no `docs/perf-analysis/`. The `perf`
 verb stays **reserved** (slash-commands-§2) so it can never come to mean anything else here; it is
 simply not registered.
 
