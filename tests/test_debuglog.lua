@@ -10,11 +10,15 @@ local function debugCmd(NS, rest)
     error("no debug command")
 end
 
-test("debuglog: FONT_MONO points at the vendored JetBrains Mono TTF", function()
+test("debuglog: FONT_MONO points at the library payload's JetBrains Mono TTF", function()
+    -- The face moved out of this addon's media/fonts/ and into the LibKa0s payload, so the path it
+    -- names now runs through libs/LibKa0s/. A FONT path keeps its extension, unlike an icon path —
+    -- SetFont is handed the file, not a texture name the client completes.
     local NS = T.newAddon()
     assertTrue(type(NS.FONT_MONO) == "string", "FONT_MONO must be a string")
-    assertTrue(NS.FONT_MONO:match("JetBrainsMono.-%.ttf$") ~= nil,
-        "FONT_MONO must point at the vendored JetBrainsMono TTF")
+    assertTrue(NS.FONT_MONO:match("libs\\LibKa0s\\media\\fonts\\JetBrainsMono.-%.ttf$") ~= nil,
+        "FONT_MONO must point into the vendored library payload, not at a local copy: "
+        .. tostring(NS.FONT_MONO))
 end)
 
 -- debug-logging-§2's fetch-failure fallback (WG-A-13). The font the LIBRARY actually applied is
@@ -35,7 +39,12 @@ end)
 
 test("debuglog: a TTF the client cannot fetch falls back to a Blizzard font (debug-logging-§2)",
 function()
-    local vendored = "Interface\\AddOns\\WhatGroup\\media\\fonts\\JetBrainsMono-Regular.ttf"
+    -- Still the THIRD rung, not the second: the library answers the payload path, this addon's own
+    -- `or _G.STANDARD_TEXT_FONT` catches a missing library, and ARIALN catches the case neither can
+    -- see — a path that exists and will not load. Named against the library's own catalog rather
+    -- than spelled out, so a re-vendor that moves the payload moves this with it.
+    local vendored = "Interface\\AddOns\\WhatGroup\\libs\\LibKa0s\\media\\fonts\\"
+        .. "JetBrainsMono-Regular.ttf"
     local NS, _, mock = T.newAddon{ mock = function(m) m.fontFetchFails[vendored] = true end }
     assertEqual(NS.FONT_MONO, vendored, "the constant is unchanged — only what is HANDED OVER")
     assertEqual(consoleLogFont(NS, mock), "Fonts\\ARIALN.TTF",

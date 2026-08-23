@@ -16,15 +16,18 @@ badge and any count quoted in the docs must agree with it.
 - harness: every LibKa0s file the runner loads exists on disk
 - harness: the libraries load BEFORE the addon's own files
 
-### test_libka0s.lua (46)
+### test_libka0s.lua (49)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
 - core: the published seams ARE the library's, not a lookalike
+- core: the close button is the library's, told which addon folder is asking
+- core: ApplySkin stays a bare bind, so its optional override survives
 - core: the printer emits <prefix><space><body> as one line
 - core: the prefix is read at CALL time, not captured at load
 - core: the sink is the Lua global print, so the harness can see chat output
 - debuglog: the console is the library's instance, and the sink is bound bare
+- debuglog: the library is told the FOLDER name, not just the frame name
 - debuglog: the descriptor keeps the frame globals the old console used
 - debuglog: the composed window title is unchanged
 - debuglog: the flag stays the addon's — the library never keeps a copy
@@ -64,6 +67,20 @@ badge and any count quoted in the docs must agree with it.
 - libka0s: no seam file hands a descriptor this addon's locale table (the L trap)
 - libka0s: Core has no STRINGS and reads no descriptor L (tripwire)
 - libka0s: Options reads no descriptor L (tripwire)
+
+### test_mediasetup.lua (11)
+
+- mediasetup: NS.Icon answers the vendored path, EXTENSIONLESS
+- mediasetup: an icon the library does not ship answers nil
+- mediasetup: NS.MediaFont answers the vendored face, and only for a face it ships
+- mediasetup: the face this addon names is the face the library registers
+- mediasetup: the LSM registration is the library's, made at file load
+- mediasetup: every icon this addon draws is one the library ships
+- mediasetup: every icon this addon draws has a file in the vendored copy
+- mediasetup: the whole catalog has a file in the vendored copy
+- mediasetup: this addon ships no private copy of the shared art (anti-patterns #63)
+- mediasetup: with no library there is no art and no face, and that is not an error
+- mediasetup: a degraded install still gets a REAL font, never nil and never a dead path
 
 ### test_util.lua (31)
 
@@ -486,7 +503,7 @@ badge and any count quoted in the docs must agree with it.
 
 ### test_debuglog.lua (21)
 
-- debuglog: FONT_MONO points at the vendored JetBrains Mono TTF
+- debuglog: FONT_MONO points at the library payload's JetBrains Mono TTF
 - debuglog: the console renders in the vendored TTF when the client can fetch it
 - debuglog: a TTF the client cannot fetch falls back to a Blizzard font (debug-logging-§2)
 - debuglog: FormatPlain wraps the tag in brackets, single-space separators
@@ -518,7 +535,8 @@ badge and any count quoted in the docs must agree with it.
 | Suite | Cases |
 |-------|------:|
 | test_harness.lua | 7 |
-| test_libka0s.lua | 46 |
+| test_libka0s.lua | 49 |
+| test_mediasetup.lua | 11 |
 | test_util.lua | 31 |
 | test_compat.lua | 23 |
 | test_database.lua | 9 |
@@ -532,4 +550,4 @@ badge and any count quoted in the docs must agree with it.
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **462** |
+| **Total** | **476** |

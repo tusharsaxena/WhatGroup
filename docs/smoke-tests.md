@@ -341,13 +341,13 @@ Run after re-copying `libs/` (see [common-tasks.md → Refresh embedded libs](./
 
 If a new Ace3 module was added or removed in KickCD, also update `WhatGroup.toc`'s lib block to match the directory layout. AceGUI's `.xml` always loads last because it pulls in `widgets/`; `LibKa0s.xml` loads after it.
 
-After a **LibKa0s** re-vendor specifically, also run section 10 and section 11 — the two things no headless suite can reach.
+After a **LibKa0s** re-vendor specifically, also run sections 10, 11 and 12 — the three things no headless suite can reach.
 
 ---
 
 ## 9. LibKa0s degraded-install smoke (~3 min)
 
-The four seam files (`core/CoreSetup.lua`, `core/DebugLogSetup.lua`, `settings/OptionsSetup.lua`, `settings/Slash.lua`) each fall back when their major is absent. The headless suite drives that by loading with the files omitted; only the client can prove a *real* broken install behaves.
+The five seam files (`core/CoreSetup.lua`, `core/MediaSetup.lua`, `core/DebugLogSetup.lua`, `settings/OptionsSetup.lua`, `settings/Slash.lua`) each fall back when their major is absent. The headless suite drives that by loading with the files omitted; only the client can prove a *real* broken install behaves.
 
 1. Quit the game. Rename `Interface/AddOns/WhatGroup/libs/LibKa0s` to `libs/LibKa0s.off`.
 2. Launch, log in.
@@ -408,7 +408,32 @@ Framed as *"nothing moved"*: anything that looks different from the previous bui
 
 ---
 
-## 12. Quick reference checklist
+## 12. Shared art — the marks, and the two ways they vanish (~3 min)
+
+`LibKa0s-Media-1.0` ships the icon catalog and JetBrains Mono inside the library payload, and
+`core/MediaSetup.lua` tells the library which addon folder to build a texture path from. **Nothing
+out of game can see any of this.** A texture path that is never built, or is built wrong, produces a
+control that draws nothing and raises nothing: lint is silent, all 476 headless cases stay green,
+and the only witness is a person looking at two windows side by side. That is the whole reason this
+section exists.
+
+| # | Step | Expect |
+|---|------|--------|
+| 12.1 | `/wg debug` | The console title bar's three right-hand controls are **small square marks, not words**: copy, clear and close, drawn in the same gray as every other Ka0s window's and turning red under the pointer. **A regression looks like the words `Copy` and `Clear` beside a multiplication sign `×`** — that is the library falling back, and it means `addonName` stopped being passed in the descriptor at `core/DebugLogSetup.lua`. |
+| 12.2 | With the console open, click the copy control | The copy window opens, and **its** close control is the same square mark. A `×` here alone means the copy window is being built without the folder name while the console is not — the two come from the same descriptor key, so they should never disagree. |
+| 12.3 | Read the log text | Monospace, with the `HH:MM:SS \| [tag] …` columns aligned. It is the **library's** JetBrains Mono now, at `libs/LibKa0s/media/fonts/`, not a copy under this addon's `media/`. A proportional face here means `NS.MediaFont` answered nil and the `STANDARD_TEXT_FONT` fallback caught it — readable, and wrong. |
+| 12.4 | `/wg test`, then look at the popup's footer | The **Close** button keeps its word and gains a small close mark to its left, the pair centered together. The word must not disappear: this is a wide action button, not a title-bar target. If the mark is missing and the word is centered on its own, `NS.Icon("close")` answered nil and the button correctly fell back to what it always drew. |
+| 12.5 | Settings → any Ka0s addon's font dropdown | `JetBrains Mono` appears in the list. It is registered by `Media.RegisterLSM(addonName)` at file load, once, pointing at one set of bytes — so **every** Ka0s addon offering the dropdown shows the same entry rather than several that merely share a name. |
+| 12.6 | Open a second Ka0s addon's debug console beside this one | The two title bars are indistinguishable: same marks, same size, same pitch, same gray. Any difference between them is the defect this whole section is for. |
+
+**After renaming `libs/LibKa0s` away (section 9), re-check 12.1 and 12.4:** the console's controls go
+back to `Copy`, `Clear` and `×`, and the footer button back to the plain word `Close`. That is
+correct — the art is inside the payload that is missing. What must **not** happen is a blank control,
+an error, or a console that refuses to open.
+
+---
+
+## 13. Quick reference checklist
 
 For a fast pre-release pass, run at minimum:
 
@@ -423,7 +448,8 @@ For a fast pre-release pass, run at minimum:
 - [ ] section 5.1 — One real LFG apply → join
 - [ ] section 10 — no `SCREAMING_SNAKE` string on any page, in the console, or in chat
 - [ ] sections 11.5 / 11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
+- [ ] sections 12.1 / 12.4 — marks on the console title bar, and a mark **beside** the footer Close word
 
-Run section 9 (degraded install) and the rest of section 11 after a LibKa0s re-vendor or any change to the four seam files.
+Run section 9 (degraded install), section 12 (shared art) and the rest of section 11 after a LibKa0s re-vendor or any change to the five seam files.
 
 If all of those pass, the addon is in shippable shape for the 80% case. Run the full suite for releases tagged with feature work.

@@ -66,6 +66,7 @@ if not lib then
     H.SetRenderer          = function() end
     H.RegisterOptionsPage  = function() end
     H.RefreshAllPanels     = function() end
+    H.RefreshPanel         = function() end
     H.RefreshScalars       = function() end
     H.RestoreAllDefaults   = function() end
     H.LSMValues            = function() return function() return {} end end

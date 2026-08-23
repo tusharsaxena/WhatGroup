@@ -58,14 +58,14 @@ are **frozen history** — never treat them as a live requirement, and never "re
 - **Never edit `libs/` or `tests/_kit/`.** Both are whole-folder, byte-identical copies of
   `../LibKa0s`'s ship folders. A library problem is a finding to fix **upstream** and
   re-vendor — a local patch is a fork nobody knows about, and the next re-vendor silently
-  reverts it. The addon takes four of LibKa0s's five majors (Core, DebugLog, Options,
-  Slash) through the four seam files `core/CoreSetup.lua`, `core/DebugLogSetup.lua`,
-  `settings/OptionsSetup.lua` and `settings/Slash.lua`; **Perf is declined** on structural
-  grounds ([`LIBKA0S-15`](https://github.com/tusharsaxena/WhatGroup/issues/7)).
+  reverts it. The addon takes five of LibKa0s's six majors (Core, DebugLog, Media,
+  Options, Slash) through the five seam files `core/CoreSetup.lua`, `core/MediaSetup.lua`,
+  `core/DebugLogSetup.lua`, `settings/OptionsSetup.lua` and `settings/Slash.lua`; **Perf is
+  declined** on structural grounds ([`LIBKA0S-15`](https://github.com/tusharsaxena/WhatGroup/issues/7)).
 
 ## Bundled LibKa0s
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.8.2 (MIT). That line is the
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.10.2 (MIT). That line is the
 repo's provenance claim — the tag `libs/LibKa0s/` and `tests/_kit/` were copied from — and
 `tests/test_vendor_sync.lua` reads it out of *this* file and compares both payloads against
 that tag in the sibling checkout. It is an input to the gate, not a comment: bump the version

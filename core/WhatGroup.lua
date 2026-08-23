@@ -83,21 +83,35 @@ local p = NS.Util.print
 WhatGroup._print = p
 NS.Print = p
 
--- WG-20 (debug-logging-§2 — Blizzard-default-only accepted deviation): the
--- on-screen debug console MUST render in a monospace font, but retail WoW
--- ships no guaranteed monospace face — so a non-Blizzard TTF (JetBrains Mono,
--- OFL) is vendored under media/fonts/ to satisfy §2. This is the ONLY
--- non-Blizzard default font in the addon; every other FontString uses a
--- GameFont* object. It's a deviation from the addon's Blizzard-default-only
--- baseline, not from the standard (which requires the monospace face).
--- Registered with LibSharedMedia so it also shows up in any media picker;
--- NS.FONT_MONO is the addon-relative path DebugLog.lua feeds straight to
--- SetFont.
-NS.FONT_MONO = "Interface\\AddOns\\WhatGroup\\media\\fonts\\JetBrainsMono-Regular.ttf"
-do
-    local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
-    if LSM and LSM.Register then LSM:Register("font", "JetBrains Mono", NS.FONT_MONO) end
-end
+-- The on-screen debug console MUST render in a monospace face (debug-logging-§2)
+-- and retail WoW ships no guaranteed one, so a non-Blizzard TTF is needed. It is
+-- no longer OURS: JetBrains Mono (OFL) arrives inside the LibKa0s payload, and
+-- WG-20 — the accepted deviation that justified vendoring a private copy under
+-- media/fonts/ — collapses into the library-stack media rule with it. Six Ka0s
+-- addons shipped six copies of the same bytes; two copies of a font is two
+-- licenses to track and two provenance stories, and the collection stops looking
+-- like one author's work the first time one copy is regenerated and the rest are
+-- not. This is still the only non-Blizzard font the addon draws with; every other
+-- FontString uses a GameFont* object.
+--
+-- THE NAME IS A CONSTANT because two places need it and they are in two repos:
+-- this file asks the library for it, and the library registers it with
+-- LibSharedMedia under the same string. A literal duplicated in the suite is the
+-- drift a constant exists to prevent.
+NS.FONT_MONO_NAME = "JetBrains Mono"
+
+-- THE FALLBACK IS A REAL CLIENT FONT, and that is the whole point of the `or`.
+-- SetFont accepts a path to a file that is not there, fails to load it, and the
+-- text simply does not draw — so a degraded install must land on something the
+-- client definitely has, never on a dead path and never on nil (the library
+-- validates the console's `font` as a string at :New time). Proportional but
+-- legible beats monospace but invisible.
+--
+-- The LSM registration that used to sit here moved to core/MediaSetup.lua's
+-- Media.RegisterLSM(addonName): one call now registers every face the library
+-- ships, under the key every other Ka0s addon registers it under, pointing at
+-- one set of bytes rather than six.
+NS.FONT_MONO = NS.MediaFont and NS.MediaFont(NS.FONT_MONO_NAME) or _G.STANDARD_TEXT_FONT
 
 -- ---------------------------------------------------------------------------
 -- Teleport spell lookup

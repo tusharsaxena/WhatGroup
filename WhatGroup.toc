@@ -30,6 +30,9 @@ locales\enUS.lua
 # Core (CoreSetup first: it publishes the printer every later file reads, and
 # core\WhatGroup.lua takes it as a file-scope upvalue)
 core\CoreSetup.lua
+# MediaSetup here and not later: core\WhatGroup.lua resolves NS.FONT_MONO from
+# NS.MediaFont at load, so this slot is load-bearing, not conventional.
+core\MediaSetup.lua
 core\Util.lua
 core\Compat.lua
 core\Database.lua

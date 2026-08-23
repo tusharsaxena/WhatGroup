@@ -59,6 +59,7 @@ Kit.run{
     suites = {
         "test_harness",
         "test_libka0s",
+        "test_mediasetup",
         "test_util",
         "test_compat",
         "test_database",

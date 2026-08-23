@@ -24,6 +24,13 @@ handful of facts in the descriptor below.
 - `font = resolveConsoleFont(NS.FONT_MONO)`, `slash = "/wg"` (the latter only
   composes the console checkbox's tooltip). See **Font** below for why the path
   is probed rather than passed through.
+- `addonName = addonName` — passed **beside** `name`, not instead of it. `name`
+  seeds the frame globals above; `addonName` is what the library builds a
+  **texture path** from, so its own close, clear and copy controls draw this
+  collection's marks instead of a multiplication sign and the words `Clear` and
+  `Copy`. Same string here, different questions everywhere. A vendored library
+  cannot infer it — there is no one path to it — and a wrong one draws nothing
+  and raises nothing.
 - `isEnabled` / `setEnabled` — the flag **stays this addon's**
   (`NS.State.debug`). The library never keeps a copy — a second copy inside the
   library would be a second truth.
@@ -117,7 +124,12 @@ an implementation this repo owns.
 - Title bar: draggable, titled `Ka0s WhatGroup — Debug`, 1px divider.
   - **Left:** the `Debug: ON` (green) / `Debug: OFF` (red) state toggle — clicking
     it flips logging through `D:SetEnabled`.
-  - **Right:** `Copy`, `Clear`, `×` (close), the last from Core's factory.
+  - **Right:** copy, clear and close — three small square targets drawing the
+    shared `copy`, `clear` and `close` marks from the LibKa0s icon catalog. All
+    three are the library's own controls; they draw art rather than words only
+    because the descriptor passes `addonName`. Without it they fall back to the
+    words `Copy` and `Clear` beside a multiplication sign, which is what a
+    degraded install correctly gets and what a regression looks like.
 - Log surface: a `ScrollingMessageFrame`, `SetMaxLines(500)`, mouse-wheel scroll,
   monospace `NS.FONT_MONO` at 10pt, `SetJustifyH("LEFT")`, fading off, inset to
   clear the scrollbar gutter and the status bar.
@@ -219,10 +231,24 @@ See [slash-dispatch.md](./slash-dispatch.md) for the dispatch table.
 
 ## Font
 
-`NS.FONT_MONO` points at the vendored `media/fonts/JetBrainsMono-Regular.ttf`
-(OFL, shipped with `OFL.txt`). `core/WhatGroup.lua` defines it and registers it
-with LibSharedMedia-3.0 at load (`LSM:Register("font", "JetBrains Mono", …)`,
-guarded so a missing LSM is a no-op); the descriptor hands the same path to the
+`NS.FONT_MONO` points at **the library payload's**
+`libs/LibKa0s/media/fonts/JetBrainsMono-Regular.ttf` (OFL, shipped with the
+library's own `JetBrainsMono-OFL.txt`). The face used to be this addon's, under
+`media/fonts/`; it moved into LibKa0s with `LibKa0s-Media-1.0`, because six Ka0s
+addons shipping six copies of one font is six licenses to track and a collection
+that stops looking like one author's work the first time one copy is regenerated
+and the rest are not.
+
+`core/WhatGroup.lua` resolves it as
+`NS.MediaFont and NS.MediaFont(NS.FONT_MONO_NAME) or _G.STANDARD_TEXT_FONT` —
+the seam published by `core/MediaSetup.lua`, whose TOC slot is load-bearing for
+exactly this reason. **The fallback is a real client font on purpose:** `SetFont`
+accepts a path to a file that is not there, fails to load it, and the text simply
+does not draw, so a degraded install must land on a face the client definitely
+has rather than on nil or on a dead path. `core/MediaSetup.lua` also makes the
+LibSharedMedia registration, through `Media.RegisterLSM(addonName)` at file load
+— one call, pointing every Ka0s addon at one set of bytes under one key, in place
+of this addon's own `LSM:Register`. The descriptor hands the resolved path to the
 library, which feeds it straight to `SetFont` for both the console log and the
 Copy `EditBox`.
 
@@ -231,7 +257,7 @@ not hand `NS.FONT_MONO` over unexamined. It probes the path once at load —
 `CreateFont("WhatGroupFontProbe"):SetFont(path, 10, "")` — and passes
 `Fonts\ARIALN.TTF` instead if the probe fails. This matters because the failure
 is **silent**: `SetFont` answers `false` when the client cannot load the file (a
-packager that dropped `media/fonts/`, a corrupt TTF, a path case-mangled on a
+packager that dropped the library's `media/`, a corrupt TTF, a path case-mangled on a
 case-sensitive filesystem) and does not raise, so without the fallback the
 console would come up in whatever font the region already carried — a
 proportional one — and the aligned `HH:MM:SS | [tag] …` columns the monospace

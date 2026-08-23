@@ -179,7 +179,7 @@ to fix a typo.
   (`:6-11`), and `.pkgmeta:3-4` records that there is **no `externals:` block** because every
   library is vendored.
   There is nothing to install locally for this.
-- **Media** — `media/fonts`, `media/logos`, `media/screenshots` are **committed binary assets**,
+- **Media** — `media/logos` and `media/screenshots` are **committed binary assets**,
   not build outputs. No image or font tooling is required, because nothing regenerates them from
   source in this repo. If a logo needs re-cutting, that happens outside the repo with whatever tool
   the author prefers; there is no committed pipeline to reproduce.

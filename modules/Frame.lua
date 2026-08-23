@@ -200,6 +200,43 @@ local function deferTeleportUntilCombatEnds(info)
     return true
 end
 
+-- The footer Close button's mark, in a named helper rather than five lines inside an already-long
+-- builder — adding an art path to a large window builder is exactly what took a LibKa0s function
+-- one over the release CCN ceiling.
+--
+-- THE WORD STAYS. standalone-windows: a wide action button keeps its label and gains a mark beside
+-- it. This is a 90px templated button in a footer, not a small square target in a title strip, and
+-- a dialog whose only close control read as a bare glyph would be a worse dialog. No tooltip on the
+-- mark either — a mark that needs one is a label that should not have been removed, and the label
+-- was not removed.
+--
+-- NIL IS A REAL ANSWER: no LibKa0s, or a catalog that no longer carries `close`. Either way the
+-- button is left exactly as it was — the word, centered, on the template's own art. Nothing is
+-- built by concatenating a path, because a path to a texture that is not there draws nothing and
+-- raises nothing.
+local function decorateCloseButton(button)
+    local path = NS.Icon and NS.Icon("close")
+    if not path then return end
+
+    local mark = button:CreateTexture(nil, "OVERLAY")
+    mark:SetSize(12, 12)
+    mark:SetPoint("LEFT", button, "LEFT", 10, 0)
+    mark:SetTexture(path)
+    -- The art ships WHITE so a multiply lands on whatever the caller wants; this is
+    -- UIPanelButtonTemplate's own resting label color, so the mark reads as part of the button
+    -- rather than as a second, brighter element.
+    mark:SetVertexColor(1, 0.82, 0)
+
+    -- The label is nudged off center by half the mark's footprint so the pair sits centered
+    -- together. Guarded: a Blizzard template is not this addon's to assume the shape of.
+    local label = button.GetFontString and button:GetFontString()
+    if label then
+        label:ClearAllPoints()
+        label:SetPoint("CENTER", button, "CENTER", 8, 0)
+    end
+    button.icon = mark
+end
+
 local function buildFrame()
     if f then return end   -- one-shot
 
@@ -360,6 +397,7 @@ local function buildFrame()
     closeBtn:SetPoint("BOTTOM", f, "BOTTOM", 0, 12)
     closeBtn:SetText(L["Close"])
     closeBtn:SetScript("OnClick", function() f:Hide() end)
+    decorateCloseButton(closeBtn)
 
     -- ESC to close — register with UISpecialFrames *now*, lazily.
     -- Earlier versions did this at file-load and that addition was

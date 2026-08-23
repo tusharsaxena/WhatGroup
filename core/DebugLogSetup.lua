@@ -25,11 +25,11 @@ local lib = LibStub and LibStub("LibKa0s-DebugLog-1.0", true)
 --
 -- debug-logging-§2 asks for a Blizzard font "as the fetch-failure fallback" behind the vendored
 -- TTF, and the reason is that a fetch failure is SILENT. `SetFont` answers `false` when the client
--- cannot load the file — a packager that dropped media/fonts/, a corrupt TTF, a path case-mangled
--- on a case-sensitive filesystem — and does not raise. Without a fallback the console then comes up
--- in whatever font the FontString already carried, i.e. a proportional one: the aligned
--- `HH:MM:SS | [tag] …` columns that the §2 monospace MUST exists for are gone, and nothing in the
--- error log says why.
+-- cannot load the file — a packager that dropped the library's media/, a corrupt TTF, a path
+-- case-mangled on a case-sensitive filesystem — and does not raise. Without a fallback the console
+-- then comes up in whatever font the FontString already carried, i.e. a proportional one: the
+-- aligned `HH:MM:SS | [tag] …` columns that the §2 monospace MUST exists for are gone, and
+-- nothing in the error log says why.
 --
 -- The library takes ONE resolved string (`descriptor.font`, fed straight to SetFont at
 -- DebugLog.lua's log / line-counter / copy-box builds) and the addon is the side that ships the
@@ -122,9 +122,20 @@ NS.DebugLog = lib:New({
     -- three frame globals the hand-written console used, so /framestack and any Esc-close muscle
     -- memory are unchanged.
     name  = addonName,
+    -- THE FOLDER NAME, which is a different question from the one above even though this addon
+    -- answers both with the same string. `name` seeds frame globals; `addonName` is what the
+    -- library builds a TEXTURE PATH from, so the console's own close, clear and copy controls draw
+    -- this collection's marks instead of a multiplication sign and two words. A vendored library
+    -- cannot work it out for itself -- there is no one path to it -- and a host where the two
+    -- strings diverge would hand it a path into nowhere, which draws nothing and raises nothing.
+    -- Passed explicitly for that reason rather than left to be inferred from `name`. It reaches the
+    -- copy window's close button too.
+    addonName = addonName,
     -- The library appends its own " — Debug", so this is the bare brand.
     title = "Ka0s WhatGroup",
-    -- The vendored TTF, or a Blizzard font if this client cannot fetch it (debug-logging-§2).
+    -- The library's own JetBrains Mono, or a Blizzard font if this client cannot fetch it
+    -- (debug-logging-§2). NS.FONT_MONO is never nil — it falls back to STANDARD_TEXT_FONT —
+    -- which matters because the library validates this field as a string at :New time.
     font  = resolveConsoleFont(NS.FONT_MONO),
     slash = "/wg",
 
@@ -164,8 +175,10 @@ NS.DebugLog = lib:New({
     --
     -- No `skin`, no `applySkin`, no `makeCloseButton` either, and that is a decision rather than an
     -- omission. As of Core minor 3 the library's own default draws the normative Ka0s window edge
-    -- (standalone-windows), which is what the addon's popup now wears too, and the × on a window
-    -- the library draws is the library's — a host must not push its own onto it.
+    -- (standalone-windows), which is what the addon's popup now wears too, and the close control on
+    -- a window the library draws is the library's — a host must not push its own onto it. That is
+    -- also why the mark arrives through `addonName` above rather than through a host-supplied
+    -- button: the library keeps drawing it, and is merely told where the art lives.
 })
 
 -- The global gated sink (debug-logging-§4), published under the name the addon's 26 existing call

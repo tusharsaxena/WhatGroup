@@ -44,15 +44,24 @@ module refuse to register — so every seam falls back to its stub and the suite
 happily measures the stub, green. `tests/test_harness.lua` pins the derivation
 against a fresh read of the TOC and the XML.
 
-The suites, in run order: `test_harness`, `test_libka0s`, `test_util`,
-`test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
+The suites, in run order: `test_harness`, `test_libka0s`, `test_mediasetup`,
+`test_util`, `test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
 `test_capture`, `test_notify`, `test_frame`, `test_panel`, `test_lifecycle`,
 `test_debuglog`.
 
-`test_libka0s` is the integration suite for the four adopted LibKa0s majors:
-that each really registers, that each descriptor is well-formed, that the
-degraded install answers rather than errors, and the two halves of the `L`-trap
-guard. The library's own behavior is tested where it lives — this addon keeps
+`test_libka0s` is the integration suite for the adopted LibKa0s majors: that
+each really registers, that each descriptor is well-formed, that the degraded
+install answers rather than errors, and the two halves of the `L`-trap guard. It
+also carries the two cases that pin the ARGUMENT nothing else can see — that
+`NS.MakeCloseButton` forwards the addon **folder** name as the library's third
+argument, and that the DebugLog descriptor passes `addonName` beside `name`.
+Both are invisible in game except by comparison: the factory receives no name,
+builds no texture path, and draws a perfectly good button.
+
+`test_mediasetup` is the `LibKa0s-Media-1.0` seam's own suite, and the case that
+earns it is the catalog cross-check: every icon this addon draws is a plain
+string resolved against a catalog in **another repo**, and a rename on either
+side answers nil, which draws nothing and raises nothing. The library's own behavior is tested where it lives — this addon keeps
 no duplicate of those cases (testing-§8).
 
 Coverage extends past pure logic into the UI and event layers — the popup's

@@ -75,7 +75,33 @@ test("core: the published seams ARE the library's, not a lookalike", function()
     assertEqual(NS.IsConcatSafe, core.IsConcatSafe)
     assertEqual(NS.SKIN, core.SKIN, "the skin table is shared, never copied")
     assertEqual(NS.ApplySkin, core.ApplySkin)
-    assertEqual(NS.MakeCloseButton, core.MakeCloseButton)
+end)
+
+test("core: the close button is the library's, told which addon folder is asking", function()
+    -- The one seam in core/CoreSetup.lua that is WRAPPED rather than bound, and the argument is
+    -- the whole point: LibKa0s draws this collection's `close` mark only when it can build a
+    -- texture path, and being vendored it cannot work out which folder it was copied into. A
+    -- two-of-three passthrough builds a perfectly good button drawing a multiplication sign, so
+    -- nothing errors and nothing goes red — this is the only witness (anti-patterns #64).
+    -- red under: NS.MakeCloseButton = lib.MakeCloseButton.
+    local NS, env = T.newAddon()
+    local core = env.LibStub("LibKa0s-Core-1.0", true)
+    local seen, real = nil, core.MakeCloseButton
+    core.MakeCloseButton = function(_, _, name) seen = name; return nil end
+    NS.MakeCloseButton(env.UIParent, function() end)
+    core.MakeCloseButton = real
+
+    assertEqual(seen, "WhatGroup",
+        "the library was not told which addon FOLDER to build the texture path from")
+end)
+
+test("core: ApplySkin stays a bare bind, so its optional override survives", function()
+    -- Guarding the line above the wrapper. `ApplySkin(frame, skin)` takes a per-window override,
+    -- and wrapping it to one argument while adding the close-button wrapper beside it would be the
+    -- same defect on the next line.
+    local NS, env = T.newAddon()
+    local core = env.LibStub("LibKa0s-Core-1.0", true)
+    assertEqual(NS.ApplySkin, core.ApplySkin)
 end)
 
 test("core: the printer emits <prefix><space><body> as one line", function()
@@ -115,6 +141,21 @@ test("debuglog: the console is the library's instance, and the sink is bound bar
     assertEqual(type(NS.DebugLog.SetEnabled), "function", "the instance surface is there")
     assertEqual(NS.Debug, NS.DebugLog.Debug,
         "NS.Debug must BE the instance's plain function, not a wrapper — ~20 call sites bind it")
+end)
+
+test("debuglog: the library is told the FOLDER name, not just the frame name", function()
+    -- Two fields, two questions, one string in this addon. `name` seeds the frame globals below;
+    -- `addonName` is what the library builds a TEXTURE PATH from, which is what turns the
+    -- console's close, clear and copy controls from a multiplication sign and two words into this
+    -- collection's marks — on the copy window too. Asserted against the SOURCE because the
+    -- descriptor is not published back, and because the appearance it produces is not something a
+    -- headless run can see.
+    -- red under: dropping the key and letting the console keep its words.
+    local src = readFile("core/DebugLogSetup.lua")
+    assertTrue(src ~= nil, "core/DebugLogSetup.lua is readable")
+    local body = src:gsub("%-%-[^\r\n]*", "")
+    assertTrue(body:match("addonName%s*=%s*addonName") ~= nil,
+        "the descriptor does not pass addonName, so both console windows draw the fallback glyph")
 end)
 
 test("debuglog: the descriptor keeps the frame globals the old console used", function()
@@ -423,7 +464,8 @@ end)
 -- this is the whole-library-missing scenario as well as the Core one.
 
 local NO_LIBKA0S = {
-    "libs/LibKa0s/Core.lua", "libs/LibKa0s/DebugLog.lua", "libs/LibKa0s/Slash.lua",
+    "libs/LibKa0s/Core.lua", "libs/LibKa0s/Media.lua", "libs/LibKa0s/DebugLog.lua",
+    "libs/LibKa0s/Slash.lua",
     "libs/LibKa0s/Options.lua", "libs/LibKa0s/OptionsWidgets.lua",
     "libs/LibKa0s/OptionsScroll.lua", "libs/LibKa0s/Perf.lua", "libs/LibKa0s/PerfPanel.lua",
 }

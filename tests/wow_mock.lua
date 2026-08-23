@@ -498,6 +498,11 @@ local function build()
     mock.UISpecialFrames  = {}
     mock.date             = function(fmt) return os.date(fmt) end
 
+    -- The client's own guaranteed face. Present because core/WhatGroup.lua's FONT_MONO falls back
+    -- to it when LibKa0s-Media is absent, and a fallback that resolves to nil in the harness would
+    -- pass every case while shipping a console that draws nothing.
+    mock.STANDARD_TEXT_FONT = "Fonts\\FRIZQT__.TTF"
+
     -- Blizzard font objects the panel hands to SetFontObject. Present (rather than nil) so the
     -- `_G.GameFontNormalLarge and …` branches are exercised.
     mock.GameFontNormalLarge = stubFrame("Font", "GameFontNormalLarge")

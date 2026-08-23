@@ -115,7 +115,26 @@ NS.SafeToString = lib.SafeToString
 -- fields as well as the colors, so there is nothing left to justify keeping apart.
 NS.SKIN            = lib.SKIN
 NS.ApplySkin       = lib.ApplySkin
-NS.MakeCloseButton = lib.MakeCloseButton
+-- WRAPPED, TO SAY WHO IS ASKING -- the one seam in this file that is not a bare
+-- bind. LibKa0s draws the collection's own `close` mark when it is told which
+-- addon folder to build a texture path from, and it cannot work that out for
+-- itself: it is vendored, so there is no one path to it and a copy cannot know
+-- which folder it was copied into. `addonName` is that answer and this file has
+-- it as its first vararg.
+--
+-- ONE wrapper rather than a third argument at each call site: every close control
+-- the addon builds comes through here, so a re-skin lands on all of them at once
+-- and none of them has to remember. Without the name the library falls back to a
+-- multiplication sign, which is exactly what a degraded install should get and
+-- exactly what this addon drew before -- a two-of-three passthrough here is
+-- indistinguishable from working (anti-patterns #64).
+--
+-- Note what is NOT done to the two lines above: ApplySkin stays a BIND, because
+-- its second parameter is an optional per-window override and wrapping it to one
+-- argument would be that same defect on the previous line.
+NS.MakeCloseButton = function(parent, onClick)
+    return lib.MakeCloseButton(parent, onClick, addonName)
+end
 
 -- The prefix is a FUNCTION, not the value of NS.PREFIX: this file loads before core/WhatGroup.lua
 -- defines that constant, so the string form would capture nil forever. Core re-reads it on every
