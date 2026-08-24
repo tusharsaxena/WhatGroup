@@ -35,6 +35,10 @@ core\CoreSetup.lua
 core\MediaSetup.lua
 core\Util.lua
 core\Compat.lua
+# The LibKa0s-Env seam. After Compat, and before settings\Panel.lua and settings\Slash.lua,
+# the two files that read the TOC. Nothing here resolves at load beyond the LibStub lookup and
+# both call sites read inside a function, so this slot is conventional, not load-bearing.
+core\EnvSetup.lua
 core\Database.lua
 core\WhatGroup.lua
 core\DebugLogSetup.lua

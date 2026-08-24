@@ -82,6 +82,17 @@ badge and any count quoted in the docs must agree with it.
 - mediasetup: with no library there is no art and no face, and that is not an error
 - mediasetup: a degraded install still gets a REAL font, never nil and never a dead path
 
+### test_envsetup.lua (8)
+
+- envsetup: NS.Meta reads this addon's TOC
+- envsetup: NS.Meta asks about this addon's FOLDER, not its title or its frame prefix
+- envsetup: NS.Meta degrades to nil when the client exposes no manifest reader
+- envsetup: NS.Version prefers the TOC over this addon's own constant
+- envsetup: NS.Version falls back to this addon's own constant
+- envsetup degraded: an install with no LibKa0s still reads its own TOC
+- envsetup: no file inlines its own C_AddOns ladder any more
+- envsetup: the ladder did not land in Compat either
+
 ### test_util.lua (31)
 
 - util: SafeToString handles nil / booleans / strings / numbers
@@ -538,6 +549,7 @@ badge and any count quoted in the docs must agree with it.
 | test_harness.lua | 7 |
 | test_libka0s.lua | 49 |
 | test_mediasetup.lua | 11 |
+| test_envsetup.lua | 8 |
 | test_util.lua | 31 |
 | test_compat.lua | 23 |
 | test_database.lua | 9 |
@@ -551,4 +563,4 @@ badge and any count quoted in the docs must agree with it.
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **477** |
+| **Total** | **485** |

@@ -22,15 +22,6 @@ local function trim(s)
     return (s or ""):gsub("^%s+", ""):gsub("%s+$", "")
 end
 
--- TOC metadata first so it cannot drift from the packaged manifest, then the in-code constant
--- (slash-commands-§3).
-local function version()
-    local ver = C_AddOns and C_AddOns.GetAddOnMetadata
-                and C_AddOns.GetAddOnMetadata(addonName, "Version")
-    if not ver or ver == "" then ver = WhatGroup.VERSION end
-    return ver
-end
-
 local Sl                      -- forward-declared: the handlers below reach it at call time
 local runShow, runTest, runConfig, runDebug, runReset, runResetAll
 
@@ -98,7 +89,7 @@ if not lib then
             Sl:PrintHelp()
         end,
         PrintHelp = function()
-            NS.Print("v" .. version() .. " slash commands")
+            NS.Print("v" .. NS.Version() .. " slash commands")
             for _, entry in ipairs(COMMANDS) do
                 NS.Print("  /wg " .. entry[1] .. " — " .. entry[2])
             end
@@ -113,13 +104,13 @@ if not lib then
             for i, entry in ipairs(COMMANDS) do out[i] = "/wg " .. entry[1] .. " — " .. entry[2] end
             return out
         end,
-        HelpHeader      = function() return "v" .. version() .. " slash commands" end,
+        HelpHeader      = function() return "v" .. NS.Version() .. " slash commands" end,
         CliList         = unavailable,
         CliGet          = unavailable,
         CliSet          = unavailable,
         CliReset        = unavailable,
         CliResetAll     = unavailable,
-        CliVersion      = function() NS.Print("v" .. version()) end,
+        CliVersion      = function() NS.Print("v" .. NS.Version()) end,
         BuildListLines  = function() return { CLI_MISSING } end,
         SetRowAnnotator = function() end,
         Text            = function(_, key) return key end,
@@ -159,7 +150,10 @@ Sl = lib:New({
     commands     = COMMANDS,
 
     print   = function(line) NS.Print(line) end,
-    version = version,
+    -- The TOC first, then this addon's in-code constant, through the one seam that knows both
+    -- (core/EnvSetup.lua). The library calls this at render time, so passing the function
+    -- rather than a string keeps the banner reading the manifest rather than a load-time copy.
+    version = NS.Version,
 
     -- The single write seam again — the same functions settings/OptionsSetup.lua hands the options
     -- module, so a CLI change and a checkbox click take one path (slash-commands-§5).

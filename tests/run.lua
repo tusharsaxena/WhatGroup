@@ -60,6 +60,7 @@ Kit.run{
         "test_harness",
         "test_libka0s",
         "test_mediasetup",
+        "test_envsetup",
         "test_util",
         "test_compat",
         "test_database",

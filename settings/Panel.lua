@@ -124,8 +124,7 @@ end
 
 -- TOC Notes one-liner — full-width Label, left-justified.
 local function addNotesLine(AceGUI, scroll)
-    local meta  = (C_AddOns and C_AddOns.GetAddOnMetadata) or _G.GetAddOnMetadata
-    local notes = (meta and meta("WhatGroup", "Notes")) or ""
+    local notes = NS.Meta("Notes") or ""
 
     local desc = AceGUI:Create("Label")
     desc:SetFullWidth(true)

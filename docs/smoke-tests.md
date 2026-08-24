@@ -413,7 +413,7 @@ Framed as *"nothing moved"*: anything that looks different from the previous bui
 `LibKa0s-Media-1.0` ships the icon catalog and JetBrains Mono inside the library payload, and
 `core/MediaSetup.lua` tells the library which addon folder to build a texture path from. **Nothing
 out of game can see any of this.** A texture path that is never built, or is built wrong, produces a
-control that draws nothing and raises nothing: lint is silent, all 477 headless cases stay green,
+control that draws nothing and raises nothing: lint is silent, all 485 headless cases stay green,
 and the only witness is a person looking at two windows side by side. That is the whole reason this
 section exists.
 
