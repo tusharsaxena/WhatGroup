@@ -91,7 +91,7 @@ Everything hangs off the shared namespace (`local addonName, NS = ...`):
   - `D:ConsoleCheckbox()` — a plain `{ label, tooltip, get, set }` table for the
     settings panel to render (see below). Data, not a widget, so neither library
     reaches for the other.
-  - `D.buffer` — the plain-text mirror (capped at `lib.MAX_BUFFER`, 500 lines)
+  - `D.buffer` — the plain-text mirror (capped at `lib.MAX_BUFFER`, 1500 lines)
     the Copy window reads.
 - **`WhatGroup:InitSummary()`** (in `core/WhatGroup.lua`) — a pure builder
   returning the one-line `[Init]` session summary: the standard-mandated identity
@@ -130,7 +130,7 @@ an implementation this repo owns.
     because the descriptor passes `addonName`. Without it they fall back to the
     words `Copy` and `Clear` beside a multiplication sign, which is what a
     degraded install correctly gets and what a regression looks like.
-- Log surface: a `ScrollingMessageFrame`, `SetMaxLines(500)`, mouse-wheel scroll,
+- Log surface: a `ScrollingMessageFrame`, `SetMaxLines(1500)`, mouse-wheel scroll,
   monospace `NS.FONT_MONO` at 10pt, `SetJustifyH("LEFT")`, fading off, inset to
   clear the scrollbar gutter and the status bar.
 - **Scrollbar** (debug-logging-§11 MUST): a `ScrollingMessageFrame` has no native
@@ -145,7 +145,7 @@ an implementation this repo owns.
   old C getters (`GetNumLinesDisplayed` / `GetCurrentScroll`) are nil on this
   mixin and MUST NOT be used (anti-pattern #41). Type-guarded, so the headless
   mock is a clean no-op.
-- **Status bar**: a 1px divider plus a right-aligned `N / 500 lines` counter in
+- **Status bar**: a 1px divider plus a right-aligned `N / 1500 lines` counter in
   the log's own monospace font, updated on every append and reset by `Clear`.
   `N` is `#D.buffer`, capped in lock-step with the log's `SetMaxLines`.
 - **Frames are lazy** — the console window and the copy window are built

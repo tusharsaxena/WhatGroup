@@ -375,7 +375,7 @@ end
 --     removed or renamed schema row, or one hand-edited into SavedVariables,
 --     sitting in the profile forever;
 --   * the coalescing is what keeps one [Reset] summary in the console instead of
---     N [Set] lines in a 500-line buffer (debug-logging-§9).
+--     N [Set] lines in a 1500-line buffer (debug-logging-§9).
 --
 -- The library's per-page `RestoreDefaults(pageKey, ctx)` is untouched and still
 -- reachable; nothing calls it today because this addon's Defaults button is

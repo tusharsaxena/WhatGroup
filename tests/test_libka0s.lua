@@ -464,8 +464,9 @@ end)
 -- this is the whole-library-missing scenario as well as the Core one.
 
 local NO_LIBKA0S = {
-    "libs/LibKa0s/Core.lua", "libs/LibKa0s/Media.lua", "libs/LibKa0s/DebugLog.lua",
-    "libs/LibKa0s/Slash.lua",
+    "libs/LibKa0s/Core.lua", "libs/LibKa0s/Env.lua", "libs/LibKa0s/Pool.lua",
+    "libs/LibKa0s/Item.lua", "libs/LibKa0s/Media.lua", "libs/LibKa0s/Widgets.lua",
+    "libs/LibKa0s/DebugLog.lua", "libs/LibKa0s/Slash.lua",
     "libs/LibKa0s/Options.lua", "libs/LibKa0s/OptionsWidgets.lua",
     "libs/LibKa0s/OptionsScroll.lua", "libs/LibKa0s/Perf.lua", "libs/LibKa0s/PerfPanel.lua",
 }

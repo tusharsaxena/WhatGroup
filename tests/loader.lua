@@ -23,7 +23,11 @@ local Loader = dofile("tests/_kit/loader.lua")
 -- (testing-§9, anti-patterns #48).
 local LIBKA0S = {
     "libs/LibKa0s/Core.lua",
+    "libs/LibKa0s/Env.lua",
+    "libs/LibKa0s/Pool.lua",
+    "libs/LibKa0s/Item.lua",
     "libs/LibKa0s/Media.lua",
+    "libs/LibKa0s/Widgets.lua",
     "libs/LibKa0s/DebugLog.lua",
     "libs/LibKa0s/Slash.lua",
     "libs/LibKa0s/Options.lua",
