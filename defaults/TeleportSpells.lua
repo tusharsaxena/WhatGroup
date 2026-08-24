@@ -95,6 +95,9 @@ NS.TeleportSpells = {
     [1841] = 410074,              -- The Underrot                    (Path of Festering Rot)
     [1862] = 424167,              -- Waycrest Manor                  (Path of Heart's Bane)
     [2097] = 373274,              -- Operation: Mechagon             (Path of the Scrappy Prince)
+    -- Midnight S2 rotated these two BfA dungeons back in and issued their first teleports.
+    [1762] = 1286831,             -- Kings' Rest                     (Path of the Slumbering Conqueror)
+    [1877] = 1286828,             -- Temple of Sethraliss            (Path of the Sacred Temple)
 
     -- ===== Shadowlands =====
     -- Dungeons
@@ -154,6 +157,12 @@ NS.TeleportSpells = {
     [2811] = 1254572,             -- Magisters' Terrace              (Path of Devoted Magistry)
     [2874] = 1254559,             -- Maisara Caverns                 (Path of Cavernous Depths)
     [2915] = 1254563,             -- Nexus-Point Xenas               (Path of the Fractured Core)
+    -- Season 2.
+    [2813] = 1286809,             -- Murder Row                      (Path of the Devious Smuggler)
+    [2825] = 1286807,             -- Den of Nalorakk                 (Path of the Worthy Aspirant)
+    [2859] = 1286801,             -- The Blinding Vale               (Path of the Blooming Verdure)
+    [2923] = 1286804,             -- Voidscar Arena                  (Path of the Brutal Combatant)
+    [2993] = 1286812,             -- Altar of Fangs                  (Path of Venomous Evolution)
 
     -- Raids
     -- [xxxx] = yyyyyyy,             -- The Dreamrift — no teleport spell exists; slot reserved

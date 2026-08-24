@@ -241,6 +241,26 @@ test("teleport: the Midnight Keystone Hero rows match the spellbook-verified IDs
     end
 end)
 
+-- Season 2's eight-dungeon pool: five new Midnight dungeons plus Kings' Rest and Temple of
+-- Sethraliss, two BfA dungeons that got their first teleport with the season (Ruby Life Pools
+-- is the eighth and keeps its Dragonflight spell). Same spellbook dump, same reason to pin.
+test("teleport: the Midnight season 2 rows match the spellbook-verified IDs", function()
+    local NS = T.newAddon()
+    for mapID, spellID in pairs({
+        [1762] = 1286831,   -- Kings' Rest           -- Path of the Slumbering Conqueror
+        [1877] = 1286828,   -- Temple of Sethraliss  -- Path of the Sacred Temple
+        [2813] = 1286809,   -- Murder Row            -- Path of the Devious Smuggler
+        [2825] = 1286807,   -- Den of Nalorakk       -- Path of the Worthy Aspirant
+        [2859] = 1286801,   -- The Blinding Vale     -- Path of the Blooming Verdure
+        [2923] = 1286804,   -- Voidscar Arena        -- Path of the Brutal Combatant
+        [2993] = 1286812,   -- Altar of Fangs        -- Path of Venomous Evolution
+        [2521] = 393256,    -- Ruby Life Pools       -- Path of the Clutch Defender
+    }) do
+        assertEqual(NS.TeleportSpells[mapID], spellID,
+            "mapID " .. mapID .. " must map to its verified season 2 spell")
+    end
+end)
+
 -- Siege of Boralus shipped with an unconfirmed wiki ID as its only value, so a player holding the
 -- real spell saw the same greyed-out row. The verified spell must stay FIRST: that is the entry
 -- pickKnownSpell falls back to when the player knows neither candidate.
