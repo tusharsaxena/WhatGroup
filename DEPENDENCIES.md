@@ -183,7 +183,7 @@ to fix a typo.
 
 - **Packaging** is done by the **CurseForge/WoWAce packager**, a hosted service — not a local tool.
   Evidence: `.pkgmeta` (its config) declares `package-as: WhatGroup` (`:1`) and an `ignore:` list
-  (`:6-11`), and `.pkgmeta:3-4` records that there is **no `externals:` block** because every
+  (`:6-14`), and `.pkgmeta:3-4` records that there is **no `externals:` block** because every
   library is vendored.
   There is nothing to install locally for this.
 - **Media** — `media/logos` and `media/screenshots` are **committed binary assets**,

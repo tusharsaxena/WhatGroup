@@ -4,14 +4,14 @@
 
 ## Registration
 
-Both names are registered through `AceConsole-3.0:RegisterChatCommand` in `OnInitialize` (`core/WhatGroup.lua:139`):
+Both names are registered through `AceConsole-3.0:RegisterChatCommand` in `OnInitialize` (`core/WhatGroup.lua:153`):
 
 ```lua
 self:RegisterChatCommand("wg",        "OnSlashCommand")
 self:RegisterChatCommand("whatgroup", "OnSlashCommand")
 ```
 
-`WhatGroup:OnSlashCommand` (`settings/Slash.lua:294`) hands the raw input straight to `Sl:OnSlash`. The library deliberately registers no chat command of its own — AceConsole stays the single registrar, so every verb's output keeps flowing through the tagged printer (slash-commands-§1).
+`WhatGroup:OnSlashCommand` (`settings/Slash.lua:288`) hands the raw input straight to `Sl:OnSlash`. The library deliberately registers no chat command of its own — AceConsole stays the single registrar, so every verb's output keeps flowing through the tagged printer (slash-commands-§1).
 
 ## Case-preserving parse
 
