@@ -347,7 +347,7 @@ After a **LibKa0s** re-vendor specifically, also run sections 10, 11 and 12 — 
 
 ## 9. LibKa0s degraded-install smoke (~3 min)
 
-The five seam files (`core/CoreSetup.lua`, `core/MediaSetup.lua`, `core/DebugLogSetup.lua`, `settings/OptionsSetup.lua`, `settings/Slash.lua`) each fall back when their major is absent. The headless suite drives that by loading with the files omitted; only the client can prove a *real* broken install behaves.
+The six seam files (`core/CoreSetup.lua`, `core/EnvSetup.lua`, `core/MediaSetup.lua`, `core/DebugLogSetup.lua`, `settings/OptionsSetup.lua`, `settings/Slash.lua`) each fall back when their major is absent. The headless suite drives that by loading with the files omitted; only the client can prove a *real* broken install behaves.
 
 1. Quit the game. Rename `Interface/AddOns/WhatGroup/libs/LibKa0s` to `libs/LibKa0s.off`.
 2. Launch, log in.

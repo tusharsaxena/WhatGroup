@@ -34,9 +34,9 @@ What stays this addon's is what is genuinely per-addon:
 | `tests/wow_mock.lua` | a thin **extender** over `mock_base`, never a replacement |
 | `tests/test_*.lua` | the suites |
 
-`tests/run.lua` derives the addon's own load list **from the TOC**
-(`Loader.tocFiles`, testing-§9) rather than restating it, and spells out the
-eight files of `libs/LibKa0s/LibKa0s.xml` explicitly, because a vendored
+`tests/loader.lua` derives the addon's own load list **from the TOC**
+(`Loader.tocFiles`, testing-§9) rather than restating it, and spells out every
+file of `libs/LibKa0s/LibKa0s.xml` explicitly, in XML order, because a vendored
 library comes in through its own XML which `tocFiles` cannot see. Both failure
 modes that rule exists for are silent: a suite named in the list but missing
 from disk is *skipped*, and a library file omitted from the list makes its
@@ -45,9 +45,9 @@ happily measures the stub, green. `tests/test_harness.lua` pins the derivation
 against a fresh read of the TOC and the XML.
 
 The suites, in run order: `test_harness`, `test_libka0s`, `test_mediasetup`,
-`test_util`, `test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
-`test_capture`, `test_notify`, `test_frame`, `test_panel`, `test_lifecycle`,
-`test_debuglog`.
+`test_envsetup`, `test_util`, `test_compat`, `test_database`, `test_settings`,
+`test_slash`, `test_labels`, `test_capture`, `test_notify`, `test_frame`,
+`test_panel`, `test_lifecycle`, `test_debuglog`, `test_vendor_sync`.
 
 `test_libka0s` is the integration suite for the adopted LibKa0s majors: that
 each really registers, that each descriptor is well-formed, that the degraded
@@ -188,8 +188,8 @@ converge a line-ending divergence either — it just moves the wrong endings
 downstream, and the step people reach for after a re-vendor that did not work is
 exactly the one this discipline forbids.
 
-Which version is vendored is answerable without grepping eight minor constants
-out of the source: the root `CLAUDE.md` carries a provenance line naming the
+Which version is vendored is answerable without grepping a minor constant out
+of every library file: the root `CLAUDE.md` carries a provenance line naming the
 LibKa0s release, and it moves in the same commit as the bytes. Kit revision 9
 moved that line out of `README.md`, and the gate has no fallback — a repo that
 has not moved its line reads as carrying no provenance line at all and fails,
@@ -206,9 +206,10 @@ inside the checked set:
 luacheck . --formatter plain | tail -1     # check the file count it reports
 ```
 
-A warning inside one of the four LibKa0s seam files (`core/CoreSetup.lua`,
-`core/DebugLogSetup.lua`, `settings/OptionsSetup.lua`, `settings/Slash.lua`) is
-a defect in this addon's wiring. A warning under `libs/` is not this addon's to
+A warning inside one of the six LibKa0s seam files (`core/CoreSetup.lua`,
+`core/EnvSetup.lua`, `core/MediaSetup.lua`, `core/DebugLogSetup.lua`,
+`settings/OptionsSetup.lua`, `settings/Slash.lua`) is a defect in this addon's
+wiring. A warning under `libs/` is not this addon's to
 fix — it is a finding for `../LibKa0s`.
 
 ## Automated test records — the consolidated run

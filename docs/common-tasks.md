@@ -175,7 +175,7 @@ cp -r ../LibKa0s/testkit/. tests/_kit/
 - **Copy the WHOLE folder, never one file.** Every other major returns before `LibStub:NewLibrary` when `Core.lua` is missing or older than their floor, so a partial copy makes a module *absent* rather than half-wired — the addon loads, works badly, and says nothing (anti-patterns #48).
 - **Never edit either tree.** A library problem is a finding to fix in `../LibKa0s` and re-vendor. A local patch is a fork nobody knows about, and the next re-vendor silently reverts it.
 - **Run the vendor gate afterwards** — all four diffs in [testing.md](./testing.md) — because nothing else can see a stale copy: the library's suite passes against the library and this addon's passes against a stale copy that still works, so both repos stay green while they diverge (anti-patterns #45).
-- **Move the `CLAUDE.md` provenance line in the same commit**, so "which LibKa0s does this ship?" stays answerable without grepping eight minor constants out of the vendored source.
+- **Move the `CLAUDE.md` provenance line in the same commit**, so "which LibKa0s does this ship?" stays answerable without grepping a minor constant out of every vendored library file.
 
 After either refresh, run the [Lib-refresh smoke](./smoke-tests.md#8-lib-refresh-smoke--2-min) section — and after a LibKa0s one, §9 and §11 as well.
 
