@@ -42,8 +42,7 @@ end)
 
 test("mediasetup: an icon the library does not ship answers nil", function()
     -- nil is a value a caller can branch on; a plausible path to a texture that is not there is
-    -- not. modules/Frame.lua's decorateCloseButton returns early on exactly this and leaves the
-    -- button as it was.
+    -- not. A caller that asks for an icon the catalog does not carry draws nothing.
     local NS = T.newAddon()
     assertNil(NS.Icon("nosuchicon"))
 end)
