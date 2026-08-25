@@ -1,0 +1,18 @@
+Checking core/Compat.lua                          OK
+Checking core/CoreSetup.lua                       OK
+Checking core/Database.lua                        OK
+Checking core/DebugLogSetup.lua                   OK
+Checking core/EnvSetup.lua                        OK
+Checking core/MediaSetup.lua                      OK
+Checking core/Util.lua                            OK
+Checking core/WhatGroup.lua                       OK
+Checking defaults/Profile.lua                     OK
+Checking defaults/TeleportSpells.lua              OK
+Checking locales/enUS.lua                         OK
+Checking modules/Frame.lua                        OK
+Checking settings/OptionsSetup.lua                OK
+Checking settings/Panel.lua                       OK
+Checking settings/Schema.lua                      OK
+Checking settings/Slash.lua                       OK
+
+Total: 0 warnings / 0 errors in 16 files
