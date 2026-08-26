@@ -66,7 +66,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Bundled LibKa0s
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.18.0 (MIT). That line is the
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.18.1 (MIT). That line is the
 repo's provenance claim — the tag `libs/LibKa0s/` and `tests/_kit/` were copied from — and
 `tests/test_vendor_sync.lua` reads it out of *this* file and compares both payloads against
 that tag in the sibling checkout. It is an input to the gate, not a comment: bump the version
