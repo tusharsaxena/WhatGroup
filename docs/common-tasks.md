@@ -292,7 +292,7 @@ autoShow=…, inGroup=…, hasPending=…)` — so a pasted log is self-identify
   `WhatGroup.TeleportSpells`. **`[ChatLink]`** / **`[Test]`** mark the chat-link
   click and `/wg test` entry points.
 - **`[Set]`** → one line per settings change (`<path> = <value>`) at the
-  `Helpers.Set` seam; **`[Reset]`** → one coalesced summary for `/wg resetall`;
+  `Helpers.Set` seam; **`[Reset]`** → one summary for `/wg resetall`, naming the profile rather than a row count (it is a profile reset, not a row walk);
   **`[Schema]`** → an internal path-lookup miss.
 
 To add a new debug line, call `NS.Debug("Tag", "fmt", …)` — it self-gates on

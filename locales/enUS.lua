@@ -88,8 +88,8 @@ L["Group"]                    = "Group"
 L["Slash Commands"]           = "Slash Commands"
 
 -- StaticPopup / reset
-L["Reset every WhatGroup setting to its default? The active profile is the only one affected."] =
-    "Reset every WhatGroup setting to its default? The active profile is the only one affected."
+L["Reset this profile to the addon's defaults? Everything you have configured or added in it is discarded \226\128\148 your other profiles are not affected."] =
+    "Reset this profile to the addon's defaults? Everything you have configured or added in it is discarded \226\128\148 your other profiles are not affected."
 L["all settings reset to defaults"] = "all settings reset to defaults"
 
 -- Slash command descriptions (settings/Slash.lua's COMMANDS table). The help

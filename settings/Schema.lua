@@ -359,59 +359,43 @@ function Settings.BuildDefaults()
     return out
 end
 
--- Reset the active profile to the schema's declared defaults, then refresh open
--- panel widgets. Both the Defaults button and the slash reset route through
--- this — the StaticPopup confirm step lives in the caller (WHATGROUP_RESET_ALL
--- OnAccept), so callers that want a silent reset (none today) could still
--- bypass the popup.
+-- Reset the ACTIVE PROFILE to the shipped defaults. Both the Defaults button and the slash reset
+-- route through this -- the StaticPopup confirm step lives in the caller (WHATGROUP_RESET_ALL
+-- OnAccept), so callers that want a silent reset (none today) could still bypass the popup.
 --
--- It is named for, and DELIBERATELY OVERRIDES, LibKa0s-Options-1.0's own
--- RestoreAllDefaults (issue #10, LIBKA0S-08). The library's form is
--- row-by-row over every row; this one wipes first and coalesces, and both halves
--- of that are load-bearing:
+-- IT IS A PROFILE RESET, and the same act as AceDBOptions' own Reset Profile (options-ui-§12). It
+-- is named for, and DELIBERATELY OVERRIDES, LibKa0s-Options-1.0's RestoreAllDefaults (issue #10,
+-- LIBKA0S-08).
 --
---   * the wipe is what makes a reset yield a PRISTINE profile rather than
---     default-valued known keys — a row-by-row overwrite leaves a value from a
---     removed or renamed schema row, or one hand-edited into SavedVariables,
---     sitting in the profile forever;
---   * the coalescing is what keeps one [Reset] summary in the console instead of
---     N [Set] lines in a 1500-line buffer (debug-logging-§9).
+-- The two halves this function used to be -- wipe the profile, then thread every current row's
+-- default back in -- were the right instinct and the wrong mechanism. The wipe was there so a reset
+-- yields a PRISTINE profile rather than default-valued known keys, dropping any orphaned key a
+-- key-by-key overwrite leaves behind: a value from a removed or renamed schema row, or one
+-- hand-edited into SavedVariables. `db:ResetProfile()` does exactly that and more: AceDB empties
+-- the profile IN PLACE (so anything holding db.profile keeps the live table), merges the defaults
+-- back, and fires OnProfileReset -- which core/WhatGroup.lua now answers by re-running the
+-- migrations and refreshing every open panel.
 --
--- The library's per-page `RestoreDefaults(pageKey, ctx)` is untouched and still
--- reachable; nothing calls it today because this addon's Defaults button is
--- confirmation-gated and goes through the popup instead.
+-- What the loop bought and this does not lose: the per-row [Set] spam was already suppressed and a
+-- single [Reset] summary emitted instead (debug-logging-§9); that summary is still emitted here.
+-- What it could not buy at all: a stored ARRAY. A row-by-row sweep can only address rows, and a
+-- schema row cannot name one member of a list.
 --
--- Two steps, so a reset yields a *pristine* profile rather than merely
--- default-valued known keys:
---   1. wipe(db.profile) drops any orphaned key a plain key-by-key overwrite
---      would leave behind — a value from a removed or renamed schema row, or
---      one hand-edited into SavedVariables. In-game this clears AceDB's raw
---      overrides while leaving its defaults metatable intact; the loop then
---      re-materializes the current defaults on top.
---   2. thread each current schema row's default back in. Table defaults are
---      deep-copied so the profile never aliases the schema's canonical default.
+-- The library's per-page `RestoreDefaults(pageKey, ctx)` is untouched and still reachable; nothing
+-- calls it today because this addon's Defaults button is confirmation-gated and goes through the
+-- popup instead.
 --
--- Per-row onChange is skipped (skipOnChange): the default baseline is already
--- the reconciled state, so firing N side effects mid-reset is wasteful and
--- asymmetric. The single RefreshAll below is the one post-reset reconcile that
--- re-syncs widgets. db.global (schemaVersion) is intentionally left untouched.
+-- db.global (schemaVersion) is intentionally left untouched: a profile reset is not a downgrade.
 function Helpers.RestoreAllDefaults()
-    if WhatGroup.db and WhatGroup.db.profile then
-        wipe(WhatGroup.db.profile)
+    local db = WhatGroup.db
+    if db and db.ResetProfile then
+        db:ResetProfile()
     end
-    local n = 0
-    for _, def in ipairs(Schema) do
-        if def.path then
-            -- skipRefresh inside the loop; one RefreshAll at the end avoids N
-            -- refreshes for an N-row schema. skipLog suppresses the per-row
-            -- [Set] spam — one [Reset] summary is emitted below instead (debug-logging-§9).
-            Helpers.Set(def.path, deepcopy(def.default),
-                        { skipRefresh = true, skipLog = true, skipOnChange = true })
-            n = n + 1
-        end
-    end
-    NS.Debug("Reset", "restored " .. n .. " settings to defaults (profile wiped)")
-    Helpers.RefreshAll()
+    NS.Debug("Reset", "active profile reset to defaults")
+    -- NO RefreshAll HERE. `db:ResetProfile()` fires OnProfileReset, and core/WhatGroup.lua's
+    -- handler runs the migrations and refreshes -- one reconcile, on the same path a profile
+    -- SWITCH takes. Calling it here as well would refresh twice for one action, which is the
+    -- N-refreshes problem this function has always been careful about in miniature.
 end
 
 -- Re-sync every open panel widget against the current db.profile value. Called
@@ -457,7 +441,10 @@ function Settings.EnsureResetPopup()
     Settings._resetPopupRegistered = true
     StaticPopupDialogs = StaticPopupDialogs or {}
     StaticPopupDialogs["WHATGROUP_RESET_ALL"] = {
-        text         = L["Reset every WhatGroup setting to its default? The active profile is the only one affected."],
+        -- THE COLLECTION'S ONE WORDING (options-ui-§12), verbatim. Addon-agnostic on purpose --
+        -- no addon enumerates its own nouns -- and explicit about the destruction. Eight
+        -- phrasings of one act is how a collection reads as eight addons.
+        text         = L["Reset this profile to the addon's defaults? Everything you have configured or added in it is discarded \226\128\148 your other profiles are not affected."],
         button1      = YES or "Yes",
         button2      = NO  or "No",
         timeout      = 0,

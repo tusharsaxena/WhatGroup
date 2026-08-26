@@ -1,6 +1,6 @@
 -- tests/test_settings.lua — schema defaults, validation, Get/Set, reset.
 local T = _G.WHATGROUP_TEST
-local test, assertEqual, assertNil = T.test, T.assertEqual, T.assertNil
+local test, assertEqual, assertNil, assertTrue = T.test, T.assertEqual, T.assertNil, T.assertTrue
 
 test("settings: BuildDefaults threads profile + global defaults", function()
     local NS = T.newAddon()
@@ -72,12 +72,22 @@ test("settings: RestoreAllDefaults prunes orphaned profile keys (F1)", function(
 end)
 
 test("settings: RestoreAllDefaults deep-copies table defaults (F2)", function()
-    local NS = T.bootAddon()
-    local H = NS.addon.Settings.Helpers
+    -- The row has to exist BEFORE the db does: a reset is `db:ResetProfile()` now
+    -- (options-ui-§12), so what it restores is AceDB's defaults table, and that is built from the
+    -- schema at AceDB:New time. Appending a row afterwards -- which is what this case used to do --
+    -- describes nothing the client can produce, because every real row is declared at load.
+    local NS = T.newAddon()
     local S = NS.addon.Settings.Schema
-    local template = { nested = { a = 1 } }
     S[#S + 1] = { section = "x", group = "X", path = "tableRow",
-                  type = "bool", label = "t", default = template }
+                  type = "bool", label = "t", default = { nested = { a = 1 } } }
+    -- The db is built HERE, after the row exists, because BuildDefaults reads the schema.
+    NS.addon:OnInitialize()
+    local H = NS.addon.Settings.Helpers
+
+    local template
+    for _, def in ipairs(S) do if def.path == "tableRow" then template = def.default end end
+    assertTrue(type(template) == "table", "the fixture row is missing")
+
     H.RestoreAllDefaults()
     -- Mutating the profile copy must not reach back into the schema default.
     H.Get("tableRow").nested.a = 999

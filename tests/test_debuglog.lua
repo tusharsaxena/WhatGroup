@@ -222,7 +222,10 @@ test("debuglog: RestoreAllDefaults coalesces to one [Reset], zero [Set] (debug-l
     NS.addon.Settings.Helpers.RestoreAllDefaults()
     assertEqual(countLines(NS, "[Set]") - setBefore, 0, "per-row [Set] suppressed")
     assertEqual(countLines(NS, "[Reset]"), 1, "one [Reset] summary")
-    assertTrue(countLines(NS, "settings to defaults") >= 1, "summary names the count")
+    -- The summary no longer names a COUNT, because there is no longer a row loop to count. The
+    -- reset is one db:ResetProfile() (options-ui-§12) and what it empties is the whole profile --
+    -- including keys no schema row can name. A tally of rows written would understate it.
+    assertTrue(countLines(NS, "profile reset to defaults") >= 1, "summary names what was reset")
 end)
 
 test("debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state", function()

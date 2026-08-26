@@ -147,6 +147,32 @@ function WhatGroup:OnInitialize()
     -- reads the profile (WG-08 / Database.lua). Idempotent.
     self:RunMigrations()
 
+    -- PROFILE CALLBACKS, and this addon had none.
+    --
+    -- Switching, copying or resetting a profile replaces every stored value at
+    -- once, and nothing here reacted: an open settings panel kept showing the
+    -- OLD profile's values until it was closed and reopened, and the migrations
+    -- never ran on an incoming profile that a copy could have authored at an
+    -- older schema version. It went unnoticed because nothing in this addon
+    -- switched profiles -- until options-ui-§12 made the GLOBAL RESET a profile
+    -- reset, which fires the same event and needs the same reaction.
+    --
+    -- The function form rather than the string-method one: CallbackHandler takes
+    -- both, and a closure keeps this readable without adding a method to the
+    -- addon object whose only caller is AceDB.
+    if self.db.RegisterCallback then
+        local function reload()
+            -- The incoming profile may predate the current schema version.
+            self:RunMigrations()
+            -- And every open panel is showing the outgoing profile's values.
+            local H = NS.Settings and NS.Settings.Helpers
+            if H and H.RefreshAll then H.RefreshAll() end
+        end
+        self.db.RegisterCallback(self, "OnProfileChanged", reload)
+        self.db.RegisterCallback(self, "OnProfileCopied",  reload)
+        self.db.RegisterCallback(self, "OnProfileReset",   reload)
+    end
+
     -- Debug is session-only (NS.State.debug), off on every login. It is
     -- NOT seeded from SavedVariables (WG-12).
 
