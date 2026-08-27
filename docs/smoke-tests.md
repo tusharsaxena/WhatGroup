@@ -450,6 +450,6 @@ For a fast pre-release pass, run at minimum:
 - [ ] sections 11.5 / 11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
 - [ ] sections 12.1 / 12.4 — marks on the console title bar, and a mark **beside** the footer Close word
 
-Run section 9 (degraded install), section 12 (shared art) and the rest of section 11 after a LibKa0s re-vendor or any change to the five seam files.
+Run section 9 (degraded install), section 12 (shared art) and the rest of section 11 after a LibKa0s re-vendor or any change to the six seam files.
 
 If all of those pass, the addon is in shippable shape for the 80% case. Run the full suite for releases tagged with feature work.
