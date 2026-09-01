@@ -6,7 +6,7 @@ What's in scope, what's out, and the resolved decisions that shaped the contract
 
 - **Group-info capture from the Premade Group Finder.** Hook `C_LFGList.ApplyToGroup`, capture the search-result tile's fields (title, leader, activity, playstyle, voice-chat note, etc.), and resurface them once the player joins the group.
 - **Chat notification on join.** A summary line for each captured field, with per-line gates (`notify.show*` schema rows). Always wears the cyan `[WG]` chat prefix.
-- **Popup dialog on join.** A 420×260 `WhatGroupFrame` showing every field plus a teleport spell button for known dungeon teleports. Auto-opens on join when `frame.autoShow` is true.
+- **Popup dialog on join.** A `WhatGroupFrame` (420×260 by default, resizable through `frame.width` / `frame.height`) showing every field plus a teleport spell button for known dungeon teleports. Auto-opens on join when `frame.autoShow` is true.
 - **Re-open via clickable chat link.** The notification ends with a `WhatGroup:show` hyperlink; clicking re-opens the popup. A `hooksecurefunc("SetItemRef", …)` post-hook handles our prefix; Blizzard's default `SetItemRef` already no-ops on unknown prefixes, so a secure post-hook is sufficient.
 - **Schema-driven settings.** A flat `Settings.Schema` array drives the panel widgets, the `/wg list/get/set/reset` slash surface, AceDB defaults, and `/wg reset`. One row = one option, six surfaces.
 - **Account-wide preferences.** Single AceDB profile (`AceDB:New("WhatGroupDB", defaults, true)` — `true` = shared `Default` profile across every character on the account).

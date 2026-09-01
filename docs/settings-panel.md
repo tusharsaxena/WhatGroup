@@ -2,13 +2,13 @@
 
 A single flat array `WhatGroup.Settings.Schema` declares every option. One row drives six surfaces simultaneously, so adding a setting is a single-row diff.
 
-The schema rows and the data seams that read and write them live in `settings/Schema.lua` — that half is genuinely this addon's. The panel *machinery* is not: the canvas factory, the header and breadcrumb, the lazy Defaults button, the AceGUI ScrollFrame, the widget makers, the two-column flow engine, the page registry and the refresh fan-out are `LibKa0s-Options-1.0`'s, wired up in `settings/OptionsSetup.lua`. `settings/Panel.lua` keeps only the landing page's body, the one action button the library's makers cannot express, and the General page's registration.
+The schema rows and the data seams that read and write them live in `settings/Schema.lua` — that half is genuinely this addon's. The panel *machinery* is not: the canvas factory, the header and breadcrumb, the lazy Defaults button, the AceGUI ScrollFrame, the widget makers, the two-column flow engine, the tab strip and its chrome band, the page registry and the refresh fan-out are `LibKa0s-Options-1.0`'s, wired up in `settings/OptionsSetup.lua`. `settings/Panel.lua` keeps only the landing page's body, the one action button the library's makers cannot express, and the General page's registration.
 
 ## Six surfaces, one row
 
 | Surface | Mechanism |
 |---|---|
-| Settings panel widget | `Helpers.RenderSchema(ctx, "general", AFTER_GROUP, PAIR_WITH)` → `Helpers.RenderRows` → `Helpers.RenderField` → the library's CheckBox / Slider makers; each maker appends a refresher closure to **`ctx.refreshers`** (per panel, not a global registry) |
+| Settings panel widget | `Helpers.RenderTabbedSchema(ctx, "general", AFTER_GROUP, PAIR_WITH)` → `Helpers.RenderRows` → `Helpers.RenderField` → the library's CheckBox / Slider makers; each maker appends a refresher closure to **`ctx.refreshers`** (per panel, not a global registry) |
 | `/wg list` | `Sl:CliList()` (`LibKa0s-Slash-1.0`) groups the schema by `section` — this addon's `groupKey`, because these rows carry no `page` — and prints `path = formattedValue` per row |
 | `/wg get <path>` | `Sl:CliGet` → `Helpers.FindSchema(path)` → `lib.FormatValue`, which honors `def.fmt` for numbers |
 | `/wg set <path> <value>` | `Sl:CliSet` → type-aware parse → `Helpers.Set(path, value)` (orchestrated: writes value, logs one `[Set]` line, fires `onChange`, runs `RefreshAll` in one call) |
@@ -24,7 +24,7 @@ The schema is settings-only — non-setting actions (the "Test" button, the Debu
 ```lua
 {
     section,            -- groups in /wg list output (general, frame, notify)
-    group,              -- heading shown in the Settings panel ("General", "Notify")
+    group,              -- TAB in the Settings panel ("General", "Chat", "Popup")
     path,               -- dotted path into db.profile (e.g. "notify.delay")
     type,               -- "bool" | "number"
     label, tooltip,
@@ -39,10 +39,10 @@ Number rows render as a slider that **commits on release** — the library's mak
 
 ### Action buttons (afterGroup)
 
-Non-setting affordances live outside the schema. `Helpers.RenderSchema(ctx, pageKey, afterGroup, pairWith)` takes two hook tables, and the **General** group uses both:
+Non-setting affordances live outside the schema. `Helpers.RenderTabbedSchema(ctx, pageKey, afterGroup, pairWith)` takes the same two hook tables `RenderSchema` does, and the **General** tab uses both:
 
-- **`afterGroup`** — `{ [groupName] = function(ctx) ... end }`. Fires once per render, after the group's last schema row is flushed, so the widget starts on a fresh line *below* the grid. Here: the **Test** button (`Helpers.InlineButton` → `WhatGroup:RunTest()`).
-- **`pairWith`** — `{ [path] = function(ctx, rowGroup) ... end }`. Attaches a non-schema widget as the **right half of a named path's row**, and only while that path is still the lone widget on its row. Here: the session-only **Debug console** checkbox, keyed on `"notify.enabled"` so it lands beside **Print to Chat**.
+- **`afterGroup`** — `{ [groupName] = function(ctx) ... end }`. Fires once per render, after the named group's last schema row is flushed, so the widget starts on a fresh line *below* the grid. Here: the **Test** button (`Helpers.InlineButton` → `WhatGroup:RunTest()`), keyed to **General**. On a tabbed page the key matters: "after the schema" is no longer "at the bottom of the page", so a hook keyed to a group the reader is not looking at draws nothing — which is what keeps the Test button off the Chat and Popup tabs.
+- **`pairWith`** — `{ [path] = function(ctx, rowGroup) ... end }`. Attaches a non-schema widget as the **right half of a named path's row**, and only while that path is still the lone widget on its row. Here: the session-only **Debug console** checkbox, keyed on `"enabled"` so it lands beside **Enable** on the General tab. It was keyed on `"notify.enabled"` until **Print to Chat** moved to the Chat tab; a debug affordance does not follow it there.
 
 Both tables are hoisted to file-scope constants (`AFTER_GROUP`, `PAIR_WITH` in `settings/Panel.lua`). That is safe because the library's one-shot bookkeeping is *call-local* — it never consumes the caller's entries — so a re-render draws the button and the paired checkbox again instead of silently dropping them.
 
@@ -112,7 +112,8 @@ All library members except the last two, which are this addon's (see `settings/P
 | `Helpers.Section(ctx, label)` | AceGUI `Heading` widget at `GameFontNormalLarge`, with `SECTION_TOP_SPACER` above (skipped for the first group, where a leading gap reads as a broken top margin) and `SECTION_BOTTOM_SPACER` below. |
 | `Helpers.RenderField(ctx, def, parent, relativeWidth)` | Dispatch a single schema row to the right widget maker (`bool` → CheckBox, `number` → Slider). |
 | `Helpers.SessionCheckbox(ctx, parent, relativeWidth, spec)` | A checkbox wired to `spec.get` / `spec.set` instead of a settings path, for runtime-only state that must never become a saved setting. Registers a refresher like any other widget. |
-| `Helpers.RenderSchema(ctx, pageKey, afterGroup?, pairWith?)` | Thin wrapper over `RenderRows` for the rows of one page: emit Section headings on group transitions, pair widgets into 50/50 Flow rows, fire the two hook tables. Each row renders under its own `pcall`, so one corrupt saved value costs that row rather than the rest of the page. |
+| `Helpers.RenderSchema(ctx, pageKey, afterGroup?, pairWith?)` | Thin wrapper over `RenderRows` for the rows of one page: emit Section headings on group transitions, pair widgets into 50/50 Flow rows, fire the two hook tables. Each row renders under its own `pcall`, so one corrupt saved value costs that row rather than the rest of the page. **Not what this addon calls** — it is `RenderTabbedSchema`'s own fallback for a page with fewer than two groups. |
+| `Helpers.RenderTabbedSchema(ctx, pageKey, afterGroup?, pairWith?)` | **What the General page calls** (`options-ui-§13`). Partitions the page's rows by `group` in declaration order, draws one `TabStrip` tab per group in the page's chrome band, then renders the active group's rows through `RenderRows` with headings suppressed. A tab click is a `ClearScroll` plus a re-render of the same page — no combat gate, because redrawing widgets inside an already-open panel was never a protected action. Falls back to `RenderSchema` when the page has fewer than two groups: one tab is chrome for its own sake. |
 | `Helpers.InlineButton(ctx, spec)` | **Host.** One fixed-width (160 px default) action button left-aligned in a full-width Flow row. `spec = { text, tooltip, onClick, width? }`. |
 | `Helpers.BuildMainContent(ctx)` | **Host.** Render the addon-landing-page body (logo + TOC notes + Slash Commands heading + per-command Labels) as AceGUI widgets in `ctx.scroll`. Handed to the library as the descriptor's `buildMain`, so the library still owns *when* it draws. |
 
@@ -147,15 +148,17 @@ The General sub-page renders the schema as a two-column AceGUI Flow layout (50/5
 ```lua
 Helpers.SetRenderer(ctx, function(c)
     Helpers.ClearScroll(c)
-    Helpers.RenderSchema(c, "general", AFTER_GROUP, PAIR_WITH)
+    Helpers.RenderTabbedSchema(c, "general", AFTER_GROUP, PAIR_WITH)
 end)
 ```
+
+Only the **active tab's** rows are rendered, so the pairing rules below apply within one group at a time.
 
 Pairing rules:
 
 - **Default**: widgets pair into rows, two per row. The engine maintains a `pendingRow` and `pendingCount`; when `pendingCount` hits 2, it flushes.
 - **`solo = true`**: flushes the in-progress row first, then forces the widget onto its own row (left half occupied at 0.5 relative width, right half empty), then flushes again.
-- **`group` transition**: flushes the in-progress row, calls `Helpers.Section`, and the next widget starts a fresh row.
+- **`group` transition**: on a tabbed page there is none to see — the strip switches groups and each render draws exactly one. (`RenderRows` still flushes and would call `Helpers.Section`; `RenderTabbedSchema` passes `noHeadings`, because the tab already names the group.)
 - **`pairWith[def.path]`**: renders the non-schema widget as the right half of that path's row — only while that row is still the lone widget on its line, since a third widget would break the 50/50 split for the rest of the page.
 - **`afterGroup[def.group]`**: at the final row of a group (last one in source order, or the next row's group differs), flushes the in-progress row and invokes the callback.
 
@@ -270,7 +273,7 @@ Single SavedVariables (declared in `WhatGroup.toc`). Holds an AceDB instance wit
 ```
 profile = {
   enabled = true,
-  frame   = { autoShow = true },
+  frame   = { autoShow = true, width = 420, height = 260 },
   notify  = {
     enabled       = true,
     delay         = 0,
@@ -292,42 +295,65 @@ global = {
 
 There is **no `debug` key** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). The General panel's "Debug console" checkbox toggles the console *window's* visibility only (see [Action buttons](#action-buttons-aftergroup)); it drives neither a profile key nor the debug logging flag. Capture / pending state (`captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [data-flow.md](./data-flow.md#state) for why.
 
+## The tab strip
+
+The page is **tabbed** (`options-ui-§13`). `LibKa0s-Options-1.0`'s `RenderTabbedSchema` partitions the page's rows by `group`, **in declaration order**, and draws one tab per distinct group — so the order of the `add{}` calls in `settings/Schema.lua` *is* the strip, and a group's rows must stay contiguous. There is no second field naming a tab; the group heading and the tab are the same string, which is why the tabbed renderer suppresses the headings the scrolling one drew.
+
+| # | Tab | Rows | What it is for |
+|---|---|---|---|
+| 1 | **General** | 2 | Does the addon do anything (`enabled`), and how long it waits first (`notify.delay`). Plus the two bespoke controls: the **Test** button (`afterGroup`) and the session-only **Debug console** checkbox (`pairWith`, beside **Enable**). |
+| 2 | **Chat** | 7 | The join summary: the **Print to Chat** master and the six lines it can contain. |
+| 3 | **Popup** | 3 | The group-info window: whether it opens by itself, and how big it is. |
+
+There is **no page banner** (`options-ui-§14`) and there cannot be one: WhatGroup has no per-window settings and no active-window state, so there is no instance for a banner to name. `db.global.windows` stores the popup's *position*, which is geometry, not a setting.
+
+`section` is not `group`. `section` is `/wg list`'s grouping key and it did not change when the page was retabbed — `notify.delay` is edited on **General** and still lists under `[notify]`, because a row's tab is where it is *edited* and its path is where it is *stored*.
+
 ## Current schema rows
 
-Order matches panel render order — `add{}` calls in source order. Layout column shows whether a row pairs (default) or stands alone (`solo`).
+Order matches panel render order — `add{}` calls in source order, which is also tab order. Layout column shows whether a row pairs (default) or stands alone (`solo`).
 
-| Section | Path | Type | Default | Layout | Purpose |
-|---|---|---|---|---|---|
-| general | `enabled` | bool | true | (paired) | **Master switch.** When false, `OnApplyToGroup` short-circuits — no capture, no notification, no popup. `/wg test` and `/wg show` bypass this gate. |
-| frame | `frame.autoShow` | bool | true | (paired) | Auto-open the popup on group join. With this off, the chat notification still prints and the user can re-open via the chat link or `/wg show`. |
-| notify | `notify.enabled` | bool | true | (paired) | Print the chat summary on group join. |
-| notify | `notify.delay` | number | 0 | solo | Seconds (0–10, step 0.5) between joining and notifying. Default 0 = notify immediately; raise it to let the zone-in settle. |
-| notify | `notify.showInstance` | bool | true | solo | Include the Instance line in chat. |
-| notify | `notify.showType` | bool | true | solo | Include the Type line in chat. |
-| notify | `notify.showLeader` | bool | true | solo | Include the Leader line in chat. |
-| notify | `notify.showPlaystyle` | bool | true | solo | Include the Playstyle line in chat. |
-| notify | `notify.showClickLink` | bool | true | solo | Include the green "[Click here to view details]" chat link. |
-| notify | `notify.showTeleport` | bool | true | solo | Include a Teleport line; skipped silently when `WhatGroup:GetTeleportSpell` returns nil. |
+| Tab | Section | Path | Type | Default | Layout | Purpose |
+|---|---|---|---|---|---|---|
+| General | general | `enabled` | bool | true | (paired, with the Debug console checkbox) | **Master switch.** When false, `OnApplyToGroup` short-circuits — no capture, no notification, no popup. `/wg test` and `/wg show` bypass this gate. |
+| General | notify | `notify.delay` | number | 0 | solo | Seconds (0–10, step 0.5) between joining and notifying **and** showing the popup. Default 0 = immediately; raise it to let the zone-in settle. On General rather than Chat because one timer gates both surfaces. |
+| Chat | notify | `notify.enabled` | bool | true | solo | Print the chat summary on group join. The master for the six rows under it. |
+| Chat | notify | `notify.showInstance` | bool | true | (paired) | Include the Instance line in chat. |
+| Chat | notify | `notify.showType` | bool | true | (paired) | Include the Type line in chat. |
+| Chat | notify | `notify.showLeader` | bool | true | (paired) | Include the Leader line in chat. |
+| Chat | notify | `notify.showPlaystyle` | bool | true | (paired) | Include the Playstyle line in chat. |
+| Chat | notify | `notify.showClickLink` | bool | true | (paired) | Include the green "[Click here to view details]" chat link. |
+| Chat | notify | `notify.showTeleport` | bool | true | (paired) | Include a Teleport line; skipped silently when `WhatGroup:GetTeleportSpell` returns nil. |
+| Popup | frame | `frame.autoShow` | bool | true | solo | Auto-open the popup on group join. With this off, the chat notification still prints and the user can re-open via the chat link or `/wg show`. |
+| Popup | frame | `frame.width` | number | 420 | (paired) | Popup width in pixels (320–700, step 10). Was `FRAME_WIDTH`, a file-local in `modules/Frame.lua`; the default is the number it replaced. |
+| Popup | frame | `frame.height` | number | 260 | (paired) | Popup height in pixels (200–520, step 10). Was `FRAME_HEIGHT`, same story. |
 
 The popup dialog always renders every field; the `notify.show*` rows gate **chat output only**. See [scope.md](./scope.md#resolved-decisions) for why.
+
+`frame.width` / `frame.height` are **clamped on read**, in `modules/Frame.lua`, not on write: the slider cannot produce an illegal value but SavedVariables and `/wg set frame.width 4000` both can, and a popup wider than the monitor reads as the setting being broken rather than as the value being refused. `WhatGroup:ApplyFrameSize()` is the one seam that resizes a live popup; it **refuses in combat** (the popup parents a `SecureActionButtonTemplate` button anchored off the frame's own edges) and every `ShowFrame` re-applies, so a change taken in combat lands on the next open.
 
 Rendered panel layout:
 
 ```
---- General ---
-[Enable]        | [Auto Show]
-[Print to Chat] | [Debug console]   ← pairWith["notify.enabled"], session-only
-  <Test button (160 px, left-aligned, afterGroup)>
+[ General ] [ Chat ] [ Popup ]          <- the tab strip, in the chrome band
 
---- Notify ---
+--- General ---
+[Enable]              | [Debug console]   <- pairWith["enabled"], session-only
 [Notification Delay]
-[Show Instance]
-[Show Type]
-[Show Leader]
-[Show Playstyle]
-[Show ClickLink]
-[Show Teleport]
+  <Test button (160 px, left-aligned, afterGroup["General"])>
+
+--- Chat ---
+[Print to Chat]
+[Instance]            | [Type]
+[Leader]              | [Playstyle]
+[Details link]        | [Teleport spell]
+
+--- Popup ---
+[Open Automatically]
+[Width]               | [Height]
 ```
+
+The `Show ` prefix the six chat rows carried is gone: under a tab called **Chat**, seven labels beginning "Show" spend their first word saying what the tab already said. The **paths** are untouched — `notify.showInstance` is still `notify.showInstance` for `/wg set` and for every saved profile.
 
 ## Adding a setting
 

@@ -165,7 +165,7 @@ badge and any count quoted in the docs must agree with it.
 - database: migrations run before any profile read (OnInitialize order)
 - database: the profile is untouched by a migration pass
 
-### test_settings.lua (42)
+### test_settings.lua (47)
 
 - settings: BuildDefaults threads profile + global defaults
 - settings: defaults source from NS.C (defaults/Profile.lua, WG-24)
@@ -209,6 +209,11 @@ badge and any count quoted in the docs must agree with it.
 - settings: EnsureResetPopup is idempotent
 - settings: the reset dialog is a blocking, escapable confirmation
 - settings: accepting the reset dialog acknowledges in chat
+- settings: the page's tabs are the designed ones, in order, at the designed size
+- settings: no tab holds fewer than two controls
+- settings: every row's group is one of the designed tabs
+- settings: the popup size defaults are the literals they replaced
+- settings: the size sliders cannot travel outside the frame's own clamp
 
 ### test_slash.lua (43)
 
@@ -376,7 +381,7 @@ badge and any count quoted in the docs must agree with it.
 - notify: the Leader row still prints when leaderName is nil
 - notify: Playstyle and Teleport drop their rows while Leader keeps its own
 
-### test_frame.lua (44)
+### test_frame.lua (50)
 
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
@@ -422,8 +427,14 @@ badge and any count quoted in the docs must agree with it.
 - frame: a fresh profile leaves the popup at its default center anchor
 - frame: dragging the title bar persists the popup position
 - frame: a saved position is restored on the next build
+- frame: the popup is built at the profile's width and height
+- frame: a stored size is honored on build
+- frame: a size change re-sizes a popup that is already open
+- frame: a size hand-edited past the clamp is drawn at the nearest legal value
+- frame: a non-numeric stored size falls back to the shipped default
+- frame: a size change taken in combat is refused, and lands on the next open
 
-### test_panel.lua (47)
+### test_panel.lua (48)
 
 - panel: OnEnable registers the parent category and the General subcategory
 - panel: the parent category is added to the AddOns list
@@ -440,11 +451,12 @@ badge and any count quoted in the docs must agree with it.
 - panel: clicking Defaults raises the confirmation popup rather than resetting
 - panel: confirming the popup restores defaults
 - panel: the reset dialog is not registered before it is needed (taint)
-- panel: every schema row renders a widget
+- panel: every schema row renders a widget, on its own tab
+- panel: the strip draws one tab per schema group, in declaration order
 - panel: bool rows render checkboxes and number rows render sliders
 - panel: widgets open showing the current profile value
 - panel: the slider inherits its bounds and step from the schema row
-- panel: each section renders a heading
+- panel: a tabbed page draws its group names as TABS, never as headings
 - panel: paired rows get half width, solo rows go full width
 - panel: the General group renders its Test action button
 - panel: the Test button runs the same path as /wg test
@@ -553,14 +565,14 @@ badge and any count quoted in the docs must agree with it.
 | test_util.lua | 31 |
 | test_compat.lua | 23 |
 | test_database.lua | 9 |
-| test_settings.lua | 42 |
+| test_settings.lua | 47 |
 | test_slash.lua | 43 |
 | test_labels.lua | 34 |
 | test_capture.lua | 29 |
 | test_notify.lua | 48 |
-| test_frame.lua | 44 |
-| test_panel.lua | 47 |
+| test_frame.lua | 50 |
+| test_panel.lua | 48 |
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **485** |
+| **Total** | **497** |

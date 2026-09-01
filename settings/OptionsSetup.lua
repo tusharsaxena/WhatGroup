@@ -63,6 +63,25 @@ if not lib then
     H.RenderRows           = function() end
     H.RenderSchema         = function() end
     H.RenderGrid           = function() end
+    -- The tabbed page (options-ui-§13) and the page banner (options-ui-§14). settings/Panel.lua
+    -- calls RenderTabbedSchema and nothing else here; the rest are the members the live surface
+    -- grew with them, carried so the degraded table is the same SHAPE as the live one rather than
+    -- the subset somebody remembered -- tests/test_libka0s.lua's parity case is what says so.
+    -- PageBanner has no host call site at all (WhatGroup has no per-window state to name) and is
+    -- stubbed for the same reason.
+    H.RenderTabbedSchema   = function() end
+    H.TabStrip             = function() end
+    H.PageBanner           = function() end
+    H.SetChromeHeight      = function() end
+    -- The chrome band's own arithmetic. Library-internal, reached only from the makers above --
+    -- present here because the parity case compares the whole set, and absent from anything this
+    -- addon calls.
+    H.__bannerBand         = function() end
+    H.__tabBand            = function() end
+    H.__tabPlacement       = function() end
+    H.__layoutTabs         = function() end
+    H.__scrollTopInset     = function() end
+    H.__releaseChrome      = function() end
     H.SetRenderer          = function() end
     H.RegisterOptionsPage  = function() end
     H.RefreshAllPanels     = function() end
@@ -76,7 +95,9 @@ if not lib then
     H.__panelFor           = function() return nil end
     H.CreateOptionsPanel   = function() sayAtLoad() end
     H.OpenOptionsPanel     = function() sayOnConfig() end
-    -- No ROW_VSPACER / SECTION_HEADING_H / BUTTON_PAIR_REL here. options-ui-§1 forbids carrying the
+    -- No ROW_VSPACER / SECTION_HEADING_H / BUTTON_PAIR_REL here, and no CHROME_GAP / TAB_H /
+    -- BANNER_H either -- the chrome band's scalars are layout constants like the other four, and
+    -- arrived with the same rule attached. options-ui-§1 forbids carrying the
     -- library's layout constants into the stub and options-ui-§8 forbids a host copy of them
     -- anywhere, precisely because a host copy is the copy that goes stale. Every consumer of them
     -- in settings/Panel.lua sits behind a maker that is a no-op on this path, so a nil reaches

@@ -6,6 +6,10 @@ Recipes for the routine modifications. For deeper context on any subsystem, see 
 
 One row to `Settings.Schema` in `settings/Schema.lua`. The UI, CLI, defaults, and reset surfaces all follow automatically.
 
+**Its `group` is a TAB** (`options-ui-§13`), not a heading: the page draws one tab per distinct group, in declaration order. So a row filed under an existing group has to sit **inside that group's run** of `add{}` calls — a row placed after the run prints the same tab twice. A new `group` value is a new tab, drawn in the position its first row occupies; do not add one for a single row (a tab over one control is a click that reveals one checkbox, and `tests/test_settings.lua` fails it). The three today are **General**, **Chat** and **Popup**.
+
+The value itself goes in `defaults/Profile.lua` as `NS.C.<path>`, and the row references it as `default = C.<path>` — two literals for one value is the shape that drifts.
+
 ### Bool setting
 
 ```lua
@@ -24,7 +28,7 @@ add{
 
 ```lua
 add{
-    section = "notify",  group = "Notify",
+    section = "notify",  group = "Chat",
     path    = "notify.someValue",  type = "number",
     label   = "Some Value",
     tooltip = "What this value controls.",
@@ -40,7 +44,7 @@ add{
 Non-setting affordances live outside the schema. Hand the action to `Helpers.InlineButton` from an `afterGroup` callback in `Settings.Register`:
 
 ```lua
-Helpers.RenderSchema(generalCtx, {
+Helpers.RenderTabbedSchema(generalCtx, "general", {
     ["General"] = function(ctxRef)
         Helpers.InlineButton(ctxRef, {
             text    = "Do The Thing",
@@ -51,13 +55,13 @@ Helpers.RenderSchema(generalCtx, {
 })
 ```
 
-The callback fires once, immediately after the last schema row of the named group. `Helpers.InlineButton` renders a 160-px button (override via `spec.width`) left-aligned in a full-width row.
+The callback fires once, immediately after the last schema row of the named group — so on a tabbed page it draws only while THAT tab is open, which is what keeps a General action off the Chat tab. `Helpers.InlineButton` renders a 160-px button (override via `spec.width`) left-aligned in a full-width row.
 
 ### After adding a row
 
 - If you also want the new value to do something on change, add an `onChange = function(value) … end` to the row. Both the panel widget and `/wg set <path>` call it.
 - Read the new value from runtime code via `Settings.Helpers.Get("frame.someToggle")` — never reach into `db.profile` directly, or `Helpers.RefreshAll` won't sync the panel checkbox.
-- If you want a section heading break before the row, change its `group` field — `RenderSchema` emits an AceGUI Heading on every group transition.
+- If you want the row on a different tab, change its `group` field and move the `add{}` call into that group's run. **Do not change its `path`** — the page is where a row is edited, the path is where it is stored, and renaming a path migrates every saved profile for something nobody can see.
 
 ## Add a slash command
 
@@ -229,10 +233,10 @@ If `C_LFGList.GetSearchResultInfo` or `C_LFGList.GetActivityInfoTable` exposes a
    - Add a new `MakeLabel` call after the existing rows, anchored against the previous label.
    - Add a `fields.<name>` entry to the storage table.
    - Add a populator branch in `PopulateFields` reading `info.<field>`.
-   - The `content` frame's size is fixed by its TOPLEFT + BOTTOMRIGHT anchors, so no SetHeight tweak is needed for layout. If the new row would push past `FRAME_HEIGHT - 38 - 44 ≈ 178 px`, bump `FRAME_HEIGHT` instead (step 5 below).
+   - The `content` frame's size is fixed by its TOPLEFT + BOTTOMRIGHT anchors, so no SetHeight tweak is needed for layout. If the new row would push past `frame.height - 38 - 44` (≈ 178 px at the shipped 260), the popup needs to be taller — see step 5 below.
 3. If it's surfaced in chat, add an entry to the module-level `NOTIFY_ROWS` table above `ShowNotification` — `{ flag = "show<Name>", label = "<Name>:", value = function(self, info) ... end }` — placed at the position in the table where you want the row printed, since the table order *is* the chat order. `ShowNotification` itself no longer carries a branch per row; it loops the table and gates each entry on `n[row.flag]`. Add `omitWhenNil = true` only if the row should vanish entirely when there is nothing to show — the default is to print the row with the value degraded by the `NS.SafeToString` seam, which is what the Leader row relies on. Add the matching `notify.show<Name>` schema row.
 4. Update the captured-info table in [data-flow.md](./data-flow.md#captured-info).
-5. If the popup's height needs to grow to fit a new row, also bump `FRAME_HEIGHT` at the top of `modules/Frame.lua`.
+5. If the popup's height needs to grow to fit a new row, the height is a **setting**, not a file-local: raise `frame.height`'s shipped default in `defaults/Profile.lua` (`NS.C.frame.height`) and, if the new floor is above it, the schema row's `min` in `settings/Schema.lua` together with `FRAME_H_MIN` / `FRAME_H_MAX` at the top of `modules/Frame.lua` — the clamp pair and the slider bounds are mirrored on purpose and must move together.
 
 ## Test the full pipeline without joining a group
 

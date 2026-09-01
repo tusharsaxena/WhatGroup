@@ -65,31 +65,46 @@ end
 -- Schema
 -- ---------------------------------------------------------------------------
 --
--- Rendered panel layout:
+-- The page is TABBED (options-ui-§13). `LibKa0s-Options-1.0`'s RenderTabbedSchema
+-- partitions this array by `group`, IN DECLARATION ORDER, and draws one tab per
+-- distinct group -- so the order below IS the strip, and a group's rows must stay
+-- CONTIGUOUS: a row filed under a group the array has already left would print
+-- that heading a second time further down.
 --
---   --- General ---
---   [Enable]        | [Auto Show]
---   [Print to Chat] | [Debug console]   <- pairWith, a session-only non-schema row
+-- Three tabs, in the order a player meets the addon: the switch and the pause
+-- before anything happens, then the chat line, then the window.
+--
+--   --- General ---            what the addon does at all
+--   [Enable]              | [Debug console]   <- pairWith, a session-only non-schema row
+--   [Notification delay]
 --     <afterGroup: Test button (160 px, left-aligned)>
 --
---   --- Notify ---
---   [Notification Delay]
---   [Show Instance]
---   [Show Type]
---   [Show Leader]
---   [Show Playstyle]
---   [Show ClickLink]
---   [Show Teleport]
+--   --- Chat ---               what the chat line says
+--   [Print to Chat]                            master toggle, on its own line
+--   [Instance]            | [Type]
+--   [Leader]              | [Playstyle]
+--   [Details link]        | [Teleport spell]
+--
+--   --- Popup ---              the group-info window
+--   [Open Automatically]                       master toggle, on its own line
+--   [Width]               | [Height]
+--
+-- `section` is NOT `group`: it is `/wg list`'s grouping key and it is unchanged
+-- by the retabbing. `notify.delay` is edited on General and stored (and listed)
+-- under `notify`, which is exactly the page-vs-path split options-ui-§13 allows:
+-- a row's tab is where it is EDITED, its path is where it is STORED.
 
 local function add(t) Schema[#Schema + 1] = t end
 
--- General
+-- ---------------------------------------------------------------------------
+-- General -- the master switch, the pause, and the two developer affordances
+-- ---------------------------------------------------------------------------
 
 add{
     section = "general",  group = "General",
     path    = "enabled",  type = "bool",
     label   = "Enable",
-    tooltip = "Master switch. When off, WhatGroup ignores group applications entirely — no capture, no notification, no popup. Re-enable to resume tracking on your next /lfg apply.",
+    tooltip = "Master switch. When off, WhatGroup ignores group applications entirely \226\128\148 no capture, no notification, no popup. Re-enable to resume tracking on your next /lfg apply.",
     default = C.enabled,
     -- Off-flip wipes any in-flight capture so a pre-toggle apply can't
     -- still surface a notify/popup after the user has explicitly
@@ -100,43 +115,22 @@ add{
         -- the [Set] line already shows `enabled = false`; WipeCapture logs the
         -- wipe only when there was an in-flight capture to drop, never a
         -- restatement of the value. Group-leave calls WipeCapture with no
-        -- reason (silent — the [Roster] line already covers that path).
+        -- reason (silent -- the [Roster] line already covers that path).
         if not v then WhatGroup:WipeCapture("addon disabled") end
     end,
 }
 
-add{
-    section = "frame",  group = "General",
-    path    = "frame.autoShow",  type = "bool",
-    label   = "Auto Show",
-    tooltip = "Open the group-info popup automatically when joining. With this off, the chat notification still prints and you can re-open the popup with /wg show or the chat link.",
-    default = C.frame.autoShow,
-}
-
+-- EDITED ON GENERAL, STORED UNDER `notify`. It used to head the Notify section,
+-- which read as "how long before the chat line", and that was only half of what
+-- it does: the same timer gates the POPUP as well (core/WhatGroup.lua schedules
+-- one callback that prints and shows). A row that governs both surfaces belongs
+-- on neither of their tabs, so it sits with the master switch -- the other row
+-- here that decides what happens at all rather than what one surface looks like.
+--
+-- `solo` survives the retabbing: a half-width slider paired against a checkbox
+-- reads as though the checkbox gated it.
 add{
     section = "notify",  group = "General",
-    path    = "notify.enabled",  type = "bool",
-    label   = "Print to Chat",
-    tooltip = "Print the group-details summary to chat after joining a group.",
-    default = C.notify.enabled,
-}
-
--- Debug is intentionally NOT a schema row: it's session-only runtime
--- state (NS.State.debug), toggled via `/wg debug`, never persisted to
--- SavedVariables (WG-12 / debug-logging-§5). Keeping it out of the schema keeps it
--- out of BuildDefaults / `/wg list` / the saved profile. The General panel
--- does surface a "Debug console" checkbox, but as a session-only non-schema
--- affordance (settings/Panel.lua): it toggles only the console *window's*
--- visibility (NS.DebugLog Show/Hide), never the debug logging flag and never
--- db.profile — so the WG-12 invariant (debug never persists) still holds.
-
--- Notify — `solo = true` makes each row span the left half on its own
--- line, so the section reads as a vertical checklist of "include this
--- line when printing the notification." `notify.delay` joins the same
--- vertical column as a half-width slider above the show* checkboxes.
-
-add{
-    section = "notify",  group = "Notify",
     path    = "notify.delay",  type = "number",
     label   = "Notification Delay",
     tooltip = "Seconds to wait after joining before printing the notification and showing the popup. Lets the zone-in settle.",
@@ -145,58 +139,135 @@ add{
     solo    = true,
 }
 
+-- Debug is intentionally NOT a schema row: it's session-only runtime
+-- state (NS.State.debug), toggled via `/wg debug`, never persisted to
+-- SavedVariables (WG-12 / debug-logging-§5). Keeping it out of the schema keeps it
+-- out of BuildDefaults / `/wg list` / the saved profile. The General TAB does
+-- surface a "Debug console" checkbox, but as a session-only non-schema
+-- affordance (settings/Panel.lua): it toggles only the console *window's*
+-- visibility (NS.DebugLog Show/Hide), never the debug logging flag and never
+-- db.profile -- so the WG-12 invariant (debug never persists) still holds. It is
+-- paired against `enabled` now rather than against "Print to Chat", because the
+-- row it used to sit beside moved to another tab.
+
+-- ---------------------------------------------------------------------------
+-- Chat -- the join summary, line by line
+-- ---------------------------------------------------------------------------
+--
+-- THE VERTICAL CHECKLIST IS OVER, and only half of the argument for it expired.
+-- Every row here used to carry `solo = true` so the section read as a column of
+-- "include this line" ticks. The tab now says that: six of these rows are the
+-- only thing on the Chat tab under their master, so the reader no longer needs a
+-- column to tell them apart from the rest of the panel -- and six half-empty
+-- lines is a scroll where three full ones are a glance. What survives is the
+-- solo on the MASTER: "Print to Chat" governs the six, and a master paired
+-- against the first thing it governs reads as its equal.
+--
+-- The labels lost their "Show " prefix with the same move: under a tab called
+-- Chat, seven rows beginning "Show" spend their first word saying what the tab
+-- already said. The PATHS are untouched -- `notify.showInstance` is still
+-- `notify.showInstance` for `/wg set` and for every saved profile.
+
 add{
-    section = "notify",  group = "Notify",
+    section = "notify",  group = "Chat",
+    path    = "notify.enabled",  type = "bool",
+    label   = "Print to Chat",
+    tooltip = "Print the group-details summary to chat after joining a group. The rows below choose what that summary contains.",
+    default = C.notify.enabled,
+    solo    = true,
+}
+
+add{
+    section = "notify",  group = "Chat",
     path    = "notify.showInstance",  type = "bool",
-    label   = "Show Instance",
+    label   = "Instance",
     tooltip = "Include the Instance line in the chat notification.",
     default = C.notify.showInstance,
-    solo    = true,
 }
 
 add{
-    section = "notify",  group = "Notify",
+    section = "notify",  group = "Chat",
     path    = "notify.showType",  type = "bool",
-    label   = "Show Type",
-    tooltip = "Include the Type line (Mythic+, Raid, Dungeon, …) in the chat notification.",
+    label   = "Type",
+    tooltip = "Include the Type line (Mythic+, Raid, Dungeon, ...) in the chat notification.",
     default = C.notify.showType,
-    solo    = true,
 }
 
 add{
-    section = "notify",  group = "Notify",
+    section = "notify",  group = "Chat",
     path    = "notify.showLeader",  type = "bool",
-    label   = "Show Leader",
+    label   = "Leader",
     tooltip = "Include the Leader line in the chat notification.",
     default = C.notify.showLeader,
-    solo    = true,
 }
 
 add{
-    section = "notify",  group = "Notify",
+    section = "notify",  group = "Chat",
     path    = "notify.showPlaystyle",  type = "bool",
-    label   = "Show Playstyle",
+    label   = "Playstyle",
     tooltip = "Include the Playstyle line (Learning / Fun (Relaxed) / Fun (Serious) / Expert) in the chat notification.",
     default = C.notify.showPlaystyle,
-    solo    = true,
 }
 
 add{
-    section = "notify",  group = "Notify",
+    section = "notify",  group = "Chat",
     path    = "notify.showClickLink",  type = "bool",
-    label   = "Show \"Click here to view details\" link",
-    tooltip = "Include the clickable chat link that re-opens the popup. Disable if you only want the chat summary.",
+    label   = "Details link",
+    tooltip = "Include the clickable \"Click here to view details\" link that re-opens the popup. Disable if you only want the chat summary.",
     default = C.notify.showClickLink,
-    solo    = true,
 }
 
 add{
-    section = "notify",  group = "Notify",
+    section = "notify",  group = "Chat",
     path    = "notify.showTeleport",  type = "bool",
-    label   = "Show Teleport spell",
+    label   = "Teleport spell",
     tooltip = "Include a Teleport line with the dungeon's teleport spell link (and a \"not learned\" tag if you don't have it). Skipped silently when the dungeon has no known teleport.",
     default = C.notify.showTeleport,
+}
+
+-- ---------------------------------------------------------------------------
+-- Popup -- the group-info window
+-- ---------------------------------------------------------------------------
+
+add{
+    section = "frame",  group = "Popup",
+    path    = "frame.autoShow",  type = "bool",
+    label   = "Open Automatically",
+    tooltip = "Open the group-info popup automatically when joining. With this off, the chat notification still prints and you can re-open the popup with /wg show or the chat link.",
+    default = C.frame.autoShow,
     solo    = true,
+}
+
+-- WIDTH AND HEIGHT ARE TWO SETTINGS AND ONE LINE. They were `FRAME_WIDTH` and
+-- `FRAME_HEIGHT`, two file-locals in modules/Frame.lua, and they ship as their
+-- own defaults: 420 and 260, the numbers they replaced, so a popup nobody has
+-- touched is drawn exactly as it was. They sit ACROSS one line rather than down
+-- a column because the question a player has is the shape of the window, which
+-- is both numbers at once.
+--
+-- The clamp is modules/Frame.lua's, not the slider's: the slider cannot produce
+-- an illegal value, but SavedVariables and `/wg set frame.width 4000` both can,
+-- and a popup wider than the screen is a control that reads as broken rather
+-- than as refused.
+
+add{
+    section = "frame",  group = "Popup",
+    path    = "frame.width",  type = "number",
+    label   = "Width",
+    tooltip = "Width of the group-info popup, in pixels. The default 420 is the size the popup shipped at.",
+    default = C.frame.width,
+    min = 320, max = 700, step = 10, fmt = "%d px",
+    onChange = function() if WhatGroup.ApplyFrameSize then WhatGroup:ApplyFrameSize() end end,
+}
+
+add{
+    section = "frame",  group = "Popup",
+    path    = "frame.height",  type = "number",
+    label   = "Height",
+    tooltip = "Height of the group-info popup, in pixels. The default 260 is the size the popup shipped at.",
+    default = C.frame.height,
+    min = 200, max = 520, step = 10, fmt = "%d px",
+    onChange = function() if WhatGroup.ApplyFrameSize then WhatGroup:ApplyFrameSize() end end,
 }
 
 -- ---------------------------------------------------------------------------

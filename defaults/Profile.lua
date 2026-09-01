@@ -17,6 +17,13 @@ NS.C = {
     enabled = true,                 -- master switch
     frame = {
         autoShow = true,            -- open the popup automatically on join
+        -- The popup's own size, promoted out of modules/Frame.lua's FRAME_WIDTH /
+        -- FRAME_HEIGHT file-locals. THE NUMBERS ARE THE ONES THEY REPLACED, exactly:
+        -- a profile that touches neither slider draws the 420x260 popup that shipped.
+        -- modules/Frame.lua clamps both on read, because a value hand-edited into
+        -- SavedVariables reaches SetSize with nothing else between it and the frame.
+        width    = 420,             -- popup width  in pixels (clamped 320..700)
+        height   = 260,             -- popup height in pixels (clamped 200..520)
     },
     notify = {
         enabled      = true,        -- print the chat summary on join

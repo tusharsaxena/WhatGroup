@@ -259,7 +259,16 @@ test("options: Settings.Helpers IS the library instance, decorated in place", fu
     mock.fireCTimers()
     assertTrue(seen > 0,
         "the flow engine did not go through the member on the published table")
-    assertEqual(seen, #NS.addon.Settings.Schema, "once per schema row")
+    -- Once per row OF THE OPEN TAB, not once per schema row: the page is tabbed (options-ui-§13)
+    -- and renders one group at a time, so the whole-schema count would be asserting widgets that
+    -- were never asked for. General is the group the strip opens on -- its first in declaration
+    -- order -- which is what makes this a fixed number rather than "whatever rendered".
+    local onFirstTab = 0
+    local firstGroup = NS.addon.Settings.Schema[1].group
+    for _, def in ipairs(NS.addon.Settings.Schema) do
+        if def.group == firstGroup then onFirstTab = onFirstTab + 1 end
+    end
+    assertEqual(seen, onFirstTab, "once per row of the tab the page opens on")
 end)
 
 test("options: the host's data seams survived the move onto the instance", function()
@@ -299,8 +308,14 @@ test("options: a panel write takes the addon's single write seam", function()
     local panel = mock.frames["WhatGroupGeneralPanel"]
     panel:Show()
     mock.fireCTimers()
+    -- On the Chat tab, so the strip has to be clicked first. The tab buttons are CreateFrame
+    -- Buttons in the page's chrome band, not AceGUI widgets, which is why this reaches into
+    -- mock.frames rather than through findWidget.
+    for _, f in ipairs(mock.frames) do
+        if f.__kind == "Button" and f.__text == "Chat" then f.__fire("OnClick") end
+    end
     local cb = mock.findWidget(function(w)
-        return w.type == "CheckBox" and w.labelText == "Show Leader"
+        return w.type == "CheckBox" and w.labelText == "Leader"
     end)
     cb:Fire("OnValueChanged", false)
     assertEqual(NS.addon.db.profile.notify.showLeader, false, "the value landed")
@@ -562,6 +577,12 @@ test("degraded: the settings stub carries no widget maker and no layout constant
     assertNil(H.ROW_VSPACER, "the stub must not carry the library's layout constants")
     assertNil(H.SECTION_HEADING_H)
     assertNil(H.BUTTON_PAIR_REL)
+    -- The chrome band's three, added when the tabbed page landed. Named individually rather than
+    -- left to the parity case's ignore list: that list says "live-only on purpose", this says
+    -- "and here is the assertion that catches somebody copying the number in".
+    assertNil(H.CHROME_GAP, "nor the chrome band's")
+    assertNil(H.TAB_H)
+    assertNil(H.BANNER_H)
     local src = readFile("settings/OptionsSetup.lua")
     local stub = src:match("if not lib then(.-)\r?\nend\r?\n")
     assertTrue(stub ~= nil, "the degraded branch is findable")
@@ -664,7 +685,13 @@ test("parity: the Options helpers stub carries the whole live surface", function
         -- options-ui-§1 / §8: the layout scalars must not be carried into the stub and must not be
         -- copied by a host anywhere — a host copy is the copy that goes stale. Every consumer of
         -- them in settings/Panel.lua sits behind a maker that is a no-op on this path.
+        -- CHROME_GAP / TAB_H / BANNER_H arrived with the tabbed page and the banner
+        -- (options-ui-§13 / §14) and are the same kind of thing: scalars the library publishes so
+        -- a host drawing BESPOKE chrome can measure its own band. This addon draws none -- its one
+        -- page hands the whole strip to RenderTabbedSchema -- so nothing here reads them, degraded
+        -- or live.
         "PADDING_X", "ROW_VSPACER", "SECTION_HEADING_H", "BUTTON_PAIR_REL",
+        "CHROME_GAP", "TAB_H", "BANNER_H",
         -- The widget factory itself. settings/Panel.lua:40 and :163 read it and return early when
         -- it is nil, and both sites only run inside the page builder, which never runs degraded.
         "AceGUI",

@@ -625,3 +625,68 @@ test("frame: a saved position is restored on the next build", function()
     assertEqual(x, -40)
     assertEqual(y, -60)
 end)
+
+-- ---------------------------------------------------------------------------
+-- The popup's size, which is a setting now (frame.width / frame.height)
+-- ---------------------------------------------------------------------------
+
+test("frame: the popup is built at the profile's width and height", function()
+    -- FRAME_WIDTH / FRAME_HEIGHT used to be file-locals. The shipped defaults are the numbers they
+    -- were, so this case also pins that an untouched profile draws the popup that shipped.
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    assertEqual(popup(mock):GetWidth(), 420)
+    assertEqual(popup(mock):GetHeight(), 260)
+end)
+
+test("frame: a stored size is honored on build", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db.profile.frame.width  = 560
+    NS.addon.db.profile.frame.height = 300
+    NS.addon:ShowFrame()
+    assertEqual(popup(mock):GetWidth(), 560)
+    assertEqual(popup(mock):GetHeight(), 300)
+end)
+
+test("frame: a size change re-sizes a popup that is already open", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    NS.addon.Settings.Helpers.Set("frame.width", 500)
+    assertEqual(popup(mock):GetWidth(), 500, "the row's onChange reached the live frame")
+    NS.addon.Settings.Helpers.Set("frame.height", 340)
+    assertEqual(popup(mock):GetHeight(), 340)
+end)
+
+test("frame: a size hand-edited past the clamp is drawn at the nearest legal value", function()
+    -- These come from SavedVariables and from `/wg set`, neither of which passes the slider. A
+    -- popup wider than the monitor reads as the setting being broken rather than as refused.
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db.profile.frame.width  = 4000
+    NS.addon.db.profile.frame.height = 12
+    NS.addon:ShowFrame()
+    assertEqual(popup(mock):GetWidth(), 700, "clamped to the row's max")
+    assertEqual(popup(mock):GetHeight(), 200, "and up to the row's min")
+end)
+
+test("frame: a non-numeric stored size falls back to the shipped default", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db.profile.frame.width  = "wide"
+    NS.addon.db.profile.frame.height = nil
+    NS.addon:ShowFrame()
+    assertEqual(popup(mock):GetWidth(), 420)
+    assertEqual(popup(mock):GetHeight(), 260)
+end)
+
+test("frame: a size change taken in combat is refused, and lands on the next open", function()
+    -- The popup parents a SecureActionButtonTemplate button anchored off the frame's own edges, so
+    -- resizing the parent in combat is protected work. Nothing is queued: the next out-of-combat
+    -- ShowFrame applies whatever the value is by then, which is the value the player set.
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    mock.combat = true
+    NS.addon.Settings.Helpers.Set("frame.width", 600)
+    assertEqual(popup(mock):GetWidth(), 420, "the live frame was left alone in combat")
+    mock.combat = false
+    NS.addon:ShowFrame()
+    assertEqual(popup(mock):GetWidth(), 600, "and the next open picks the value up")
+end)

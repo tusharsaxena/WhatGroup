@@ -98,16 +98,18 @@ Verifies AceGUI rendering, schema-driven widget refresh, and the Defaults flow.
 
 1. Click **General** in the Settings sidebar tree.
 
-**Expected:** Two-column layout. Section headers **General** and **Notify**. **Defaults** button in the top-right corner. Hovering any widget shows a tooltip with the schema row's `tooltip` field.
+**Expected:** A **tab strip** across the top of the page reading **General | Chat | Popup**, left to right, with **General** selected and drawn as the disabled (current) tab. Below it, a two-column grid — and **no section headings**: the strip names the group now. **Defaults** button in the top-right corner. Hovering any widget shows a tooltip with the schema row's `tooltip` field.
+
+Click each tab in turn and confirm the page swaps content rather than scrolling: **General** shows *Enable* + *Debug console* on one line, *Notification Delay* below, then the *Test* button; **Chat** shows *Print to Chat* alone, then *Instance | Type*, *Leader | Playstyle*, *Details link | Teleport spell*; **Popup** shows *Open Automatically* alone, then *Width | Height*. Clicking the tab you are already on does nothing (the active tab is disabled). The **Test** button appears on **General only** — if it shows up under Chat or Popup, the `afterGroup` key is wrong.
 
 ### 3.3 Widget round-trip
 
-1. Toggle **Auto Show** off.
-2. Slide **Notification Delay** to 3.0s.
+1. **Popup** tab → toggle **Open Automatically** off.
+2. **General** tab → slide **Notification Delay** to 3.0s.
 3. Close the Settings panel.
 4. `/wg get frame.autoShow` → `false`.
 5. `/wg get notify.delay` → `3.0s`.
-6. `/wg set frame.autoShow on` → re-open Settings → checkbox is checked.
+6. `/wg set frame.autoShow on` → re-open Settings → **Popup** tab → checkbox is checked.
 7. Restore both to defaults.
 
 **Expected:** Panel widgets and slash-command get/set agree at every step. Each rendered widget registers a refresher closure on its page, and a `/wg set` re-runs them in place — no rebuild — so an open panel follows a slash write immediately.
@@ -129,17 +131,35 @@ Verifies AceGUI rendering, schema-driven widget refresh, and the Defaults flow.
 
 **Expected:** Same flow as `/wg test` — chat notification + popup. Confirms the Test button shares the `WhatGroup:RunTest()` code path with the slash command.
 
+### 3.5a Popup size — the two promoted literals
+
+1. `/wg config` → **Popup** tab. Confirm **Width** reads `420 px` and **Height** reads `260 px` on a
+   profile that has never touched them. *These are the numbers the old `FRAME_WIDTH` / `FRAME_HEIGHT`
+   file-locals held; a different default here means every existing install's popup just resized.*
+2. `/wg test` to open the popup, leave it open, and drag **Width** to `600`. Release.
+   **Expected:** the open popup widens as you release, and nothing inside it moves relative to the
+   title bar — the rows and the teleport button are anchored to the frame's corners.
+3. Drag **Height** to `340`. Release. Same again, vertically. The Close button stays 12px off the
+   bottom edge.
+4. `/wg set frame.width 4000`, then `/wg show`.
+   **Expected:** the popup is drawn at **700** wide (the clamp's ceiling), not off the screen. Same
+   with `/wg set frame.height 10` → drawn at **200**.
+5. Pull a target dummy, and with the popup open `/wg set frame.width 500`.
+   **Expected:** the open popup does **not** resize during combat (no error, no "action blocked").
+   Drop combat, `/wg show` again — now it is 500 wide.
+6. `/wg reset frame.width` and `/wg reset frame.height` → both back to 420 / 260.
+
 ### 3.6 Debug console checkbox — visibility only, session-only (WG-12 / debug-logging-§5)
 
-Layout check first: `/wg config` → **General**. The grid should read:
+Layout check first: `/wg config` → **General** tab. The grid should read:
 
 ```
-[Enable]         [Auto Show]
-[Print to Chat]  [Debug console]
+[Enable]              [Debug console]
+[Notification Delay]
 [Test]
 ```
 
-i.e. **Debug console** pairs on the right of **Print to Chat**, and **Test** sits on its own row below.
+i.e. **Debug console** pairs on the right of **Enable** (it used to pair with *Print to Chat*, which now lives on the Chat tab), and **Test** sits on its own row below.
 
 1. Fresh login (or `/reload`). `/wg config` → **General**. Confirm **Debug console** is **unchecked** (the window is hidden at login).
 2. Check it → the debug console **window appears**.
@@ -374,7 +394,7 @@ Rename the folder back and `/reload` before doing anything else.
 
 Every module that takes an `L` override resolves the descriptor's table first. Hand one an addon-wide locale table — whose metatable answers every key with the key itself — and the library's own English is never reached, so the UI renders `CHECKBOX_LABEL`, `ERR_BOOL`, `LIST_HEADER` and friends. It fails for every string at once, and **only in game**: a synthesized value is still a string, so no headless case sees it. The source guard and the rendered assertions in `tests/test_libka0s.lua` are both blind to what the client actually draws.
 
-1. `/wg config` — read the landing page top to bottom, then the **General** page top to bottom, including every widget label, every tooltip (hover each), the section headings and the **Defaults** button.
+1. `/wg config` — read the landing page top to bottom, then the **General** page top to bottom — every tab in the strip, every widget label, every tooltip (hover each), the tab labels themselves and the **Defaults** button. There are no section headings any more; the strip carries those names.
 2. `/wg debug` — read the console: its title, the `Debug: ON`/`Debug: OFF` toggle, the `Copy` and `Clear` buttons, the `N / 1500 lines` counter. Click **Copy** and read that window's title too.
 3. `/wg help`, then `/wg list`, then `/wg set notify.showLeader nonsense`.
 
@@ -388,8 +408,8 @@ Framed as *"nothing moved"*: anything that looks different from the previous bui
 
 1. `/wg config` — the landing page. Logo, the one-line notes, the **Slash Commands** heading, then one row per command.
    **Expected:** rows read `/wg <verb> — <description>` with a **single** space either side of the dash. They used to have double spaces and a white-colored dash; that change is deliberate (the panel and `/wg help` now share one formatter). Everything else about the page is unchanged.
-2. **General** page. Two-column grid, `Enable | Auto Show` on one line, `Print to Chat` paired with `Debug console`, the **Notify** section below with the delay slider and the show-* checkboxes each on their own line, the **Test** button under the General group, **Defaults** top-right.
-   **Expected:** identical layout to the previous build. The Debug console checkbox's **tooltip wording** now comes from the library and differs — expected.
+2. **General** page. A **General | Chat | Popup** tab strip, `Enable` paired with `Debug console`, the delay slider below it, the **Test** button under them, **Defaults** top-right.
+   **Expected:** the page is TABBED — that is the change, not a finding. What must be identical to the previous build is every stored value: nothing moved paths, so `/wg list` prints exactly what it printed before, and a profile carried over from the untabbed build opens with every setting where the player left it. The Debug console checkbox's **tooltip wording** comes from the library and differs — also expected.
 3. Drag the **Notification Delay** slider and watch the value.
    **Expected:** the stored value commits when you **release**, not on every frame of the drag. Re-open the page and confirm it kept what you released on.
 4. Click **Defaults** → confirm → check that every setting is back to default.
@@ -413,7 +433,7 @@ Framed as *"nothing moved"*: anything that looks different from the previous bui
 `LibKa0s-Media-1.0` ships the icon catalog and JetBrains Mono inside the library payload, and
 `core/MediaSetup.lua` tells the library which addon folder to build a texture path from. **Nothing
 out of game can see any of this.** A texture path that is never built, or is built wrong, produces a
-control that draws nothing and raises nothing: lint is silent, all 485 headless cases stay green,
+control that draws nothing and raises nothing: lint is silent, all 497 headless cases stay green,
 and the only witness is a person looking at two windows side by side. That is the whole reason this
 section exists.
 

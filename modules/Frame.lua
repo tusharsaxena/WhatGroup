@@ -22,8 +22,6 @@ local addonName, NS = ...
 local WhatGroup = NS.addon
 local L         = NS.L
 
-local FRAME_WIDTH  = 420
-local FRAME_HEIGHT = 260
 local LABEL_WIDTH  = 72
 local yGap         = -18
 
@@ -32,6 +30,51 @@ local yGap         = -18
 -- read them after buildFrame() has run, so they're always non-nil
 -- by the time those functions execute.
 local f, fields, ConfigureTeleportButton
+
+-- THE POPUP'S SIZE IS A SETTING NOW. `FRAME_WIDTH = 420` and `FRAME_HEIGHT = 260` used to be two
+-- file-locals here; they are `frame.width` and `frame.height` in the schema, and their shipped
+-- defaults ARE those two numbers (defaults/Profile.lua), so a profile that never touches either
+-- slider draws the popup that shipped.
+--
+-- CLAMPED ON READ, not on write. The slider cannot produce an illegal value, but SavedVariables
+-- and `/wg set frame.width 4000` both can, and a popup wider than the monitor reads as the setting
+-- being broken rather than as the value being refused. Bounds are stated once, here, and mirrored
+-- by the schema row's `min`/`max` so the slider cannot travel anywhere this would then correct.
+local FRAME_W_MIN, FRAME_W_MAX = 320, 700
+local FRAME_H_MIN, FRAME_H_MAX = 200, 520
+
+local function clamp(v, lo, hi, fallback)
+    v = tonumber(v)
+    if not v then return fallback end
+    if v < lo then return lo end
+    if v > hi then return hi end
+    return v
+end
+
+-- The size to draw at: the profile's, clamped, falling back to the shipped default for a value
+-- that is missing or not a number at all. NS.C is defaults/Profile.lua's table, which is the one
+-- place either number is hardcoded.
+local function popupSize()
+    local pr = WhatGroup.db and WhatGroup.db.profile and WhatGroup.db.profile.frame
+    local dw = NS.C and NS.C.frame and NS.C.frame.width  or FRAME_W_MIN
+    local dh = NS.C and NS.C.frame and NS.C.frame.height or FRAME_H_MIN
+    return clamp(pr and pr.width,  FRAME_W_MIN, FRAME_W_MAX, dw),
+           clamp(pr and pr.height, FRAME_H_MIN, FRAME_H_MAX, dh)
+end
+
+-- Re-size a popup that already exists. Called from the two schema rows' `onChange` and from
+-- ShowFrame, so a change made while the popup is open lands immediately and a change made while it
+-- is closed lands on the next open.
+--
+-- REFUSED IN COMBAT, not deferred. The popup parents a SecureActionButtonTemplate button whose
+-- anchor is derived from the frame's own edges, and resizing the parent moves it -- protected work,
+-- and the same reason ConfigureTeleportButton has a combat guard. There is nothing to queue: the
+-- next ShowFrame out of combat applies the current value, which is the value the player set.
+function WhatGroup:ApplyFrameSize()
+    if not f then return end
+    if InCombatLockdown() then return end
+    f:SetSize(popupSize())
+end
 
 -- The cooldown countdown's repeating timer, and the ONLY repeating anything in this addon. It is a
 -- ratified deviation, not an oversight: it ends `performance-§12`'s no-combat-path exemption, and
@@ -204,7 +247,7 @@ local function buildFrame()
     if f then return end   -- one-shot
 
     f = CreateFrame("Frame", "WhatGroupFrame", UIParent, "BackdropTemplate")
-    f:SetSize(FRAME_WIDTH, FRAME_HEIGHT)
+    f:SetSize(popupSize())
     f:SetPoint("CENTER", UIParent, "CENTER", 0, math.floor(UIParent:GetHeight() * 0.25))
     f:SetFrameStrata("DIALOG")
     f:SetMovable(true)
@@ -496,6 +539,9 @@ function WhatGroup:ShowFrame()
 
     buildFrame()    -- lazy: creates the popup + secure button +
                     -- UISpecialFrames entry on first call only.
+    -- Every open re-applies the size, so a `frame.width` / `frame.height` change taken while the
+    -- popup was closed -- or refused because it was taken in combat -- lands here.
+    WhatGroup:ApplyFrameSize()
     do
         local info = WhatGroup.pendingInfo
         NS.Debug("Frame", info

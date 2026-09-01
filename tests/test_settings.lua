@@ -438,3 +438,95 @@ test("settings: accepting the reset dialog acknowledges in chat", function()
     env.StaticPopupDialogs["WHATGROUP_RESET_ALL"].OnAccept()
     assertTrue(mock.prints[#mock.prints]:find("reset to defaults", 1, true) ~= nil)
 end)
+
+-- ---------------------------------------------------------------------------
+-- The page/tab partition (options-ui-§13)
+-- ---------------------------------------------------------------------------
+
+--- The page's tabs, in the order the strip draws them, and how many controls each holds.
+--- STATED HERE rather than derived from the schema the assertion reads, so a row that drifts
+--- into another tab is a NAMED failure rather than a shorter list that still agrees with itself.
+---
+--- One page, so one entry. WhatGroup registers a single settings sub-page ("general"); every row
+--- carries `section` for `/wg list` and `group` for the tab, and no row is hidden.
+local PARTITION = {
+    general = { { "General", 2 }, { "Chat", 7 }, { "Popup", 3 } },
+}
+
+test("settings: the page's tabs are the designed ones, in order, at the designed size",
+function()
+    -- red under: moving a row to another tab, reordering a group, splitting a group's run (which
+    -- RenderTabbedSchema would draw as a second tab of the same name), or adding a row without
+    -- deciding which tab it belongs on.
+    local NS = T.newAddon()
+    for _, expected in pairs(PARTITION) do
+        local order, counts, seen = {}, {}, {}
+        for _, row in ipairs(NS.addon.Settings.Schema) do
+            local g = row.group or "?"
+            if not seen[g] then
+                seen[g] = true
+                order[#order + 1] = g
+            end
+            counts[g] = (counts[g] or 0) + 1
+        end
+
+        local wantNames = {}
+        for i, pair in ipairs(expected) do wantNames[i] = pair[1] end
+        assertEqual(table.concat(order, " | "), table.concat(wantNames, " | "), "tab order")
+        for _, pair in ipairs(expected) do
+            assertEqual(counts[pair[1]], pair[2], pair[1] .. ": control count")
+        end
+    end
+end)
+
+test("settings: no tab holds fewer than two controls", function()
+    -- A tab over one control is a click that reveals a single checkbox. Nothing is exempt here:
+    -- every tab on this page is schema rows all the way down, and the two bespoke controls the
+    -- page draws (the Test button and the session-only Debug console checkbox) both sit on
+    -- General, which already carries two stored rows of its own.
+    -- red under: a tab losing rows until one is left, or a new one-row group.
+    local NS = T.newAddon()
+    local counts = {}
+    for _, row in ipairs(NS.addon.Settings.Schema) do
+        counts[row.group] = (counts[row.group] or 0) + 1
+    end
+    for group, n in pairs(counts) do
+        assertTrue(n >= 2, group .. " holds only " .. n)
+    end
+end)
+
+test("settings: every row's group is one of the designed tabs", function()
+    -- The partition case above pins the counts; this one pins the NAMES, so a typo'd group on a
+    -- new row reads as "Popupp is not a tab" rather than as a count that happens to still add up.
+    local NS = T.newAddon()
+    local known = { General = true, Chat = true, Popup = true }
+    for _, row in ipairs(NS.addon.Settings.Schema) do
+        assertTrue(known[row.group] == true, row.path .. " is filed under " .. tostring(row.group))
+    end
+end)
+
+-- ---------------------------------------------------------------------------
+-- The popup's promoted size (frame.width / frame.height)
+-- ---------------------------------------------------------------------------
+
+test("settings: the popup size defaults are the literals they replaced", function()
+    -- modules/Frame.lua's FRAME_WIDTH / FRAME_HEIGHT were 420 and 260. A default that is not the
+    -- number it replaced would silently resize every existing install's popup.
+    local NS = T.newAddon()
+    local d = NS.addon.Settings.BuildDefaults()
+    assertEqual(d.profile.frame.width, 420)
+    assertEqual(d.profile.frame.height, 260)
+    assertEqual(NS.C.frame.width, 420, "and the value itself lives in defaults/Profile.lua")
+    assertEqual(NS.C.frame.height, 260)
+end)
+
+test("settings: the size sliders cannot travel outside the frame's own clamp", function()
+    -- The clamp lives in modules/Frame.lua because SavedVariables and `/wg set` both bypass the
+    -- slider. The slider's bounds must agree with it, or dragging to either end would produce a
+    -- value the popup then silently corrects.
+    local NS = T.newAddon()
+    local H = NS.addon.Settings.Helpers
+    local w, h = H.FindSchema("frame.width"), H.FindSchema("frame.height")
+    assertEqual(w.min, 320); assertEqual(w.max, 700); assertEqual(w.step, 10)
+    assertEqual(h.min, 200); assertEqual(h.max, 520); assertEqual(h.step, 10)
+end)

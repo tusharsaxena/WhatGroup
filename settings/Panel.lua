@@ -187,6 +187,10 @@ end
 -- bookkeeping for both hooks (call-local sets, not the caller's tables), so a re-render gets the
 -- inline button and the paired widget again instead of silently dropping them.
 
+-- KEYED TO A TAB, not appended to the page. With the page tabbed (options-ui-§13), "after the
+-- schema" is no longer "at the bottom of the page" -- RenderTabbedSchema fires this hook after the
+-- last row of the NAMED group, so the Test button belongs to General and never appears under the
+-- Chat or Popup rows.
 local AFTER_GROUP = {
     -- Full-width action button, below the grid and on a fresh line.
     ["General"] = function(ctx)
@@ -204,7 +208,10 @@ local AFTER_GROUP = {
 
 local PAIR_WITH = {
     -- The session-only console checkbox, packed into the same two-column grid so it pairs with
-    -- "Print to Chat" instead of sitting on a line of its own. Deliberately NOT a schema row
+    -- "Enable" instead of sitting on a line of its own. It was keyed to `notify.enabled` until the
+    -- retabbing moved "Print to Chat" to the Chat tab; the console is a General affordance and
+    -- following its old partner across would have put a debug control on the tab that decides what
+    -- the chat line says. Deliberately NOT a schema row
     -- (WG-12 / debug-logging-§5) — it toggles ONLY the console window's visibility, never the debug
     -- logging flag and never db.profile, so nothing about it persists. SessionCheckbox is the
     -- library's maker for exactly that: a checkbox wired to caller-supplied get/set instead of a
@@ -212,7 +219,7 @@ local PAIR_WITH = {
     --
     -- The spec is DebugLog's own ConsoleCheckbox() data contract, so the label and the tooltip come
     -- from the module that owns the window rather than from a second description of it here.
-    ["notify.enabled"] = function(ctx, rowGroup)
+    ["enabled"] = function(ctx, rowGroup)
         Helpers.SessionCheckbox(ctx, rowGroup, 0.5, NS.DebugLog:ConsoleCheckbox())
     end,
 }
@@ -234,7 +241,13 @@ local function buildGeneralPage(parentCategory)
 
     Helpers.SetRenderer(ctx, function(c)
         Helpers.ClearScroll(c)
-        Helpers.RenderSchema(c, "general", AFTER_GROUP, PAIR_WITH)
+        -- TABBED (options-ui-§13): one tab per distinct `group` in settings/Schema.lua, in
+        -- declaration order -- General, Chat, Popup. The call is otherwise RenderSchema's: the
+        -- afterGroup and pairWith hooks are the same two tables, passed through unchanged.
+        --
+        -- No page banner (options-ui-§14) and none is possible: WhatGroup has no per-window
+        -- settings and no active-window state, so there is no instance for a banner to name.
+        Helpers.RenderTabbedSchema(c, "general", AFTER_GROUP, PAIR_WITH)
     end)
 
     local sub = _G.Settings.RegisterCanvasLayoutSubcategory(parentCategory, ctx.panel, "General")

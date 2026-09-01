@@ -13,7 +13,7 @@ The pattern is borrowed from a similar reference addon that demonstrates the sam
 | Property | Value |
 |---|---|
 | Frame name | `WhatGroupFrame` (globally accessible) |
-| Size | 420 × 260 |
+| Size | `frame.width` × `frame.height` — **420 × 260** by default, which is the size the two file-locals they replaced held. Clamped on read to 320..700 and 200..520 in `popupSize()`, because a hand-edited SavedVariable or `/wg set frame.width 4000` reaches `SetSize` with nothing else in between. `WhatGroup:ApplyFrameSize()` resizes a live popup and refuses in combat (the secure teleport button is anchored off this frame's own edges); every `ShowFrame` re-applies, so a refused change lands on the next open. |
 | Anchor | `CENTER` of UIParent, offset up by 25% of UIParent's height — the default; a position saved from a previous drag is restored over it on build (`NS.Windows.Restore("popup", …)`, WG-26) |
 | Strata | `DIALOG` |
 | Template | `BackdropTemplate` |
@@ -36,7 +36,7 @@ A single content frame inset 14px from the title bar and 14px / 44px from the bo
 | 5 | `Playstyle:` | `WhatGroup.Labels.GetPlaystyleLabel(info)` — `info.playstyleString` (server-rendered) → `WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle]` → `""`, which the popup renders as the dim em-dash |
 | 6 | `Teleport:` | 24×24 spell icon button (hidden when no spell mapped) |
 
-Labels use a fixed 72px column (`LABEL_WIDTH`) colored gold (`|cffFFD700`); values are anchored 6px to the right of the label and use `GameFontHighlight` (white). The 18px row gap (`yGap`) gives a clean vertical rhythm. The content frame's size is fully determined by its TOPLEFT + BOTTOMRIGHT anchors against `f` (insets `14, -38` and `-14, 44`), so no explicit `SetHeight` is needed — the row stack just has to fit inside that natural extent.
+Every row is anchored top-left against the content frame, and the content frame against `f`'s corners, so widening or heightening the popup moves nothing relative to the title bar — which is why the promoted size needed no offsets retuned. Labels use a fixed 72px column (`LABEL_WIDTH`) colored gold (`|cffFFD700`); values are anchored 6px to the right of the label and use `GameFontHighlight` (white). The 18px row gap (`yGap`) gives a clean vertical rhythm. The content frame's size is fully determined by its TOPLEFT + BOTTOMRIGHT anchors against `f` (insets `14, -38` and `-14, 44`), so no explicit `SetHeight` is needed — the row stack just has to fit inside that natural extent.
 
 ## `MakeLabel` helper
 
@@ -91,7 +91,7 @@ Retail's secure-frame system rejects any `SetPoint` call on a protected frame th
 
 **One note, three states, and the order is the point.** An unlearned spell can still report a cooldown, so `not known` is tested first: labelling it "on cooldown" would answer a question nobody asked while burying the one that explains the grey icon. A ready teleport needs no explanation and the note hides. The popup never greys a button out and says nothing.
 
-The countdown **ticks**, via a 1-second `ScheduleRepeatingTimer` (`modules/Frame.lua:146`). That timer is the only repeating anything in the addon and it ends `performance-§12`'s no-combat-path exemption — a **ratified deviation**, recorded with its reasoning and re-check trigger in [`ARCHITECTURE.md`](./ARCHITECTURE.md) `## Documented deviations`, with the regenerated sweep in [`performance.md`](./performance.md). What makes it defensible is that it cannot outlive the popup: **one** handle, replaced rather than stacked, cancelled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. That last tick re-runs `ConfigureTeleportButton` rather than hand-reversing the four things the cooldown branch changed, so the button becomes castable without the player closing and re-opening the popup. Five cases in `tests/test_frame.lua` pin all of it, including that three consecutive `ShowFrame()` calls leave exactly one timer and a `Hide()` leaves none.
+The countdown **ticks**, via a 1-second `ScheduleRepeatingTimer` (`modules/Frame.lua:189`). That timer is the only repeating anything in the addon and it ends `performance-§12`'s no-combat-path exemption — a **ratified deviation**, recorded with its reasoning and re-check trigger in [`ARCHITECTURE.md`](./ARCHITECTURE.md) `## Documented deviations`, with the regenerated sweep in [`performance.md`](./performance.md). What makes it defensible is that it cannot outlive the popup: **one** handle, replaced rather than stacked, cancelled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. That last tick re-runs `ConfigureTeleportButton` rather than hand-reversing the four things the cooldown branch changed, so the button becomes castable without the player closing and re-opening the popup. Five cases in `tests/test_frame.lua` pin all of it, including that three consecutive `ShowFrame()` calls leave exactly one timer and a `Hide()` leaves none.
 
 The swipe is the half that needs no timer at all — a `Cooldown` widget animates engine-side once armed. Both the note and the swipe are cleared (`SetCooldown(0, 0)`, `Hide()`) on every ready path, so neither can outlive the cooldown that armed it.
 

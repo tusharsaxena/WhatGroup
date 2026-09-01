@@ -14,6 +14,8 @@ db.profile = {
   enabled = true,                 -- master switch
   frame = {
     autoShow = true,              -- open the popup automatically on join
+    width    = 420,               -- popup width  in pixels (clamped 320..700)
+    height   = 260,               -- popup height in pixels (clamped 200..520)
   },
   notify = {
     enabled       = true,         -- print the chat summary on join
@@ -32,8 +34,16 @@ db.global = {
 }
 ```
 
-Nine persisted settings, all of them user-facing, all of them schema rows. There are no storage-only
-carve-outs: this addon has no draggable standalone window geometry and no dynamic id-sets to persist.
+Twelve persisted settings, all of them user-facing, all of them schema rows. There are no storage-only
+carve-outs in the profile: the popup's dragged POSITION is account-wide geometry and lives in
+`db.global.windows` (WG-26), not here.
+
+`frame.width` and `frame.height` were `FRAME_WIDTH` and `FRAME_HEIGHT`, two file-locals in
+`modules/Frame.lua`. Their defaults are the numbers they replaced, so an existing install's popup is
+drawn exactly as it was. Both are **clamped on read** in `modules/Frame.lua` (320..700 and 200..520,
+matching each row's `min`/`max`): the slider cannot produce an illegal value, but a hand-edited
+SavedVariable or `/wg set frame.width 4000` can, and a popup wider than the monitor reads as the
+setting being broken rather than as the value being refused.
 
 ## Two declaration sites, and why
 
@@ -60,7 +70,7 @@ for a path that already has a row:
 
 | Surface | How the row is used |
 |---|---|
-| Settings panel | the AceGUI widget rendered into the General sub-page |
+| Settings panel | the AceGUI widget rendered into the General sub-page, on the tab its `group` names (`options-ui-§13`) |
 | `/wg list` | grouped by `section`, printed as `path = formattedValue` |
 | `/wg get <path>` | `Helpers.FindSchema` + `Helpers.Get` |
 | `/wg set <path> <value>` | type-aware parse → `Helpers.Set` → the row's `onChange` → `RefreshAll` |

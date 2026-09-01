@@ -51,6 +51,28 @@ local function widget(mock, widgetType, labelText)
     end)
 end
 
+-- The tab strip's buttons are NOT AceGUI widgets: `LibKa0s-Options-1.0` builds them with
+-- CreateFrame inside the page's chrome band (options-ui-§13), so they live in `mock.frames`
+-- rather than in `mock.aceWidgets`. Last match wins, for the reason `lastWidget` gives — a tab
+-- click rebuilds the whole strip and the stale buttons stay in the mock's ledger.
+local function tabButton(mock, label)
+    local found
+    for _, f in ipairs(mock.frames) do
+        if f.__kind == "Button" and f.__text == label then found = f end
+    end
+    return found
+end
+
+-- Click a tab and let it re-render. The re-render is SYNCHRONOUS: the deferral this addon wraps
+-- around SetRenderer covers the library's OnShow path, and a tab click is not that path — it is a
+-- ClearScroll plus a fresh RenderTabbedSchema inside an already-open panel.
+local function selectTab(mock, label)
+    local b = tabButton(mock, label)
+    assertTrue(b ~= nil, "no tab labelled " .. label)
+    b.__fire("OnClick")
+    return b
+end
+
 -- ---------------------------------------------------------------------------
 -- Registration
 -- ---------------------------------------------------------------------------
@@ -193,12 +215,40 @@ end)
 -- Schema → widget rendering
 -- ---------------------------------------------------------------------------
 
-test("panel: every schema row renders a widget", function()
+test("panel: every schema row renders a widget, on its own tab", function()
+    -- The page is TABBED (options-ui-§13), so only the ACTIVE tab's rows are on screen. Walking
+    -- the strip is what keeps this case honest: asserting over the whole schema after one render
+    -- would have to accept a row that never draws, and asserting only the first tab would let the
+    -- other two rot. Each row is looked for after its own group is selected.
     local NS, _, mock = openGeneral()
+    local seen = {}
     for _, def in ipairs(NS.addon.Settings.Schema) do
+        if not seen[def.group] then
+            seen[def.group] = true
+            selectTab(mock, def.group)
+        end
         local wanted = def.type == "bool" and "CheckBox" or "Slider"
         assertTrue(widget(mock, wanted, def.label) ~= nil,
-            "no widget rendered for " .. def.path)
+            "no widget rendered for " .. def.path .. " on tab " .. def.group)
+    end
+end)
+
+test("panel: the strip draws one tab per schema group, in declaration order", function()
+    -- red under: a group losing its rows, a new group, or a row filed out of its run (which
+    -- RenderTabbedSchema would draw as a second tab with the same name).
+    local NS, _, mock = openGeneral()
+    local want = {}
+    local seen = {}
+    for _, def in ipairs(NS.addon.Settings.Schema) do
+        if not seen[def.group] then
+            seen[def.group] = true
+            want[#want + 1] = def.group
+        end
+    end
+    assertEqual(table.concat(want, " | "), "General | Chat | Popup",
+        "the designed strip, in the order the array declares it")
+    for _, name in ipairs(want) do
+        assertTrue(tabButton(mock, name) ~= nil, "the strip is missing " .. name)
     end
 end)
 
@@ -226,10 +276,15 @@ test("panel: the slider inherits its bounds and step from the schema row", funct
     assertEqual(s.sliderStep, 0.5)
 end)
 
-test("panel: each section renders a heading", function()
+test("panel: a tabbed page draws its group names as TABS, never as headings", function()
+    -- It used to assert the opposite — one Heading per section — and that was right while the page
+    -- scrolled. RenderTabbedSchema passes `noHeadings` for exactly this reason: the strip already
+    -- names the group, and a heading under it repeats the tab the reader just clicked.
     local _, _, mock = openGeneral()
-    assertTrue(widget(mock, "Heading", "General") ~= nil)
-    assertTrue(widget(mock, "Heading", "Notify") ~= nil)
+    assertTrue(tabButton(mock, "General") ~= nil, "the group name is on the strip")
+    assertNil(widget(mock, "Heading", "General"), "and not repeated as a heading below it")
+    selectTab(mock, "Chat")
+    assertNil(widget(mock, "Heading", "Chat"))
 end)
 
 test("panel: paired rows get half width, solo rows go full width", function()
@@ -237,7 +292,8 @@ test("panel: paired rows get half width, solo rows go full width", function()
     -- Everything in the two-column grid is rendered at 0.5 relative width; the
     -- `solo` flag controls line breaks, not the column width.
     assertEqual(widget(mock, "CheckBox", "Enable").relWidth, 0.5)
-    assertEqual(widget(mock, "CheckBox", "Show Leader").relWidth, 0.5)
+    selectTab(mock, "Chat")
+    assertEqual(widget(mock, "CheckBox", "Leader").relWidth, 0.5)
 end)
 
 test("panel: the General group renders its Test action button", function()
@@ -322,13 +378,15 @@ end)
 
 test("panel: ticking a checkbox writes through to db.profile", function()
     local NS, _, mock = openGeneral()
-    widget(mock, "CheckBox", "Show Leader"):Fire("OnValueChanged", false)
+    selectTab(mock, "Chat")
+    widget(mock, "CheckBox", "Leader"):Fire("OnValueChanged", false)
     assertEqual(NS.addon.db.profile.notify.showLeader, false)
 end)
 
 test("panel: a checkbox coerces its value to a real boolean", function()
     local NS, _, mock = openGeneral()
-    widget(mock, "CheckBox", "Show Type"):Fire("OnValueChanged", nil)
+    selectTab(mock, "Chat")
+    widget(mock, "CheckBox", "Type"):Fire("OnValueChanged", nil)
     assertEqual(NS.addon.db.profile.notify.showType, false)
 end)
 
@@ -362,11 +420,23 @@ end)
 test("panel: rendering registers one refresher per rendered widget", function()
     -- The registry is the library's and lives on the page's ctx, un-keyed — one closure per widget
     -- it made, appended in render order. Every schema row plus the session-only console checkbox.
-    local NS = openGeneral()
+    local NS, _, mock = openGeneral()
     local ctx = NS.addon.Settings.Helpers.__panelFor("general")
     assertTrue(ctx ~= nil, "the page's ctx is reachable through the library's test seam")
-    assertEqual(#ctx.refreshers, #NS.addon.Settings.Schema + 1,
-        "one per schema row, plus the Debug console session checkbox")
+    -- The ACTIVE TAB's rows, not the whole schema: a tabbed page renders one group at a time, so
+    -- counting every row would be counting widgets that do not exist (options-ui-§13).
+    local function rowsOn(group)
+        local n = 0
+        for _, def in ipairs(NS.addon.Settings.Schema) do
+            if def.group == group then n = n + 1 end
+        end
+        return n
+    end
+    assertEqual(#ctx.refreshers, rowsOn("General") + 1,
+        "one per General row, plus the Debug console session checkbox")
+    selectTab(mock, "Chat")
+    assertEqual(#ctx.refreshers, rowsOn("Chat"),
+        "and the Chat tab re-registers its own, with no console checkbox on it")
 end)
 
 test("panel: a re-render REPLACES the refresher list rather than growing it", function()
@@ -384,7 +454,8 @@ end)
 
 test("panel: a /wg set re-syncs the open widget", function()
     local NS, _, mock = openGeneral()
-    local cb = widget(mock, "CheckBox", "Show Instance")
+    selectTab(mock, "Chat")
+    local cb = widget(mock, "CheckBox", "Instance")
     assertEqual(cb:GetValue(), true)
     NS.addon.Settings.Helpers.Set("notify.showInstance", false)
     assertEqual(cb:GetValue(), false, "RefreshAll pushed the new value into the widget")
@@ -393,10 +464,16 @@ end)
 test("panel: RestoreAllDefaults re-syncs every open widget once", function()
     local NS, _, mock = openGeneral()
     NS.addon.Settings.Helpers.Set("notify.delay", 9)
-    widget(mock, "CheckBox", "Show Leader"):Fire("OnValueChanged", false)
+    assertEqual(widget(mock, "Slider", "Notification Delay"):GetValue(), 9,
+        "the General tab's slider followed the write")
     NS.addon.Settings.Helpers.RestoreAllDefaults()
     assertEqual(widget(mock, "Slider", "Notification Delay"):GetValue(), 0)
-    assertEqual(widget(mock, "CheckBox", "Show Leader"):GetValue(), true)
+    -- And again on another tab, because the reset has to reach the widgets of whichever group is
+    -- open, not just the one the page happened to start on.
+    selectTab(mock, "Chat")
+    widget(mock, "CheckBox", "Leader"):Fire("OnValueChanged", false)
+    NS.addon.Settings.Helpers.RestoreAllDefaults()
+    assertEqual(widget(mock, "CheckBox", "Leader"):GetValue(), true)
 end)
 
 test("panel: a throwing refresher does not abort the remaining ones", function()
@@ -404,8 +481,8 @@ test("panel: a throwing refresher does not abort the remaining ones", function()
     local ctx = NS.addon.Settings.Helpers.__panelFor("general")
     -- Inserted FIRST, so a sweep that aborted on it would never reach the widget asserted below.
     table.insert(ctx.refreshers, 1, function() error("refresher exploded") end)
-    NS.addon.Settings.Helpers.Set("notify.showTeleport", false)
-    assertEqual(widget(mock, "CheckBox", "Show Teleport spell"):GetValue(), false,
+    NS.addon.Settings.Helpers.Set("notify.delay", 4)
+    assertEqual(widget(mock, "Slider", "Notification Delay"):GetValue(), 4,
         "later refreshers still ran")
 end)
 
