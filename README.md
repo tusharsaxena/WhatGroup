@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-497%2F497_passing-green)
+![Tests](https://img.shields.io/badge/Tests-528%2F528_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1794/926/whatgroup-logo-png.png)
 
@@ -68,19 +68,19 @@ The General page carries a tab strip across the top. Three tabs, in the order yo
 
 | Tab | Covers |
 |---|---|
-| General | **Enable** (the master switch) and **Notification Delay**, plus the **Test** button and the **Debug console** checkbox |
-| Chat | **Print to Chat** and the six per-line toggles that decide what the chat message says |
+| Master controls | **Enable WhatGroup**, **General visibility**, **Master scale**, **Master alpha**, **Lock frame** and the **Debug console** checkbox, closed by the **Reset position** and **Reset all settings** buttons |
+| Chat | **Notification Delay**, then **Print to Chat** and the six per-line toggles that decide what the chat message says |
 | Popup | **Open Automatically**, and the popup's **Width** and **Height** |
 
-**General** — turn the addon on or off, and set how long to wait after joining before anything happens (0-10 seconds; the same pause gates both the chat message and the popup). The **Test** button previews the whole thing with sample data, and the **Defaults** button in the top-right resets every setting after a confirmation. There's also a **Debug console** checkbox, but it only shows or hides the debug window — it isn't a saved setting and doesn't turn logging on (use `/wg debug` for that).
+**Master controls** — the same first tab every Ka0s addon has, so "how do I turn this off, how do I make it smaller, how do I put it back" is always in the same place. **Enable WhatGroup** turns the addon off without unloading it. **General visibility** decides when the popup is allowed on screen at all — always, only in combat, only out of combat, or never. **Master scale** and **Master alpha** size and fade the popup; **Lock frame** stops you dragging it by accident. **Debug console** only shows or hides the debug window — it isn't a saved setting and doesn't turn logging on (use `/wg debug` for that). **Reset position** puts the popup back where it started, and **Reset all settings** restores everything after a confirmation (so does the **Defaults** button in the top-right corner).
 
-**Chat** — **Print to Chat** turns the join summary on or off, and the six toggles under it choose what that summary contains: instance, type, leader, playstyle, the "view details" link, and the teleport spell. These only change the chat message; the popup always shows everything.
+**Chat** — **Notification Delay** sets how long to wait after joining before anything happens (0-10 seconds; the same pause gates both the chat message and the popup). **Print to Chat** turns the join summary on or off, and the six toggles under it choose what that summary contains: instance, type, leader, playstyle, the "view details" link, and the teleport spell. These only change the chat message; the popup always shows everything. The **Test** button at the bottom previews the whole thing with sample data.
 
 **Popup** — **Open Automatically** decides whether the group-info window opens by itself on join, and **Width** and **Height** set its size (320-700 by 200-520 pixels; it ships at 420 x 260). Where you drag it is remembered separately.
 
 ## How it works
 
-When you click **Apply** in the Premade Group Finder, WhatGroup quietly notes the group's details. It keeps track of your application so the right group info is waiting for you when you join — even if you've applied to several groups at once. When you join, the chat message prints and the popup opens — instantly by default, or after the delay you set under **General → Notification Delay** if you'd rather let the zone-in settle first.
+When you click **Apply** in the Premade Group Finder, WhatGroup quietly notes the group's details. It keeps track of your application so the right group info is waiting for you when you join — even if you've applied to several groups at once. When you join, the chat message prints and the popup opens — instantly by default, or after the delay you set under **Chat → Notification Delay** if you'd rather let the zone-in settle first.
 
 The group info is only remembered for your current play session and clears when you leave the group. Only your settings are saved between sessions, plus where you've dragged the popup. For the technical details, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -91,7 +91,7 @@ The group info is only remembered for your current play session and clears when 
 | Does this work for cross-realm or cross-faction groups? | Yes. WhatGroup just reads whatever the group finder shows it, so realm, faction, and category don't matter. |
 | Is anything saved between sessions? | Your settings, plus where you've dragged the popup and debug windows. The group info itself is session-only — it clears the moment you leave the group, so `/wg show` only works while you're still in it. |
 | How do I preview the popup without joining a real group? | Use `/wg test`, or the **Test** button in Settings. Both run the full message and popup with sample data. |
-| Can I delay the message and popup instead of getting them instantly? | Yes. They appear instantly by default; set a pause under **General → Notification Delay** (0-10 seconds). |
+| Can I delay the message and popup instead of getting them instantly? | Yes. They appear instantly by default; set a pause under **Chat → Notification Delay** (0-10 seconds). |
 | What is the **Debug console**, and how do I turn on debug logging? | `/wg debug` opens the on-screen debug window; `/wg debug on` starts logging into it, `off` stops it. Logging is session-only and starts off after every login. The **Debug console** checkbox in **General** only shows or hides the window — it doesn't turn logging on. |
 | Why is the teleport button or teleport line grayed out or missing? | Three reasons, and the popup says which: you haven't learned the spell (`Teleport spell not learned` beside the button), you have it but it's still recharging (`On cooldown — 7h 58m 12s`, counting down, with a cooldown swipe over the icon), or that dungeon has no teleport at all (the row is skipped entirely). |
 | Can I keep the chat message but hide the popup, or the reverse? | Yes. Turn **Popup → Open Automatically** off to skip the popup, or **Chat → Print to Chat** off to skip the message. They work independently. |

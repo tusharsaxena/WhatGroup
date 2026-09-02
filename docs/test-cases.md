@@ -16,7 +16,7 @@ badge and any count quoted in the docs must agree with it.
 - harness: every LibKa0s file the runner loads exists on disk
 - harness: the libraries load BEFORE the addon's own files
 
-### test_libka0s.lua (49)
+### test_libka0s.lua (50)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
@@ -55,7 +55,8 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the fallback printer still degrades a secret in place
 - degraded: every DebugLog member the addon calls still answers
 - degraded: the console stub copies NO library formatter
-- degraded: the schema loads WHOLE with the options library absent (options-ui-§1)
+- degraded: every HAND-WRITTEN schema row survives the options library's absence (options-ui-§1)
+- degraded: the STORED profile is the same shape with the library absent
 - degraded: the settings stub carries no widget maker and no layout constant
 - degraded: the settings panel explains itself once at load and once per config
 - degraded: `/wg debug on` still moves the flag and explains the missing window ONCE
@@ -165,7 +166,7 @@ badge and any count quoted in the docs must agree with it.
 - database: migrations run before any profile read (OnInitialize order)
 - database: the profile is untouched by a migration pass
 
-### test_settings.lua (47)
+### test_settings.lua (55)
 
 - settings: BuildDefaults threads profile + global defaults
 - settings: defaults source from NS.C (defaults/Profile.lua, WG-24)
@@ -214,8 +215,16 @@ badge and any count quoted in the docs must agree with it.
 - settings: every row's group is one of the designed tabs
 - settings: the popup size defaults are the literals they replaced
 - settings: the size sliders cannot travel outside the frame's own clamp
+- settings: the Master controls block is the FIRST group, in canonical order
+- settings: the Master controls rows are the COMPOSER's, not hand-written
+- settings: Enable names the addon, and visibility is a four-value dropdown
+- settings: the master rows keep this addon's own shipped defaults
+- settings: the debug console is a SESSION-ONLY row that never reaches db.profile (WG-12)
+- settings: a global reset closes the console a profile reset cannot reach (options-ui-§12)
+- settings: every row on every page carries a `group`
+- settings: every colour row is followed by its class-colour companion, and none is disabled
 
-### test_slash.lua (43)
+### test_slash.lua (46)
 
 - slash: COMMANDS has a standalone version verb (WG-29)
 - slash: /wg version prints [WG] v<version> on its own line (WG-29)
@@ -260,6 +269,9 @@ badge and any count quoted in the docs must agree with it.
 - slash: /wg debug with a bad subcommand prints both usage lines
 - slash: /wg debug (bare) toggles the console window's visibility
 - slash: /wg debug on does not open the window
+- slash: /wg set writes an enum value from the row's own value set
+- slash: /wg set rejects a value the enum does not offer
+- slash: /wg list carries the Master controls rows under their section
 
 ### test_labels.lua (34)
 
@@ -381,7 +393,7 @@ badge and any count quoted in the docs must agree with it.
 - notify: the Leader row still prints when leaderName is nil
 - notify: Playstyle and Teleport drop their rows while Leader keeps its own
 
-### test_frame.lua (50)
+### test_frame.lua (64)
 
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
@@ -433,8 +445,22 @@ badge and any count quoted in the docs must agree with it.
 - frame: a size hand-edited past the clamp is drawn at the nearest legal value
 - frame: a non-numeric stored size falls back to the shipped default
 - frame: a size change taken in combat is refused, and lands on the next open
+- frame: the popup opens at the profile's master scale
+- frame: a scale change re-scales a popup that is already open
+- frame: a scale hand-edited past the clamp is drawn at the nearest legal value
+- frame: a scale change taken in combat is refused, and lands on the next open
+- frame: the popup opens at the profile's master alpha
+- frame: an alpha change lands DURING combat, unlike a size or scale change
+- frame: locking the popup stops the title bar starting a drag
+- frame: Reset position re-anchors the popup and forgets the saved point
+- frame: Reset position in combat is refused, but still forgets the saved point
+- frame: visibility 'never' refuses every path to the screen
+- frame: visibility 'inCombat' BUILDS out of combat but only SHOWS in it
+- frame: visibility 'outOfCombat' is the mirror of it
+- frame: an unrecognized visibility value fails OPEN, not closed
+- frame: switching visibility to 'never' hides a popup that is already open
 
-### test_panel.lua (48)
+### test_panel.lua (53)
 
 - panel: OnEnable registers the parent category and the General subcategory
 - panel: the parent category is added to the AddOns list
@@ -453,15 +479,20 @@ badge and any count quoted in the docs must agree with it.
 - panel: the reset dialog is not registered before it is needed (taint)
 - panel: every schema row renders a widget, on its own tab
 - panel: the strip draws one tab per schema group, in declaration order
-- panel: bool rows render checkboxes and number rows render sliders
+- panel: bool rows render checkboxes, number rows sliders, enum rows dropdowns
 - panel: widgets open showing the current profile value
 - panel: the slider inherits its bounds and step from the schema row
 - panel: a tabbed page draws its group names as TABS, never as headings
+- panel: a mixed tab draws its SUBGROUPS as headings (options-ui-§7)
+- panel: no subgroup heading repeats its own tab's name
 - panel: paired rows get half width, solo rows go full width
-- panel: the General group renders its Test action button
+- panel: the Chat group renders its Test action button
+- panel: the Master controls tab closes with the reset button PAIR
+- panel: Reset all settings raises the confirmation, it does not reset on the click
+- panel: Reset position drops the stored point and re-anchors
 - panel: the Test button runs the same path as /wg test
 - panel: a throwing button onClick is caught, not propagated
-- panel: the Debug console checkbox renders as a non-schema extra
+- panel: the Debug console renders as an ordinary Master controls checkbox
 - panel: ticking Debug console shows the window without touching db.profile
 - panel: unticking Debug console hides the window
 - panel: opening the console while General is OPEN moves the checkbox
@@ -559,20 +590,20 @@ badge and any count quoted in the docs must agree with it.
 | Suite | Cases |
 |-------|------:|
 | test_harness.lua | 7 |
-| test_libka0s.lua | 49 |
+| test_libka0s.lua | 50 |
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
 | test_util.lua | 31 |
 | test_compat.lua | 23 |
 | test_database.lua | 9 |
-| test_settings.lua | 47 |
-| test_slash.lua | 43 |
+| test_settings.lua | 55 |
+| test_slash.lua | 46 |
 | test_labels.lua | 34 |
 | test_capture.lua | 29 |
 | test_notify.lua | 48 |
-| test_frame.lua | 50 |
-| test_panel.lua | 48 |
+| test_frame.lua | 64 |
+| test_panel.lua | 53 |
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **497** |
+| **Total** | **528** |

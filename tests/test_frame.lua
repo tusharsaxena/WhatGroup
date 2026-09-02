@@ -62,6 +62,13 @@ local function fields(mock)
     }
 end
 
+-- The title bar is the drag handle, and the only frame carrying an OnMouseUp.
+local function dragHandle(mock)
+    for _, fr in ipairs(mock.frames) do
+        if fr.__scripts.OnMouseUp then return fr end
+    end
+end
+
 -- The cooldown swipe is the only Cooldown-type frame.
 local function teleportCooldown(mock)
     for _, f in ipairs(mock.frames) do
@@ -603,10 +610,7 @@ test("frame: dragging the title bar persists the popup position", function()
     f:ClearAllPoints()
     f:SetPoint("TOPLEFT", env.UIParent, "TOPLEFT", 120, -240)
     -- The title bar is the drag handle; OnMouseUp is what commits the save.
-    local titleBar
-    for _, fr in ipairs(mock.frames) do
-        if fr.__scripts.OnMouseUp then titleBar = fr end
-    end
+    local titleBar = dragHandle(mock)
     assertTrue(titleBar ~= nil, "the drag handle has an OnMouseUp")
     titleBar.__fire("OnMouseUp")
     local saved = NS.addon.db.global.windows.popup
@@ -689,4 +693,169 @@ test("frame: a size change taken in combat is refused, and lands on the next ope
     mock.combat = false
     NS.addon:ShowFrame()
     assertEqual(popup(mock):GetWidth(), 600, "and the next open picks the value up")
+end)
+
+-- ---------------------------------------------------------------------------
+-- The master controls (options-ui-§15) — scale, alpha, lock, reset position,
+-- and the general-visibility gate
+-- ---------------------------------------------------------------------------
+--
+-- Every case here drives a setting the panel now declares. A declared setting the drawing code
+-- does not honor is worse than an absent one, so each is asserted against the popup itself rather
+-- than against db.profile.
+
+test("frame: the popup opens at the profile's master scale", function()
+    -- red under: dropping the ApplyFrameScale call from ShowFrame.
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db.profile.scale = 1.4
+    NS.addon:ShowFrame()
+    assertEqual(popup(mock):GetScale(), 1.4)
+end)
+
+test("frame: a scale change re-scales a popup that is already open", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    assertEqual(popup(mock):GetScale(), 1, "the shipped default is unity")
+    NS.addon.Settings.Helpers.Set("scale", 0.75)
+    assertEqual(popup(mock):GetScale(), 0.75, "the row's onChange reached the live frame")
+end)
+
+test("frame: a scale hand-edited past the clamp is drawn at the nearest legal value", function()
+    -- SavedVariables and `/wg set scale 40` both bypass the slider, and a popup at forty times
+    -- size reads as the addon being broken rather than as the value being refused.
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db.profile.scale = 40
+    NS.addon:ShowFrame()
+    assertEqual(popup(mock):GetScale(), 2, "clamped to the row's max")
+end)
+
+test("frame: a scale change taken in combat is refused, and lands on the next open", function()
+    -- Scaling the parent moves the SecureActionButtonTemplate child, which is the same protected
+    -- work ApplyFrameSize refuses.
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    mock.combat = true
+    NS.addon.Settings.Helpers.Set("scale", 1.5)
+    assertEqual(popup(mock):GetScale(), 1, "the live frame was left alone in combat")
+    mock.combat = false
+    NS.addon:ShowFrame()
+    assertEqual(popup(mock):GetScale(), 1.5, "and the next open picks the value up")
+end)
+
+test("frame: the popup opens at the profile's master alpha", function()
+    -- red under: dropping the ApplyFrameAlpha call from ShowFrame.
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db.profile.alpha = 0.4
+    NS.addon:ShowFrame()
+    assertEqual(popup(mock):GetAlpha(), 0.4)
+end)
+
+test("frame: an alpha change lands DURING combat, unlike a size or scale change", function()
+    -- Opacity moves nothing, so the secure child's position is untouched and there is nothing to
+    -- refuse — which matters because in combat is the one time an alpha setting is being judged.
+    -- red under: copying ApplyFrameSize's InCombatLockdown guard onto ApplyFrameAlpha.
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    mock.combat = true
+    NS.addon.Settings.Helpers.Set("alpha", 0.25)
+    assertEqual(popup(mock):GetAlpha(), 0.25)
+end)
+
+test("frame: locking the popup stops the title bar starting a drag", function()
+    -- red under: reading `locked` once at build time instead of at drag time, or dropping the
+    -- guard entirely.
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    local titleBar = dragHandle(mock)
+    titleBar.__fire("OnMouseDown")
+    assertTrue(popup(mock):IsMoving(), "unlocked, the drag starts")
+    titleBar.__fire("OnMouseUp")
+
+    NS.addon.Settings.Helpers.Set("locked", true)
+    titleBar.__fire("OnMouseDown")
+    assertFalse(popup(mock):IsMoving(), "locked, the same mouse-down does nothing")
+end)
+
+test("frame: Reset position re-anchors the popup and forgets the saved point", function()
+    -- Both halves, because either alone is a reset the next login undoes.
+    -- red under: dropping the db.global.windows.popup clear.
+    local NS, env, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    local f = popup(mock)
+    f:ClearAllPoints()
+    f:SetPoint("TOPLEFT", env.UIParent, "TOPLEFT", 120, -240)
+    dragHandle(mock).__fire("OnMouseUp")
+    assertTrue(NS.addon.db.global.windows.popup ~= nil, "there is a stored point to drop")
+
+    NS.addon:ResetFramePosition()
+    assertNil(NS.addon.db.global.windows.popup, "the persisted point is gone")
+    assertEqual(f:GetPoint(1), "CENTER", "and the frame is back at the shipped anchor")
+end)
+
+test("frame: Reset position in combat is refused, but still forgets the saved point", function()
+    -- Re-anchoring moves the secure child; forgetting the point does not. Splitting them means the
+    -- act is never half-applied in a way the next login would undo.
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    local f = popup(mock)
+    f:ClearAllPoints()
+    f:SetPoint("TOPLEFT", nil, "TOPLEFT", 10, -10)
+    mock.combat = true
+    NS.addon:ResetFramePosition()
+    assertEqual(f:GetPoint(1), "TOPLEFT", "the live frame was left alone in combat")
+end)
+
+test("frame: visibility 'never' refuses every path to the screen", function()
+    -- red under: gating only the auto-show path instead of ShowFrame itself.
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db.profile.visibility = "never"
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    assertNil(popup(mock), "the popup was never even built")
+end)
+
+test("frame: visibility 'inCombat' BUILDS out of combat but only SHOWS in it", function()
+    -- The build is deliberately not refused here, unlike `never`: refusing it would deadlock the
+    -- setting outright, because the first show is always out of combat and the in-combat show
+    -- would then meet the never-built defer instead of a popup.
+    -- red under: moving the combat-dependent half of the gate above buildFrame.
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db.profile.visibility = "inCombat"
+    NS.addon:ShowFrame()
+    assertTrue(popup(mock) ~= nil, "the frame is built on the safe side of the lockdown")
+    assertFalse(popup(mock):IsShown(), "and out of combat it stays off screen")
+    mock.combat = true
+    NS.addon:ShowFrame()
+    assertTrue(popup(mock):IsShown(), "in combat it opens")
+end)
+
+test("frame: visibility 'outOfCombat' is the mirror of it", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db.profile.visibility = "outOfCombat"
+    mock.combat = true
+    NS.addon:ShowFrame()
+    assertNil(popup(mock))
+    mock.combat = false
+    NS.addon:ShowFrame()
+    assertTrue(popup(mock) ~= nil and popup(mock):IsShown())
+end)
+
+test("frame: an unrecognized visibility value fails OPEN, not closed", function()
+    -- A hand-edited SavedVariable or a profile from a future version must not make the addon look
+    -- broken. `always` and anything unknown both answer yes.
+    -- red under: a whitelist that returns false for the default branch.
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db.profile.visibility = "sometimes"
+    NS.addon:ShowFrame()
+    assertTrue(popup(mock):IsShown())
+end)
+
+test("frame: switching visibility to 'never' hides a popup that is already open", function()
+    -- Otherwise the dropdown reads as ignored until the next open.
+    -- red under: dropping ApplyFrameVisibility from the row's onChange.
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    assertTrue(popup(mock):IsShown())
+    NS.addon.Settings.Helpers.Set("visibility", "never")
+    assertFalse(popup(mock):IsShown())
 end)

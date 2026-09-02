@@ -19,7 +19,10 @@ The pattern is borrowed from a similar reference addon that demonstrates the sam
 | Template | `BackdropTemplate` |
 | Background | dark gray `0.08, 0.08, 0.08, 0.95` — from the shared `NS.SKIN`, applied by `NS.ApplySkin` (WG-28) |
 | Border | 1px gray `0.3, 0.3, 0.3, 1.0`; the 1px `WHITE8X8` hairline geometry is the popup's own, deliberately unlike the debug console's 12px tooltip border |
-| Drag handle | top-30px title bar; `StartMoving` / `StopMovingOrSizing` (position persisted on drag-stop via `NS.Windows.Save("popup", …)`, WG-26) |
+| Scale | `scale` — **1** by default, clamped on read to 0.5..2. `WhatGroup:ApplyFrameScale()` applies it and **refuses in combat**, for the same reason `ApplyFrameSize` does: scaling the parent moves the secure teleport button. |
+| Opacity | `alpha` — **1** by default, clamped on read to 0..1. `WhatGroup:ApplyFrameAlpha()` applies it and is deliberately **not** combat-guarded: opacity moves nothing, and in combat is the one time an alpha setting is being judged. |
+| Drag handle | top-30px title bar; `StartMoving` / `StopMovingOrSizing` (position persisted on drag-stop via `NS.Windows.Save("popup", …)`, WG-26). Suppressed while `locked` is true — read at drag time in `OnMouseDown`, so the setting needs no `onChange`. |
+| Shown at all | `visibility` — `always` / `inCombat` / `outOfCombat` / `never` (`options-ui-§15`). See § Visibility below. |
 | Clamping | `SetClampedToScreen(true)` |
 | ESC-to-close | `tinsert(UISpecialFrames, "WhatGroupFrame")` |
 
@@ -103,15 +106,31 @@ The label `Teleport:` is built directly inline (not via `MakeLabel`) because its
 
 ```lua
 function WhatGroup:ShowFrame()
+    if visibility == "never" then return end        -- see § Visibility below
     -- First-show-in-combat defer: see § Combat-defer below.
     if not f and InCombatLockdown() then …queue on PLAYER_REGEN_ENABLED… ; return end
 
     buildFrame()    -- lazy: first call only
+    WhatGroup:ApplyFrameSize()
+    WhatGroup:ApplyFrameScale()
+    WhatGroup:ApplyFrameAlpha()
     PopulateFields()
+    if not visibilityAllows() then return end       -- built, populated, not shown
     f:Show()
     f:Raise()
 end
 ```
+
+The other master-control seams are one function each: `WhatGroup:ApplyFrameVisibility()` (hides a popup that is already open when the gate closes — the `visibility` row's `onChange`) and `WhatGroup:ResetFramePosition()` (the Master controls tab's *Reset position* button: drops `db.global.windows.popup` **and** re-anchors the live frame to the shipped `CENTER` point; the re-anchor is combat-guarded, dropping the stored point is not, because either half alone is a reset the next login undoes).
+
+## Visibility
+
+`visibility` gates every path the popup takes to the screen — the join notify, `/wg show`, the chat link, `/wg test` — because every one of them comes through `ShowFrame`. It is **two** checks rather than one, and the split is deliberate:
+
+- **`never` refuses before anything is built.** Adding the secure button and the `UISpecialFrames` entry to a session for a window the player has said they never want is exactly the taint surface this file defers to avoid.
+- **`inCombat` / `outOfCombat` gate the `Show`, not the build.** Refusing the build would deadlock `Only in combat`: the first show is always out of combat, so the frame would never be built, and the in-combat show would then meet the never-built defer instead of a popup. Under `inCombat` the frame is therefore built and populated out of combat and simply left off screen.
+
+Anything the addon does not recognize — a hand-edited SavedVariable, a profile written by a future version — answers **yes**, along with `always`. A display setting that failed closed would make the addon look broken rather than configured.
 
 `ShowFrame` re-populates from the current `pendingInfo` every call — so toggling `pendingInfo` and re-calling `ShowFrame` updates the visible rows without recreating widgets. The `Raise()` call ensures the dialog comes to the front of its strata when re-opened over another popup.
 

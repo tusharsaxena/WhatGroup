@@ -2,7 +2,7 @@
 
 A single flat array `WhatGroup.Settings.Schema` declares every option. One row drives six surfaces simultaneously, so adding a setting is a single-row diff.
 
-The schema rows and the data seams that read and write them live in `settings/Schema.lua` — that half is genuinely this addon's. The panel *machinery* is not: the canvas factory, the header and breadcrumb, the lazy Defaults button, the AceGUI ScrollFrame, the widget makers, the two-column flow engine, the tab strip and its chrome band, the page registry and the refresh fan-out are `LibKa0s-Options-1.0`'s, wired up in `settings/OptionsSetup.lua`. `settings/Panel.lua` keeps only the landing page's body, the one action button the library's makers cannot express, and the General page's registration.
+The **Master controls** block is the exception, and it is the library's: `Helpers.MasterControls` composes options-ui-§15's canonical eight-control tab from one declaration in `settings/Panel.lua`, which splices the rows it returns at the head of the array. Everything else — the schema rows and the data seams that read and write them — lives in `settings/Schema.lua` and that half is genuinely this addon's. The panel *machinery* is not: the canvas factory, the header and breadcrumb, the lazy Defaults button, the AceGUI ScrollFrame, the widget makers, the two-column flow engine, the tab strip and its chrome band, the page registry and the refresh fan-out are `LibKa0s-Options-1.0`'s, wired up in `settings/OptionsSetup.lua`. `settings/Panel.lua` keeps only the landing page's body, the one action button the library's makers cannot express, and the General page's registration.
 
 ## Six surfaces, one row
 
@@ -17,23 +17,30 @@ The schema rows and the data seams that read and write them live in `settings/Sc
 
 `/wg reset` taking a path is a **breaking change** — it used to be the confirmation-gated global wipe, which is now `/wg resetall`. A bare `/wg reset` prints a deprecation naming both replacements rather than a usage error, because the old form still parses as something. See [slash-dispatch.md](./slash-dispatch.md).
 
-The schema is settings-only — non-setting actions (the "Test" button, the Debug console checkbox) render through the `AFTER_GROUP` / `PAIR_WITH` hook tables in `settings/Panel.lua`, not as schema rows. See [Action buttons](#action-buttons-aftergroup).
+The schema is settings-only — the two **acts** (Reset position / Reset all settings, and the "Test" button) render through the `AFTER_GROUP` hook table in `settings/Panel.lua`, not as schema rows. See [Action buttons](#action-buttons-aftergroup).
 
 ## Row format
 
 ```lua
 {
     section,            -- groups in /wg list output (general, frame, notify)
-    group,              -- TAB in the Settings panel ("General", "Chat", "Popup")
+    group,              -- TAB in the Settings panel ("Master controls", "Chat", "Popup")
+    subgroup,           -- optional SUBSECTION heading inside a tab that mixes control kinds
+                        --   (options-ui-§7) — drawn whenever it changes, never suppressed
     path,               -- dotted path into db.profile (e.g. "notify.delay")
-    type,               -- "bool" | "number"
+    type,               -- "bool" | "number" | "string" (an enum, with `values` + `sorting`)
     label, tooltip,
     default,
     min, max, step, fmt,    -- numbers only (fmt is %s-style for /wg get formatting)
+    values, sorting,        -- strings only: the enum's key→label map and its display order
     onChange,               -- optional fn(value) called by panel widget + /wg set (NOT by RestoreAllDefaults — reset skips onChange)
     solo,                   -- if true, render alone in the left half of its own row (right half empty)
+    startsLine,             -- flush the pending line BEFORE this row, so a declared pair cannot split
+    sessionOnly,            -- storage is the row's own get/set, never db.profile — see below
 }
 ```
+
+**`sessionOnly`** is what keeps the debug console off SavedVariables now that it is a schema row. `settings/Schema.lua` holds a `SESSION` table keyed by path; `Helpers.Get` and `Helpers.RawSet` consult it **in front of** `Resolve`, so a session path never reaches `db.profile` from any caller — the panel checkbox, `/wg set`, `ApplyDefault` and the reset sweep all funnel through those two functions. `BuildDefaults` skips such a row outright, and `RestoreAllDefaults` restores it row by row because `db:ResetProfile()` cannot reach it (options-ui-§12). The pair itself is `NS.DebugLog:ConsoleCheckbox()`'s, unchanged from when the checkbox was drawn by hand.
 
 Number rows render as a slider that **commits on release** — the library's maker writes from `OnMouseUp`, snapping to `step` relative to `min`. Its opt-in live-commit path (`row.commitOn = "change"`, throttled through the descriptor's `scheduleTimer`) is not used here: nothing in this addon previews a delay while you drag it, and no `scheduleTimer` is passed.
 
@@ -41,20 +48,22 @@ Number rows render as a slider that **commits on release** — the library's mak
 
 Non-setting affordances live outside the schema. `Helpers.RenderTabbedSchema(ctx, pageKey, afterGroup, pairWith)` takes the same two hook tables `RenderSchema` does, and the **General** tab uses both:
 
-- **`afterGroup`** — `{ [groupName] = function(ctx) ... end }`. Fires once per render, after the named group's last schema row is flushed, so the widget starts on a fresh line *below* the grid. Here: the **Test** button (`Helpers.InlineButton` → `WhatGroup:RunTest()`), keyed to **General**. On a tabbed page the key matters: "after the schema" is no longer "at the bottom of the page", so a hook keyed to a group the reader is not looking at draws nothing — which is what keeps the Test button off the Chat and Popup tabs.
-- **`pairWith`** — `{ [path] = function(ctx, rowGroup) ... end }`. Attaches a non-schema widget as the **right half of a named path's row**, and only while that path is still the lone widget on its row. Here: the session-only **Debug console** checkbox, keyed on `"enabled"` so it lands beside **Enable** on the General tab. It was keyed on `"notify.enabled"` until **Print to Chat** moved to the Chat tab; a debug affordance does not follow it there.
+- **`afterGroup`** — `{ [groupName] = function(ctx) ... end }`. Fires once per render, after the named group's last schema row is flushed, so the widget starts on a fresh line *below* the grid. Two entries now:
+  - **`["Master controls"]`** — the composer's own tail, drawing options-ui-§15's closing **button pair**: *Reset position* (this addon is not frameless) and *Reset all settings*. The group name **is** the hook key, so renaming the group detaches the hook and nothing errors.
+  - **`["Chat"]`** — the **Test** button (`Helpers.InlineButton` → `WhatGroup:RunTest()`). It followed the tab its group ended up on: "General" is the Master controls tab now, and the button's own tooltip already said it previews the chat-output toggles. It is deliberately **not** folded into the reset pair — a 160-px left-aligned action is not one of §15's two resets.
 
-Both tables are hoisted to file-scope constants (`AFTER_GROUP`, `PAIR_WITH` in `settings/Panel.lua`). That is safe because the library's one-shot bookkeeping is *call-local* — it never consumes the caller's entries — so a re-render draws the button and the paired checkbox again instead of silently dropping them.
+There is **no `pairWith` table any more.** It carried exactly one entry — a bespoke `SessionCheckbox` drawing the Debug console beside **Enable** — and options-ui-§15 makes that console a canonical row of the Master controls block instead. The console itself is untouched: same window, same `NS.DebugLog:ConsoleCheckbox()` `get`/`set`, reached now through `settings/Schema.lua`'s `SESSION` table rather than through a hook.
 
-The Debug console checkbox is deliberately not a schema row. It toggles **only the console window's visibility**, never the debug logging flag (`NS.State.debug`) and never `db.profile`, so it stays off `/wg list` and never persists. The spec is not restated here: `NS.DebugLog:ConsoleCheckbox()` returns the label, tooltip and `get`/`set` from the module that owns the window, and `Helpers.SessionCheckbox` — the library's maker for a checkbox wired to caller-supplied `get`/`set` instead of a settings path — renders it and registers a refresher on the ctx like any other widget.
+`AFTER_GROUP` is a file-scope constant. That is safe because the library's one-shot bookkeeping is *call-local* — it never consumes the caller's entries — so a re-render draws both buttons again instead of silently dropping them.
 
 Re-sync is push, not poll: the console can be closed with its own × or ESC (or opened by `/wg debug`) while the panel is open, so `core/DebugLogSetup.lua` passes an `onVisibilityChanged` hook that calls `Helpers.RefreshAll()`. If the panel is on screen the checkbox moves immediately; if it is hidden the page is flagged dirty and re-renders on its next `OnShow`. The window is hidden at every login, so the checkbox always starts unchecked (WG-12 / debug-logging-§5).
 
-The "Test" button is the only `afterGroup` affordance today:
-
 ```lua
+local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{ ... }
+
 local AFTER_GROUP = {
-    ["General"] = function(ctx)
+    ["Master controls"] = MASTER_TAIL,     -- Reset position | Reset all settings
+    ["Chat"] = function(ctx)
         Helpers.InlineButton(ctx, {
             text    = "Test",
             tooltip = "...",
@@ -119,15 +128,15 @@ All library members except the last two, which are this addon's (see `settings/P
 
 ## `BuildDefaults`
 
-Default *values* live in `defaults/Profile.lua` as the nested `NS.C` table (the single place a profile default is hardcoded, savedvariables-§2 / WG-24); each schema row references its value via `default = C.<path>`. `BuildDefaults` walks `Schema` and threads each row's `default` into the right slot under `profile.*` (deep-copying table defaults):
+Default *values* live in `defaults/Profile.lua` as the nested `NS.C` table (the single place a profile default is hardcoded, savedvariables-§2 / WG-24); each schema row references its value via `default = C.<path>`, and the Master controls block gets the same values through the composer's `defaults` spec. `BuildDefaults` **seeds from `NS.C`**, then walks `Schema` and threads each row's `default` into the right slot under `profile.*` (deep-copying table defaults):
 
 ```lua
 function Settings.BuildDefaults()
     -- global seeds schemaVersion (WG-08) and the windows table (WG-26)
-    local out = { profile = {},
+    local out = { profile = deepcopy(C),
                   global = { schemaVersion = NS.SCHEMA_VERSION or 1, windows = {} } }
     for _, def in ipairs(Schema) do
-        if def.path then
+        if def.path and not def.sessionOnly then
             -- split def.path on "." into segments
             -- create empty tables along the way as needed
             -- assign def.default to the leaf
@@ -136,6 +145,10 @@ function Settings.BuildDefaults()
     return out
 end
 ```
+
+**The seed is not redundant.** On a full load the two halves agree key for key and the walk writes back what the seed already put there. What it buys is the *degraded* load: the Master controls block is composed by LibKa0s, so with the library absent those six rows are not in the schema at all — and a schema-only sweep would hand AceDB a profile with no `enabled` key, which reads as false and silently turns the addon off for exactly the install that is already missing a library. `tests/test_libka0s.lua` compares the two `BuildDefaults` outputs shape for shape.
+
+A `sessionOnly` row is skipped outright: its storage is its own `set()`, and threading a default for it would materialize the very `db.profile` branch WG-12 keeps empty.
 
 Called once in `OnInitialize` and passed to `AceDB:New("WhatGroupDB", defaults, true)`. AceDB's third arg (`true`) means a single shared `Default` profile across every character on the account.
 
@@ -148,7 +161,7 @@ The General sub-page renders the schema as a two-column AceGUI Flow layout (50/5
 ```lua
 Helpers.SetRenderer(ctx, function(c)
     Helpers.ClearScroll(c)
-    Helpers.RenderTabbedSchema(c, "general", AFTER_GROUP, PAIR_WITH)
+    Helpers.RenderTabbedSchema(c, "general", AFTER_GROUP)
 end)
 ```
 
@@ -159,10 +172,11 @@ Pairing rules:
 - **Default**: widgets pair into rows, two per row. The engine maintains a `pendingRow` and `pendingCount`; when `pendingCount` hits 2, it flushes.
 - **`solo = true`**: flushes the in-progress row first, then forces the widget onto its own row (left half occupied at 0.5 relative width, right half empty), then flushes again.
 - **`group` transition**: on a tabbed page there is none to see — the strip switches groups and each render draws exactly one. (`RenderRows` still flushes and would call `Helpers.Section`; `RenderTabbedSchema` passes `noHeadings`, because the tab already names the group.)
-- **`pairWith[def.path]`**: renders the non-schema widget as the right half of that path's row — only while that row is still the lone widget on its line, since a third widget would break the 50/50 split for the rest of the page.
+- **`subgroup` transition**: a `Heading` **is** drawn, and is **not** suppressed (options-ui-§7). It names a kind of control inside the tab, so it says something the strip does not. Cleared at every group boundary, so the same name under two groups draws twice.
+- **`startsLine = true`**: flushes the pending line *before* the row, so a declared pair cannot be split across two lines. The composer sets it on the first row of each block.
 - **`afterGroup[def.group]`**: at the final row of a group (last one in source order, or the next row's group differs), flushes the in-progress row and invokes the callback.
 
-Both hooks fire **once per render**, and the library tracks that in call-local sets rather than by consuming the caller's table — which is why `AFTER_GROUP` and `PAIR_WITH` can be file-scope constants and still survive a re-render.
+The hook fires **once per render**, and the library tracks that in a call-local set rather than by consuming the caller's table — which is why `AFTER_GROUP` can be a file-scope constant and still survive a re-render.
 
 Layout constants are the library's (`lib.LAYOUT`: `PADDING_X`, `HEADER_TOP`, `HEADER_HEIGHT`, `DEFAULTS_W`, `ROW_VSPACER`, `SECTION_TOP_SPACER`, `SECTION_BOTTOM_SPACER`, `SECTION_HEADING_H`, `BUTTON_PAIR_REL`), and three of them are re-published on the instance for host use (`Helpers.ROW_VSPACER`, `Helpers.SECTION_HEADING_H`, `Helpers.BUTTON_PAIR_REL`). There is deliberately **no host copy of any of them** — options-ui-§8, because a host copy is the copy that goes stale. The only constants in `settings/Panel.lua` are the landing page's own: `MAIN_LOGO_TEXTURE`, `MAIN_LOGO_SIZE` and its three gaps.
 
@@ -231,8 +245,8 @@ Idempotent (`WhatGroup._settingsRegistered` guard), and thin: it delegates to `H
 
 ```
 Ka0s WhatGroup        ← parent canvas-layout category — landing page (logo, notes, slash list)
-└── General            ← subcategory — every schema widget, the paired Debug console
-                          checkbox (pairWith) and the Test button (afterGroup)
+└── General            ← subcategory — every schema widget, plus the two afterGroup blocks:
+                          the Master controls reset pair and the Chat tab's Test button
 ```
 
 Both pages share the same header layout (gold title + tinted divider) and the same always-visible AceGUI scrollbar. The parent's title reads `Ka0s WhatGroup` (no breadcrumb because `opts.isMain = true`); the General sub-page reads `Ka0s WhatGroup <atlas-chevron> General` (separator is the inline atlas `|A:common-icon-forwardarrow:16:16|a` — a real texture, not a font glyph, so it renders identically across font / locale fallback) and carries a Defaults button at top-right.
@@ -262,7 +276,9 @@ The combat refusal is not deferred-and-replayed: Blizzard's category switch is p
 
 ### When `LibKa0s-Options-1.0` is absent
 
-`settings/OptionsSetup.lua` installs a stub and returns. It is **the one seam in this addon whose stub no-ops instead of printing an honest line per member**, and the reason is timing: this addon's load-time use of the options surface is empty — `settings/Schema.lua` builds the whole schema from `defaults/Profile.lua`, and `settings/Panel.lua` reaches the instance only inside `Settings.Register` and its page builder, both of which run at `PLAYER_LOGIN`. `tests/test_libka0s.lua` pins that by loading with the library absent and comparing the schema row count against a full load.
+`settings/OptionsSetup.lua` installs a stub and returns. It is **the one seam in this addon whose stub no-ops instead of printing an honest line per member**, and the reason is timing: this addon's load-time use of the options surface is empty — `settings/Schema.lua` builds the whole schema from `defaults/Profile.lua`, and `settings/Panel.lua` reaches the instance only inside `Settings.Register` and its page builder, both of which run at `PLAYER_LOGIN`. `tests/test_libka0s.lua` pins that by loading with the library absent and comparing every hand-written row against a full load — and, separately, comparing the two `BuildDefaults` outputs, which must be identical because the *stored* shape may not depend on whether the library is installed.
+
+**What is genuinely lost on that path is the Master controls tab**, because its rows are the composer's. The stub answers `MasterControls` with `{}, function() end` — no rows and a hook that draws nothing — so nothing raises, the other two tabs render as usual, and the profile still arrives with every key.
 
 Two entry points do announce, once each: `CreateOptionsPanel` (reached automatically from `OnEnable`) and `OpenOptionsPanel` (reached by `/wg config`) — separate tokens, because a single shared one would always be spent at login and leave the command a silent no-op for the rest of the session. Nothing in the stub copies a widget maker, the flow engine, the header or a layout constant.
 
@@ -272,7 +288,12 @@ Single SavedVariables (declared in `WhatGroup.toc`). Holds an AceDB instance wit
 
 ```
 profile = {
-  enabled = true,
+  -- Master controls (options-ui-§15), stored at the profile ROOT
+  enabled    = true,
+  visibility = "always",   -- always | inCombat | outOfCombat | never
+  scale      = 1,          -- 0.5 .. 2
+  alpha      = 1,          -- 0 .. 1
+  locked     = false,
   frame   = { autoShow = true, width = 420, height = 260 },
   notify  = {
     enabled       = true,
@@ -293,63 +314,81 @@ global = {
 }
 ```
 
-There is **no `debug` key** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). The General panel's "Debug console" checkbox toggles the console *window's* visibility only (see [Action buttons](#action-buttons-aftergroup)); it drives neither a profile key nor the debug logging flag. Capture / pending state (`captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [data-flow.md](./data-flow.md#state) for why.
+There is **no `debug` key and no `state` table** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). The Master controls tab's "Debug console" checkbox is a schema row on the path `state.debugConsole`, but it is `sessionOnly`: `settings/Schema.lua`'s `SESSION` table intercepts that path in front of `Resolve`, `BuildDefaults` skips it, and the toggle drives the console *window's* visibility only — neither a profile key nor the debug logging flag. Capture / pending state (`captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [data-flow.md](./data-flow.md#state) for why.
 
 ## The tab strip
 
 The page is **tabbed** (`options-ui-§13`). `LibKa0s-Options-1.0`'s `RenderTabbedSchema` partitions the page's rows by `group`, **in declaration order**, and draws one tab per distinct group — so the order of the `add{}` calls in `settings/Schema.lua` *is* the strip, and a group's rows must stay contiguous. There is no second field naming a tab; the group heading and the tab are the same string, which is why the tabbed renderer suppresses the headings the scrolling one drew.
 
-| # | Tab | Rows | What it is for |
-|---|---|---|---|
-| 1 | **General** | 2 | Does the addon do anything (`enabled`), and how long it waits first (`notify.delay`). Plus the two bespoke controls: the **Test** button (`afterGroup`) and the session-only **Debug console** checkbox (`pairWith`, beside **Enable**). |
-| 2 | **Chat** | 7 | The join summary: the **Print to Chat** master and the six lines it can contain. |
-| 3 | **Popup** | 3 | The group-info window: whether it opens by itself, and how big it is. |
+| # | Tab | Rows | Subgroups | What it is for |
+|---|---|---|---|---|
+| 1 | **Master controls** | 6 | — | options-ui-§15's canonical block, composed rather than written: enable, general visibility, master scale, master alpha, lock frame, debug console — closed by the **Reset position | Reset all settings** button pair (`afterGroup`). It is the **first** tab, and the name is the literal §15 mandates. |
+| 2 | **Chat** | 8 | `Timing`, `Text` | When the join summary fires (`notify.delay`) and what it says: the **Print to Chat** master and the six lines it can contain. Plus the **Test** button (`afterGroup`). |
+| 3 | **Popup** | 3 | `Behavior`, `Layout` | The group-info window: whether it opens by itself, and how big it is. |
+
+Two tabs mix control kinds and therefore carry **subsection headings** (options-ui-§7): a slider that says *when* standing among seven checkboxes that say *what*, and a behaviour toggle above two size sliders. The headings are declared by the rows (`subgroup`), never drawn by the builder, and a `subgroup` never repeats its own tab's name.
 
 There is **no page banner** (`options-ui-§14`) and there cannot be one: WhatGroup has no per-window settings and no active-window state, so there is no instance for a banner to name. `db.global.windows` stores the popup's *position*, which is geometry, not a setting.
 
-`section` is not `group`. `section` is `/wg list`'s grouping key and it did not change when the page was retabbed — `notify.delay` is edited on **General** and still lists under `[notify]`, because a row's tab is where it is *edited* and its path is where it is *stored*.
+`section` is not `group`. `section` is `/wg list`'s grouping key and it did not change when the page was retabbed — `notify.delay` is edited on **Chat** and still lists under `[notify]`, because a row's tab is where it is *edited* and its path is where it is *stored*. The composed Master controls rows are stamped `section = "general"` in `settings/Panel.lua`, because the composer has no way to know a host's `/wg list` key.
 
 ## Current schema rows
 
 Order matches panel render order — `add{}` calls in source order, which is also tab order. Layout column shows whether a row pairs (default) or stands alone (`solo`).
 
+Rows on the **Master controls** tab are emitted by `Helpers.MasterControls` and carry no `add{}` call anywhere in this repo; `tests/test_settings.lua` asserts that `settings/Schema.lua` declares none of their paths by hand.
+
 | Tab | Section | Path | Type | Default | Layout | Purpose |
 |---|---|---|---|---|---|---|
-| General | general | `enabled` | bool | true | (paired, with the Debug console checkbox) | **Master switch.** When false, `OnApplyToGroup` short-circuits — no capture, no notification, no popup. `/wg test` and `/wg show` bypass this gate. |
-| General | notify | `notify.delay` | number | 0 | solo | Seconds (0–10, step 0.5) between joining and notifying **and** showing the popup. Default 0 = immediately; raise it to let the zone-in settle. On General rather than Chat because one timer gates both surfaces. |
-| Chat | notify | `notify.enabled` | bool | true | solo | Print the chat summary on group join. The master for the six rows under it. |
-| Chat | notify | `notify.showInstance` | bool | true | (paired) | Include the Instance line in chat. |
-| Chat | notify | `notify.showType` | bool | true | (paired) | Include the Type line in chat. |
-| Chat | notify | `notify.showLeader` | bool | true | (paired) | Include the Leader line in chat. |
-| Chat | notify | `notify.showPlaystyle` | bool | true | (paired) | Include the Playstyle line in chat. |
-| Chat | notify | `notify.showClickLink` | bool | true | (paired) | Include the green "[Click here to view details]" chat link. |
-| Chat | notify | `notify.showTeleport` | bool | true | (paired) | Include a Teleport line; skipped silently when `WhatGroup:GetTeleportSpell` returns nil. |
-| Popup | frame | `frame.autoShow` | bool | true | solo | Auto-open the popup on group join. With this off, the chat notification still prints and the user can re-open via the chat link or `/wg show`. |
-| Popup | frame | `frame.width` | number | 420 | (paired) | Popup width in pixels (320–700, step 10). Was `FRAME_WIDTH`, a file-local in `modules/Frame.lua`; the default is the number it replaced. |
-| Popup | frame | `frame.height` | number | 260 | (paired) | Popup height in pixels (200–520, step 10). Was `FRAME_HEIGHT`, same story. |
+| Master controls | general | `enabled` | bool | true | startsLine, (paired) | **Master switch**, labelled *Enable WhatGroup*. When false, `OnApplyToGroup` short-circuits — no capture, no notification, no popup. `/wg test` and `/wg show` bypass this gate. Its off-flip `onChange` wipes any in-flight capture. |
+| Master controls | general | `visibility` | string | `"always"` | (paired) | *General visibility* — `always` / `inCombat` / `outOfCombat` / `never`. Gates every path the popup takes to the screen, in `WhatGroup:ShowFrame()`. `never` refuses before the frame is built; the combat-dependent values gate the `Show` only, or `Only in combat` would deadlock against the taint-driven lazy build. |
+| Master controls | general | `scale` | number | 1 | startsLine, (paired) | *Master scale* (0.5–2, step 0.05). `WhatGroup:ApplyFrameScale()`, **refused in combat** — scaling the parent moves the secure teleport button. |
+| Master controls | general | `alpha` | number | 1 | (paired) | *Master alpha* (0–1, step 0.05, rendered as a percentage). `WhatGroup:ApplyFrameAlpha()`, **not** refused in combat: opacity moves nothing. |
+| Master controls | general | `locked` | bool | false | startsLine, (paired) | *Lock frame*. Read at drag time by the title bar's `OnMouseDown`, so it takes effect on the next mouse-down with nothing to apply. |
+| Master controls | general | `state.debugConsole` | bool | false | (paired) | *Debug console*, `sessionOnly`. Shows/hides the console **window**; never `db.profile`, never the logging flag (WG-12). |
+| Chat | notify | `notify.delay` | number | 0 | subgroup `Timing`, solo | Seconds (0–10, step 0.5) between joining and notifying **and** showing the popup. Default 0 = immediately; raise it to let the zone-in settle. Not one of §15's canonical eight, so it moved off the first tab to the one named for the notification it delays. |
+| Chat | notify | `notify.enabled` | bool | true | subgroup `Text`, solo | Print the chat summary on group join. The master for the six rows under it. |
+| Chat | notify | `notify.showInstance` | bool | true | subgroup `Text`, (paired) | Include the Instance line in chat. |
+| Chat | notify | `notify.showType` | bool | true | subgroup `Text`, (paired) | Include the Type line in chat. |
+| Chat | notify | `notify.showLeader` | bool | true | subgroup `Text`, (paired) | Include the Leader line in chat. |
+| Chat | notify | `notify.showPlaystyle` | bool | true | subgroup `Text`, (paired) | Include the Playstyle line in chat. |
+| Chat | notify | `notify.showClickLink` | bool | true | subgroup `Text`, (paired) | Include the green "[Click here to view details]" chat link. |
+| Chat | notify | `notify.showTeleport` | bool | true | subgroup `Text`, (paired) | Include a Teleport line; skipped silently when `WhatGroup:GetTeleportSpell` returns nil. |
+| Popup | frame | `frame.autoShow` | bool | true | subgroup `Behavior`, solo | Auto-open the popup on group join. With this off, the chat notification still prints and the user can re-open via the chat link or `/wg show`. |
+| Popup | frame | `frame.width` | number | 420 | subgroup `Layout`, (paired) | Popup width in pixels (320–700, step 10). Was `FRAME_WIDTH`, a file-local in `modules/Frame.lua`; the default is the number it replaced. |
+| Popup | frame | `frame.height` | number | 260 | subgroup `Layout`, (paired) | Popup height in pixels (200–520, step 10). Was `FRAME_HEIGHT`, same story. |
 
 The popup dialog always renders every field; the `notify.show*` rows gate **chat output only**. See [scope.md](./scope.md#resolved-decisions) for why.
 
-`frame.width` / `frame.height` are **clamped on read**, in `modules/Frame.lua`, not on write: the slider cannot produce an illegal value but SavedVariables and `/wg set frame.width 4000` both can, and a popup wider than the monitor reads as the setting being broken rather than as the value being refused. `WhatGroup:ApplyFrameSize()` is the one seam that resizes a live popup; it **refuses in combat** (the popup parents a `SecureActionButtonTemplate` button anchored off the frame's own edges) and every `ShowFrame` re-applies, so a change taken in combat lands on the next open.
+`frame.width` / `frame.height` are **clamped on read**, in `modules/Frame.lua`, not on write: the slider cannot produce an illegal value but SavedVariables and `/wg set frame.width 4000` both can, and a popup wider than the monitor reads as the setting being broken rather than as the value being refused. `WhatGroup:ApplyFrameSize()` is the one seam that resizes a live popup; it **refuses in combat** (the popup parents a `SecureActionButtonTemplate` button anchored off the frame's own edges) and every `ShowFrame` re-applies, so a change taken in combat lands on the next open. `scale` reads and clamps the same way, through `WhatGroup:ApplyFrameScale()`, and refuses in combat for the same reason; `alpha` does not, because opacity moves nothing.
+
+**Reset position** (`WhatGroup:ResetFramePosition()`) does two things, and either alone is a reset the next login undoes: it drops `db.global.windows.popup` (WG-26) *and* re-anchors the live frame to the shipped `CENTER` point. The re-anchor is combat-guarded; dropping the stored point is not.
 
 Rendered panel layout:
 
 ```
-[ General ] [ Chat ] [ Popup ]          <- the tab strip, in the chrome band
+[ Master controls ] [ Chat ] [ Popup ]      <- the tab strip, in the chrome band
 
---- General ---
-[Enable]              | [Debug console]   <- pairWith["enabled"], session-only
-[Notification Delay]
-  <Test button (160 px, left-aligned, afterGroup["General"])>
+--- Master controls ---                      composed; options-ui-§15's canonical order
+[Enable WhatGroup]    | [General visibility]
+[Master scale]        | [Master alpha]
+[Lock frame]          | [Debug console]
+  <Reset position | Reset all settings>      afterGroup["Master controls"] = the composer's tail
 
 --- Chat ---
+-- Timing --                                 subgroup heading (options-ui-§7)
+[Notification Delay]
+-- Text --
 [Print to Chat]
 [Instance]            | [Type]
 [Leader]              | [Playstyle]
 [Details link]        | [Teleport spell]
+  <Test button (160 px, left-aligned, afterGroup["Chat"])>
 
 --- Popup ---
+-- Behavior --
 [Open Automatically]
+-- Layout --
 [Width]               | [Height]
 ```
 
@@ -357,4 +396,4 @@ The `Show ` prefix the six chat rows carried is gone: under a tab called **Chat*
 
 ## Adding a setting
 
-One row to `Schema`. The UI, CLI, defaults, and reset surfaces all follow automatically. See [common-tasks.md](./common-tasks.md#add-a-setting) for the recipe.
+One row to `Schema`. The UI, CLI, defaults, and reset surfaces all follow automatically. See [common-tasks.md](./common-tasks.md#add-a-setting) for the recipe. A row that belongs to the **Master controls** block is the exception: that block is options-ui-§15's canonical set and is not extended by hand — a new master control is a change to `LibKa0s`'s composer, not to this addon.

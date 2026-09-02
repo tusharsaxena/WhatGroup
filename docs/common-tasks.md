@@ -6,7 +6,11 @@ Recipes for the routine modifications. For deeper context on any subsystem, see 
 
 One row to `Settings.Schema` in `settings/Schema.lua`. The UI, CLI, defaults, and reset surfaces all follow automatically.
 
-**Its `group` is a TAB** (`options-ui-§13`), not a heading: the page draws one tab per distinct group, in declaration order. So a row filed under an existing group has to sit **inside that group's run** of `add{}` calls — a row placed after the run prints the same tab twice. A new `group` value is a new tab, drawn in the position its first row occupies; do not add one for a single row (a tab over one control is a click that reveals one checkbox, and `tests/test_settings.lua` fails it). The three today are **General**, **Chat** and **Popup**.
+**Its `group` is a TAB** (`options-ui-§13`), not a heading: the page draws one tab per distinct group, in declaration order. So a row filed under an existing group has to sit **inside that group's run** of `add{}` calls — a row placed after the run prints the same tab twice. A new `group` value is a new tab, drawn in the position its first row occupies; do not add one for a single row (a tab over one control is a click that reveals one checkbox, and `tests/test_settings.lua` fails it). The three today are **Master controls**, **Chat** and **Popup**.
+
+**Do not add a row to `Master controls`.** That tab is `options-ui-§15`'s canonical block, composed by `Helpers.MasterControls` in `settings/Panel.lua` and spliced at the head of the array; a new master control is a change to `LibKa0s`'s composer, not to this addon. `tests/test_settings.lua` reads `settings/Schema.lua` and fails a hand-written declaration of any of its paths.
+
+**If the tab you file under mixes control kinds, give the row a `subgroup`** (`options-ui-§7`) — the kind of control, never a repeat of the tab's own name. Chat uses `Timing` and `Text`; Popup uses `Behavior` and `Layout`.
 
 The value itself goes in `defaults/Profile.lua` as `NS.C.<path>`, and the row references it as `default = C.<path>` — two literals for one value is the shape that drifts.
 
@@ -14,7 +18,7 @@ The value itself goes in `defaults/Profile.lua` as `NS.C.<path>`, and the row re
 
 ```lua
 add{
-    section = "frame",  group = "General",
+    section = "frame",  group = "Popup",  subgroup = "Behavior",
     path    = "frame.someToggle",  type = "bool",
     label   = "Some Toggle",
     tooltip = "What this toggle does, in one sentence.",
@@ -28,7 +32,7 @@ add{
 
 ```lua
 add{
-    section = "notify",  group = "Chat",
+    section = "notify",  group = "Chat",  subgroup = "Timing",
     path    = "notify.someValue",  type = "number",
     label   = "Some Value",
     tooltip = "What this value controls.",
@@ -45,7 +49,7 @@ Non-setting affordances live outside the schema. Hand the action to `Helpers.Inl
 
 ```lua
 Helpers.RenderTabbedSchema(generalCtx, "general", {
-    ["General"] = function(ctxRef)
+    ["Chat"] = function(ctxRef)
         Helpers.InlineButton(ctxRef, {
             text    = "Do The Thing",
             tooltip = "What clicking this does.",
@@ -55,7 +59,7 @@ Helpers.RenderTabbedSchema(generalCtx, "general", {
 })
 ```
 
-The callback fires once, immediately after the last schema row of the named group — so on a tabbed page it draws only while THAT tab is open, which is what keeps a General action off the Chat tab. `Helpers.InlineButton` renders a 160-px button (override via `spec.width`) left-aligned in a full-width row.
+The callback fires once, immediately after the last schema row of the named group — so on a tabbed page it draws only while THAT tab is open, which is what keeps a Chat action off the Popup tab. `AFTER_GROUP["Master controls"]` is already taken by the composer's closing reset pair; a second hook for one group is not possible, so a new action goes on another tab. `Helpers.InlineButton` renders a 160-px button (override via `spec.width`) left-aligned in a full-width row.
 
 ### After adding a row
 

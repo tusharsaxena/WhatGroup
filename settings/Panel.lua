@@ -16,6 +16,9 @@ local WhatGroup = NS.addon
 
 local Settings = WhatGroup.Settings
 local Helpers  = Settings.Helpers
+-- Default VALUES, so the composed Master controls block stores this addon's numbers rather than
+-- the library's (defaults/Profile.lua is still the one place any of them is written down).
+local C        = NS.C
 
 -- Chat-out via WhatGroup._print so the cyan [WG] prefix lives in one place (mirrors
 -- settings/Schema.lua's pout).
@@ -180,20 +183,108 @@ function Helpers.BuildMainContent(ctx)
 end
 
 -- ---------------------------------------------------------------------------
+-- The Master controls tab (options-ui-§15)
+-- ---------------------------------------------------------------------------
+--
+-- COMPOSED, NOT WRITTEN. `Helpers.MasterControls` emits the canonical eight-control block — enable,
+-- general visibility, master scale, master alpha, lock frame, debug console, and the closing reset
+-- pair — from this one declaration, so the tab every player looks at first is the same tab in all
+-- nine addons and no addon can drift by editing a row. Composed HERE rather than in
+-- settings/Schema.lua because the composer is a member of the LibKa0s instance, and the instance
+-- does not exist until settings/OptionsSetup.lua has run — which is the file immediately before
+-- this one in the TOC.
+--
+-- WhatGroup is NOT frameless: modules/Frame.lua's popup is SetMovable(true) and drag-persisted
+-- (WG-26), so all four frame rows apply and all four are wired there.
+--
+-- `defaults` is passed for every leaf so the composer stores THIS addon's values, and
+-- `debugConsolePath` is the collection's verbatim `state.debugConsole` — a path
+-- settings/Schema.lua's SESSION table intercepts in front of db.profile, which is what keeps the
+-- console session-only now that it is a schema row (WG-12).
+local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{
+    prefix           = "",
+    page             = "general",
+    addonName        = "WhatGroup",
+    debugConsolePath = "state.debugConsole",
+    defaults         = {
+        enabled      = C.enabled,
+        visibility   = C.visibility,
+        scale        = C.scale,
+        alpha        = C.alpha,
+        locked       = C.locked,
+        -- The console starts closed at every login, and `/wg resetall` closes it again
+        -- (options-ui-§12 sweeps the session-only rows a profile reset cannot reach).
+        debugConsole = false,
+    },
+    onResetPosition  = function() WhatGroup:ResetFramePosition() end,
+    -- The SAME body the header Defaults button parks below, and the same one `/wg resetall`
+    -- reaches: options-ui-§12 puts all three behind one implementation, and this addon's is
+    -- confirmation-gated because the act is irreversible.
+    onResetAll       = function()
+        Settings.EnsureResetPopup()
+        StaticPopup_Show("WHATGROUP_RESET_ALL")
+    end,
+}
+
+-- What the composer does not emit, because it cannot know it: `/wg list`'s grouping key, and the
+-- side effects three of these rows have on a frame the library has never seen. Stamped onto the
+-- composed rows by path rather than declared beside them, so the block above stays one call and
+-- the canonical row set stays the library's to change.
+--
+-- Every one of these is a MOVE or a first wiring, never a second control: `enabled`'s onChange is
+-- the off-flip wipe that used to sit on the row in settings/Schema.lua, and the other three are
+-- the settings modules/Frame.lua grew for this pass.
+local MASTER_HOOKS = {
+    -- Off-flip wipes any in-flight capture so a pre-toggle apply can't still surface a
+    -- notify/popup after the user has explicitly disabled the addon. WipeCapture also CancelTimers
+    -- any notify callback already scheduled (AceTimer, self.notifyTimer). The reason argument is
+    -- what makes it a material-effect log (debug-logging-§10): the [Set] line already shows
+    -- `enabled = false`, and WipeCapture logs only when there was something to drop.
+    enabled    = function(v) if not v then WhatGroup:WipeCapture("addon disabled") end end,
+    -- A popup already on screen when the gate closes has to go, or the setting reads as ignored
+    -- until the next open.
+    visibility = function() WhatGroup:ApplyFrameVisibility() end,
+    scale      = function() WhatGroup:ApplyFrameScale() end,
+    alpha      = function() WhatGroup:ApplyFrameAlpha() end,
+}
+
+for _, row in ipairs(MASTER_ROWS) do
+    -- One section for the whole block: `/wg list` groups by section, and these eight are one
+    -- subject however they are stored.
+    row.section  = "general"
+    row.onChange = MASTER_HOOKS[row.path]
+end
+
+-- HEAD OF THE ARRAY, because RenderTabbedSchema partitions by `group` in DECLARATION order and
+-- options-ui-§15 requires this tab to be the FIRST one. Spliced rather than declared in
+-- settings/Schema.lua for the load-order reason above; the rows are ordinary schema rows from the
+-- moment they land here.
+for i = #MASTER_ROWS, 1, -1 do
+    table.insert(Settings.Schema, 1, MASTER_ROWS[i])
+end
+
+-- ---------------------------------------------------------------------------
 -- The General page
 -- ---------------------------------------------------------------------------
 --
 -- Hoisted to file scope rather than rebuilt per render: the library keeps its own one-shot
--- bookkeeping for both hooks (call-local sets, not the caller's tables), so a re-render gets the
--- inline button and the paired widget again instead of silently dropping them.
+-- bookkeeping for the hook (a call-local set, not the caller's table), so a re-render gets the
+-- inline button again instead of silently dropping it.
 
 -- KEYED TO A TAB, not appended to the page. With the page tabbed (options-ui-§13), "after the
 -- schema" is no longer "at the bottom of the page" -- RenderTabbedSchema fires this hook after the
--- last row of the NAMED group, so the Test button belongs to General and never appears under the
--- Chat or Popup rows.
+-- last row of the NAMED group, so each button belongs to one tab and never appears under another
+-- tab's rows.
+--
+-- The Test button follows the tab its group ended up on. It was keyed to "General", and General is
+-- the Master controls tab now: `enabled` became one of options-ui-§15's canonical eight and
+-- `notify.delay` moved to Chat, which is where this button's own tooltip already said it belonged
+-- -- previewing the chat-output toggles. It is NOT folded into the Master controls button pair: a
+-- 160px left-aligned action is not one of that block's two resets.
 local AFTER_GROUP = {
+    ["Master controls"] = MASTER_TAIL,
     -- Full-width action button, below the grid and on a fresh line.
-    ["General"] = function(ctx)
+    ["Chat"] = function(ctx)
         Helpers.InlineButton(ctx, {
             text    = "Test",
             tooltip = "Inject synthetic group info and run the full notification + popup flow. "
@@ -206,23 +297,11 @@ local AFTER_GROUP = {
     end,
 }
 
-local PAIR_WITH = {
-    -- The session-only console checkbox, packed into the same two-column grid so it pairs with
-    -- "Enable" instead of sitting on a line of its own. It was keyed to `notify.enabled` until the
-    -- retabbing moved "Print to Chat" to the Chat tab; the console is a General affordance and
-    -- following its old partner across would have put a debug control on the tab that decides what
-    -- the chat line says. Deliberately NOT a schema row
-    -- (WG-12 / debug-logging-§5) — it toggles ONLY the console window's visibility, never the debug
-    -- logging flag and never db.profile, so nothing about it persists. SessionCheckbox is the
-    -- library's maker for exactly that: a checkbox wired to caller-supplied get/set instead of a
-    -- settings path, which still registers a refresher so an external Show/Hide re-syncs it.
-    --
-    -- The spec is DebugLog's own ConsoleCheckbox() data contract, so the label and the tooltip come
-    -- from the module that owns the window rather than from a second description of it here.
-    ["enabled"] = function(ctx, rowGroup)
-        Helpers.SessionCheckbox(ctx, rowGroup, 0.5, NS.DebugLog:ConsoleCheckbox())
-    end,
-}
+-- NO `pairWith` TABLE ANY MORE. It carried exactly one entry — a bespoke SessionCheckbox drawing
+-- the debug console beside "Enable" — and options-ui-§15 makes that console a canonical row of the
+-- Master controls block instead. The console itself is untouched: same window, same
+-- NS.DebugLog:ConsoleCheckbox() get/set, reached now through settings/Schema.lua's SESSION table
+-- rather than through a hook. Two controls over one thing is what this pass exists to remove.
 
 local function buildGeneralPage(parentCategory)
     local ctx = Helpers.CreatePanel("WhatGroupGeneralPanel", "General", {
@@ -242,12 +321,12 @@ local function buildGeneralPage(parentCategory)
     Helpers.SetRenderer(ctx, function(c)
         Helpers.ClearScroll(c)
         -- TABBED (options-ui-§13): one tab per distinct `group` in settings/Schema.lua, in
-        -- declaration order -- General, Chat, Popup. The call is otherwise RenderSchema's: the
-        -- afterGroup and pairWith hooks are the same two tables, passed through unchanged.
+        -- declaration order -- Master controls, Chat, Popup. The call is otherwise RenderSchema's:
+        -- the afterGroup table is passed through unchanged, and there is no pairWith left to pass.
         --
         -- No page banner (options-ui-§14) and none is possible: WhatGroup has no per-window
         -- settings and no active-window state, so there is no instance for a banner to name.
-        Helpers.RenderTabbedSchema(c, "general", AFTER_GROUP, PAIR_WITH)
+        Helpers.RenderTabbedSchema(c, "general", AFTER_GROUP)
     end)
 
     local sub = _G.Settings.RegisterCanvasLayoutSubcategory(parentCategory, ctx.panel, "General")

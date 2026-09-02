@@ -315,3 +315,37 @@ test("slash: /wg debug on does not open the window", function()
     assertTrue(NS.State.debug, "logging is on")
     assertFalse(NS.DebugLog:IsShown(), "but the window stays closed until asked for")
 end)
+
+-- ---------------------------------------------------------------------------
+-- The enum row — `visibility` is the addon's first `type = "string"` (options-ui-§15)
+-- ---------------------------------------------------------------------------
+
+test("slash: /wg set writes an enum value from the row's own value set", function()
+    -- The CLI half of the dropdown. `ValidateSchema` had to learn `string` for this row to exist
+    -- at all, and the library's parser validates against `values` rather than accepting any word.
+    local NS = T.bootAddon()
+    NS.addon:OnSlashCommand("set visibility inCombat")
+    assertEqual(NS.addon.Settings.Helpers.Get("visibility"), "inCombat")
+end)
+
+test("slash: /wg set rejects a value the enum does not offer", function()
+    -- red under: dropping `values` from the composed row, which would make any word legal.
+    local NS, _, mock = T.bootAddon()
+    local lines = capture(mock, function()
+        NS.addon:OnSlashCommand("set visibility whenever")
+    end)
+    assertTrue(#lines > 0, "the refusal is reported")
+    assertEqual(NS.addon.Settings.Helpers.Get("visibility"), "always",
+        "a rejected value leaves the setting untouched")
+end)
+
+test("slash: /wg list carries the Master controls rows under their section", function()
+    -- They are composed, not declared here, and `section` is stamped onto them in
+    -- settings/Panel.lua because the composer cannot know a host's `/wg list` key.
+    -- red under: dropping that stamp, which would file them under "?".
+    local NS, _, mock = T.bootAddon()
+    local lines = capture(mock, function() NS.addon:OnSlashCommand("list") end)
+    for _, path in ipairs({ "enabled", "visibility", "scale", "alpha", "locked" }) do
+        assertTrue(anyLine(lines, path), path .. " is missing from /wg list")
+    end
+end)

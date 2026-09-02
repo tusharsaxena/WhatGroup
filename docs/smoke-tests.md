@@ -98,14 +98,20 @@ Verifies AceGUI rendering, schema-driven widget refresh, and the Defaults flow.
 
 1. Click **General** in the Settings sidebar tree.
 
-**Expected:** A **tab strip** across the top of the page reading **General | Chat | Popup**, left to right, with **General** selected and drawn as the disabled (current) tab. Below it, a two-column grid — and **no section headings**: the strip names the group now. **Defaults** button in the top-right corner. Hovering any widget shows a tooltip with the schema row's `tooltip` field.
+**Expected:** A **tab strip** across the top of the page reading **Master controls | Chat | Popup**, left to right, with **Master controls** selected and drawn as the disabled (current) tab. Below it, a two-column grid — and **no group headings**: the strip names the group now. `subgroup` headings *are* drawn, on the two tabs that mix control kinds. **Defaults** button in the top-right corner. Hovering any widget shows a tooltip with the schema row's `tooltip` field.
 
-Click each tab in turn and confirm the page swaps content rather than scrolling: **General** shows *Enable* + *Debug console* on one line, *Notification Delay* below, then the *Test* button; **Chat** shows *Print to Chat* alone, then *Instance | Type*, *Leader | Playstyle*, *Details link | Teleport spell*; **Popup** shows *Open Automatically* alone, then *Width | Height*. Clicking the tab you are already on does nothing (the active tab is disabled). The **Test** button appears on **General only** — if it shows up under Chat or Popup, the `afterGroup` key is wrong.
+Click each tab in turn and confirm the page swaps content rather than scrolling:
+
+- **Master controls** (options-ui-§15's canonical block, in this exact order): *Enable WhatGroup | General visibility*, *Master scale | Master alpha*, *Lock frame | Debug console*, then the **Reset position | Reset all settings** button pair.
+- **Chat**: a **Timing** heading over *Notification Delay* alone, then a **Text** heading over *Print to Chat* alone, then *Instance | Type*, *Leader | Playstyle*, *Details link | Teleport spell*, then the *Test* button.
+- **Popup**: a **Behavior** heading over *Open Automatically* alone, then a **Layout** heading over *Width | Height*.
+
+Clicking the tab you are already on does nothing (the active tab is disabled). The **Test** button appears on **Chat only** and the reset pair on **Master controls only** — if either shows up elsewhere, the `afterGroup` key is wrong.
 
 ### 3.3 Widget round-trip
 
 1. **Popup** tab → toggle **Open Automatically** off.
-2. **General** tab → slide **Notification Delay** to 3.0s.
+2. **Chat** tab → slide **Notification Delay** to 3.0s.
 3. Close the Settings panel.
 4. `/wg get frame.autoShow` → `false`.
 5. `/wg get notify.delay` → `3.0s`.
@@ -151,25 +157,50 @@ Click each tab in turn and confirm the page swaps content rather than scrolling:
 
 ### 3.6 Debug console checkbox — visibility only, session-only (WG-12 / debug-logging-§5)
 
-Layout check first: `/wg config` → **General** tab. The grid should read:
+Layout check first: `/wg config` → **Master controls** tab. The grid should read:
 
 ```
-[Enable]              [Debug console]
-[Notification Delay]
-[Test]
+[Enable WhatGroup]    [General visibility]
+[Master scale]        [Master alpha]
+[Lock frame]          [Debug console]
+[Reset position]      [Reset all settings]
 ```
 
-i.e. **Debug console** pairs on the right of **Enable** (it used to pair with *Print to Chat*, which now lives on the Chat tab), and **Test** sits on its own row below.
+i.e. **Debug console** pairs on the right of **Lock frame**, in options-ui-§15's canonical order. It was a bespoke checkbox paired against *Enable* before; it is a canonical schema row now, and its label and tooltip come from the composer.
 
-1. Fresh login (or `/reload`). `/wg config` → **General**. Confirm **Debug console** is **unchecked** (the window is hidden at login).
+1. Fresh login (or `/reload`). `/wg config` → **Master controls**. Confirm **Debug console** is **unchecked** (the window is hidden at login).
 2. Check it → the debug console **window appears**.
 3. Uncheck it → the window **hides**.
 4. Confirm it does **not** touch logging state: with the box unchecked, `/wg debug on` (logging ON), then check the box — the window shows but there is **no** `debug logging OFF/ON` chat line from the checkbox, and `/wg debug` state is unchanged (the console header still reads `Debug: ON`). Unchecking hides the window while logging stays ON.
-5. Close the console via its own **×** (or ESC) while the Settings panel is open, then reopen `/wg config` → **General**: the checkbox has re-synced to **unchecked** (the `OnShow` refresher reads live window visibility).
+5. Close the console via its own **×** (or ESC) while the Settings panel is open, then reopen `/wg config` → **Master controls**: the checkbox has re-synced to **unchecked** (the `OnShow` refresher reads live window visibility).
 6. Check the box, then **log out fully and back in**; reopen the panel.
 
-**Expected:** step 4 proves the checkbox toggles *only* window visibility, never the logging flag. Step 6: after relog the box is **unchecked** — nothing persisted. `/wg list` never shows a `debug` key; there is no `debug` field in `WhatGroupDB`. **Guards against:** the checkbox being wired as a persisted schema row (must not write `db.profile`), it wrongly flipping debug logging, and panel/console visibility drift.
+7. `/wg resetall` → **Yes** with the console open.
+   **Expected:** the console **closes**. It is a `sessionOnly` row, and options-ui-§12 requires those to be swept by hand because `db:ResetProfile()` cannot reach them.
 
+**Expected:** step 4 proves the checkbox toggles *only* window visibility, never the logging flag. Step 6: after relog the box is **unchecked** — nothing persisted. `/wg list` does show `state.debugConsole` (it is a schema row now), but there is **no** `state` table and no `debug` field in `WhatGroupDB`. **Guards against:** the checkbox being wired as a persisted schema row (must not write `db.profile`), it wrongly flipping debug logging, and panel/console visibility drift.
+
+### 3.7 Master controls — the four frame rows and the visibility gate (options-ui-§15)
+
+Every row here is new in this build, and each is only real if the popup obeys it. Open the popup
+first with `/wg test` so there is something to watch, and keep the Settings panel open beside it.
+
+| # | Do | Expect |
+|---|---|---|
+| 3.7a | **Master scale** → 1.5 | The popup grows immediately. `/wg get scale` → `1.5`. Slide back to 1. |
+| 3.7b | `/wg set scale 40` | Clamped: the popup is drawn at 2×, not 40×. `/wg set scale 1` to restore. |
+| 3.7c | Pull a trainer dummy, then move **Master scale** while in combat | The popup does **not** rescale (the secure teleport button is anchored off its edges). Drop combat, `/wg show` → the size you set is applied on the next open. |
+| 3.7d | **Master alpha** → 40% | The popup fades **immediately**, and it also fades while you are **in combat** — unlike scale. Restore to 100%. |
+| 3.7e | Drag the popup by its title bar, tick **Lock frame**, drag again | The first drag moves it, the second does nothing. Untick and confirm dragging works again. |
+| 3.7f | Drag the popup somewhere odd, then click **Reset position** | It jumps back to the shipped anchor (centered, raised a quarter of the screen). `/reload`, `/wg show` — it is **still** there, because the stored point was dropped too. |
+| 3.7g | **General visibility** → *Never*, then `/wg show` | Nothing opens, and nothing errors. `/wg test` prints the chat summary but shows no popup. |
+| 3.7h | **General visibility** → *Only in combat*, `/wg show` out of combat, then pull a dummy and `/wg show` | Out of combat: nothing on screen. In combat: the popup opens. (The frame is built the first time either way — it is just not shown.) |
+| 3.7i | With the popup open, set **General visibility** → *Never* | The open popup **closes** on the spot. Set it back to *Always*. |
+| 3.7j | `/wg set visibility nonsense` | Refused by the enum parser, naming the four legal values. |
+
+**Guards against:** a declared setting the drawing code ignores; a scale change taken in combat
+tainting the secure button; a lock read once at build time instead of at drag time; a *Reset
+position* the next login undoes; and `Only in combat` deadlocking against the lazy first build.
 ---
 
 ## 4. Synthetic flow smoke — `/wg test` (~1 min)
@@ -408,8 +439,8 @@ Framed as *"nothing moved"*: anything that looks different from the previous bui
 
 1. `/wg config` — the landing page. Logo, the one-line notes, the **Slash Commands** heading, then one row per command.
    **Expected:** rows read `/wg <verb> — <description>` with a **single** space either side of the dash. They used to have double spaces and a white-colored dash; that change is deliberate (the panel and `/wg help` now share one formatter). Everything else about the page is unchanged.
-2. **General** page. A **General | Chat | Popup** tab strip, `Enable` paired with `Debug console`, the delay slider below it, the **Test** button under them, **Defaults** top-right.
-   **Expected:** the page is TABBED — that is the change, not a finding. What must be identical to the previous build is every stored value: nothing moved paths, so `/wg list` prints exactly what it printed before, and a profile carried over from the untabbed build opens with every setting where the player left it. The Debug console checkbox's **tooltip wording** comes from the library and differs — also expected.
+2. **General** page. A **Master controls | Chat | Popup** tab strip, the canonical block on the first tab, the delay slider now under **Chat → Timing**, the **Test** button under the Chat rows, **Defaults** top-right.
+   **Expected:** the first tab is the change, not a finding. What must be identical to the previous build is every stored value that already existed: `enabled`, `notify.*` and `frame.*` did not move paths, so a carried-over profile opens with every setting where the player left it. Five keys are **new** and arrive at their defaults — `visibility`, `scale`, `alpha`, `locked` and the session-only `state.debugConsole` — so `/wg list` prints more than it did. The Debug console checkbox's **tooltip wording** comes from the library and differs — also expected.
 3. Drag the **Notification Delay** slider and watch the value.
    **Expected:** the stored value commits when you **release**, not on every frame of the drag. Re-open the page and confirm it kept what you released on.
 4. Click **Defaults** → confirm → check that every setting is back to default.
@@ -433,7 +464,7 @@ Framed as *"nothing moved"*: anything that looks different from the previous bui
 `LibKa0s-Media-1.0` ships the icon catalog and JetBrains Mono inside the library payload, and
 `core/MediaSetup.lua` tells the library which addon folder to build a texture path from. **Nothing
 out of game can see any of this.** A texture path that is never built, or is built wrong, produces a
-control that draws nothing and raises nothing: lint is silent, all 497 headless cases stay green,
+control that draws nothing and raises nothing: lint is silent, all 528 headless cases stay green,
 and the only witness is a person looking at two windows side by side. That is the whole reason this
 section exists.
 

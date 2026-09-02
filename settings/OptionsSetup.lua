@@ -72,6 +72,8 @@ if not lib then
     H.RenderTabbedSchema   = function() end
     H.TabStrip             = function() end
     H.PageBanner           = function() end
+    H.PageHeader           = function() end
+    H.SubTabStrip          = function() end
     H.SetChromeHeight      = function() end
     -- The chrome band's own arithmetic. Library-internal, reached only from the makers above --
     -- present here because the parity case compares the whole set, and absent from anything this
@@ -82,6 +84,29 @@ if not lib then
     H.__layoutTabs         = function() end
     H.__scrollTopInset     = function() end
     H.__releaseChrome      = function() end
+    H.__releaseSubTabs     = function() end
+    H.__tabArtHeight       = function() return 0 end
+    H.__resetTabArtHeight  = function() end
+    -- The five schema COMPOSERS (options-ui-§15/§16/§17). Four of them have no call site here --
+    -- the schema is bool, number and one enum, so there is no font, border, bar or standalone
+    -- colour block to compose -- and they are stubbed for the shape reason the chrome members
+    -- above are. MasterControls is different: settings/Panel.lua calls it at FILE LOAD, which is
+    -- the one load-time call this seam has, so its stub has to ANSWER rather than return nil. Two
+    -- values, because the caller takes two: no rows, and an afterGroup hook that draws nothing.
+    -- The Master controls tab is what is lost on this path; the profile's own defaults are not,
+    -- because Settings.BuildDefaults seeds from defaults/Profile.lua rather than from the schema
+    -- (settings/Schema.lua).
+    H.ColorPair            = function() return {} end
+    H.FontGroup            = function() return {} end
+    H.BorderGroup          = function() return {} end
+    H.BarGroup             = function() return {} end
+    H.MasterControls       = function() return {}, function() end end
+    -- No FONT_FLAGS / FONT_FLAGS_SORT / VISIBILITY_VALUES / VISIBILITY_SORT / MASTER_GROUP /
+    -- CLASS_COLOR_NOTE. They are the composers' published DATA, and hand-copying the value sets
+    -- and the wording whose nine-way drift OptionsCompose exists to end is anti-patterns #47 in
+    -- the same spirit the layout scalars are: a host copy is the copy that goes stale. Nothing in
+    -- this addon reads one -- the composer stamps them onto the rows it emits -- so a nil reaches
+    -- nothing here, and tests/test_libka0s.lua's parity case lists them as live-only on purpose.
     H.SetRenderer          = function() end
     H.RegisterOptionsPage  = function() end
     H.RefreshAllPanels     = function() end
