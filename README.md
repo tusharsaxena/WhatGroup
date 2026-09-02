@@ -102,7 +102,7 @@ The group info is only remembered for your current play session and clears when 
 
 | Symptom | Fix |
 |---|---|
-| The popup never appears when I join a group | Make sure **Enable** (the **General** tab) and **Open Automatically** (the **Popup** tab) are both turned on. If you joined while in combat, the popup is held until combat ends ("Popup deferred until combat ends.") and opens the moment you drop out. |
+| The popup never appears when I join a group | Make sure **Enable WhatGroup** (the **Master controls** tab) and **Open Automatically** (the **Popup** tab) are both turned on. If you joined while in combat, the popup is held until combat ends ("Popup deferred until combat ends.") and opens the moment you drop out. |
 | The chat message is missing some lines | The per-line toggles on the **Chat** tab control what the chat message includes. The popup always shows every line. |
 | `/wg show` says "No group info available" | The group info clears when you leave the group, so `/wg show` only works while you're still in it. Use `/wg test` to preview the popup instead. |
 | The teleport button is grayed out | You haven't learned that dungeon's teleport spell on this character, or the dungeon has no teleport. |

@@ -37,6 +37,9 @@ db.profile = {
 
 db.global = {
   schemaVersion = 1,              -- seeded by Settings.BuildDefaults; see the migration seam below
+  windows = {                     -- persisted standalone-window geometry (WG-26), seeded empty
+    -- [name] = { point, relPoint, x, y }   written on drag-stop, restored on show
+  },
 }
 ```
 
@@ -83,7 +86,7 @@ installed: the composed rows are absent on the degraded path, and without the se
 arrive with no `enabled` key — which reads as false. `sessionOnly` rows are skipped, so nothing about
 the debug console reaches the db.
 
-## One row, five surfaces
+## One row, six surfaces
 
 A single row in `WhatGroup.Settings.Schema` drives all of these, so there is never a parallel mutator
 for a path that already has a row:
@@ -95,7 +98,7 @@ for a path that already has a row:
 | `/wg get <path>` | `Helpers.FindSchema` + `Helpers.Get` |
 | `/wg set <path> <value>` | type-aware parse → `Helpers.Set` → the row's `onChange` → `RefreshAll` |
 | AceDB defaults | `BuildDefaults` threads `default` into the nested `profile` table |
-| `/wg reset` and the **Defaults** button | `Helpers.RestoreDefaults`, via the `WHATGROUP_RESET_ALL` popup |
+| the reset surfaces | `/wg reset <path>` → `Helpers.ApplyDefault`, the ordinary `Helpers.Set` path with no confirmation; `/wg resetall` and the **Defaults** button → `Helpers.RestoreAllDefaults`, via the `WHATGROUP_RESET_ALL` popup |
 
 ## What is deliberately not persisted
 

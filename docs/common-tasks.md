@@ -45,7 +45,7 @@ add{
 
 ### Action button (afterGroup)
 
-Non-setting affordances live outside the schema. Hand the action to `Helpers.InlineButton` from an `afterGroup` callback in `Settings.Register`:
+Non-setting affordances live outside the schema. Hand the action to `Helpers.InlineButton` from an `afterGroup` callback in `settings/Panel.lua`'s file-scope `AFTER_GROUP` table, which the General page's renderer passes to `RenderTabbedSchema`:
 
 ```lua
 Helpers.RenderTabbedSchema(generalCtx, "general", {
@@ -105,7 +105,7 @@ The order in `COMMANDS` is the order in `/wg help` **and** on the landing page. 
 One row to `NS.TeleportSpells` in `TeleportSpells.lua`. The table is keyed by **`mapID`** (the dungeon's instance map ID — stable across seasons):
 
 ```lua
-WhatGroup.TeleportSpells = {
+NS.TeleportSpells = {
     -- … existing entries …
     [<mapID>] = <teleportSpellID>,                 -- single spell
     [<mapID>] = { <spellID1>, <spellID2> },        -- when multiple spells exist for the same dungeon (e.g. an original + a re-issued one)
@@ -297,7 +297,7 @@ autoShow=…, inGroup=…, hasPending=…)` — so a pasted log is self-identify
   (superseded)` / skip lines, and **`[Frame]`** → `popup shown "…"` /
   `teleport spellID=… known=…` — for "popup or chat link came up empty". A
   `teleport spellID=nil` with a non-nil `map=` means the dungeon needs a row in
-  `WhatGroup.TeleportSpells`. **`[ChatLink]`** / **`[Test]`** mark the chat-link
+  `NS.TeleportSpells`. **`[ChatLink]`** / **`[Test]`** mark the chat-link
   click and `/wg test` entry points.
 - **`[Set]`** → one line per settings change (`<path> = <value>`) at the
   `Helpers.Set` seam; **`[Reset]`** → one summary for `/wg resetall`, naming the profile rather than a row count (it is a profile reset, not a row walk);
