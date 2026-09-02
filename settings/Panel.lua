@@ -249,7 +249,7 @@ local MASTER_HOOKS = {
 }
 
 for _, row in ipairs(MASTER_ROWS) do
-    -- One section for the whole block: `/wg list` groups by section, and these eight are one
+    -- One section for the whole block: `/wg list` groups by section, and these six are one
     -- subject however they are stored.
     row.section  = "general"
     row.onChange = MASTER_HOOKS[row.path]

@@ -240,7 +240,7 @@ end
 --
 -- UNCONDITIONAL, and the one collision is the point. `RestoreAllDefaults` exists on both sides and
 -- the HOST's wins, deliberately (issue #10, LIBKA0S-08): the library's is row-by-row
--- over every row, while this addon's wipes `db.profile` first — which is what drops a key from a
+-- over every row, while this addon's is a `db:ResetProfile()` — which is what drops a key from a
 -- removed or renamed schema row instead of leaving it in the profile forever — and coalesces the
 -- per-row [Set] lines into one [Reset] summary (debug-logging-§9). Copying only where the instance
 -- was nil silently gave the library's, and the suite said so.

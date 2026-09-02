@@ -358,9 +358,9 @@ end
 -- (`/wg set`), panel widget callbacks, `/wg reset`, runtime toggles —
 -- routes through here so the three side effects can't drift out of sync.
 -- `opts.skipOnChange` suppresses the onChange call; `opts.skipRefresh`
--- suppresses RefreshAll (RestoreDefaults uses it to refresh once after
--- the loop instead of N times). Use `RawSet` only for genuinely
--- side-effect-free writes (none today).
+-- suppresses RefreshAll (RestoreAllDefaults uses it on its sessionOnly
+-- sweep, leaving the one reconcile to OnProfileReset's handler). Use
+-- `RawSet` only for genuinely side-effect-free writes (none today).
 function Helpers.Set(path, value, opts)
     Helpers.RawSet(path, value)
     -- Settings-change trace (debug-logging-§10): one canonical [Set] line at the single write
@@ -547,9 +547,9 @@ function Helpers.RefreshAll()
 end
 
 -- Restore one row to its declared default. The library's per-page Defaults
--- button and (once it is wired) the schema CLI's `reset` both come through here,
--- so a single-row reset takes the same write path a `/wg set` does — same
--- [Set] line, same onChange, same refresh.
+-- button and the schema CLI's `reset` both come through here, so a single-row
+-- reset takes the same write path a `/wg set` does — same [Set] line, same
+-- onChange, same refresh.
 function Helpers.ApplyDefault(row)
     if not (row and row.path) then return end
     Helpers.Set(row.path, deepcopy(row.default))
