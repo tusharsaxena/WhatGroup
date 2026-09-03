@@ -18,7 +18,7 @@ Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Set
 ## What's new in 1.3.0
 
 *   The **Ka0s WhatGroup** page now shows up in the game's AddOns settings list the moment you log in — you no longer have to run `/wg config` first to make it appear.
-*   The chat message and popup now appear **instantly** when you join a group. Prefer a short pause? Set a delay under **Notify**.
+*   The chat message and popup now appear **instantly** when you join a group. Prefer a short pause? Set a delay under **Chat**.
 *   A new **on-screen debug window** — open or close it with `/wg debug` (or the **Debug console** box in **General**). Debug output goes there instead of cluttering your chat.
 *   Output from `/wg list`, `/wg get`, and `/wg set` is now **color-coded** and easier to read at a glance.
 *   The **Defaults** button now does a full, clean reset — no leftover settings survive it.
