@@ -85,13 +85,17 @@ degraded path while the suite stayed green — plus AceDB's merge-in-place
 `copyDefaults`, AceConsole's `:Print` clobber, the AceGUI widget recorder and
 the Settings registrars.
 
-Four of this addon's overrides model real client behavior instead of
+Five of this addon's overrides model real client behavior instead of
 no-op'ing it, and each is the sole reason a class of bug is catchable at all —
 the header comment in that file explains why. In short: frame **visibility** and
 **geometry** are real state (otherwise "the window closed" and "the position was
 saved" are unassertable), and `Hide` fires `OnHide` so the console's visibility
-callback is reachable; **`CreateFontString` / `CreateTexture` return distinct
-objects** (the base's answer from the frame stub's metatable and hand back the
+callback is reachable; **scale and the drag state** are real state too, because
+`Master scale` and `Lock frame` (options-ui-§15) are otherwise only observable
+through methods the PascalCase catch-all answers with the frame itself — truthy
+and never a number, so "the scale reached the popup" and "SetScale was never
+called" would be the same assertion; **`CreateFontString` / `CreateTexture`
+return distinct objects** (the base's answer from the frame stub's metatable and hand back the
 frame itself — its own README records that this addon is right to differ);
 screen-space getters answer real **numbers**, because the popup derives the
 secure teleport button's offsets by subtracting them; and the **AceTimer queue**

@@ -1,7 +1,9 @@
 -- settings/Schema.lua
 -- Schema rows + Helpers (get/set/validate, AceDB defaults, restore/refresh).
 --
--- Every option is one row in WhatGroup.Settings.Schema. The same row drives:
+-- Every option is one row in WhatGroup.Settings.Schema -- eleven of them declared here, and the
+-- six-row Master controls block composed by LibKa0s and spliced at the head of the array by
+-- settings/Panel.lua (options-ui-§15). The same row drives:
 --   * the AceGUI widget rendered in the General sub-page
 --   * /wg list (groups by `section`, prints path = formattedValue)
 --   * /wg get <path>            (Helpers.FindSchema + Helpers.Get)
@@ -71,66 +73,80 @@ end
 -- CONTIGUOUS: a row filed under a group the array has already left would print
 -- that heading a second time further down.
 --
--- Three tabs, in the order a player meets the addon: the switch and the pause
--- before anything happens, then the chat line, then the window.
+-- Three tabs, in the order a player meets the addon: what governs the addon as a
+-- whole, then the chat line, then the window.
 --
---   --- General ---            what the addon does at all
---   [Enable]              | [Debug console]   <- pairWith, a session-only non-schema row
---   [Notification delay]
---     <afterGroup: Test button (160 px, left-aligned)>
+--   --- Master controls ---    options-ui-§15's canonical block, and NOT DECLARED HERE
+--   [Enable WhatGroup]    | [General visibility]
+--   [Master scale]        | [Master alpha]
+--   [Lock frame]          | [Debug console]
+--     <afterGroup: Reset position | Reset all settings>
 --
---   --- Chat ---               what the chat line says
+--   --- Chat ---               when the summary fires, and what it says
+--   -- Timing --
+--   [Notification Delay]                       solo, on its own line
+--   -- Text --
 --   [Print to Chat]                            master toggle, on its own line
 --   [Instance]            | [Type]
 --   [Leader]              | [Playstyle]
 --   [Details link]        | [Teleport spell]
+--     <afterGroup: Test button (160 px, left-aligned)>
 --
 --   --- Popup ---              the group-info window
+--   -- Behavior --
 --   [Open Automatically]                       master toggle, on its own line
+--   -- Layout --
 --   [Width]               | [Height]
 --
+-- THE FIRST TAB IS COMPOSED, NOT WRITTEN (options-ui-§15). `H.MasterControls` emits the canonical
+-- eight-control block from one declaration, and settings/Panel.lua splices what it returns at the
+-- HEAD of this array -- so the strip's first tab is the same tab, in the same order, in all nine
+-- addons, and this file cannot drift from them by editing a row. Nothing about the rows it emits
+-- is special once they are here: they carry `path`, `type`, `label`, `default` like every row
+-- below, and `/wg list`, `/wg set`, ValidateSchema and the panel read them identically.
+--
 -- `section` is NOT `group`: it is `/wg list`'s grouping key and it is unchanged
--- by the retabbing. `notify.delay` is edited on General and stored (and listed)
+-- by the retabbing. `notify.delay` is EDITED on Chat and stored (and listed)
 -- under `notify`, which is exactly the page-vs-path split options-ui-§13 allows:
 -- a row's tab is where it is EDITED, its path is where it is STORED.
+--
+-- `subgroup` breaks a tab that mixes control kinds into named blocks (options-ui-§7): a slider
+-- that says WHEN standing among seven checkboxes that say WHAT is two subjects under one label,
+-- and so is a behaviour toggle above two size sliders. The heading is declared by the row exactly
+-- as the tab is, and it is NOT suppressed the way the group heading is.
 
 local function add(t) Schema[#Schema + 1] = t end
 
 -- ---------------------------------------------------------------------------
--- General -- the master switch, the pause, and the two developer affordances
+-- Master controls -- see settings/Panel.lua
+-- ---------------------------------------------------------------------------
+--
+-- `enabled` used to be the first row of this file. It is one of options-ui-§15's canonical eight
+-- now, so it is emitted by the composer and its `onChange` -- the off-flip that wipes an
+-- in-flight capture -- is stamped onto the composed row beside `scale`, `alpha`, `locked` and
+-- `visibility`'s in settings/Panel.lua. The stored path is still `enabled`, unchanged, because
+-- the composer is handed the addon's own defaults rather than inventing any.
+--
+-- The debug console is a canonical row now too, and it is still SESSION-ONLY: its path is
+-- `state.debugConsole`, which SESSION below intercepts before Resolve ever sees it, so the
+-- WG-12 invariant (nothing about debug reaches db.profile) holds exactly as it did when the
+-- checkbox was drawn by hand through `pairWith`.
+
+-- ---------------------------------------------------------------------------
+-- Chat -- when the join summary fires, and what it says
 -- ---------------------------------------------------------------------------
 
-add{
-    section = "general",  group = "General",
-    path    = "enabled",  type = "bool",
-    label   = "Enable",
-    tooltip = "Master switch. When off, WhatGroup ignores group applications entirely \226\128\148 no capture, no notification, no popup. Re-enable to resume tracking on your next /lfg apply.",
-    default = C.enabled,
-    -- Off-flip wipes any in-flight capture so a pre-toggle apply can't
-    -- still surface a notify/popup after the user has explicitly
-    -- disabled the addon. WipeCapture also CancelTimers any notify
-    -- callback already scheduled (AceTimer, self.notifyTimer).
-    onChange = function(v)
-        -- Pass a reason so WipeCapture emits the material-effect log (debug-logging-§10):
-        -- the [Set] line already shows `enabled = false`; WipeCapture logs the
-        -- wipe only when there was an in-flight capture to drop, never a
-        -- restatement of the value. Group-leave calls WipeCapture with no
-        -- reason (silent -- the [Roster] line already covers that path).
-        if not v then WhatGroup:WipeCapture("addon disabled") end
-    end,
-}
-
--- EDITED ON GENERAL, STORED UNDER `notify`. It used to head the Notify section,
--- which read as "how long before the chat line", and that was only half of what
--- it does: the same timer gates the POPUP as well (core/WhatGroup.lua schedules
--- one callback that prints and shows). A row that governs both surfaces belongs
--- on neither of their tabs, so it sits with the master switch -- the other row
--- here that decides what happens at all rather than what one surface looks like.
+-- EDITED ON CHAT, STORED UNDER `notify`. It headed the Notify section once, then sat on the old
+-- General tab with the master switch. Neither survives options-ui-§15: General is the Master
+-- controls tab now, and this row is not one of its canonical eight. It reads as the notification's
+-- own delay wherever it is filed -- the same timer does gate the popup, which the tooltip says --
+-- so it lands on the tab named for the notification, under its own heading, above the seven rows
+-- that choose what that notification contains.
 --
--- `solo` survives the retabbing: a half-width slider paired against a checkbox
--- reads as though the checkbox gated it.
+-- `solo` survives the move for the reason it always had: a half-width slider paired against a
+-- checkbox reads as though the checkbox gated it.
 add{
-    section = "notify",  group = "General",
+    section = "notify",  group = "Chat",  subgroup = "Timing",
     path    = "notify.delay",  type = "number",
     label   = "Notification Delay",
     tooltip = "Seconds to wait after joining before printing the notification and showing the popup. Lets the zone-in settle.",
@@ -139,21 +155,6 @@ add{
     solo    = true,
 }
 
--- Debug is intentionally NOT a schema row: it's session-only runtime
--- state (NS.State.debug), toggled via `/wg debug`, never persisted to
--- SavedVariables (WG-12 / debug-logging-§5). Keeping it out of the schema keeps it
--- out of BuildDefaults / `/wg list` / the saved profile. The General TAB does
--- surface a "Debug console" checkbox, but as a session-only non-schema
--- affordance (settings/Panel.lua): it toggles only the console *window's*
--- visibility (NS.DebugLog Show/Hide), never the debug logging flag and never
--- db.profile -- so the WG-12 invariant (debug never persists) still holds. It is
--- paired against `enabled` now rather than against "Print to Chat", because the
--- row it used to sit beside moved to another tab.
-
--- ---------------------------------------------------------------------------
--- Chat -- the join summary, line by line
--- ---------------------------------------------------------------------------
---
 -- THE VERTICAL CHECKLIST IS OVER, and only half of the argument for it expired.
 -- Every row here used to carry `solo = true` so the section read as a column of
 -- "include this line" ticks. The tab now says that: six of these rows are the
@@ -169,7 +170,7 @@ add{
 -- `notify.showInstance` for `/wg set` and for every saved profile.
 
 add{
-    section = "notify",  group = "Chat",
+    section = "notify",  group = "Chat",  subgroup = "Text",
     path    = "notify.enabled",  type = "bool",
     label   = "Print to Chat",
     tooltip = "Print the group-details summary to chat after joining a group. The rows below choose what that summary contains.",
@@ -178,7 +179,7 @@ add{
 }
 
 add{
-    section = "notify",  group = "Chat",
+    section = "notify",  group = "Chat",  subgroup = "Text",
     path    = "notify.showInstance",  type = "bool",
     label   = "Instance",
     tooltip = "Include the Instance line in the chat notification.",
@@ -186,7 +187,7 @@ add{
 }
 
 add{
-    section = "notify",  group = "Chat",
+    section = "notify",  group = "Chat",  subgroup = "Text",
     path    = "notify.showType",  type = "bool",
     label   = "Type",
     tooltip = "Include the Type line (Mythic+, Raid, Dungeon, ...) in the chat notification.",
@@ -194,7 +195,7 @@ add{
 }
 
 add{
-    section = "notify",  group = "Chat",
+    section = "notify",  group = "Chat",  subgroup = "Text",
     path    = "notify.showLeader",  type = "bool",
     label   = "Leader",
     tooltip = "Include the Leader line in the chat notification.",
@@ -202,7 +203,7 @@ add{
 }
 
 add{
-    section = "notify",  group = "Chat",
+    section = "notify",  group = "Chat",  subgroup = "Text",
     path    = "notify.showPlaystyle",  type = "bool",
     label   = "Playstyle",
     tooltip = "Include the Playstyle line (Learning / Fun (Relaxed) / Fun (Serious) / Expert) in the chat notification.",
@@ -210,7 +211,7 @@ add{
 }
 
 add{
-    section = "notify",  group = "Chat",
+    section = "notify",  group = "Chat",  subgroup = "Text",
     path    = "notify.showClickLink",  type = "bool",
     label   = "Details link",
     tooltip = "Include the clickable \"Click here to view details\" link that re-opens the popup. Disable if you only want the chat summary.",
@@ -218,7 +219,7 @@ add{
 }
 
 add{
-    section = "notify",  group = "Chat",
+    section = "notify",  group = "Chat",  subgroup = "Text",
     path    = "notify.showTeleport",  type = "bool",
     label   = "Teleport spell",
     tooltip = "Include a Teleport line with the dungeon's teleport spell link (and a \"not learned\" tag if you don't have it). Skipped silently when the dungeon has no known teleport.",
@@ -230,7 +231,7 @@ add{
 -- ---------------------------------------------------------------------------
 
 add{
-    section = "frame",  group = "Popup",
+    section = "frame",  group = "Popup",  subgroup = "Behavior",
     path    = "frame.autoShow",  type = "bool",
     label   = "Open Automatically",
     tooltip = "Open the group-info popup automatically when joining. With this off, the chat notification still prints and you can re-open the popup with /wg show or the chat link.",
@@ -251,7 +252,7 @@ add{
 -- than as refused.
 
 add{
-    section = "frame",  group = "Popup",
+    section = "frame",  group = "Popup",  subgroup = "Layout",
     path    = "frame.width",  type = "number",
     label   = "Width",
     tooltip = "Width of the group-info popup, in pixels. The default 420 is the size the popup shipped at.",
@@ -261,7 +262,7 @@ add{
 }
 
 add{
-    section = "frame",  group = "Popup",
+    section = "frame",  group = "Popup",  subgroup = "Layout",
     path    = "frame.height",  type = "number",
     label   = "Height",
     tooltip = "Height of the group-info popup, in pixels. The default 260 is the size the popup shipped at.",
@@ -301,7 +302,37 @@ local function Resolve(path, create)
     return parent, segments[#segments]
 end
 
+-- ---------------------------------------------------------------------------
+-- Session-only paths (WG-12 / debug-logging-§5)
+-- ---------------------------------------------------------------------------
+--
+-- A row marked `sessionOnly` is a setting whose storage is its own get/set rather than the db, and
+-- the debug console is the collection's canonical one (options-ui-§15). It is a SCHEMA ROW now --
+-- so it renders through the ordinary checkbox maker, appears in `/wg list` and answers `/wg set`
+-- like any other -- and it still must never reach db.profile: the flag it moves is a window's
+-- visibility, and a console left open is not a setting the next character inherits.
+--
+-- Intercepted HERE, in front of Resolve, rather than branched on at each call site: Get, Set,
+-- ApplyDefault, the panel's widget maker and the CLI all funnel through these two functions, and a
+-- routing decision made in one of them is a routing decision the other four cannot get wrong.
+--
+-- The pair is NS.DebugLog's own ConsoleCheckbox() contract, unchanged from when settings/Panel.lua
+-- drew the checkbox by hand: the module that owns the window is still the one that says what
+-- opening it means. Resolved at CALL time, because core/DebugLogSetup.lua loads before this file
+-- but NS.DebugLog is replaced wholesale on the degraded path.
+local SESSION = {
+    ["state.debugConsole"] = function()
+        local DL = NS.DebugLog
+        return DL and DL.ConsoleCheckbox and DL:ConsoleCheckbox() or nil
+    end,
+}
+
 function Helpers.Get(path)
+    local session = SESSION[path]
+    if session then
+        local spec = session()
+        return spec and spec.get() or false
+    end
     local parent, key = Resolve(path)
     if not parent then
         NS.Debug("Schema", "Get: no path -> " .. tostring(path))
@@ -311,6 +342,12 @@ function Helpers.Get(path)
 end
 
 function Helpers.RawSet(path, value)
+    local session = SESSION[path]
+    if session then
+        local spec = session()
+        if spec then spec.set(value and true or false) end
+        return
+    end
     local parent, key = Resolve(path, true)
     if not parent then return end
     parent[key] = value
@@ -321,9 +358,9 @@ end
 -- (`/wg set`), panel widget callbacks, `/wg reset`, runtime toggles —
 -- routes through here so the three side effects can't drift out of sync.
 -- `opts.skipOnChange` suppresses the onChange call; `opts.skipRefresh`
--- suppresses RefreshAll (RestoreDefaults uses it to refresh once after
--- the loop instead of N times). Use `RawSet` only for genuinely
--- side-effect-free writes (none today).
+-- suppresses RefreshAll (RestoreAllDefaults uses it on its sessionOnly
+-- sweep, leaving the one reconcile to OnProfileReset's handler). Use
+-- `RawSet` only for genuinely side-effect-free writes (none today).
 function Helpers.Set(path, value, opts)
     Helpers.RawSet(path, value)
     -- Settings-change trace (debug-logging-§10): one canonical [Set] line at the single write
@@ -362,7 +399,10 @@ end
 -- behavior is "the option you wanted is missing AND a chat error tells
 -- you why," not "the entire settings panel refuses to register."
 
-local _validTypes = { bool = true, number = true }
+-- `string` arrived with the Master controls block: General visibility is a DROPDOWN, because a
+-- boolean can only ever answer two of options-ui-§15's four states. It is the only enum row in
+-- this addon and the library's flow engine and CLI parser both already read `values` / `sorting`.
+local _validTypes = { bool = true, number = true, string = true }
 
 function Helpers.ValidateSchema()
     local errors = 0
@@ -379,7 +419,7 @@ function Helpers.ValidateSchema()
             if not _validTypes[def.type] then
                 pout("|cffff0000schema error|r " .. where
                      .. ": invalid `type` = " .. tostring(def.type)
-                     .. " (expected one of: bool, number)")
+                     .. " (expected one of: bool, number, string)")
                 errors = errors + 1
             end
             if type(def.section) ~= "string" then
@@ -403,18 +443,29 @@ end
 -- Defaults
 -- ---------------------------------------------------------------------------
 
--- Walk Schema and build the nested AceDB defaults table by threading each
--- row's `default` into the path it names.
+-- Seed from defaults/Profile.lua, then walk Schema and thread each row's `default` into the path
+-- it names.
+--
+-- THE SEED IS NOT REDUNDANT. Every schema row's `default` is still `C.<path>`, so on a full load
+-- the two halves agree key for key and the walk writes back what the seed already put there. What
+-- the seed buys is the DEGRADED load: the Master controls block is composed by the library
+-- (options-ui-§15), so with LibKa0s absent those six rows are not in the schema, and a
+-- schema-only sweep would hand AceDB a profile with no `enabled` key at all -- which reads as
+-- false and silently turns the addon off for exactly the install that is already missing a
+-- library. Seeding first makes the stored shape identical on both paths.
+--
+-- A `sessionOnly` row is skipped outright: its storage is its own set(), and threading a default
+-- for it would materialize the very db.profile branch WG-12 exists to keep empty.
 function Settings.BuildDefaults()
     -- `global.schemaVersion` seeds AceDB's account-wide store so a fresh
     -- install lands at the current version; Database.lua's RunMigrations
     -- reads it (WG-08). `global.windows` holds persisted standalone-window
     -- geometry (WG-26); an empty table so NS.Windows.Save/Restore never index
     -- a nil.
-    local out = { profile = {},
+    local out = { profile = deepcopy(C),
                   global = { schemaVersion = NS.SCHEMA_VERSION or 1, windows = {} } }
     for _, def in ipairs(Schema) do
-        if def.path then
+        if def.path and not def.sessionOnly then
             local segs = {}
             for part in string.gmatch(def.path, "[^.]+") do
                 segs[#segs + 1] = part
@@ -462,6 +513,19 @@ function Helpers.RestoreAllDefaults()
     if db and db.ResetProfile then
         db:ResetProfile()
     end
+    -- The one thing a profile reset cannot reach (options-ui-§12): a `sessionOnly` row's storage is
+    -- its own set(), not the db, so it would otherwise outlive a reset that took everything around
+    -- it. Restored row by row, which for the debug console means the window closes -- the state a
+    -- freshly-created profile is in.
+    -- The same three suppressions the row sweep this function replaced used: no per-row [Set]
+    -- (one coalesced [Reset] stands in, debug-logging-§9), no per-row refresh (OnProfileReset's
+    -- handler does the single reconcile), and no onChange (the row's own set() is the effect).
+    for _, def in ipairs(Schema) do
+        if def.sessionOnly then
+            Helpers.Set(def.path, deepcopy(def.default),
+                        { skipRefresh = true, skipLog = true, skipOnChange = true })
+        end
+    end
     NS.Debug("Reset", "active profile reset to defaults")
     -- NO RefreshAll HERE. `db:ResetProfile()` fires OnProfileReset, and core/WhatGroup.lua's
     -- handler runs the migrations and refreshes -- one reconcile, on the same path a profile
@@ -483,9 +547,9 @@ function Helpers.RefreshAll()
 end
 
 -- Restore one row to its declared default. The library's per-page Defaults
--- button and (once it is wired) the schema CLI's `reset` both come through here,
--- so a single-row reset takes the same write path a `/wg set` does — same
--- [Set] line, same onChange, same refresh.
+-- button and the schema CLI's `reset` both come through here, so a single-row
+-- reset takes the same write path a `/wg set` does — same [Set] line, same
+-- onChange, same refresh.
 function Helpers.ApplyDefault(row)
     if not (row and row.path) then return end
     Helpers.Set(row.path, deepcopy(row.default))

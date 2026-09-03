@@ -171,7 +171,7 @@ test("panel: two OnShows before the hop runs still build only once", function()
     mock.fireCTimers()
     local cbs = 0
     for _, w in ipairs(mock.aceWidgets) do
-        if w.type == "CheckBox" and w.labelText == "Enable" then cbs = cbs + 1 end
+        if w.type == "CheckBox" and w.labelText == "Enable WhatGroup" then cbs = cbs + 1 end
     end
     assertEqual(cbs, 1, "the `scheduled` guard prevents a double build")
 end)
@@ -227,7 +227,9 @@ test("panel: every schema row renders a widget, on its own tab", function()
             seen[def.group] = true
             selectTab(mock, def.group)
         end
-        local wanted = def.type == "bool" and "CheckBox" or "Slider"
+        local wanted = def.type == "bool" and "CheckBox"
+                    or def.type == "string" and "Dropdown"
+                    or "Slider"
         assertTrue(widget(mock, wanted, def.label) ~= nil,
             "no widget rendered for " .. def.path .. " on tab " .. def.group)
     end
@@ -245,16 +247,19 @@ test("panel: the strip draws one tab per schema group, in declaration order", fu
             want[#want + 1] = def.group
         end
     end
-    assertEqual(table.concat(want, " | "), "General | Chat | Popup",
+    assertEqual(table.concat(want, " | "), "Master controls | Chat | Popup",
         "the designed strip, in the order the array declares it")
     for _, name in ipairs(want) do
         assertTrue(tabButton(mock, name) ~= nil, "the strip is missing " .. name)
     end
 end)
 
-test("panel: bool rows render checkboxes and number rows render sliders", function()
+test("panel: bool rows render checkboxes, number rows sliders, enum rows dropdowns", function()
     local _, _, mock = openGeneral()
-    assertEqual(widget(mock, "CheckBox", "Enable").type, "CheckBox")
+    assertEqual(widget(mock, "CheckBox", "Enable WhatGroup").type, "CheckBox")
+    assertEqual(widget(mock, "Dropdown", "General visibility").type, "Dropdown")
+    assertEqual(widget(mock, "Slider", "Master scale").type, "Slider")
+    selectTab(mock, "Chat")
     assertEqual(widget(mock, "Slider", "Notification Delay").type, "Slider")
 end)
 
@@ -264,12 +269,14 @@ test("panel: widgets open showing the current profile value", function()
     NS.addon.Settings.Helpers.Set("notify.delay", 2.5)
     local _, general = panels(mock)
     open(mock, general)
-    assertEqual(widget(mock, "CheckBox", "Enable"):GetValue(), false)
+    assertEqual(widget(mock, "CheckBox", "Enable WhatGroup"):GetValue(), false)
+    selectTab(mock, "Chat")
     assertEqual(widget(mock, "Slider", "Notification Delay"):GetValue(), 2.5)
 end)
 
 test("panel: the slider inherits its bounds and step from the schema row", function()
     local _, _, mock = openGeneral()
+    selectTab(mock, "Chat")
     local s = widget(mock, "Slider", "Notification Delay")
     assertEqual(s.sliderMin, 0)
     assertEqual(s.sliderMax, 10)
@@ -281,29 +288,106 @@ test("panel: a tabbed page draws its group names as TABS, never as headings", fu
     -- scrolled. RenderTabbedSchema passes `noHeadings` for exactly this reason: the strip already
     -- names the group, and a heading under it repeats the tab the reader just clicked.
     local _, _, mock = openGeneral()
-    assertTrue(tabButton(mock, "General") ~= nil, "the group name is on the strip")
-    assertNil(widget(mock, "Heading", "General"), "and not repeated as a heading below it")
+    assertTrue(tabButton(mock, "Master controls") ~= nil, "the group name is on the strip")
+    assertNil(widget(mock, "Heading", "Master controls"),
+        "and not repeated as a heading below it")
     selectTab(mock, "Chat")
     assertNil(widget(mock, "Heading", "Chat"))
+end)
+
+test("panel: a mixed tab draws its SUBGROUPS as headings (options-ui-§7)", function()
+    -- The one heading a tabbed page still draws. The group heading is suppressed because the strip
+    -- already says it; a subgroup names a KIND of control inside that tab and is not suppressed —
+    -- a slider that says WHEN standing among seven checkboxes that say WHAT is two subjects under
+    -- one label.
+    -- red under: dropping `subgroup` from a row, or the flow engine suppressing it with the group.
+    local _, _, mock = openGeneral()
+    selectTab(mock, "Chat")
+    assertTrue(widget(mock, "Heading", "Timing") ~= nil, "the delay's own heading")
+    assertTrue(widget(mock, "Heading", "Text") ~= nil, "and the include-toggles'")
+    selectTab(mock, "Popup")
+    assertTrue(widget(mock, "Heading", "Behavior") ~= nil)
+    assertTrue(widget(mock, "Heading", "Layout") ~= nil)
+end)
+
+test("panel: no subgroup heading repeats its own tab's name", function()
+    -- options-ui-§7 forbids it outright: a heading that repeats the tab the reader just clicked is
+    -- the same label twice, which is the exact thing suppressing the group heading removed.
+    -- red under: `subgroup = "Popup"` on a Popup row.
+    local NS = T.enableAddon()
+    for _, row in ipairs(NS.addon.Settings.Schema) do
+        if row.subgroup then
+            assertTrue(row.subgroup ~= row.group,
+                row.path .. " repeats its tab name as a subgroup")
+        end
+    end
 end)
 
 test("panel: paired rows get half width, solo rows go full width", function()
     local _, _, mock = openGeneral()
     -- Everything in the two-column grid is rendered at 0.5 relative width; the
     -- `solo` flag controls line breaks, not the column width.
-    assertEqual(widget(mock, "CheckBox", "Enable").relWidth, 0.5)
+    assertEqual(widget(mock, "CheckBox", "Enable WhatGroup").relWidth, 0.5)
     selectTab(mock, "Chat")
     assertEqual(widget(mock, "CheckBox", "Leader").relWidth, 0.5)
 end)
 
-test("panel: the General group renders its Test action button", function()
+test("panel: the Chat group renders its Test action button", function()
+    -- It followed the tab its group ended up on. "General" is options-ui-§15's Master controls tab
+    -- now, whose afterGroup is the composer's reset pair; the button's own tooltip already said it
+    -- previews the chat-output toggles, so Chat is where it belongs.
     local _, _, mock = openGeneral()
+    assertNil(widget(mock, "Button", "Test"),
+        "and NOT on the Master controls tab, which the page opens on")
+    selectTab(mock, "Chat")
     assertTrue(widget(mock, "Button", "Test") ~= nil,
-        "afterGroup emits the Test button below the General grid")
+        "afterGroup emits the Test button below the Chat grid")
+end)
+
+test("panel: the Master controls tab closes with the reset button PAIR", function()
+    -- options-ui-§15's closing pair, drawn by the composer's own afterGroup — Reset position on
+    -- the left because this addon is not frameless, Reset all settings on the right.
+    -- red under: renaming the group (which detaches the hook and raises nothing), or passing the
+    -- tail to any other group.
+    local _, _, mock = openGeneral()
+    assertTrue(widget(mock, "Button", "Reset position") ~= nil)
+    assertTrue(widget(mock, "Button", "Reset all settings") ~= nil)
+    -- COUNTED, not searched: a released AceGUI widget stays in the mock's ledger, so a second
+    -- draw is a second entry rather than a different answer to `widget`.
+    local function drawn(label)
+        local n = 0
+        for _, w in ipairs(mock.aceWidgets) do
+            if w.type == "Button" and w.text == label then n = n + 1 end
+        end
+        return n
+    end
+    local before = drawn("Reset position")
+    selectTab(mock, "Chat")
+    assertEqual(drawn("Reset position"), before, "and neither follows the reader across")
+end)
+
+test("panel: Reset all settings raises the confirmation, it does not reset on the click", function()
+    -- The same body the header Defaults button parks and `/wg resetall` reaches (options-ui-§12):
+    -- one act, one wording, one confirmation.
+    local NS, _, mock = openGeneral()
+    NS.addon.Settings.Helpers.Set("notify.delay", 6)
+    widget(mock, "Button", "Reset all settings"):Fire("OnClick")
+    assertEqual(NS.addon.db.profile.notify.delay, 6, "nothing was reset on the click")
+    assertEqual(mock.popups[#mock.popups], "WHATGROUP_RESET_ALL")
+end)
+
+test("panel: Reset position drops the stored point and re-anchors", function()
+    -- red under: clearing the anchor without dropping db.global.windows.popup, which the next
+    -- login would restore over the reset.
+    local NS, _, mock = openGeneral()
+    NS.addon.db.global.windows.popup = { point = "TOPLEFT", relPoint = "TOPLEFT", x = 12, y = -34 }
+    widget(mock, "Button", "Reset position"):Fire("OnClick")
+    assertNil(NS.addon.db.global.windows.popup, "the persisted point is gone")
 end)
 
 test("panel: the Test button runs the same path as /wg test", function()
     local NS, _, mock = openGeneral()
+    selectTab(mock, "Chat")
     widget(mock, "Button", "Test"):Fire("OnClick")
     assertTrue(NS.addon.pendingInfo ~= nil, "a synthetic capture was injected")
     assertEqual(NS.addon.pendingInfo.mapID, 2805, "RunTest's fixture: Windrunner Spire")
@@ -323,11 +407,19 @@ end)
 -- The session-only Debug console checkbox (WG-12 — never persisted)
 -- ---------------------------------------------------------------------------
 
-test("panel: the Debug console checkbox renders as a non-schema extra", function()
+test("panel: the Debug console renders as an ordinary Master controls checkbox", function()
+    -- It was a bespoke SessionCheckbox drawn through `pairWith` beside "Enable". options-ui-§15
+    -- makes it one of the canonical eight, so it is a schema row drawn by the ordinary checkbox
+    -- maker now — and still session-only, which the settings suite pins at the storage seam.
+    -- red under: re-adding a pairWith entry for it, which would draw it twice.
     local NS, _, mock = openGeneral()
-    assertTrue(widget(mock, "CheckBox", "Debug console") ~= nil)
-    assertNil(NS.addon.Settings.Helpers.FindSchema("_debugConsoleVisible"),
-        "it is deliberately not a schema row")
+    local n = 0
+    for _, w in ipairs(mock.aceWidgets) do
+        if w.type == "CheckBox" and w.labelText == "Debug console" then n = n + 1 end
+    end
+    assertEqual(n, 1, "drawn exactly once")
+    assertTrue(NS.addon.Settings.Helpers.FindSchema("state.debugConsole") ~= nil,
+        "and it is a schema row, on the canonical path")
 end)
 
 test("panel: ticking Debug console shows the window without touching db.profile", function()
@@ -395,6 +487,7 @@ test("panel: releasing the slider writes through to db.profile", function()
     -- is opt-in per row (`commitOn = "change"`) or per descriptor (`sliderCommit`), and this addon
     -- passes neither: the one number row is a notify delay, which nothing previews while dragging.
     local NS, _, mock = openGeneral()
+    selectTab(mock, "Chat")
     local s = widget(mock, "Slider", "Notification Delay")
     s:Fire("OnValueChanged", 7.5)
     assertEqual(NS.addon.db.profile.notify.delay, 0, "a drag alone does not commit")
@@ -406,6 +499,7 @@ test("panel: the slider snaps its committed value to the schema step", function(
     -- Snapped relative to `min`, not to zero, so a step that does not divide min evenly cannot
     -- commit a value the slider could never reach by dragging.
     local NS, _, mock = openGeneral()
+    selectTab(mock, "Chat")
     widget(mock, "Slider", "Notification Delay"):Fire("OnMouseUp", 3.3)
     assertEqual(NS.addon.db.profile.notify.delay, 3.5, "step 0.5 from min 0")
 end)
@@ -413,13 +507,13 @@ end)
 test("panel: unticking Enable fires the master-switch onChange", function()
     local NS, _, mock = openGeneral()
     NS.addon.pendingInfo = { title = "in flight" }
-    widget(mock, "CheckBox", "Enable"):Fire("OnValueChanged", false)
+    widget(mock, "CheckBox", "Enable WhatGroup"):Fire("OnValueChanged", false)
     assertNil(NS.addon.pendingInfo, "the capture is wiped through the schema onChange")
 end)
 
 test("panel: rendering registers one refresher per rendered widget", function()
     -- The registry is the library's and lives on the page's ctx, un-keyed — one closure per widget
-    -- it made, appended in render order. Every schema row plus the session-only console checkbox.
+    -- it made, appended in render order: one per schema row on the tab that is open.
     local NS, _, mock = openGeneral()
     local ctx = NS.addon.Settings.Helpers.__panelFor("general")
     assertTrue(ctx ~= nil, "the page's ctx is reachable through the library's test seam")
@@ -432,11 +526,11 @@ test("panel: rendering registers one refresher per rendered widget", function()
         end
         return n
     end
-    assertEqual(#ctx.refreshers, rowsOn("General") + 1,
-        "one per General row, plus the Debug console session checkbox")
+    assertEqual(#ctx.refreshers, rowsOn("Master controls"),
+        "one per Master controls row — the Debug console is one of them now, not an extra")
     selectTab(mock, "Chat")
     assertEqual(#ctx.refreshers, rowsOn("Chat"),
-        "and the Chat tab re-registers its own, with no console checkbox on it")
+        "and the Chat tab re-registers its own")
 end)
 
 test("panel: a re-render REPLACES the refresher list rather than growing it", function()
@@ -463,13 +557,15 @@ end)
 
 test("panel: RestoreAllDefaults re-syncs every open widget once", function()
     local NS, _, mock = openGeneral()
+    selectTab(mock, "Chat")
     NS.addon.Settings.Helpers.Set("notify.delay", 9)
     assertEqual(widget(mock, "Slider", "Notification Delay"):GetValue(), 9,
-        "the General tab's slider followed the write")
+        "the Chat tab's slider followed the write")
     NS.addon.Settings.Helpers.RestoreAllDefaults()
     assertEqual(widget(mock, "Slider", "Notification Delay"):GetValue(), 0)
     -- And again on another tab, because the reset has to reach the widgets of whichever group is
     -- open, not just the one the page happened to start on.
+    selectTab(mock, "Popup")
     selectTab(mock, "Chat")
     widget(mock, "CheckBox", "Leader"):Fire("OnValueChanged", false)
     NS.addon.Settings.Helpers.RestoreAllDefaults()
@@ -478,6 +574,7 @@ end)
 
 test("panel: a throwing refresher does not abort the remaining ones", function()
     local NS, _, mock = openGeneral()
+    selectTab(mock, "Chat")
     local ctx = NS.addon.Settings.Helpers.__panelFor("general")
     -- Inserted FIRST, so a sweep that aborted on it would never reach the widget asserted below.
     table.insert(ctx.refreshers, 1, function() error("refresher exploded") end)

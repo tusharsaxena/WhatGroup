@@ -16,9 +16,9 @@
 -- Mock fidelity is load-bearing
 -- ---------------------------------------------------------------------------
 --
--- Four pieces of this file model REAL client behavior rather than no-op'ing it, and must not be
+-- Five pieces of this file model REAL client behavior rather than no-op'ing it, and must not be
 -- "simplified" back into blanket stubs — each one is the only reason a whole class of addon bug is
--- catchable headlessly. All four are also why this is an extender rather than a swap: the kit's own
+-- catchable headlessly. All five are also why this is an extender rather than a swap: the kit's own
 -- README names the last of them as a divergence it deliberately keeps.
 --
 --  1. FRAME VISIBILITY. A blanket self-returning no-op makes IsShown() return the frame —
@@ -39,7 +39,13 @@
 --     handles land in their OWN fireable, cancelable queue — separate from the C_Timer queue the
 --     panel's secure-defer hop uses, because a suite has to be able to fire one without the other.
 --
---  4. FONT STRINGS AND TEXTURES ARE DISTINCT OBJECTS. The base answers CreateFontString /
+--  4. SCALE AND THE DRAG STATE. `Lock frame` and `Master scale` are two of options-ui-§15's
+--     canonical rows, and both are only observable through methods the PascalCase catch-all would
+--     answer with the frame itself — permanently truthy, never a number. A lock that never reaches
+--     StartMoving would then be indistinguishable from one that does, and so would a scale the
+--     popup never applied.
+--
+--  5. FONT STRINGS AND TEXTURES ARE DISTINCT OBJECTS. The base answers CreateFontString /
 --     CreateTexture from the frame stub's metatable, so they return THE FRAME ITSELF; its README
 --     records that WhatGroup's mock is right to differ. The popup collapses every label into one
 --     SetText sink otherwise, so "Leader shows the leader's name" cannot be distinguished from
@@ -133,6 +139,9 @@ local function build()
             __messages  = {},
             __desaturated = nil,
             __alpha     = 1,
+            __scale     = 1,
+            __movable   = false,
+            __moving    = false,
             __texture   = nil,
         }
 
@@ -259,6 +268,18 @@ local function build()
         api.IsDesaturated   = function() return f.__desaturated end
         api.SetAlpha        = function(_, a) f.__alpha = a; return f end
         api.GetAlpha        = function() return f.__alpha end
+        -- SCALE AND THE DRAG STATE, modelled rather than caught by the PascalCase catch-all, for
+        -- the reason (1) gives about visibility: the catch-all answers the FRAME, which is truthy
+        -- and non-numeric, so "the master scale reached the popup" and "SetScale was never called"
+        -- are the same assertion, and a lock that never stops a drag looks exactly like one that
+        -- does (options-ui-§15).
+        api.SetScale        = function(_, s) f.__scale = s; return f end
+        api.GetScale        = function() return f.__scale end
+        api.SetMovable      = function(_, v) f.__movable = v and true or false; return f end
+        api.IsMovable       = function() return f.__movable end
+        api.StartMoving     = function() f.__moving = true; return f end
+        api.StopMovingOrSizing = function() f.__moving = false; return f end
+        api.IsMoving        = function() return f.__moving end
 
         -- ScrollingMessageFrame line sink. Recorded rather than discarded so the console's log
         -- content is assertable; the scroll getters stay UNMODELLED on purpose, so they answer the

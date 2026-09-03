@@ -198,12 +198,18 @@ seam** (debug-logging-§10) — are MUSTs in the standard's `debug-logging` sect
 and it is the addon's, not the library's:
 
 - **Session-only**: default off, held in `NS.State.debug` (never in
-  SavedVariables), reset to off on every `/reload` and fresh login. It is **not**
-  a schema row (WG-12) — there is no `/wg set debug`. The General panel's "Debug
-  console" checkbox is a session-only, non-schema affordance rendered from
-  `D:ConsoleCheckbox()`, so its label and tooltip come from the module that owns
-  the window; it toggles the **window's visibility** only (`D:Show` / `D:Hide`
-  via `D:IsShown`), never `NS.State.debug` and never `db.profile`.
+  SavedVariables), reset to off on every `/reload` and fresh login. The FLAG is
+  **not** a schema row (WG-12) — there is no `/wg set debug`. The **window's
+  visibility** is one, on the Master controls tab: `options-ui-§15` makes "Debug
+  console" one of the canonical eight, so it is a `sessionOnly` schema row on the
+  path `state.debugConsole` rather than the bespoke `SessionCheckbox` it used to
+  be. `settings/Schema.lua`'s `SESSION` table routes that path to
+  `D:ConsoleCheckbox()`'s own `get`/`set` in front of `Resolve`, so the module
+  that owns the window still owns what the toggle *does*, and nothing about it
+  reaches `db.profile`. The label and tooltip are now the composer's, which is
+  the one visible difference. `BuildDefaults` skips the row; `RestoreAllDefaults`
+  sweeps it by hand, because `db:ResetProfile()` cannot reach storage that is not
+  the db (`options-ui-§12`).
 - **Logging and the window are independent** — capture runs even with the console
   closed, so a bug can be reproduced first and the log opened after.
 - **Single write path**: `D:SetEnabled(on)` writes the flag through the

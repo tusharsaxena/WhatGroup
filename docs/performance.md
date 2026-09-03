@@ -33,16 +33,16 @@ Every hit, with the per-hit work:
 |---|---|---|
 | `core/WhatGroup.lua:56` | `hooksecurefunc(C_LFGList, "ApplyToGroup", …)` | Fires only when the **player clicks Apply** in the LFG browser, which is not a combat action. Stashes one table. |
 | `core/WhatGroup.lua:62` | `hooksecurefunc("SetItemRef", …)` | Fires only on a **chat-link click**. One prefix compare, then a return for every link that is not ours. |
-| `core/WhatGroup.lua:185` | `RegisterEvent("GROUP_ROSTER_UPDATE")` | The one handler that can fire mid-combat. `IsInGroup()` plus three comparisons; the debug line is suppressed unless the in-group state actually transitioned. On most pulls it fires **zero** times. |
-| `core/WhatGroup.lua:186` | `RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")` | Fires on an LFG application status change — a state the player reaches out of combat. |
-| `core/WhatGroup.lua:617` | `self:ScheduleTimer(…)` | **One-shot** AceTimer, armed once per group join, for the notify delay. Not repeating. |
-| `modules/Frame.lua:189` | `f:RegisterEvent("PLAYER_REGEN_ENABLED")` | Registered **only** when a secure-attribute write was blocked by `InCombatLockdown()`, and the handler **unregisters itself** on the first fire. It exists to do its work strictly *after* combat. |
-| `modules/Frame.lua:189` | `WhatGroup:ScheduleRepeatingTimer(…, 1)` | **The one repeating timer in the addon**, and the reason criterion (a) no longer holds. Armed only when the popup is open *and* the dungeon's teleport is on cooldown; cancelled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. Per tick: one `C_Spell.GetSpellCooldown` call and one `SetText`. It can fire during combat — the popup can be open then — so this is the addon's first in-combat repeating work, however small. |
-| `modules/Frame.lua:525` | `waitFrame:RegisterEvent("PLAYER_REGEN_ENABLED")` | Same shape: a transient frame that defers the popup build to combat-end and then `UnregisterAllEvents()`. |
-| `settings/OptionsSetup.lua:194`, `:202` | `C_Timer.After(0, …)` | Two **next-frame** secure-defer hops in the settings panel build. One-shot, and only ever reached from a settings-panel `OnShow`. |
+| `core/WhatGroup.lua:186` | `RegisterEvent("GROUP_ROSTER_UPDATE")` | The one handler that can fire mid-combat. `IsInGroup()` plus three comparisons; the debug line is suppressed unless the in-group state actually transitioned. On most pulls it fires **zero** times. |
+| `core/WhatGroup.lua:187` | `RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")` | Fires on an LFG application status change — a state the player reaches out of combat. |
+| `core/WhatGroup.lua:618` | `self:ScheduleTimer(…)` | **One-shot** AceTimer, armed once per group join, for the notify delay. Not repeating. |
+| `modules/Frame.lua:318` | `f:RegisterEvent("PLAYER_REGEN_ENABLED")` | Registered **only** when a secure-attribute write was blocked by `InCombatLockdown()`, and the handler **unregisters itself** on the first fire. It exists to do its work strictly *after* combat. |
+| `modules/Frame.lua:275` | `WhatGroup:ScheduleRepeatingTimer(…, 1)` | **The one repeating timer in the addon**, and the reason criterion (a) no longer holds. Armed only when the popup is open *and* the dungeon's teleport is on cooldown; cancelled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. Per tick: one `C_Spell.GetSpellCooldown` call and one `SetText`. It can fire during combat — the popup can be open then — so this is the addon's first in-combat repeating work, however small. |
+| `modules/Frame.lua:635` | `waitFrame:RegisterEvent("PLAYER_REGEN_ENABLED")` | Same shape: a transient frame that defers the popup build to combat-end and then `UnregisterAllEvents()`. |
+| `settings/OptionsSetup.lua:219`, `:227` | `C_Timer.After(0, …)` | Two **next-frame** secure-defer hops in the settings panel build. One-shot, and only ever reached from a settings-panel `OnShow`. |
 
 **Zero `OnUpdate` handlers. One repeating timer** — the cooldown countdown at
-`modules/Frame.lua:189`, added 2026-08-06. Everything else above is one-shot or self-unregistering,
+`modules/Frame.lua:275`, added 2026-08-06. Everything else above is one-shot or self-unregistering,
 and the only *event* handler reachable inside a combat window is `GROUP_ROSTER_UPDATE`, whose body
 is an `IsInGroup()` and three comparisons.
 

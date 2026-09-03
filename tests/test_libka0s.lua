@@ -483,6 +483,7 @@ local NO_LIBKA0S = {
     "libs/LibKa0s/Item.lua", "libs/LibKa0s/Media.lua", "libs/LibKa0s/Widgets.lua",
     "libs/LibKa0s/DebugLog.lua", "libs/LibKa0s/Slash.lua",
     "libs/LibKa0s/Options.lua", "libs/LibKa0s/OptionsWidgets.lua",
+    "libs/LibKa0s/OptionsCompose.lua",
     "libs/LibKa0s/OptionsScroll.lua", "libs/LibKa0s/Perf.lua", "libs/LibKa0s/PerfPanel.lua",
 }
 
@@ -554,19 +555,65 @@ test("degraded: the console stub copies NO library formatter", function()
     assertNil(src:match("c9a66b"), "nor the tag color")
 end)
 
-test("degraded: the schema loads WHOLE with the options library absent (options-ui-§1)", function()
+test("degraded: every HAND-WRITTEN schema row survives the options library's absence (options-ui-§1)",
+function()
     -- The MUST behind the load-completing stub, and it has to be MEASURED rather than reasoned
     -- about: a page file that touched a helper inside a schema-row literal at file load would raise
     -- with the member nil, its rows would never register, and a third of the schema would vanish —
     -- taking list/get/set/reset and the profile defaults with it, silently.
+    --
+    -- It used to compare the two ROW COUNTS outright, and that stopped being the right assertion
+    -- when the Master controls block became composed (options-ui-§15): those six rows are the
+    -- library's to emit, so they are legitimately absent when the library is. What is NOT allowed
+    -- to change is everything else — settings/Schema.lua's own rows, in order — and the case is
+    -- narrowed to exactly that rather than relaxed to a count that would wave a real half-load
+    -- through.
+    --
+    -- red under: settings/Schema.lua calling any Helpers member inside a row literal (the rows
+    -- after it vanish), or settings/Panel.lua splicing the composed block anywhere but the head.
     local full    = T.newAddon()
     local without = T.newAddon{ skip = NO_LIBKA0S }
     assertTrue(#full.addon.Settings.Schema > 0, "there is a schema to compare")
-    assertEqual(#without.addon.Settings.Schema, #full.addon.Settings.Schema,
-        "the row count must be identical — this is the whole gate against a silent half-load")
-    for i, row in ipairs(full.addon.Settings.Schema) do
-        assertEqual(without.addon.Settings.Schema[i].path, row.path, "row " .. i .. " differs")
+
+    local composed = 0
+    for _, row in ipairs(full.addon.Settings.Schema) do
+        if row.group == "Master controls" then composed = composed + 1 end
     end
+    assertTrue(composed > 0, "the composed block is in the full schema")
+    assertEqual(#without.addon.Settings.Schema, #full.addon.Settings.Schema - composed,
+        "exactly the composed block is missing — nothing else")
+
+    for i = 1, #without.addon.Settings.Schema do
+        assertEqual(without.addon.Settings.Schema[i].path,
+                    full.addon.Settings.Schema[i + composed].path, "row " .. i .. " differs")
+    end
+end)
+
+test("degraded: the STORED profile is the same shape with the library absent", function()
+    -- The half of the case above that the row counts used to carry. A composed row is a row the
+    -- degraded load does not have, so a schema-only BuildDefaults would hand AceDB a profile with
+    -- no `enabled` key at all — which reads as false and turns the addon off for exactly the
+    -- install that is already missing a library. settings/Schema.lua seeds from defaults/Profile.lua
+    -- first for this reason, and this is the assertion that says so.
+    --
+    -- red under: BuildDefaults dropping the NS.C seed and walking the schema alone.
+    local full    = T.newAddon()
+    local without = T.newAddon{ skip = NO_LIBKA0S }
+    local a = full.addon.Settings.BuildDefaults().profile
+    local b = without.addon.Settings.BuildDefaults().profile
+
+    local function sameShape(x, y, where)
+        for k, v in pairs(x) do
+            if type(v) == "table" then
+                assertEqual(type(y[k]), "table", where .. k .. " is a table on both paths")
+                sameShape(v, y[k], where .. k .. ".")
+            else
+                assertEqual(y[k], v, where .. k)
+            end
+        end
+    end
+    sameShape(a, b, "")
+    sameShape(b, a, "")
 end)
 
 test("degraded: the settings stub carries no widget maker and no layout constant", function()
@@ -700,6 +747,14 @@ test("parity: the Options helpers stub carries the whole live surface", function
         -- instance is the library's per-page verb, a different one from the host's bulk
         -- `RestoreAllDefaults` (settings/OptionsSetup.lua:201).
         "BuildLandingPage", "TextRow", "RestoreDefaults",
+        -- The composers' published DATA (OptionsCompose). They are value sets and one sentence of
+        -- wording, and copying them into the stub is the same mistake copying a layout scalar is:
+        -- the composer exists precisely so nine addons cannot each hold their own spelling of the
+        -- visibility enum or the class-colour note. No host reads one -- O.MasterControls stamps
+        -- them onto the rows it emits -- so the stub answers the five composer FUNCTIONS and
+        -- carries none of their data.
+        "FONT_FLAGS", "FONT_FLAGS_SORT", "VISIBILITY_VALUES", "VISIBILITY_SORT",
+        "MASTER_GROUP", "CLASS_COLOR_NOTE",
     })
 end)
 

@@ -78,7 +78,8 @@ local notifiedFor         = nil  -- pendingInfo identity that already fired noti
 -- and stringifies each arg via NS.SafeToString — so a combat-protected value
 -- can never raise in the chat path. `p` is the file-local alias for the many
 -- call sites; NS.Print / _print expose the same one seam to other files
--- (DebugLog.lua, loaded earlier, uses NS.Print for its enable/disable acks).
+-- (core/DebugLogSetup.lua, loaded later, uses NS.Print for its
+-- enable/disable acks).
 local p = NS.Util.print
 WhatGroup._print = p
 NS.Print = p
@@ -395,8 +396,8 @@ function WhatGroup:GetTeleportSpell(activityID, mapID)
 end
 
 -- Shared label namespace consumed by both ShowNotification (chat) and
--- WhatGroup_Frame.PopulateFields (popup). Single source of truth so a
--- new playstyle enum or group-type rule lands in one place.
+-- modules/Frame.lua's PopulateFields (popup). Single source of truth
+-- so a new playstyle enum or group-type rule lands in one place.
 WhatGroup.Labels = WhatGroup.Labels or {}
 
 -- Keyed by Enum.LFGEntryGeneralPlaystyle so the labels match the LFG UI's

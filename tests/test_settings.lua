@@ -119,6 +119,17 @@ end)
 
 local assertTrue, assertFalse = T.assertTrue, T.assertFalse
 
+-- Source-text cases below read the seam files themselves: a declaration that must NOT be present
+-- is invisible in the loaded schema, because a hand-written copy of a composed row looks exactly
+-- like the composed one once it is in the array.
+local function readFile(path)
+    local f = io.open(path, "rb")
+    if not f then return nil end
+    local body = f:read("*a")
+    f:close()
+    return body
+end
+
 test("settings: every schema row declares the fields the panel and CLI need", function()
     local NS = T.newAddon()
     for i, def in ipairs(NS.addon.Settings.Schema) do
@@ -127,8 +138,14 @@ test("settings: every schema row declares the fields the panel and CLI need", fu
         assertEqual(type(def.section), "string", where .. " section")
         assertEqual(type(def.group), "string", where .. " group")
         assertEqual(type(def.label), "string", where .. " label")
-        assertTrue(def.type == "bool" or def.type == "number", where .. " type")
+        assertTrue(def.type == "bool" or def.type == "number" or def.type == "string",
+            where .. " type")
         assertTrue(def.default ~= nil, where .. " default")
+        -- An enum row is only usable if the panel and the CLI can both enumerate it.
+        if def.type == "string" then
+            assertEqual(type(def.values), "table", where .. " values")
+            assertEqual(type(def.sorting), "table", where .. " sorting")
+        end
     end
 end)
 
@@ -212,7 +229,13 @@ test("settings: BuildDefaults covers every schema row", function()
         return node
     end
     for _, def in ipairs(NS.addon.Settings.Schema) do
-        assertTrue(dig(def.path) ~= nil, "BuildDefaults skipped " .. def.path)
+        if def.sessionOnly then
+            -- A session-only row's storage is its own set(), not the db. Threading a default for
+            -- it would materialize the very db.profile branch WG-12 exists to keep empty.
+            assertNil(dig(def.path), "BuildDefaults must not persist " .. def.path)
+        else
+            assertTrue(dig(def.path) ~= nil, "BuildDefaults skipped " .. def.path)
+        end
     end
 end)
 
@@ -450,7 +473,7 @@ end)
 --- One page, so one entry. WhatGroup registers a single settings sub-page ("general"); every row
 --- carries `section` for `/wg list` and `group` for the tab, and no row is hidden.
 local PARTITION = {
-    general = { { "General", 2 }, { "Chat", 7 }, { "Popup", 3 } },
+    general = { { "Master controls", 6 }, { "Chat", 8 }, { "Popup", 3 } },
 }
 
 test("settings: the page's tabs are the designed ones, in order, at the designed size",
@@ -481,9 +504,8 @@ end)
 
 test("settings: no tab holds fewer than two controls", function()
     -- A tab over one control is a click that reveals a single checkbox. Nothing is exempt here:
-    -- every tab on this page is schema rows all the way down, and the two bespoke controls the
-    -- page draws (the Test button and the session-only Debug console checkbox) both sit on
-    -- General, which already carries two stored rows of its own.
+    -- every tab on this page is schema rows all the way down, and the one bespoke control the page
+    -- still draws (the Test button) sits on Chat, which carries eight rows of its own.
     -- red under: a tab losing rows until one is left, or a new one-row group.
     local NS = T.newAddon()
     local counts = {}
@@ -499,7 +521,7 @@ test("settings: every row's group is one of the designed tabs", function()
     -- The partition case above pins the counts; this one pins the NAMES, so a typo'd group on a
     -- new row reads as "Popupp is not a tab" rather than as a count that happens to still add up.
     local NS = T.newAddon()
-    local known = { General = true, Chat = true, Popup = true }
+    local known = { ["Master controls"] = true, Chat = true, Popup = true }
     for _, row in ipairs(NS.addon.Settings.Schema) do
         assertTrue(known[row.group] == true, row.path .. " is filed under " .. tostring(row.group))
     end
@@ -529,4 +551,150 @@ test("settings: the size sliders cannot travel outside the frame's own clamp", f
     local w, h = H.FindSchema("frame.width"), H.FindSchema("frame.height")
     assertEqual(w.min, 320); assertEqual(w.max, 700); assertEqual(w.step, 10)
     assertEqual(h.min, 200); assertEqual(h.max, 520); assertEqual(h.step, 10)
+end)
+
+-- ---------------------------------------------------------------------------
+-- The Master controls tab (options-ui-§15)
+-- ---------------------------------------------------------------------------
+
+--- The canonical block, in canonical order, as it applies to THIS addon. WhatGroup is not
+--- frameless — modules/Frame.lua's popup is SetMovable(true) — so it is entitled to every row,
+--- and the two resets are the closing button pair rather than schema rows.
+local MASTER = { "enabled", "visibility", "scale", "alpha", "locked", "state.debugConsole" }
+
+test("settings: the Master controls block is the FIRST group, in canonical order", function()
+    -- The whole point of the composer is that nine addons cannot drift into nine orders, so the
+    -- assertion is the LIST, not a count.
+    -- red under: splicing the block anywhere but the head, reordering a row, adding a row the
+    -- addon is not entitled to, or renaming the group (which also detaches the afterGroup hook).
+    local NS = T.newAddon()
+    local S = NS.addon.Settings.Schema
+    for i, path in ipairs(MASTER) do
+        assertEqual(S[i].path, path, "row #" .. i)
+        assertEqual(S[i].group, "Master controls", path .. " group")
+    end
+    assertTrue(S[#MASTER + 1].group ~= "Master controls",
+        "and the block ends there — nothing else is filed under it")
+end)
+
+test("settings: the Master controls rows are the COMPOSER's, not hand-written", function()
+    -- options-ui-§15 makes this the library's row set. A hand-written copy would pass the order
+    -- case above and still drift the moment the canonical set changes, so the source file is what
+    -- is asserted: settings/Schema.lua must not declare one of these paths itself.
+    -- red under: pasting the block back into settings/Schema.lua as `add{}` calls.
+    local src = readFile("settings/Schema.lua")
+    for _, path in ipairs(MASTER) do
+        assertNil(src:match('path%s*=%s*"' .. path:gsub("%.", "%%.") .. '"'),
+            path .. " is declared by hand in settings/Schema.lua")
+    end
+    assertTrue(readFile("settings/Panel.lua"):find("MasterControls", 1, true) ~= nil,
+        "the composer is what emits them")
+end)
+
+test("settings: Enable names the addon, and visibility is a four-value dropdown", function()
+    -- The two rows options-ui-§15 is most specific about: the label carries the addon's name, and
+    -- visibility is an enum because a boolean can only ever answer two of the four.
+    local NS = T.newAddon()
+    local H = NS.addon.Settings.Helpers
+    assertEqual(H.FindSchema("enabled").label, "Enable WhatGroup")
+    local v = H.FindSchema("visibility")
+    assertEqual(v.type, "string")
+    assertEqual(v.default, "always")
+    local n = 0
+    for _ in pairs(v.values) do n = n + 1 end
+    assertEqual(n, 4, "always / inCombat / outOfCombat / never")
+    assertEqual(table.concat(v.sorting, ","), "always,inCombat,outOfCombat,never")
+end)
+
+test("settings: the master rows keep this addon's own shipped defaults", function()
+    -- `defaults` is passed to the composer precisely so the composer does not decide what is
+    -- stored. defaults/Profile.lua is still the one place any of them is written down.
+    -- red under: dropping the `defaults` table from the MasterControls call.
+    local NS = T.newAddon()
+    local d = NS.addon.Settings.BuildDefaults()
+    assertEqual(d.profile.enabled,    NS.C.enabled)
+    assertEqual(d.profile.visibility, NS.C.visibility)
+    assertEqual(d.profile.scale,      NS.C.scale)
+    assertEqual(d.profile.alpha,      NS.C.alpha)
+    assertEqual(d.profile.locked,     NS.C.locked)
+end)
+
+test("settings: the debug console is a SESSION-ONLY row that never reaches db.profile (WG-12)",
+function()
+    -- It is a schema row now (options-ui-§15) instead of a bespoke SessionCheckbox, and the
+    -- invariant it had as a hand-drawn control is unchanged: writing it moves a WINDOW, not a
+    -- saved setting.
+    -- red under: dropping `sessionOnly` from the row, or the SESSION intercept in
+    -- settings/Schema.lua falling through to Resolve.
+    local NS = T.bootAddon()
+    local H = NS.addon.Settings.Helpers
+    local row = H.FindSchema("state.debugConsole")
+    assertTrue(row ~= nil, "the console is declared")
+    assertTrue(row.sessionOnly, "and declared session-only")
+
+    H.Set("state.debugConsole", true)
+    assertTrue(NS.DebugLog:IsShown(), "the window opened")
+    assertEqual(H.Get("state.debugConsole"), true, "and reads back through the window")
+    assertNil(NS.addon.db.profile.state, "nothing was written to the profile")
+    assertFalse(NS.State.debug, "and logging itself is untouched")
+
+    H.Set("state.debugConsole", false)
+    assertFalse(NS.DebugLog:IsShown())
+end)
+
+test("settings: a global reset closes the console a profile reset cannot reach (options-ui-§12)",
+function()
+    -- A session-only row's storage is its own set(), so db:ResetProfile() cannot touch it and it
+    -- would otherwise outlive a reset that took everything around it.
+    -- red under: dropping the sessionOnly sweep from RestoreAllDefaults.
+    local NS = T.bootAddon()
+    local H = NS.addon.Settings.Helpers
+    H.Set("state.debugConsole", true)
+    H.RestoreAllDefaults()
+    assertFalse(NS.DebugLog:IsShown(), "the console was swept back to its default")
+end)
+
+-- ---------------------------------------------------------------------------
+-- The rules that hold for every row on every page (options-ui-§13 / §17)
+-- ---------------------------------------------------------------------------
+
+test("settings: every row on every page carries a `group`", function()
+    -- A page whose rows declare none cannot draw a strip: the library reports it and renders the
+    -- page untabbed (anti-pattern #69). Walked through the descriptor's own `allRows`, which is
+    -- what the library reads, rather than through Settings.Schema directly.
+    -- red under: adding a row without deciding which tab it belongs on.
+    local NS = T.newAddon()
+    local rows = NS.addon.Settings.Helpers.allRows and NS.addon.Settings.Helpers.allRows()
+        or NS.addon.Settings.Schema
+    assertTrue(#rows > 0, "there are rows to check")
+    for _, row in ipairs(rows) do
+        assertEqual(type(row.group), "string", tostring(row.path) .. " carries no group")
+        assertTrue(#row.group > 0, tostring(row.path) .. " carries an empty group")
+    end
+end)
+
+test("settings: every colour row is followed by its class-colour companion, and none is disabled",
+function()
+    -- WhatGroup declares no colour row today — the schema is bool, number and one enum — so this
+    -- is a GUARD rather than a measurement, and it is the loop that will catch the first one added
+    -- without its companion (options-ui-§17). `disabledIf` on a swatch is forbidden outright: the
+    -- swatch is still read for its ALPHA under class colour, so graying it would say something
+    -- untrue.
+    -- red under: adding a `type = "color"` row with no `useClassColor*` bool after it, or putting
+    -- `disabledIf` on one.
+    local NS = T.newAddon()
+    local S = NS.addon.Settings.Schema
+    for i, row in ipairs(S) do
+        if row.type == "color" then
+            assertNil(row.disabledIf, row.path .. " must never carry disabledIf")
+            assertTrue(row.startsLine == true,
+                row.path .. " must start its line so the pair cannot be split")
+            local next_ = S[i + 1]
+            assertTrue(next_ ~= nil and next_.type == "bool"
+                and next_.path:find("useClassColor") ~= nil,
+                row.path .. " has no class-colour companion beside it")
+            assertTrue(next_.classColorSource == "player" or next_.classColorSource == "unit",
+                row.path .. "'s companion does not declare whose class it means")
+        end
+    end
 end)

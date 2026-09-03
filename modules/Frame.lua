@@ -76,6 +76,92 @@ function WhatGroup:ApplyFrameSize()
     f:SetSize(popupSize())
 end
 
+-- ---------------------------------------------------------------------------
+-- The master controls (options-ui-§15)
+-- ---------------------------------------------------------------------------
+--
+-- Master scale, master alpha, lock frame and reset position are the four rows options-ui-§15 gives
+-- every addon that draws a positionable frame, and this one does: the popup is SetMovable(true)
+-- with a drag handle and persisted geometry (WG-26). They are declared by the composer in
+-- settings/Panel.lua and stored at the profile ROOT — `scale`, `alpha`, `locked` — because they
+-- govern the addon's display as a whole rather than this one window's shape; `frame.width` /
+-- `frame.height` are the window's own and stay where they are.
+--
+-- Read and CLAMPED here for the reason popupSize gives: the sliders cannot produce an illegal
+-- value but SavedVariables and `/wg set scale 40` both can, and a popup drawn at forty times size
+-- reads as the addon being broken rather than as the value being refused. The bounds mirror the
+-- composer's own slider bounds, which is what keeps a drag to either end from being silently
+-- corrected.
+local SCALE_MIN, SCALE_MAX = 0.5, 2
+local ALPHA_MIN, ALPHA_MAX = 0, 1
+
+local function masterScale()
+    local pr = WhatGroup.db and WhatGroup.db.profile
+    return clamp(pr and pr.scale, SCALE_MIN, SCALE_MAX, NS.C and NS.C.scale or 1)
+end
+
+local function masterAlpha()
+    local pr = WhatGroup.db and WhatGroup.db.profile
+    return clamp(pr and pr.alpha, ALPHA_MIN, ALPHA_MAX, NS.C and NS.C.alpha or 1)
+end
+
+-- The shipped anchor, in one place: buildFrame's first point and the Reset position button's
+-- destination are the same two lines, and a second copy of them is a second answer to "where did
+-- it start".
+local function anchorDefault(frame)
+    frame:ClearAllPoints()
+    frame:SetPoint("CENTER", UIParent, "CENTER", 0, math.floor(UIParent:GetHeight() * 0.25))
+end
+
+-- REFUSED IN COMBAT, exactly as ApplyFrameSize is and for the same reason: the popup parents a
+-- SecureActionButtonTemplate button, and scaling the parent moves the child. There is nothing to
+-- queue — the next ShowFrame out of combat applies the current value, which is the value the
+-- player set.
+function WhatGroup:ApplyFrameScale()
+    if not f then return end
+    if InCombatLockdown() then return end
+    f:SetScale(masterScale())
+end
+
+-- NOT refused in combat: opacity moves nothing, so the secure child's position is untouched and
+-- the change can land while the player is fighting — which is the one time an alpha setting is
+-- actually being judged.
+function WhatGroup:ApplyFrameAlpha()
+    if not f then return end
+    f:SetAlpha(masterAlpha())
+end
+
+-- Is the popup allowed on screen right now? `always` and anything unrecognized (a hand-edited
+-- SavedVariable, a profile from a future version) answer yes: a display setting that fails closed
+-- would make the addon look broken rather than configured.
+local function visibilityAllows()
+    local v = WhatGroup.db and WhatGroup.db.profile and WhatGroup.db.profile.visibility
+    if v == "never"       then return false end
+    if v == "inCombat"    then return InCombatLockdown() and true or false end
+    if v == "outOfCombat" then return not InCombatLockdown() end
+    return true
+end
+
+-- A popup already on screen when the gate closes has to go, or the dropdown reads as ignored until
+-- the next open. Hidden without a combat guard, matching the Close button: this addon has always
+-- taken f:Hide() as unprotected, and the alternative is a window the player cannot dismiss.
+function WhatGroup:ApplyFrameVisibility()
+    if not f then return end
+    if not visibilityAllows() then f:Hide() end
+end
+
+-- The Reset position button (options-ui-§15). Drops the persisted point (WG-26) as well as
+-- re-anchoring, or the next login would restore the position the player just asked to forget.
+-- Combat-guarded because re-anchoring moves the secure child.
+function WhatGroup:ResetFramePosition()
+    local db = self.db
+    if db and db.global and db.global.windows then db.global.windows.popup = nil end
+    if not f then return end
+    if InCombatLockdown() then return end
+    anchorDefault(f)
+    NS.Debug("Frame", "popup position reset to the shipped anchor")
+end
+
 -- The cooldown countdown's repeating timer, and the ONLY repeating anything in this addon. It is a
 -- ratified deviation, not an oversight: it ends `performance-§12`'s no-combat-path exemption, and
 -- the row that records that — with the reasoning and the re-check trigger — is in
@@ -248,7 +334,7 @@ local function buildFrame()
 
     f = CreateFrame("Frame", "WhatGroupFrame", UIParent, "BackdropTemplate")
     f:SetSize(popupSize())
-    f:SetPoint("CENTER", UIParent, "CENTER", 0, math.floor(UIParent:GetHeight() * 0.25))
+    anchorDefault(f)
     f:SetFrameStrata("DIALOG")
     f:SetMovable(true)
     f:EnableMouse(true)
@@ -282,7 +368,16 @@ local function buildFrame()
     titleBar:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
     titleBar:SetHeight(30)
     titleBar:EnableMouse(true)
-    titleBar:SetScript("OnMouseDown", function() f:StartMoving() end)
+    -- LOCKED IS READ AT DRAG TIME, not wired once: the checkbox is a plain profile value with no
+    -- onChange, because there is nothing to apply -- the next mouse-down is where it takes effect.
+    -- StopMovingOrSizing and the save still run unconditionally; both are harmless on a frame that
+    -- never started moving, and guarding them would leave a drag that began before the lock was
+    -- ticked stuck to the cursor.
+    titleBar:SetScript("OnMouseDown", function()
+        local pr = WhatGroup.db and WhatGroup.db.profile
+        if pr and pr.locked then return end
+        f:StartMoving()
+    end)
     titleBar:SetScript("OnMouseUp",   function()
         f:StopMovingOrSizing()
         NS.Windows.Save("popup", f)   -- persist geometry (WG-26)
@@ -507,6 +602,21 @@ end
 
 -- Public API
 function WhatGroup:ShowFrame()
+    -- THE VISIBILITY GATE (options-ui-§15), and it is TWO checks rather than one because the
+    -- question is time-varying. Every way the popup reaches the screen -- the join notify,
+    -- `/wg show`, the chat link, `/wg test` -- comes through here, so gating here covers them all.
+    --
+    -- `never` is a standing no, so it refuses before anything is built: adding the secure button
+    -- and the UISpecialFrames entry to a session for a window the player has said they never want
+    -- is exactly the taint surface this file defers to avoid. The combat-dependent answers cannot
+    -- refuse the BUILD, though, or `Only in combat` would deadlock -- the first show would be
+    -- refused out of combat, the build would never happen, and the in-combat show would then hit
+    -- the never-built defer instead of the popup. So those two are gated at the Show below: the
+    -- frame is built and populated on the safe side, and simply not put on screen.
+    if (self.db and self.db.profile and self.db.profile.visibility) == "never" then
+        NS.Debug("Frame", "popup suppressed: visibility = never")
+        return
+    end
     -- First-show-in-combat defer: buildFrame creates a
     -- SecureActionButtonTemplate button and inserts into UISpecialFrames;
     -- both operations are protected. If we're in combat AND the popup
@@ -539,9 +649,11 @@ function WhatGroup:ShowFrame()
 
     buildFrame()    -- lazy: creates the popup + secure button +
                     -- UISpecialFrames entry on first call only.
-    -- Every open re-applies the size, so a `frame.width` / `frame.height` change taken while the
-    -- popup was closed -- or refused because it was taken in combat -- lands here.
+    -- Every open re-applies the size, the scale and the opacity, so a change taken while the popup
+    -- was closed -- or refused because it was taken in combat -- lands here.
     WhatGroup:ApplyFrameSize()
+    WhatGroup:ApplyFrameScale()
+    WhatGroup:ApplyFrameAlpha()
     do
         local info = WhatGroup.pendingInfo
         NS.Debug("Frame", info
@@ -550,6 +662,11 @@ function WhatGroup:ShowFrame()
             or "popup shown (no pendingInfo → 'No data' fallbacks)")
     end
     PopulateFields()
+    if not visibilityAllows() then
+        NS.Debug("Frame", "popup built but not shown: visibility = "
+            .. tostring(self.db and self.db.profile and self.db.profile.visibility))
+        return
+    end
     f:Show()
     f:Raise()
 end

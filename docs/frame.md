@@ -17,9 +17,12 @@ The pattern is borrowed from a similar reference addon that demonstrates the sam
 | Anchor | `CENTER` of UIParent, offset up by 25% of UIParent's height — the default; a position saved from a previous drag is restored over it on build (`NS.Windows.Restore("popup", …)`, WG-26) |
 | Strata | `DIALOG` |
 | Template | `BackdropTemplate` |
-| Background | dark gray `0.08, 0.08, 0.08, 0.95` — from the shared `NS.SKIN`, applied by `NS.ApplySkin` (WG-28) |
-| Border | 1px gray `0.3, 0.3, 0.3, 1.0`; the 1px `WHITE8X8` hairline geometry is the popup's own, deliberately unlike the debug console's 12px tooltip border |
-| Drag handle | top-30px title bar; `StartMoving` / `StopMovingOrSizing` (position persisted on drag-stop via `NS.Windows.Save("popup", …)`, WG-26) |
+| Background | near-black `0.06, 0.06, 0.08, 0.92` — the shared `NS.SKIN`'s own `bg`, applied by `NS.ApplySkin` (WG-28) |
+| Border | 1px `WHITE8X8` hairline tinted black (`0, 0, 0, 1`), plus the skin's 1px inner highlight (`0.24, 0.24, 0.27, 0.85`). Geometry and colors are both the shared table's now, so the debug console wears the same edge — the Ka0s window edge is normative (standalone-windows) |
+| Scale | `scale` — **1** by default, clamped on read to 0.5..2. `WhatGroup:ApplyFrameScale()` applies it and **refuses in combat**, for the same reason `ApplyFrameSize` does: scaling the parent moves the secure teleport button. |
+| Opacity | `alpha` — **1** by default, clamped on read to 0..1. `WhatGroup:ApplyFrameAlpha()` applies it and is deliberately **not** combat-guarded: opacity moves nothing, and in combat is the one time an alpha setting is being judged. |
+| Drag handle | top-30px title bar; `StartMoving` / `StopMovingOrSizing` (position persisted on drag-stop via `NS.Windows.Save("popup", …)`, WG-26). Suppressed while `locked` is true — read at drag time in `OnMouseDown`, so the setting needs no `onChange`. |
+| Shown at all | `visibility` — `always` / `inCombat` / `outOfCombat` / `never` (`options-ui-§15`). See § Visibility below. |
 | Clamping | `SetClampedToScreen(true)` |
 | ESC-to-close | `tinsert(UISpecialFrames, "WhatGroupFrame")` |
 
@@ -91,7 +94,7 @@ Retail's secure-frame system rejects any `SetPoint` call on a protected frame th
 
 **One note, three states, and the order is the point.** An unlearned spell can still report a cooldown, so `not known` is tested first: labelling it "on cooldown" would answer a question nobody asked while burying the one that explains the grey icon. A ready teleport needs no explanation and the note hides. The popup never greys a button out and says nothing.
 
-The countdown **ticks**, via a 1-second `ScheduleRepeatingTimer` (`modules/Frame.lua:189`). That timer is the only repeating anything in the addon and it ends `performance-§12`'s no-combat-path exemption — a **ratified deviation**, recorded with its reasoning and re-check trigger in [`ARCHITECTURE.md`](./ARCHITECTURE.md) `## Documented deviations`, with the regenerated sweep in [`performance.md`](./performance.md). What makes it defensible is that it cannot outlive the popup: **one** handle, replaced rather than stacked, cancelled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. That last tick re-runs `ConfigureTeleportButton` rather than hand-reversing the four things the cooldown branch changed, so the button becomes castable without the player closing and re-opening the popup. Five cases in `tests/test_frame.lua` pin all of it, including that three consecutive `ShowFrame()` calls leave exactly one timer and a `Hide()` leaves none.
+The countdown **ticks**, via a 1-second `ScheduleRepeatingTimer` (`modules/Frame.lua:275`). That timer is the only repeating anything in the addon and it ends `performance-§12`'s no-combat-path exemption — a **ratified deviation**, recorded with its reasoning and re-check trigger in [`ARCHITECTURE.md`](./ARCHITECTURE.md) `## Documented deviations`, with the regenerated sweep in [`performance.md`](./performance.md). What makes it defensible is that it cannot outlive the popup: **one** handle, replaced rather than stacked, cancelled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. That last tick re-runs `ConfigureTeleportButton` rather than hand-reversing the four things the cooldown branch changed, so the button becomes castable without the player closing and re-opening the popup. Five cases in `tests/test_frame.lua` pin all of it, including that three consecutive `ShowFrame()` calls leave exactly one timer and a `Hide()` leaves none.
 
 The swipe is the half that needs no timer at all — a `Cooldown` widget animates engine-side once armed. Both the note and the swipe are cleared (`SetCooldown(0, 0)`, `Hide()`) on every ready path, so neither can outlive the cooldown that armed it.
 
@@ -103,15 +106,31 @@ The label `Teleport:` is built directly inline (not via `MakeLabel`) because its
 
 ```lua
 function WhatGroup:ShowFrame()
+    if visibility == "never" then return end        -- see § Visibility below
     -- First-show-in-combat defer: see § Combat-defer below.
     if not f and InCombatLockdown() then …queue on PLAYER_REGEN_ENABLED… ; return end
 
     buildFrame()    -- lazy: first call only
+    WhatGroup:ApplyFrameSize()
+    WhatGroup:ApplyFrameScale()
+    WhatGroup:ApplyFrameAlpha()
     PopulateFields()
+    if not visibilityAllows() then return end       -- built, populated, not shown
     f:Show()
     f:Raise()
 end
 ```
+
+The other master-control seams are one function each: `WhatGroup:ApplyFrameVisibility()` (hides a popup that is already open when the gate closes — the `visibility` row's `onChange`) and `WhatGroup:ResetFramePosition()` (the Master controls tab's *Reset position* button: drops `db.global.windows.popup` **and** re-anchors the live frame to the shipped `CENTER` point; the re-anchor is combat-guarded, dropping the stored point is not, because either half alone is a reset the next login undoes).
+
+## Visibility
+
+`visibility` gates every path the popup takes to the screen — the join notify, `/wg show`, the chat link, `/wg test` — because every one of them comes through `ShowFrame`. It is **two** checks rather than one, and the split is deliberate:
+
+- **`never` refuses before anything is built.** Adding the secure button and the `UISpecialFrames` entry to a session for a window the player has said they never want is exactly the taint surface this file defers to avoid.
+- **`inCombat` / `outOfCombat` gate the `Show`, not the build.** Refusing the build would deadlock `Only in combat`: the first show is always out of combat, so the frame would never be built, and the in-combat show would then meet the never-built defer instead of a popup. Under `inCombat` the frame is therefore built and populated out of combat and simply left off screen.
+
+Anything the addon does not recognize — a hand-edited SavedVariable, a profile written by a future version — answers **yes**, along with `always`. A display setting that failed closed would make the addon look broken rather than configured.
 
 `ShowFrame` re-populates from the current `pendingInfo` every call — so toggling `pendingInfo` and re-calling `ShowFrame` updates the visible rows without recreating widgets. The `Raise()` call ensures the dialog comes to the front of its strata when re-opened over another popup.
 
