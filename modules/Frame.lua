@@ -158,19 +158,58 @@ end
 -- a popup the gate hid has to come back when it opens again, or "hide in combat" quietly means
 -- "close for the rest of the session".
 --
--- Neither direction is combat-guarded, matching the Close button: this addon has always taken
--- f:Hide() as unprotected, and the alternative is a window the player cannot dismiss. f:Show() on
--- an already-built frame is not a secure write either — the secure work is buildFrame's, and it has
--- already happened by the time f exists.
+-- ASYMMETRIC IN COMBAT, AND THAT IS THE CLIENT'S RULE RATHER THAN A CHOICE. This comment used to
+-- read "neither direction is combat-guarded ... this addon has always taken f:Hide() as
+-- unprotected". That was false, and it is what shipped WG's ADDON_ACTION_BLOCKED: buildFrame parents
+-- a SecureActionButtonTemplate button to f (see the teleport button), and the client refuses Hide on
+-- a protected frame AND on every ancestor of one while in combat. So f:Hide() is protected, from
+-- every call site — the Close button, ESC, this gate.
+--
+-- What that costs, per value, because it is not uniform:
+--   * `inCombat`   — hides when combat ENDS. InCombatLockdown() is already false on that edge, so
+--                    the hide is legal and the gate is honoured exactly.
+--   * `outOfCombat` — would hide when combat STARTS, which is inside the lockdown and refused. The
+--                    popup therefore STAYS UP for the fight and the gate is honoured late, at
+--                    PLAYER_REGEN_ENABLED. There is no way to do better while the secure child
+--                    exists; the only real alternative is to stop parenting it to f, which costs a
+--                    floating orphan button the client will equally refuse to hide.
+-- Attempting it anyway is strictly worse than deferring: the frame does not hide either way, and the
+-- player additionally gets a red error naming this addon.
+--
+-- f:Show() on an already-built frame is not a secure write — the secure work is buildFrame's, and it
+-- has already happened by the time f exists. Only the hide direction is constrained.
 --
 -- The re-show is gated on there being a capture to render: a "No data" popup appearing the moment
 -- the player pulls is worse than no popup at all. It is deliberately NOT gated on the caller, so
 -- the dropdown's own onChange re-shows too — moving `General visibility` back to a value that
 -- permits the popup applies that answer on the spot, exactly as moving it to `never` closes an open
 -- one. One seam, both directions, every caller.
+-- The ONE seam allowed to hide the popup. Returns true when the popup is down, false when the
+-- client would have refused — never calls Hide in combat, so the addon cannot raise
+-- ADDON_ACTION_BLOCKED through this path. Every caller must go through it.
+local function hidePopup()
+    if not f then return true end
+    if InCombatLockdown() then return false end
+    f:Hide()
+    return true
+end
+
+-- Set when the player asked to dismiss during combat and the client refused. Distinct from the
+-- visibility gate on purpose: the gate re-asks itself on the next edge and needs no memory, but
+-- "the player pressed Close" is an instruction that must survive the fight, or Close in combat
+-- silently does nothing and the popup returns as if the press never happened.
+local dismissPending = false
+
 function WhatGroup:ApplyFrameVisibility(inCombat)
     if not f then return end
-    if not visibilityAllows(inCombat) then return f:Hide() end
+    -- The deferred Close lands first and wins over the gate: the player's explicit dismissal
+    -- outranks a value that would merely permit the popup to be up.
+    if dismissPending and not InCombatLockdown() then
+        dismissPending = false
+        f:Hide()
+        return
+    end
+    if not visibilityAllows(inCombat) then return hidePopup() end
     if WhatGroup.pendingInfo and not f:IsShown() then
         f:Show()
         f:Raise()
@@ -548,7 +587,15 @@ local function buildFrame()
     closeBtn:SetSize(90, 24)
     closeBtn:SetPoint("BOTTOM", f, "BOTTOM", 0, 12)
     closeBtn:SetText(L["Close"])
-    closeBtn:SetScript("OnClick", function() f:Hide() end)
+    -- Goes through hidePopup for the reason spelled out at ApplyFrameVisibility: f parents a
+    -- SecureActionButtonTemplate button, so f:Hide() is refused in combat and calling it anyway
+    -- raised ADDON_ACTION_BLOCKED naming this addon. The press is remembered instead and honoured
+    -- the moment the lockdown lifts, which is the closest thing to "close" the client permits.
+    closeBtn:SetScript("OnClick", function()
+        if hidePopup() then return end
+        dismissPending = true
+        if NS.Print then NS.Print(L["Popup deferred until combat ends."]) end
+    end)
 
     -- ESC to close — register with UISpecialFrames *now*, lazily.
     -- Earlier versions did this at file-load and that addition was

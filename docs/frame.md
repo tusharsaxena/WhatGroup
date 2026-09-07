@@ -138,7 +138,18 @@ Anything the addon does not recognize — a hand-edited SavedVariable, a profile
 
 `inCombat` and `outOfCombat` are the only two settings in the addon whose answer changes without the player touching the panel, so they are the only two that need an **event** rather than an `onChange`. `core/WhatGroup.lua`'s `OnEnable` registers `PLAYER_REGEN_DISABLED` and `PLAYER_REGEN_ENABLED`, both to one `OnCombatStateChanged` handler, which calls `WhatGroup:ApplyFrameVisibility(event == "PLAYER_REGEN_DISABLED")`.
 
-`ApplyFrameVisibility` is **symmetric**: it hides a popup the gate has just closed on, and shows one the gate has just opened for. Three conditions bound the show half:
+`ApplyFrameVisibility` is symmetric in intent and **asymmetric in combat**, because the client makes it so. `buildFrame` parents a `SecureActionButtonTemplate` button — the teleport button — to `f`, and the client refuses `Hide` on a protected frame *and on every ancestor of one* during a lockdown. So the two combat-driven values are not equally serviceable:
+
+| Value | Wants to hide on | Legal? |
+|---|---|---|
+| `inCombat` | combat **ending** | Yes — `InCombatLockdown()` is already false on that edge |
+| `outOfCombat` | combat **starting** | **No** — inside the lockdown, refused |
+
+For `outOfCombat` the popup stays up for the fight and the gate is honoured late, at `PLAYER_REGEN_ENABLED`. Attempting it anyway is strictly worse than deferring: the frame does not go down either way, and the player additionally gets `ADDON_ACTION_BLOCKED` naming this addon. **Every hide goes through one `hidePopup()` seam** that returns `false` rather than calling into a refusal, and the Close button remembers a press it could not honour so the dismissal survives the fight rather than evaporating.
+
+This corrects a claim `modules/Frame.lua` and this document both carried until 2026-09-08 — that `f:Hide()` was unprotected. It never was. `ApplyFrameSize` and `ResetFramePosition` sit two functions away and were already combat-guarded for exactly this reason; the visibility seam was the one place that reasoned the other way, and a player found it.
+
+Three conditions bound the show half:
 
 - **`f` must already exist.** A transition never builds the popup — the lazy build is the taint contract, and tripping it from a combat edge would be the worst possible moment.
 - **`pendingInfo` must be set.** A "No data" popup appearing the moment the player pulls is worse than no popup at all.

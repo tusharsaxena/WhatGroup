@@ -398,7 +398,7 @@ badge and any count quoted in the docs must agree with it.
 - notify: the Leader row still prints when leaderName is nil
 - notify: Playstyle and Teleport drop their rows while Leader keeps its own
 
-### test_frame.lua (72)
+### test_frame.lua (75)
 
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
@@ -467,8 +467,11 @@ badge and any count quoted in the docs must agree with it.
 - frame: an unrecognized visibility value fails OPEN, not closed
 - frame: switching visibility to 'never' hides a popup that is already open
 - frame: both combat-transition events are registered, and to one handler
-- frame: entering combat hides a popup the gate no longer allows
-- frame: leaving combat brings the popup back when there is still something to show
+- frame: entering combat does NOT attempt a hide the client would refuse
+- frame: 'never' set during combat is honoured the moment the lockdown lifts
+- frame: Close pressed in combat is remembered, not fired into a refusal
+- frame: a deferred Close outranks a gate that would still permit the popup
+- frame: a combat edge brings back a popup the gate had hidden
 - frame: a combat transition never opens a popup with nothing to show
 - frame: PLAYER_REGEN_DISABLED is answered from the event, not from a lockdown flag that has not flipped
 - frame: a combat transition with no popup built is a no-op, not an error
@@ -614,9 +617,9 @@ badge and any count quoted in the docs must agree with it.
 | test_labels.lua | 34 |
 | test_capture.lua | 32 |
 | test_notify.lua | 48 |
-| test_frame.lua | 72 |
+| test_frame.lua | 75 |
 | test_panel.lua | 53 |
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **541** |
+| **Total** | **544** |

@@ -346,6 +346,27 @@ Then, once the cooldown has expired, `/wg test` again: full alpha, no swipe, no 
 
 **Expected:** Whole popup including the teleport button moves. Dropping near a screen edge clamps without going off-screen.
 
+
+### 4.5 The popup in combat — no blocked action, and Close is not lost
+
+**This is the check a player found for us on 2026-09-07**, reported as `AddOn 'WhatGroup' tried to call the protected function 'WhatGroupFrame:Hide()'`. The popup parents a `SecureActionButtonTemplate` teleport button, so the client refuses `Hide` on it — and on any ancestor of it — during a lockdown. The addon's mock now models frame protection and four cases pin the behaviour, but only the client raises the real error.
+
+**Run with BugGrabber (or any error display) enabled, or this check cannot fail visibly.**
+
+1. `/wg test` to raise the popup, out of combat.
+2. Pull a training dummy, popup still on screen.
+   - **Expected:** No red error, nothing in BugGrabber naming WhatGroup. The popup **stays up** — correct, not a bug; the client will not take it down mid-fight.
+3. Press **Close** while still in combat.
+   - **Expected:** No error. Popup stays, and one chat line reads *"Popup deferred until combat ends."*
+4. Drop combat.
+   - **Expected:** Popup disappears, honouring the press from step 3.
+5. Repeat 1–2 with `General visibility` = **Out of combat**.
+   - **Expected:** Still no error. Popup stays for the fight, goes when combat drops.
+6. Set `General visibility` = **In combat**, out of combat, holding a capture.
+   - **Expected:** Popup hidden. Pull — popup appears. Drop combat — popup hides. **This direction is the legal one** and must work on the edge itself, not late.
+
+**Failure means:** any red error, or a Close press in combat silently forgotten once combat ends.
+
 ---
 
 ## 5. Real LFG flow smoke (~5–10 min)

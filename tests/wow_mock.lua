@@ -85,6 +85,8 @@ local function build()
     mock.prints        = {}   -- captured chat output lines
     mock.hooks         = {}   -- [name] -> { fn, ... } recorded by hooksecurefunc
     mock.frames        = {}   -- every CreateFrame'd stub, creation order (+ keyed by name)
+    mock.blocked       = {}   -- "<frame>:Hide()" per call the client would have refused in combat,
+                              -- i.e. every ADDON_ACTION_BLOCKED this addon would have raised
     mock.fontStrings   = {}   -- every CreateFontString'd stub, creation order
     mock.fontFetchFails = {}  -- [fontPath] = true -> SetFont answers false, as the client does
                               -- when it cannot load the file (debug-logging-§2's fetch failure)
@@ -129,11 +131,19 @@ local function build()
                  x = c or 0, y = d or 0 }
     end
 
-    function stubFrame(kind, name, template)
+    function stubFrame(kind, name, template, parent)
         local f = {
             __kind      = kind or "Frame",
             __name      = name,
             __template  = template,
+            __parent    = parent,
+            -- A frame built from a Secure* template is PROTECTED, and modelling that is not
+            -- decoration. The client refuses Hide on a protected frame in combat, and refuses it on
+            -- every ANCESTOR of one too, because hiding the parent would hide the protected child.
+            -- A mock that models combat but not protection answers "fine" to the one call the
+            -- client blocks -- which is how WhatGroup shipped a popup whose Close button raises
+            -- ADDON_ACTION_BLOCKED mid-fight with every case green.
+            __protected = (template and template:find("Secure", 1, true)) and true or false,
             __shown     = true,
             __points    = {},
             __w         = 100,
@@ -167,7 +177,25 @@ local function build()
             end
             return f
         end
+        -- True when this frame is protected or holds a protected descendant. The client's rule is
+        -- about the subtree, not the frame, so the check has to walk down.
+        local function holdsProtected(node)
+            if node.__protected then return true end
+            for _, kid in ipairs(node.__children) do
+                if holdsProtected(kid) then return true end
+            end
+            return false
+        end
+        f.__holdsProtected = function() return holdsProtected(f) end
+
         api.Hide      = function()
+            -- The client blocks this call rather than performing it, and fires ADDON_ACTION_BLOCKED
+            -- naming the frame. Record and refuse, so a case can assert the call was never made.
+            if mock.combat and holdsProtected(f) then
+                mock.blocked[#mock.blocked + 1] =
+                    (f.__name or "<anonymous>") .. ":Hide()"
+                return f
+            end
             local was = f.__shown
             f.__shown = false
             if was then
@@ -526,8 +554,13 @@ local function build()
         mock.hooks[key][#mock.hooks[key] + 1] = fn
     end
 
-    mock.CreateFrame = function(kind, name, _parent, template)
-        local f = stubFrame(kind, name, template)
+    mock.CreateFrame = function(kind, name, parent, template)
+        local f = stubFrame(kind, name, template, parent)
+        -- The parent link is what makes protection reachable: a popup is refused Hide because of
+        -- what hangs off it, so the subtree has to actually exist in the mock.
+        if parent and type(parent) == "table" and parent.__children then
+            parent.__children[#parent.__children + 1] = f
+        end
         mock.frames[#mock.frames + 1] = f
         if name then mock.frames[name] = f end
         return f
