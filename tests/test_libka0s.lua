@@ -750,12 +750,46 @@ test("parity: the Options helpers stub carries the whole live surface", function
         -- The composers' published DATA (OptionsCompose). They are value sets and one sentence of
         -- wording, and copying them into the stub is the same mistake copying a layout scalar is:
         -- the composer exists precisely so nine addons cannot each hold their own spelling of the
-        -- visibility enum or the class-colour note. No host reads one -- O.MasterControls stamps
-        -- them onto the rows it emits -- so the stub answers the five composer FUNCTIONS and
-        -- carries none of their data.
+        -- visibility enum or the class-colour note. So the stub answers the five composer
+        -- FUNCTIONS and carries none of their data.
+        --
+        -- MASTER_GROUP is the one with a host reader: settings/Panel.lua keys its afterGroup hook
+        -- off it instead of respelling the group name. It stays live-only anyway -- the degraded
+        -- path composes no master rows, so there is no group to key a hook to -- and Panel guards
+        -- the read for exactly that reason. The case above ("the Master controls hook is keyed off
+        -- the library's constant") is what stops the guard becoming an `or`-fallback copy.
         "FONT_FLAGS", "FONT_FLAGS_SORT", "VISIBILITY_VALUES", "VISIBILITY_SORT",
         "MASTER_GROUP", "CLASS_COLOR_NOTE",
     })
+end)
+
+test("libka0s: the Master controls hook is keyed off the library's constant, not a copy of it",
+function()
+    -- options-ui-§8. `["Master controls"]` in settings/Panel.lua was a hand-typed copy of
+    -- libs/LibKa0s/OptionsCompose.lua:50, which publishes the same string as O.MASTER_GROUP at
+    -- :189. That the two agree today is not the point — they do, and that is exactly why the copy
+    -- survived a review. The point is what a library-side rename does: it moves the `group` on
+    -- every composed row, and RenderTabbedSchema fires the afterGroup hook PER GROUP, so a host
+    -- keyed to the old spelling has its hook fire for a group that no longer exists. The reset
+    -- button pair stops being drawn. Nothing raises, no row goes missing, and the tab looks
+    -- ordinary — which is the failure this case exists to make impossible rather than unlikely.
+    --
+    -- red under: keying the hook off any literal spelling of the group name.
+    local src = readFile("settings/Panel.lua")
+    assertNil(src:find('"Master controls"', 1, true),
+        "the group name is the library's to spell — key off Helpers.MASTER_GROUP")
+
+    -- And the constant is genuinely the one the rows are filed under, which is what makes keying
+    -- off it equivalent to the literal today and correct after a rename.
+    local NS = T.newAddon()
+    local H  = NS.addon.Settings.Helpers
+    assertTrue(type(H.MASTER_GROUP) == "string" and H.MASTER_GROUP ~= "",
+        "the live surface publishes the group name")
+    local composed = 0
+    for _, row in ipairs(NS.addon.Settings.Schema) do
+        if row.group == H.MASTER_GROUP then composed = composed + 1 end
+    end
+    assertEqual(composed, 6, "the whole composed block answers to the published constant")
 end)
 
 -- ---------------------------------------------------------------------------

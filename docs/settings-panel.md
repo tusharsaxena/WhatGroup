@@ -49,7 +49,7 @@ Number rows render as a slider that **commits on release** — the library's mak
 Non-setting affordances live outside the schema. `Helpers.RenderTabbedSchema(ctx, pageKey, afterGroup, pairWith)` takes the same two hook tables `RenderSchema` does; this page passes only the first, `afterGroup`, with two entries:
 
 - **`afterGroup`** — `{ [groupName] = function(ctx) ... end }`. Fires once per render, after the named group's last schema row is flushed, so the widget starts on a fresh line *below* the grid. Two entries now:
-  - **`["Master controls"]`** — the composer's own tail, drawing options-ui-§15's closing **button pair**: *Reset position* (this addon is not frameless) and *Reset all settings*. The group name **is** the hook key, so renaming the group detaches the hook and nothing errors.
+  - **`[Helpers.MASTER_GROUP]`** — the composer's own tail, drawing options-ui-§15's closing **button pair**: *Reset position* (this addon is not frameless) and *Reset all settings*. The group name **is** the hook key, so a hand-typed copy of it detaches the hook the moment the library renames the group — silently, because `afterGroup` fires per group and a hook that matches nothing simply never runs. The key is therefore `Helpers.MASTER_GROUP`, the constant `OptionsCompose.lua` publishes and stamps onto the rows themselves. It is added after the constructor, under an `if`, because the library-less stub carries the composer functions and none of their published data (`options-ui-§1`) — and on that path there are no Master controls rows to hook, so no entry is the right answer rather than a fallback spelling.
   - **`["Chat"]`** — the **Test** button (`Helpers.InlineButton` → `WhatGroup:RunTest()`). It followed the tab its group ended up on: "General" is the Master controls tab now, and the button's own tooltip already said it previews the chat-output toggles. It is deliberately **not** folded into the reset pair — a 160-px left-aligned action is not one of §15's two resets.
 
 There is **no `pairWith` table any more.** It carried exactly one entry — a bespoke `SessionCheckbox` drawing the Debug console beside **Enable** — and options-ui-§15 makes that console a canonical row of the Master controls block instead. The console itself is untouched: same window, same `NS.DebugLog:ConsoleCheckbox()` `get`/`set`, reached now through `settings/Schema.lua`'s `SESSION` table rather than through a hook.
@@ -62,7 +62,6 @@ Re-sync is push, not poll: the console can be closed with its own × or ESC (or 
 local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{ ... }
 
 local AFTER_GROUP = {
-    ["Master controls"] = MASTER_TAIL,     -- Reset position | Reset all settings
     ["Chat"] = function(ctx)
         Helpers.InlineButton(ctx, {
             text    = "Test",
@@ -71,6 +70,11 @@ local AFTER_GROUP = {
         })
     end,
 }
+
+-- Reset position | Reset all settings. Library-owned name, and nil on a library-less load.
+if Helpers.MASTER_GROUP then
+    AFTER_GROUP[Helpers.MASTER_GROUP] = MASTER_TAIL
+end
 ```
 
 `Helpers.InlineButton` is host-owned and the only widget maker that is: the library's `InlineButtonPair` lays *two* buttons across one Flow row at `BUTTON_PAIR_REL` each, and passing it a single spec renders this button at half the panel width. A fixed 160-px left-aligned control is not expressible there, so declining was the smaller change ([`LIBKA0S-09`](https://github.com/tusharsaxena/WhatGroup/issues/9)). It still reads `Helpers.AceGUI`, `Helpers.EnsureScroll`, `Helpers.AttachTooltip`, `Helpers.AddSpacer` and `Helpers.ROW_VSPACER` off the instance rather than restating any of them — a host copy of a library constant is the copy that goes stale.

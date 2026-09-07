@@ -67,7 +67,9 @@ owns the STRUCTURE and `NS.C` owns the VALUES (savedvariables-§2 / WG-24).
 The one settings page is **tabbed** (`options-ui-§13`): each row's `group` is a tab, drawn by
 `RenderTabbedSchema` in declaration order — **Master controls** (6), **Chat** (8), **Popup** (3).
 The first tab's name is the literal `options-ui-§15` mandates, and it is also the `afterGroup` key
-the composer's closing button pair is hung from. Two tabs mix control kinds and carry `subgroup`
+the composer's closing button pair is hung from — read off `Helpers.MASTER_GROUP` rather than typed
+out here, because a host copy of that name detaches the hook silently the day the library renames
+the group. Two tabs mix control kinds and carry `subgroup`
 headings (`options-ui-§7`). No page banner (`options-ui-§14`): this addon has no per-window settings
 and no active window for a banner to name. `section` is a different field and is unchanged by the
 tabs — it is `/wg list`'s grouping key, which is why `notify.delay` is edited on Chat and lists

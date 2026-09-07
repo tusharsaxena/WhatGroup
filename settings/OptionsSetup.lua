@@ -104,9 +104,17 @@ if not lib then
     -- No FONT_FLAGS / FONT_FLAGS_SORT / VISIBILITY_VALUES / VISIBILITY_SORT / MASTER_GROUP /
     -- CLASS_COLOR_NOTE. They are the composers' published DATA, and hand-copying the value sets
     -- and the wording whose nine-way drift OptionsCompose exists to end is anti-patterns #47 in
-    -- the same spirit the layout scalars are: a host copy is the copy that goes stale. Nothing in
-    -- this addon reads one -- the composer stamps them onto the rows it emits -- so a nil reaches
-    -- nothing here, and tests/test_libka0s.lua's parity case lists them as live-only on purpose.
+    -- the same spirit the layout scalars are: a host copy is the copy that goes stale.
+    -- tests/test_libka0s.lua's parity case lists all six as live-only on purpose.
+    --
+    -- ONE of them now has a host reader: settings/Panel.lua keys its afterGroup hook off
+    -- MASTER_GROUP rather than respelling the group name, which is the whole point of publishing
+    -- the constant. That read is guarded there BECAUSE of this omission, and the guard is not
+    -- defensive padding -- it is the degraded shape stated honestly. On this path MasterControls
+    -- emits no rows and its tail draws nothing, so there is no Master controls group in the schema
+    -- for a hook to key to, and the correct number of hooks is zero. Carrying the string here to
+    -- spare the caller an `if` would trade a real omission for a host copy, which is the trade this
+    -- whole block exists to refuse.
     H.SetRenderer          = function() end
     H.RegisterOptionsPage  = function() end
     H.RefreshAllPanels     = function() end

@@ -59,7 +59,7 @@ Helpers.RenderTabbedSchema(generalCtx, "general", {
 })
 ```
 
-The callback fires once, immediately after the last schema row of the named group — so on a tabbed page it draws only while THAT tab is open, which is what keeps a Chat action off the Popup tab. `AFTER_GROUP["Master controls"]` is already taken by the composer's closing reset pair; a second hook for one group is not possible, so a new action goes on another tab. `Helpers.InlineButton` renders a 160-px button (override via `spec.width`) left-aligned in a full-width row.
+The callback fires once, immediately after the last schema row of the named group — so on a tabbed page it draws only while THAT tab is open, which is what keeps a Chat action off the Popup tab. `AFTER_GROUP[Helpers.MASTER_GROUP]` is already taken by the composer's closing reset pair (added after the table constructor, under a presence check, because the library-less stub publishes no `MASTER_GROUP` and that path has no Master controls rows to hook); a second hook for one group is not possible, so a new action goes on another tab. `Helpers.InlineButton` renders a 160-px button (override via `spec.width`) left-aligned in a full-width row.
 
 ### After adding a row
 

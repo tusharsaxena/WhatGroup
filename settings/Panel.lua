@@ -204,7 +204,13 @@ end
 local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{
     prefix           = "",
     page             = "general",
-    addonName        = "WhatGroup",
+    -- The :14 upvalue, not the string "WhatGroup". `addonName` is the first vararg every
+    -- TOC-loaded file gets, so it is the FOLDER this copy was installed into -- the one string
+    -- that survives a rename or a second copy dropped in beside the first. The composer puts it
+    -- straight into "Enable <name>", a label whose whole job is to say which addon you are turning
+    -- off, and a literal there is the same silent staleness core/EnvSetup.lua's Meta ladder was
+    -- extracted to end.
+    addonName        = addonName,
     debugConsolePath = "state.debugConsole",
     defaults         = {
         enabled      = C.enabled,
@@ -282,7 +288,6 @@ end
 -- -- previewing the chat-output toggles. It is NOT folded into the Master controls button pair: a
 -- 160px left-aligned action is not one of that block's two resets.
 local AFTER_GROUP = {
-    ["Master controls"] = MASTER_TAIL,
     -- Full-width action button, below the grid and on a fresh line.
     ["Chat"] = function(ctx)
         Helpers.InlineButton(ctx, {
@@ -296,6 +301,28 @@ local AFTER_GROUP = {
         })
     end,
 }
+
+-- The Master controls hook is added SEPARATELY rather than declared above, and both halves of that
+-- are deliberate.
+--
+-- The KEY is Helpers.MASTER_GROUP, the constant OptionsCompose.lua:50 defines and :189 publishes,
+-- rather than a second spelling of it typed out here. The two agree today; that is why the copy
+-- lasted. What a copy cannot survive is a library-side rename, which moves `group` on every
+-- composed row while leaving this key pointing at a group that no longer exists -- and because
+-- RenderTabbedSchema fires afterGroup PER GROUP, the hook would simply never fire. The reset
+-- button pair would stop being drawn, with nothing raised, no row missing and a tab that looks
+-- perfectly ordinary (options-ui-§8).
+--
+-- The GUARD is what makes that legal at file load. settings/OptionsSetup.lua's degraded stub
+-- carries the composer FUNCTIONS and none of their published data, on purpose, so MASTER_GROUP is
+-- nil on a library-less install -- and `[nil] =` inside the constructor above would raise here, at
+-- FILE LOAD, taking every row settings/Schema.lua registered down with it. That path composes no
+-- master rows and its MASTER_TAIL draws nothing, so there is no group for the hook to key to and
+-- omitting it is the correct shape rather than a fallback. It is emphatically NOT a place for an
+-- `or`-fallback respelling the group name: that puts the copy back and hides the failure above.
+if Helpers.MASTER_GROUP then
+    AFTER_GROUP[Helpers.MASTER_GROUP] = MASTER_TAIL
+end
 
 -- NO `pairWith` TABLE ANY MORE. It carried exactly one entry — a bespoke SessionCheckbox drawing
 -- the debug console beside "Enable" — and options-ui-§15 makes that console a canonical row of the

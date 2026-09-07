@@ -606,6 +606,22 @@ test("settings: Enable names the addon, and visibility is a four-value dropdown"
     assertEqual(table.concat(v.sorting, ","), "always,inCombat,outOfCombat,never")
 end)
 
+test("settings: Enable names the FOLDER this addon loaded from, not a hand-typed copy of it",
+function()
+    -- options-ui-§15 gives the composer the addon's name so the label can carry it, and the only
+    -- string in the process that is actually the addon's name is `addonName` — the first vararg
+    -- every TOC-loaded file gets, which is the FOLDER and therefore tracks a rename or a second
+    -- copy dropped in beside the first. settings/Panel.lua binds it at :14 like every other file
+    -- in the repo and used to hand the composer a literal instead, which reads correctly right up
+    -- until the folder is not called WhatGroup and then quietly names the wrong addon on a control
+    -- whose whole job is to say which addon you are turning off. Same class of bug as the inline
+    -- C_AddOns ladders core/EnvSetup.lua was extracted to end (tests/test_envsetup.lua).
+    --
+    -- red under: settings/Panel.lua passing "WhatGroup" rather than its own :14 upvalue.
+    local NS = T.newAddon{ addonName = "WhatGroup_PTR" }
+    assertEqual(NS.addon.Settings.Helpers.FindSchema("enabled").label, "Enable WhatGroup_PTR")
+end)
+
 test("settings: the master rows keep this addon's own shipped defaults", function()
     -- `defaults` is passed to the composer precisely so the composer does not decide what is
     -- stored. defaults/Profile.lua is still the one place any of them is written down.

@@ -44,6 +44,16 @@ module refuse to register — so every seam falls back to its stub and the suite
 happily measures the stub, green. `tests/test_harness.lua` pins the derivation
 against a fresh read of the TOC and the XML.
 
+The factory takes three options. `skip` omits files, which is how the degraded
+cases load with LibKa0s genuinely absent rather than by hand-stubbing the member
+under test; `mock` runs against the fresh environment before any source loads;
+and `addonName` changes the **first vararg** the addon's own files are handed —
+the folder the addon was installed into, `"WhatGroup"` unless a case says
+otherwise. That last one exists because a file reading its `:14` upvalue and a
+file that typed the same string out are indistinguishable while the folder is
+called what the literal says, and telling them apart is the only way to keep a
+label like **Enable WhatGroup** honest about which addon it is turning off.
+
 The suites, in run order: `test_harness`, `test_libka0s`, `test_mediasetup`,
 `test_envsetup`, `test_util`, `test_compat`, `test_database`, `test_settings`,
 `test_slash`, `test_labels`, `test_capture`, `test_notify`, `test_frame`,
