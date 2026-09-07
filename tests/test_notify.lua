@@ -243,17 +243,19 @@ test("notify: autoShow off prints the summary but never builds the popup", funct
     assertNil(mock.frames["WhatGroupFrame"], "no popup is created")
 end)
 
-test("notify: autoShow is read at SCHEDULE time, not at fire time", function()
+test("notify: autoShow is read when the timer FIRES, not when it is scheduled", function()
     local NS, _, mock = T.bootAddon()
     mock.inGroup = true
     NS.addon.pendingInfo = pending()
     NS.addon:_TryFireJoinNotify("test")
-    -- Flipping the setting after the timer is armed must not retroactively
-    -- change the queued behavior — the value was captured as an upvalue.
+    -- autoShow is a decision about what to do at fire time, so the value that
+    -- counts is the one standing when the callback runs. `delay` is different
+    -- and stays at schedule time: it is the timer's own argument, and there is
+    -- no later moment at which it could be read.
     NS.addon.Settings.Helpers.Set("frame.autoShow", false)
     mock.fireAceTimers()
-    assertTrue(mock.frames["WhatGroupFrame"] ~= nil,
-        "the popup still opens; autoShow was captured when the timer was armed")
+    assertNil(mock.frames["WhatGroupFrame"],
+        "the popup obeys the setting as it stands when the timer fires")
 end)
 
 -- ---------------------------------------------------------------------------

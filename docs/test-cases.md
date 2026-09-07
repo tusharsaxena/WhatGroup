@@ -312,7 +312,7 @@ badge and any count quoted in the docs must agree with it.
 - teleport: the Midnight season 2 rows match the spellbook-verified IDs
 - teleport: Siege of Boralus offers the spellbook-verified spell first
 
-### test_capture.lua (29)
+### test_capture.lua (32)
 
 - capture: inviteaccepted prefers FRESH when both have mapID
 - capture: inviteaccepted falls back to QUEUED when fresh lacks mapID
@@ -340,6 +340,9 @@ badge and any count quoted in the docs must agree with it.
 - capture: an unmapped application falls back to treating appID as the id
 - capture: a missing GetApplicationInfo degrades to the appID path
 - capture: a raising GetApplicationInfo is caught and falls back
+- capture: two outstanding applications pair to their own search results
+- capture: a declined application drops its queued capture
+- capture: a cancelled application drops its unanswered capture
 - capture: a search field holding false takes the default, not the false
 - capture: an activity field holding false takes the default, not the false
 - capture: a stored zero survives the defaults, because 0 is truthy in Lua
@@ -362,7 +365,7 @@ badge and any count quoted in the docs must agree with it.
 - notify: the master-switch off-flip wipes an in-flight capture (Schema onChange)
 - notify: autoShow on opens the popup when the timer fires
 - notify: autoShow off prints the summary but never builds the popup
-- notify: autoShow is read at SCHEDULE time, not at fire time
+- notify: autoShow is read when the timer FIRES, not when it is scheduled
 - notify: notify.enabled off prints nothing at all
 - notify: no pendingInfo prints nothing
 - notify: the default summary carries every row
@@ -609,11 +612,11 @@ badge and any count quoted in the docs must agree with it.
 | test_settings.lua | 56 |
 | test_slash.lua | 46 |
 | test_labels.lua | 34 |
-| test_capture.lua | 29 |
+| test_capture.lua | 32 |
 | test_notify.lua | 48 |
 | test_frame.lua | 72 |
 | test_panel.lua | 53 |
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **538** |
+| **Total** | **541** |

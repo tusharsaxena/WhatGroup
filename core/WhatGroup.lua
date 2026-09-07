@@ -68,7 +68,13 @@ hooksecurefunc("SetItemRef", function(linkArg, text, button, ...)
 end)
 
 -- Session-only state. Cleared on group leave; never persisted.
-local captureQueue        = {}   -- FIFO: captures awaiting their appID assignment
+-- Keyed by SEARCH-RESULT id, not by arrival order (WG-R-07). The apply hook knows the
+-- search-result id and nothing else; the status event knows the application id and nothing
+-- else. The only thing that joins them is C_LFGList.GetApplicationInfo, so that is what the
+-- key has to be. A FIFO looks equivalent while one application is outstanding and silently
+-- swaps the two captures the moment a second one is, because the server answers applications
+-- in whatever order it likes.
+local capturesByResult    = {}   -- [searchResultID] -> capturedInfo (set at apply time)
 local pendingApplications = {}   -- [appID] -> capturedInfo (set when "applied" fires)
 local wasInGroup          = false
 local notifiedFor         = nil  -- pendingInfo identity that already fired notify+popup
@@ -272,8 +278,8 @@ local function buildCapture(info)
         generalPlaystyle  = info.generalPlaystyle or info.playstyle or 0,
         playstyleString   = info.playstyleString or "",
         age               = info.age or 0,
-        -- A FRESH table per call, never a shared module-level empty one: captures are queued in
-        -- captureQueue, and a shared fallback would alias every id-less capture together.
+        -- A FRESH table per call, never a shared module-level empty one: captures are held in
+        -- capturesByResult, and a shared fallback would alias every id-less capture together.
         activityIDs       = info.activityIDs or {},
         activityID        = nil,
         fullName          = "",
@@ -330,7 +336,7 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
     return captured
 end
 
--- Re-capture from an *application* id (F-004).
+-- Application id -> search-result id (F-004).
 --
 -- CaptureGroupInfo above takes a searchResultID, but the LFG status events hand
 -- us an appID. C_LFGList.GetApplicationInfo(appID) is the documented bridge:
@@ -345,7 +351,11 @@ end
 -- degrades to the old behavior instead of going dark. Both returns shapes are
 -- accepted — the multi-return form (id, appStatus, …) and a table, in case a
 -- future patch converts it like it did GetActivityInfoTable.
-function WhatGroup:CaptureGroupInfoFromApplication(appID)
+-- This is a resolver rather than part of the capture wrapper because two callers need the id
+-- and only one of them wants a capture: the "applied" status event uses it to find the capture
+-- the apply hook already took, and re-capturing there would be a second LFG round-trip for a
+-- table that is already in hand.
+function WhatGroup:ResolveSearchResultID(appID)
     local resultID = appID
     local getAppInfo = C_LFGList and C_LFGList.GetApplicationInfo
 
@@ -370,7 +380,12 @@ function WhatGroup:CaptureGroupInfoFromApplication(appID)
             NS.SafeToString(appID))
     end
 
-    return self:CaptureGroupInfo(resultID)
+    return resultID
+end
+
+-- Re-capture from an application id: resolve, then capture.
+function WhatGroup:CaptureGroupInfoFromApplication(appID)
+    return self:CaptureGroupInfo(self:ResolveSearchResultID(appID))
 end
 
 -- Resolve a TeleportSpells value (number OR list) to (spellID, isKnown).
@@ -553,7 +568,7 @@ function WhatGroup:OnApplyToGroup(searchResultID, ...)
     end
     local captured = self:CaptureGroupInfo(searchResultID)
     if captured then
-        table.insert(captureQueue, captured)
+        capturesByResult[searchResultID] = captured
         NS.Debug("Apply", 'id=%s captured "%s" (activity=%s map=%s m+=%s)',
             tostring(searchResultID), tostring(captured.title),
             tostring(captured.activityID), tostring(captured.mapID),
@@ -609,8 +624,6 @@ function WhatGroup:_TryFireJoinNotify(reason)
     local capturedInfo = self.pendingInfo
     local delay = (self.db and self.db.profile and self.db.profile.notify
                    and self.db.profile.notify.delay) or 0
-    local autoShow = not (self.db and self.db.profile and self.db.profile.frame
-                          and self.db.profile.frame.autoShow == false)
     -- Cancel any still-pending notify before scheduling a fresh one so a rapid
     -- re-fire can't leave two timers racing to the same popup.
     if self.notifyTimer then self:CancelTimer(self.notifyTimer) end
@@ -631,7 +644,14 @@ function WhatGroup:_TryFireJoinNotify(reason)
         end
         NS.Debug("Notify", "fired")
         self:ShowNotification()
-        if autoShow then self:ShowFrame() end
+        -- Read at FIRE time, not at schedule time (WG-R-14). autoShow decides what to do now;
+        -- a player who turns the popup off during the delay window means it now. `delay` above
+        -- is the opposite case and stays where it is: it is the timer's own argument, and
+        -- there is no later moment at which it could be read.
+        if not (self.db and self.db.profile and self.db.profile.frame
+                and self.db.profile.frame.autoShow == false) then
+            self:ShowFrame()
+        end
     end, delay)
 end
 
@@ -644,14 +664,14 @@ end
 -- flight. Group-leave passes nothing — the [Roster] line already tells that story.
 function WhatGroup:WipeCapture(reason)
     local hadInFlight = self.pendingInfo ~= nil
-        or next(captureQueue) ~= nil or next(pendingApplications) ~= nil
+        or next(capturesByResult) ~= nil or next(pendingApplications) ~= nil
     self.pendingInfo = nil
     notifiedFor      = nil
     if self.notifyTimer then
         self:CancelTimer(self.notifyTimer)
         self.notifyTimer = nil
     end
-    wipe(captureQueue)
+    wipe(capturesByResult)
     wipe(pendingApplications)
     if reason and hadInFlight then
         NS.Debug("Capture", "wiped (" .. reason .. ")")
@@ -695,13 +715,53 @@ function WhatGroup:GROUP_ROSTER_UPDATE()
     end
 end
 
+-- Statuses that end an application with no invite behind them. Blizzard sends the bare
+-- "declined" only sometimes — a full or delisted group carries its reason in the status
+-- string, and those are the declines a player actually meets — so all three spellings are
+-- here. Without this arm a dead application's capture stayed in the tables until the next
+-- group-leave and could be handed to a later invite (WG-R-07).
+local APPLICATION_ENDED = {
+    declined          = true,
+    declined_full     = true,
+    declined_delisted = true,
+    cancelled         = true,
+}
+
+-- The two short status arms live out here rather than inline. The handler is the file's most
+-- complex function and sits at the `code-quality-§3` ceiling; the "inviteaccepted" arm is the
+-- one that has to be read as a whole, so the other two pay for it by being named instead.
+
+-- Move the capture off its search-result key and onto the application id the server has just
+-- minted for it. Nothing under that key is not an error: the apply may have happened with the
+-- master switch off, or GetSearchResultInfo may have given nothing back.
+local function pairApplication(self, appID)
+    local resultID = self:ResolveSearchResultID(appID)
+    local capture = capturesByResult[resultID]
+    if capture then
+        capturesByResult[resultID] = nil
+        pendingApplications[appID] = capture
+    end
+end
+
+-- Clear BOTH sides: "applied" may never have arrived, in which case the capture is still filed
+-- under its search-result id and has no application id at all.
+local function dropApplication(self, appID, newStatus)
+    local resultID = self:ResolveSearchResultID(appID)
+    local dropped  = pendingApplications[appID] or capturesByResult[resultID]
+    capturesByResult[resultID] = nil
+    pendingApplications[appID] = nil
+    if dropped then
+        NS.Debug("LFG", "dropped the capture for appID=%s (%s)",
+            NS.SafeToString(appID), NS.SafeToString(newStatus))
+    end
+end
+
 function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
     NS.Debug("LFG", "appID=" .. tostring(appID) .. " status=" .. tostring(newStatus))
     if newStatus == "applied" then
-        local capture = table.remove(captureQueue, 1)
-        if capture then
-            pendingApplications[appID] = capture
-        end
+        pairApplication(self, appID)
+    elseif APPLICATION_ENDED[newStatus] then
+        dropApplication(self, appID, newStatus)
     elseif newStatus == "invited" then
         -- Wait for the user to accept; multiple invites can arrive.
     elseif newStatus == "inviteaccepted" then
@@ -746,7 +806,7 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
             NS.Debug("Invite", "accepted appID=" .. tostring(appID) .. " → no capture")
         end
 
-        wipe(captureQueue)
+        wipe(capturesByResult)
         wipe(pendingApplications)
 
         -- Retail timing: GROUP_ROSTER_UPDATE often fires BEFORE this

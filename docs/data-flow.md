@@ -13,7 +13,7 @@ ApplyToGroup → "applied" → "invited" → "inviteaccepted" → GROUP_ROSTER_U
 WhatGroup needs to associate the group-info table read at apply time with the player's eventual group join. The complications:
 
 - The `searchResultID` is known at apply time but the `appID` (which the LFG events use) isn't assigned until `applied` fires.
-- A player can have multiple applications in flight at once. Captures need to queue FIFO and pair up by appID.
+- A player can have multiple applications in flight at once. Captures are held by `searchResultID` and pair up to an `appID` through `C_LFGList.GetApplicationInfo`, not by arrival order.
 - The user might not actually accept the invite (decline / time out). Captures should be discarded if the invite is never accepted.
 - The user might leave a group and then join another. State must be cleared on group-leave so the next join's notification reflects the right capture.
 
@@ -23,14 +23,14 @@ Four module-locals in `WhatGroup.lua` plus two fields on the addon table:
 
 | State | Shape | Lifetime |
 |---|---|---|
-| `captureQueue` | FIFO array of capture tables | session; wiped on group-leave (via `WipeCapture`), master-switch off-flip, or after `inviteaccepted` |
-| `pendingApplications` | `{ [appID] = capture }` | session; wiped on group-leave (via `WipeCapture`), master-switch off-flip, or after `inviteaccepted` |
+| `capturesByResult` | `{ [searchResultID] = capture }` | session; entries move to `pendingApplications` on `applied` and are dropped on a decline or cancel; wiped on group-leave (via `WipeCapture`), master-switch off-flip, or after `inviteaccepted` |
+| `pendingApplications` | `{ [appID] = capture }` | session; the entry is dropped on a decline or cancel; wiped on group-leave (via `WipeCapture`), master-switch off-flip, or after `inviteaccepted` |
 | `wasInGroup` | bool | session; tracks `IsInGroup()`, seeded in `OnEnable` |
 | `notifiedFor` | the `pendingInfo` table reference that already triggered notify+popup | session; cleared on `inviteaccepted` (new pendingInfo) and on group-leave / master-switch off-flip |
 | `self.notifyTimer` | AceTimer handle (or nil) | session; the scheduled one-shot notify; `WipeCapture` `CancelTimer`s it so a scheduled callback can't fire after the capture is gone |
 | `WhatGroup.pendingInfo` | single capture table (the active one) | session; cleared on group-leave / master-switch off-flip |
 
-None of these are persisted — capture state is recomputed from live LFG events every session. `WhatGroup:WipeCapture()` is the consolidated reset: it nils `pendingInfo`, nils `notifiedFor`, `self:CancelTimer(self.notifyTimer)`s any in-flight notify (AceTimer-3.0, WG-17), and wipes both queues. Both the `GROUP_ROSTER_UPDATE` leave-branch and the `enabled` schema row's `onChange` (when flipped to `false`) route through it.
+None of these are persisted — capture state is recomputed from live LFG events every session. `WhatGroup:WipeCapture()` is the consolidated reset: it nils `pendingInfo`, nils `notifiedFor`, `self:CancelTimer(self.notifyTimer)`s any in-flight notify (AceTimer-3.0, WG-17), and wipes both capture tables. Both the `GROUP_ROSTER_UPDATE` leave-branch and the `enabled` schema row's `onChange` (when flipped to `false`) route through it.
 
 ## Flow
 
@@ -43,12 +43,19 @@ hooksecurefunc on C_LFGList.ApplyToGroup ─► OnApplyToGroup(searchResultID)
                                           ├─ CaptureGroupInfo(searchResultID)
                                           │    ├─ C_LFGList.GetSearchResultInfo
                                           │    └─ C_LFGList.GetActivityInfoTable (first activityID)
-                                          └─ table.insert(captureQueue, captured)
+                                          └─ capturesByResult[searchResultID] = captured
         │
         ▼
 LFG_LIST_APPLICATION_STATUS_UPDATED  status = "applied"   appID assigned
-        ├─ table.remove(captureQueue, 1)        FIFO dequeue
+        ├─ resultID = ResolveSearchResultID(appID)   C_LFGList.GetApplicationInfo
+        ├─ capture  = capturesByResult[resultID]     (removed from that table)
         └─ pendingApplications[appID] = capture
+        │
+        ▼
+LFG_LIST_APPLICATION_STATUS_UPDATED  status = "declined" / "declined_full" /
+        │                                     "declined_delisted" / "cancelled"
+        └─ both tables drop this application's capture (it may still be under
+           its search-result id if "applied" never arrived)
         │
         ▼
 LFG_LIST_APPLICATION_STATUS_UPDATED  status = "invited"   no-op (waits for accept)
@@ -58,7 +65,7 @@ LFG_LIST_APPLICATION_STATUS_UPDATED  status = "inviteaccepted"
         ├─ fresh = CaptureGroupInfoFromApplication(appID)   re-fetch fresh from LFG API
         ├─ WhatGroup.pendingInfo = fresh ?? pendingApplications[appID]
         ├─ notifiedFor = nil                       new pendingInfo → eligible to fire
-        ├─ wipe(captureQueue) + wipe(pendingApplications)
+        ├─ wipe(capturesByResult) + wipe(pendingApplications)
         └─ _TryFireJoinNotify("inviteaccepted")
         │
         ▼
@@ -86,17 +93,21 @@ GROUP_ROSTER_UPDATE  ¬inGroup
               ├─ pendingInfo = nil
               ├─ notifiedFor = nil
               ├─ CancelTimer(self.notifyTimer)   (cancels any in-flight notify timer)
-              └─ wipe(captureQueue) + wipe(pendingApplications)
+              └─ wipe(capturesByResult) + wipe(pendingApplications)
 
   Master-switch off-flip (enabled.onChange with v=false):
         └─ self:WipeCapture()   (same reset)
 ```
 
-## Why a queue, not a single slot
+## Why a table keyed by `searchResultID`, not a single slot or a queue
 
-A player can have multiple applications in flight before any of them resolve. The `searchResultID` we capture at apply time isn't useful for matching against later events — only the LFG-assigned `appID` is, and that's not known until `applied` fires.
+A player can have multiple applications in flight before any of them resolve, so one slot cannot hold them.
 
-The queue is FIFO because the LFG API fires `applied` in apply-order. Each `applied` event dequeues one capture and pairs it with the freshly-assigned `appID`. The pairing means captures that *don't* receive an `applied` event (e.g. apply-rejected before it ever became an application) get pushed off the front of the queue by subsequent applies and eventually wiped on group-leave.
+It used to be a FIFO, on the reasoning that the LFG API fires `applied` in apply-order: each `applied` popped the head and paired it with the freshly-assigned `appID`. That reasoning is not sound. Apply-order is the client's; the order the server acknowledges applications in is the server's, and nothing enforces that they agree. With two applications outstanding and the acknowledgements arriving out of order, each capture is paired with the *other* application's id, and the popup then names the wrong group.
+
+The join that actually exists is `C_LFGList.GetApplicationInfo(appID)`, whose first return is the search-result id the application was made against. So the capture is filed under the `searchResultID` the apply hook already has, and `applied` resolves its `appID` through that bridge to find it. Order stops mattering. `WhatGroup:ResolveSearchResultID(appID)` is the one implementation of the hop, shared with `CaptureGroupInfoFromApplication` (F-004).
+
+A capture that never receives an `applied` event is no longer displaced by later applies, so the decline and cancel statuses clear it explicitly; anything left after that is wiped on group-leave.
 
 ## Why we re-capture at `inviteaccepted`
 

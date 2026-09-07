@@ -380,13 +380,26 @@ The end-to-end test. Requires an active LFG and at least one group leader willin
 
 ### 5.2 Multiple concurrent applications
 
-Tests the FIFO `captureQueue` + `pendingApplications[appID]` pairing.
+Tests the `capturesByResult[searchResultID]` + `pendingApplications[appID]` pairing. This is the step that
+only ever meant anything with **more than one** application outstanding: with one, every possible pairing is
+the right one. It is also the check that a decline leaves nothing behind — the pairing used to be positional,
+so a capture that never got an invite sat in the tables until group-leave.
 
-1. Apply to 3 groups in quick succession (different dungeons / activities if possible).
-2. Wait for an invite from one of them.
-3. Accept.
+1. `/wg debug on`.
+2. Apply to **two** group-finder listings in quick succession — different dungeons or activities if you can,
+   so the two titles are told apart at a glance.
+3. Let both resolve, one **accepted** and one **declined**, in either order. If you can arrange for the
+   decline to land first, do — that is the ordering the old code got wrong.
+4. Repeat with three listings if two of them are easy to come by.
 
-**Expected:** The chat notification + popup show the **specific** group you joined (not the first or most-recent applied). The other two captures are wiped at `inviteaccepted`.
+**Expected:**
+- The chat notification and popup name the group you actually joined — not the first applied, not the
+  most-recent applied, and not the other one of the pair.
+- The console shows one `[LFG] dropped the capture for appID=<N> (declined)` line for the declined
+  application, at the moment it is declined rather than at group-leave.
+- The remaining captures are wiped at `inviteaccepted`.
+
+**Fail:** the two swap, or the declined application's group is the one that surfaces.
 
 ### 5.3 Group leave
 

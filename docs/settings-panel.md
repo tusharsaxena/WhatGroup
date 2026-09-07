@@ -318,7 +318,7 @@ global = {
 }
 ```
 
-There is **no `debug` key and no `state` table** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). The Master controls tab's "Debug console" checkbox is a schema row on the path `state.debugConsole`, but it is `sessionOnly`: `settings/Schema.lua`'s `SESSION` table intercepts that path in front of `Resolve`, `BuildDefaults` skips it, and the toggle drives the console *window's* visibility only — neither a profile key nor the debug logging flag. Capture / pending state (`captureQueue`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [data-flow.md](./data-flow.md#state) for why.
+There is **no `debug` key and no `state` table** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). The Master controls tab's "Debug console" checkbox is a schema row on the path `state.debugConsole`, but it is `sessionOnly`: `settings/Schema.lua`'s `SESSION` table intercepts that path in front of `Resolve`, `BuildDefaults` skips it, and the toggle drives the console *window's* visibility only — neither a profile key nor the debug logging flag. Capture / pending state (`capturesByResult`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [data-flow.md](./data-flow.md#state) for why.
 
 ## The tab strip
 
