@@ -16,10 +16,10 @@
 -- Mock fidelity is load-bearing
 -- ---------------------------------------------------------------------------
 --
--- Five pieces of this file model REAL client behavior rather than no-op'ing it, and must not be
+-- Six pieces of this file model REAL client behavior rather than no-op'ing it, and must not be
 -- "simplified" back into blanket stubs — each one is the only reason a whole class of addon bug is
--- catchable headlessly. All five are also why this is an extender rather than a swap: the kit's own
--- README names the last of them as a divergence it deliberately keeps.
+-- catchable headlessly. They are also why this is an extender rather than a swap: the kit's own
+-- README names the fifth of them as a divergence it deliberately keeps.
 --
 --  1. FRAME VISIBILITY. A blanket self-returning no-op makes IsShown() return the frame —
 --     permanently truthy — so "the console closed" is untestable and a window that never hides
@@ -51,6 +51,16 @@
 --     SetText sink otherwise, so "Leader shows the leader's name" cannot be distinguished from
 --     "every field shows the same string" — and the debug console's title, ON/OFF toggle and line
 --     counter all hang off one title bar.
+
+--
+--  6. ADDON EVENT REGISTRATIONS CARRY THEIR HANDLER NAME, and `fireAddonEvent` dispatches them the
+--     way AceEvent does. Recording only that something was registered lets a suite prove the
+--     registration exists and then call the handler by hand — which passes just as happily when
+--     the two are not connected to each other. It matters most where several events share one
+--     handler (`PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` → `OnCombatStateChanged`), because
+--     the event NAME is then the only thing telling the handler which edge it is on, and a suite
+--     that calls the method directly is free to pass the name the code wants rather than the one
+--     the client would send.
 
 local base = dofile("tests/_kit/mock_base.lua")
 
@@ -88,7 +98,7 @@ local function build()
     }
     mock.aceWidgets    = {}   -- every AceGUI:Create'd widget, creation order
     mock.chatCommands  = {}   -- [verb] -> handler name, via RegisterChatCommand
-    mock.addonEvents   = {}   -- [event] -> true, via the addon's RegisterEvent
+    mock.addonEvents   = {}   -- [event] -> handler name, via the addon's RegisterEvent
 
     local function noop() end
 
@@ -354,8 +364,13 @@ local function build()
             obj.RegisterChatCommand = function(_, cmd, handler)
                 mock.chatCommands[cmd] = handler
             end
-            obj.RegisterEvent = function(_, event)
-                mock.addonEvents[event] = true
+            -- The HANDLER NAME, not just `true`. AceEvent resolves a registration to a method on
+            -- the addon object -- the event's own name unless a second argument overrides it -- and
+            -- two events routed to one shared handler is exactly the shape a test cannot see if the
+            -- mock only records that something was registered. Every existing assertion is a
+            -- truthiness check, and a non-empty string is truthy.
+            obj.RegisterEvent = function(_, event, handler)
+                mock.addonEvents[event] = handler or event
             end
             obj.UnregisterEvent = function(_, event)
                 mock.addonEvents[event] = nil
@@ -387,6 +402,20 @@ local function build()
         end,
         GetAddon = function(_, name) return addons[name] end,
     }
+
+    -- Dispatch an addon event the way the client plus AceEvent would: look up the method the
+    -- registration named and call it on the addon object with the event name as the first
+    -- argument. Returns false when nothing is registered for the event, so a case can assert the
+    -- wiring and the behaviour in one act rather than asserting the registration exists and then
+    -- calling the handler by hand -- which passes just as happily when the two are not connected.
+    mock.fireAddonEvent = function(addon, event, ...)
+        local handler = mock.addonEvents[event]
+        if not handler then return false end
+        local fn = addon[handler]
+        if not fn then return false end
+        fn(addon, event, ...)
+        return true
+    end
 
     -- Run every AceTimer scheduled so far. Canceled handles are skipped (that is the whole point).
     -- Returns how many actually fired, so a test can prove N rapid joins produce exactly ONE notify.

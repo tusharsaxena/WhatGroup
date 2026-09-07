@@ -134,20 +134,47 @@ end
 -- Is the popup allowed on screen right now? `always` and anything unrecognized (a hand-edited
 -- SavedVariable, a profile from a future version) answer yes: a display setting that fails closed
 -- would make the addon look broken rather than configured.
-local function visibilityAllows()
+--
+-- `inCombat` OVERRIDES the live InCombatLockdown() read, and exists for exactly one caller: the
+-- PLAYER_REGEN_DISABLED handler. That event fires at the START of the lockdown and
+-- InCombatLockdown() can still answer false on the same frame — a client quirk this collection has
+-- been bitten by before — so a handler that asked the API would evaluate the gate against the state
+-- the player has just left. The event NAME is the authority on which edge this is; every other
+-- caller passes nothing and gets the live read, which is correct for them because they are not on
+-- an edge.
+local function visibilityAllows(inCombat)
+    if inCombat == nil then inCombat = InCombatLockdown() and true or false end
     local v = WhatGroup.db and WhatGroup.db.profile and WhatGroup.db.profile.visibility
     if v == "never"       then return false end
-    if v == "inCombat"    then return InCombatLockdown() and true or false end
-    if v == "outOfCombat" then return not InCombatLockdown() end
+    if v == "inCombat"    then return inCombat end
+    if v == "outOfCombat" then return not inCombat end
     return true
 end
 
--- A popup already on screen when the gate closes has to go, or the dropdown reads as ignored until
--- the next open. Hidden without a combat guard, matching the Close button: this addon has always
--- taken f:Hide() as unprotected, and the alternative is a window the player cannot dismiss.
-function WhatGroup:ApplyFrameVisibility()
+-- SYMMETRIC, and that is the whole point (options-ui-§15). Two of `visibility`'s four values are
+-- functions of combat state, which the player changes without touching the panel, so the gate has
+-- to be re-asked on the transition rather than only when something opens the popup. A popup already
+-- on screen when the gate closes has to go, or the dropdown reads as ignored until the next open;
+-- a popup the gate hid has to come back when it opens again, or "hide in combat" quietly means
+-- "close for the rest of the session".
+--
+-- Neither direction is combat-guarded, matching the Close button: this addon has always taken
+-- f:Hide() as unprotected, and the alternative is a window the player cannot dismiss. f:Show() on
+-- an already-built frame is not a secure write either — the secure work is buildFrame's, and it has
+-- already happened by the time f exists.
+--
+-- The re-show is gated on there being a capture to render: a "No data" popup appearing the moment
+-- the player pulls is worse than no popup at all. It is deliberately NOT gated on the caller, so
+-- the dropdown's own onChange re-shows too — moving `General visibility` back to a value that
+-- permits the popup applies that answer on the spot, exactly as moving it to `never` closes an open
+-- one. One seam, both directions, every caller.
+function WhatGroup:ApplyFrameVisibility(inCombat)
     if not f then return end
-    if not visibilityAllows() then f:Hide() end
+    if not visibilityAllows(inCombat) then return f:Hide() end
+    if WhatGroup.pendingInfo and not f:IsShown() then
+        f:Show()
+        f:Raise()
+    end
 end
 
 -- The Reset position button (options-ui-§15). Drops the persisted point (WG-26) as well as
@@ -270,6 +297,16 @@ local function applyTeleportNote(spellID, known, remaining, info)
         note:Show()
     elseif remaining > 0 then
         renderNote(remaining)
+        -- ARMED ONLY AGAINST A POPUP THAT IS ACTUALLY ON SCREEN, and that condition is the whole
+        -- of the `performance-§12` deviation row's argument rather than a tidiness. `OnHide` — the
+        -- ticker's hard stop — fires on a TRANSITION, so a ticker armed against a frame that was
+        -- never shown has no cancel site at all and runs for the rest of the session. The popup
+        -- reaches this function while still hidden on two ordinary paths: `PopulateFields` runs
+        -- before `ShowFrame`'s `f:Show()`, and the `inCombat` / `outOfCombat` gate can build the
+        -- popup and decline to show it. The note above is rendered either way, so a later `Show`
+        -- finds the right text; the popup's `OnShow` re-runs the configure and arms from there.
+        if not (f and f:IsShown()) then return end
+
         -- One second: the smallest unit the note renders, so a faster tick would repaint an
         -- identical string and a slower one would visibly skip.
         cooldownTimer = WhatGroup:ScheduleRepeatingTimer(function()
@@ -349,6 +386,20 @@ local function buildFrame()
     -- The ticker's hard stop. OnHide covers every way the popup can close — the Close button, ESC
     -- through UISpecialFrames, a `f:Hide()` from anywhere — so no exit path has to remember.
     f:SetScript("OnHide", stopCooldownTicker)
+
+    -- And OnShow is where it arms, the exact mirror, for the same reason: the ticker is armed only
+    -- against a visible popup (see applyTeleportNote), so the arm has to sit on the one seam every
+    -- path to the screen crosses. There is more than one such path now — `ShowFrame`, and the
+    -- `PLAYER_REGEN_ENABLED` re-evaluation that returns a popup the combat gate had hidden — and a
+    -- per-caller arm would be the thing the next path forgets. Re-running the whole configure
+    -- rather than starting a timer here keeps ONE owner of the button's state;
+    -- ConfigureTeleportButton cancels any live handle first, so it cannot stack. Guarded on
+    -- pendingInfo exactly as PopulateFields is: with no capture there is no teleport to draw.
+    f:SetScript("OnShow", function()
+        if fields and ConfigureTeleportButton and WhatGroup.pendingInfo then
+            ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, WhatGroup.pendingInfo)
+        end
+    end)
 
     -- The whole look — backdrop AND colors — now comes from LibKa0s-Core-1.0's shared SKIN
     -- through NS.ApplySkin (standalone-windows: the Ka0s window edge is normative, and a window

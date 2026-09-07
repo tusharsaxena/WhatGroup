@@ -393,7 +393,7 @@ badge and any count quoted in the docs must agree with it.
 - notify: the Leader row still prints when leaderName is nil
 - notify: Playstyle and Teleport drop their rows while Leader keeps its own
 
-### test_frame.lua (64)
+### test_frame.lua (72)
 
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
@@ -423,6 +423,8 @@ badge and any count quoted in the docs must agree with it.
 - frame: closing the popup cancels the ticker
 - frame: re-opening the popup arms exactly one ticker, not a second
 - frame: a ready teleport arms no ticker at all
+- frame: a popup the gate keeps off screen arms no ticker
+- frame: a popup that reaches the screen later still gets its ticker
 - frame: the ticker rearms the cast the moment the cooldown expires
 - frame: an unlearned teleport says so beside the button
 - frame: an unlearned teleport is never labelled as on cooldown
@@ -459,6 +461,12 @@ badge and any count quoted in the docs must agree with it.
 - frame: visibility 'outOfCombat' is the mirror of it
 - frame: an unrecognized visibility value fails OPEN, not closed
 - frame: switching visibility to 'never' hides a popup that is already open
+- frame: both combat-transition events are registered, and to one handler
+- frame: entering combat hides a popup the gate no longer allows
+- frame: leaving combat brings the popup back when there is still something to show
+- frame: a combat transition never opens a popup with nothing to show
+- frame: PLAYER_REGEN_DISABLED is answered from the event, not from a lockdown flag that has not flipped
+- frame: a combat transition with no popup built is a no-op, not an error
 
 ### test_panel.lua (53)
 
@@ -601,9 +609,9 @@ badge and any count quoted in the docs must agree with it.
 | test_labels.lua | 34 |
 | test_capture.lua | 29 |
 | test_notify.lua | 48 |
-| test_frame.lua | 64 |
+| test_frame.lua | 72 |
 | test_panel.lua | 53 |
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **528** |
+| **Total** | **536** |

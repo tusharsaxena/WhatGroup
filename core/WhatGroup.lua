@@ -185,6 +185,13 @@ function WhatGroup:OnEnable()
     -- Hooks are installed at file-load (top of this file), not here.
     self:RegisterEvent("GROUP_ROSTER_UPDATE")
     self:RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
+    -- The popup's `visibility` setting has two combat-dependent values, and combat state changes
+    -- without the player touching the panel — so the gate needs an event, not just an onChange.
+    -- Both edges route to ONE handler because the answer is a single re-evaluation either way;
+    -- which edge it is comes from the event name (see modules/Frame.lua's visibilityAllows).
+    -- Registered here in OnEnable and never in OnInitialize, like the two above.
+    self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnCombatStateChanged")
+    self:RegisterEvent("PLAYER_REGEN_ENABLED",  "OnCombatStateChanged")
     wasInGroup = IsInGroup()
 
     -- Register the Settings panel at login so the "Ka0s WhatGroup" entry shows
@@ -649,6 +656,22 @@ function WhatGroup:WipeCapture(reason)
     if reason and hadInFlight then
         NS.Debug("Capture", "wiped (" .. reason .. ")")
     end
+end
+
+-- Both combat edges, one handler. The body is deliberately the smallest thing that can be: this is
+-- the addon's first PLAYER_REGEN_DISABLED registration and therefore its first handler that runs
+-- inside a combat window, which is a `performance-§12` question — a table read, up to three string
+-- compares, and at most one Show or Hide, twice per pull.
+--
+-- The event name is passed down rather than re-derived from InCombatLockdown(), because the API can
+-- still answer false on the frame PLAYER_REGEN_DISABLED fires.
+--
+-- Guarded on the method existing: modules/Frame.lua loads after this file, so at file-load time
+-- the member is not there yet. It always is by the time an event fires; the guard is the same
+-- belt-and-braces the other cross-file seams carry rather than a live possibility.
+function WhatGroup:OnCombatStateChanged(event)
+    if not self.ApplyFrameVisibility then return end
+    self:ApplyFrameVisibility(event == "PLAYER_REGEN_DISABLED")
 end
 
 function WhatGroup:GROUP_ROSTER_UPDATE()

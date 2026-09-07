@@ -85,7 +85,7 @@ degraded path while the suite stayed green — plus AceDB's merge-in-place
 `copyDefaults`, AceConsole's `:Print` clobber, the AceGUI widget recorder and
 the Settings registrars.
 
-Five of this addon's overrides model real client behavior instead of
+Six of this addon's overrides model real client behavior instead of
 no-op'ing it, and each is the sole reason a class of bug is catchable at all —
 the header comment in that file explains why. In short: frame **visibility** and
 **geometry** are real state (otherwise "the window closed" and "the position was
@@ -100,7 +100,13 @@ frame itself — its own README records that this addon is right to differ);
 screen-space getters answer real **numbers**, because the popup derives the
 secure teleport button's offsets by subtracting them; and the **AceTimer queue**
 is fireable, cancelable and **separate from the `C_Timer` queue**, so the
-notify delay and the panel's secure-defer hop can be fired independently.
+notify delay and the panel's secure-defer hop can be fired independently; and
+an **addon event registration records the handler name** it was given, with
+`mock.fireAddonEvent` dispatching the way AceEvent does — otherwise a suite can
+only show that a registration exists and then call the handler by hand, which
+passes just as happily when the two are not wired to each other. That gap is
+widest where two events share one handler and the event *name* is what tells
+the handler which edge it is on.
 
 `_G` points back at the mock table itself, because `settings/Panel.lua` and the
 library both read several APIs through an explicit `_G.` — without it

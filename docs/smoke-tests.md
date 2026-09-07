@@ -218,6 +218,51 @@ first with `/wg test` so there is something to watch, and keep the Settings pane
 **Guards against:** a declared setting the drawing code ignores; a scale change taken in combat
 tainting the secure button; a lock read once at build time instead of at drag time; a *Reset
 position* the next login undoes; and `Only in combat` deadlocking against the lazy first build.
+
+### 3.8 The visibility gate follows a combat transition (options-ui-§15)
+
+`Only in combat` and `Only out of combat` are the only two settings in the addon whose answer
+changes without the player touching the panel. Until 2026-09-08 the gate was read only when
+something opened the popup, so a transition taken with the popup already on screen was missed
+entirely — the setting looked right on every fresh open and did nothing in the one window it was
+bought for. `core/WhatGroup.lua`'s `OnEnable` now registers `PLAYER_REGEN_DISABLED` /
+`PLAYER_REGEN_ENABLED` and both re-ask the gate. **Headless cases pin the logic; only the client
+can prove the events actually arrive and that hiding a live popup mid-pull raises nothing.**
+
+1. **General visibility** → *Only out of combat*. `/wg test` so the popup is on screen with a
+   capture in it.
+2. Pull a training dummy **without closing the popup**.
+3. Drop combat and wait for the lockdown to end.
+4. Repeat with **General visibility** → *Only in combat*: `/wg test` out of combat (nothing shows),
+   then pull, then drop combat.
+5. Close the popup, `/wg reset pendingInfo` is not a thing — instead `/reload` to clear the capture,
+   then pull a dummy with *Only out of combat* still set and drop combat again.
+
+**Pass** —
+- Step 2: the popup **hides the moment combat starts**, and no `ADDON_ACTION_FORBIDDEN` or
+  "Interface action failed because of an AddOn" line appears. The hide is what the setting promises;
+  the absence of a taint line is what makes hiding a live frame from a combat-edge handler safe.
+- Step 3: the popup **comes back**, with the same capture in it — all six rows still populated, not
+  "No data".
+- Step 4: the mirror. Nothing on screen out of combat, the popup appears on the pull, and it goes
+  again when combat ends.
+- Step 5: **nothing opens.** With no capture pending, a combat transition must never put an empty
+  popup on screen — that is worse than no popup at all.
+
+**Fail** — the popup stays up in combat; it hides and never returns; it returns showing "No data";
+a popup appears in step 5; or any taint line at the transition.
+
+**Also here, and it is the reason this step exists twice over:** with the popup **hidden by the
+gate** (step 4, out of combat, *Only in combat* set, teleport on cooldown), the countdown ticker must
+not be running. The observable is in § 4.1a — leave the popup hidden for a stretch, then let it open
+and confirm the time shown has dropped by the real elapsed amount rather than sitting where it was.
+Before 2026-09-08 the ticker armed against a frame that was never shown, and because `OnHide` fires
+only on a transition it then had no cancel site at all and ran for the rest of the session. That is
+the invariant the `performance-§12` deviation row in [`ARCHITECTURE.md`](./ARCHITECTURE.md) rests on.
+
+**Guards against:** a combat-dependent setting that is only ever evaluated at open time; a
+combat-edge `Hide` that taints; a re-show that resurrects an empty popup; and a repeating ticker
+armed against a frame with no cancel site.
 ---
 
 ## 4. Synthetic flow smoke — `/wg test` (~1 min)
@@ -510,6 +555,7 @@ For a fast pre-release pass, run at minimum:
 - [ ] section 1.3 — ESC → Logout after `/wg config`
 - [ ] sections 2.1, 2.10, 2.12, 2.13 — `/wg help`, `/wg test`, `/wg config`, `/wg reset`
 - [ ] section 3.4 — Defaults button confirm flow
+- [ ] section 3.8 — the visibility gate follows a combat transition, in both directions, with no taint line
 - [ ] section 4.1 — Click teleport button (no taint)
 - [ ] section 4.1a — Teleport on cooldown: swipe, ticking note, and a click that casts nothing
 - [ ] section 4.1b — Teleport not learned: the note says so, and never says cooldown
