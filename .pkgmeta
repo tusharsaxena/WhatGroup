@@ -11,7 +11,19 @@ ignore:
   - tests
   - _dev        # the scratch dir packaging reserves; ignored whether or not it exists today
   - "*.bak"     # editor lockfiles and backups
-  - .claude     # agent configuration — dev-only, never shipped to players
+  - .pkgmeta    # packager configuration: consumed before the zip is built, of no use inside it
+  # Agent tooling, and untracked here — `git ls-files .claude` returns nothing,
+  # so no packager clone has ever carried it and this line changes no downloaded
+  # byte. It stays because packaging.md:28 MUSTs every root dot-entry present in
+  # the repo be named or justified, tracked or not.
+  - .claude     # untracked; listed under packaging.md:28
+  # Tracked, and the only entries here that change a download. Three screenshots,
+  # 880K, project-page art the CurseForge CDN already serves. CLAUDE.md and
+  # DEPENDENCIES.md are developer documentation; README.md and LICENSE stay,
+  # because players do read those.
+  - media/screenshots
+  - CLAUDE.md
+  - DEPENDENCIES.md
   # Only the .tga logo is loadable at runtime; WoW cannot read .png or .jpg at all. The master .png
   # and the .jpg render exist for the project page and for regenerating the .tga, so shipping them
   # would add megabytes to every download for files the client physically cannot use.
