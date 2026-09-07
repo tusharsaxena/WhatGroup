@@ -50,6 +50,23 @@ Repeat after each of these to make sure no surface re-introduces the leak:
 
 If **any** of these tests reproduces the taint error, the boot path has regressed — see [midnight-quirks.md → Taint propagation in the boot window](./midnight-quirks.md) and [common-tasks.md → Adding a Blizzard-protected surface touch](./common-tasks.md).
 
+### 1.4 Reset popup — registered in combat as well as out (CRITICAL)
+
+`Settings.EnsureResetPopup` writes one key into `StaticPopupDialogs` and no longer assigns the table
+itself. The assignment it used to carry (`StaticPopupDialogs = StaticPopupDialogs or {}`) guarded
+against a client with no such table, which does not exist, and was itself the kind of write to the
+protected global that § 1.3 exists to keep out of the boot window. Nothing headless can see the
+difference — taint is not a test failure — so it is checked here.
+
+1. Out of combat: `/wg config`, open the settings page, press **Defaults**, confirm the popup, then
+   dismiss it.
+2. Pull a target and stay in combat. Do step 1 again — the popup must still appear and still accept.
+3. Out of combat again, press **ESC** and click **Logout**, then cancel at the confirmation.
+
+**Expected:** the popup shows and dismisses in both combat states, and no step raises "Interface
+action failed because of an AddOn" or `ADDON_ACTION_FORBIDDEN`. Step 3 is § 1.3 run after a reset has
+touched the table, and is the step that actually catches a leak.
+
 ---
 
 ## 2. Slash commands smoke (~3 min)

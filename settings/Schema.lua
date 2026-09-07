@@ -571,10 +571,14 @@ end
 -- built leaks taint into them. Deferring registration until the user
 -- actually invokes a reset means the table is untouched during the
 -- boot sequence.
+--
+-- There is deliberately no `StaticPopupDialogs = StaticPopupDialogs or {}`
+-- guard below. Assigning the global is precisely the write the paragraph
+-- above exists to avoid, and it guards nothing: every retail client has
+-- the table built long before an addon file runs. Only the key is set.
 function Settings.EnsureResetPopup()
     if Settings._resetPopupRegistered then return end
     Settings._resetPopupRegistered = true
-    StaticPopupDialogs = StaticPopupDialogs or {}
     StaticPopupDialogs["WHATGROUP_RESET_ALL"] = {
         -- THE COLLECTION'S ONE WORDING (options-ui-§12), verbatim. Addon-agnostic on purpose --
         -- no addon enumerates its own nouns -- and explicit about the destruction. Eight
