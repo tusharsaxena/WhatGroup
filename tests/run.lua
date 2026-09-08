@@ -81,6 +81,22 @@ _G.WHATGROUP_TEST = Kit.expose{
 }
 
 -- Order is load-order-sensitive; keep it stable.
+--
+-- What holds this list honest is `Kit.assertSuiteInventory` (tests/_kit/framework.lua), which
+-- Kit.run calls on `dir` and `suites` BEFORE it loads a single file, in both directions: a name
+-- here with no file on disk, and a tests/*.lua on disk with no name here. It is not called from a
+-- case anywhere in this repo, and there is no reason to add one — the runner-level call already
+-- aborts the run with a non-zero exit, which is strictly earlier and strictly louder than a FAIL
+-- line among 545 PASSes. The reason it is worth SAYING is that the pin is invisible: nothing in
+-- this file names it, `grep assertSuiteInventory tests/` outside the kit finds nothing, and a
+-- reader who concludes the list is unpinned goes and pins it a second time.
+--
+-- Both directions, seen red (M4-19):
+--   delete the "test_util" entry below →
+--     `tests/test_util.lua exists but is not declared in the suites list ... it is running zero
+--      cases today`
+--   rename tests/test_util.lua →
+--     `tests/test_util.lua is declared in the suites list (position 6) but is not on disk`
 Kit.run{
     dir    = "tests/",
     suites = {

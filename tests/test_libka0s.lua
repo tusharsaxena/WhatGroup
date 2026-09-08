@@ -20,12 +20,19 @@ end
 
 -- Every file the addon's own source may hand a descriptor to a LibKa0s module from. The `L`-trap
 -- source guard below sweeps exactly these.
-local SEAM_FILES = {
-    "core/CoreSetup.lua",
-    "core/DebugLogSetup.lua",
-    "settings/OptionsSetup.lua",
-    "settings/Slash.lua",
-}
+--
+-- Derived from the TOC, not typed out. The hand-written list this replaced named four paths —
+-- core/CoreSetup.lua, core/DebugLogSetup.lua, settings/OptionsSetup.lua, settings/Slash.lua — the
+-- four files that happened to build descriptors on the day it was written. Nothing made it grow: a
+-- fifth file that starts calling `lib:New` is swept by nothing, and the sweep reports green over
+-- it forever, because a list of paths cannot notice a path that was never added to it.
+--
+-- The whole TOC load list is the honest denominator. The trap only matches a descriptor field
+-- spelled `L = NS.L`, so a file that builds no descriptor contributes no match and costs one
+-- io.open; there is no reason to guess in advance which of the sixteen might grow one. It is also
+-- the same derivation tests/loader.lua feeds the sandbox, so the set the guard sweeps and the set
+-- the addon actually loads cannot drift apart.
+local SEAM_FILES = T.loadAddon.tocFiles
 
 -- ---------------------------------------------------------------------------
 -- The vendored library is really there
@@ -745,12 +752,27 @@ test("libka0s: the L-trap matcher flags the table and the `or` spelling, not the
 end)
 
 test("libka0s: no seam file hands a descriptor this addon's locale table (the L trap)", function()
+    -- What this case sweeps is now the whole TOC load list, not four hand-typed paths, and that is
+    -- the half that changes what it can catch: put `local d = { L = NS.L }` in core/Util.lua and
+    -- the old four-path form reported PASS, because Util was never on the list and a list cannot
+    -- notice a file nobody added to it.
+    --
+    -- Red under the mutation, seen (M4-19): `local d = { L = NS.L }` anywhere in core/Util.lua →
+    --   "core/Util.lua hands a descriptor NS.L: NS.L }"
+    --
+    -- `assertTrue(src ~= nil)` replaces an `if src then` that wrapped the assertion and swallowed
+    -- an unreadable path — the sweep quietly covered one file fewer and still printed PASS. Be
+    -- clear about what that guard is worth NOW: with SEAM_FILES derived from the TOC, a path that
+    -- does not resolve kills tests/loader.lua's `loadfile` at runner start, so the repo is already
+    -- red before this case is reached and I have not seen this line fail on its own. It stays
+    -- because the sweep must never be able to narrow in silence, whatever the list is derived from
+    -- later; it is a guard, not a gate, and it is not coverage of anything.
     for _, path in ipairs(SEAM_FILES) do
         local src = readFile(path)
-        if src then
-            local bad = offendingL(src)
-            assertNil(bad, path .. " hands a descriptor NS.L: " .. tostring(bad))
-        end
+        assertTrue(src ~= nil, path .. " is in the TOC load list but could not be read; the sweep "
+            .. "would have skipped it and still reported green")
+        local bad = offendingL(src)
+        assertNil(bad, path .. " hands a descriptor NS.L: " .. tostring(bad))
     end
 end)
 

@@ -8,8 +8,8 @@
 -- suite can see it and no amount of green says otherwise.
 
 local T = _G.WHATGROUP_TEST
-local test, assertEqual, assertTrue, assertNil =
-    T.test, T.assertEqual, T.assertTrue, T.assertNil
+local test, assertEqual, assertTrue, assertNil, fail =
+    T.test, T.assertEqual, T.assertTrue, T.assertNil, T.fail
 
 local VENDORED = "Interface\\AddOns\\WhatGroup\\libs\\LibKa0s\\media\\"
 
@@ -144,14 +144,78 @@ test("mediasetup: the whole catalog has a file in the vendored copy", function()
     assertEqual(table.concat(missing, ", "), "")
 end)
 
+-- Every path git tracks under media/, forward-slash and repo-relative.
+--
+-- Tracked rather than on-disk, deliberately: what a build ships is what the repo carries, and an
+-- uncommitted file in a working tree is not in anybody's package. And it FAILS RATHER THAN PASSES
+-- when it cannot look — an empty listing from a broken pipe is indistinguishable from a clean
+-- media/, so a gate that treats "no result" as "nothing found" goes quiet exactly when it is
+-- needed. This repo tracks six files under media/; zero is never the truth.
+local function trackedMedia()
+    if not io.popen then
+        fail("io.popen is unavailable, so the tracked media set cannot be read")
+    end
+    local pipe = io.popen("git -C '" .. (T.root or ".") .. "' ls-files -z -- media/")
+    if not pipe then fail("could not start `git ls-files`") end
+    local blob = pipe:read("*a") or ""
+    pipe:close()
+    local paths, start = {}, 1
+    while true do
+        local i = blob:find("\0", start, true)
+        if not i then break end
+        if i > start then paths[#paths + 1] = blob:sub(start, i - 1):gsub("\\", "/") end
+        start = i + 1
+    end
+    if #paths == 0 then
+        fail("`git ls-files -- media/` reported nothing tracked, which cannot be true here")
+    end
+    return paths
+end
+
 test("mediasetup: this addon ships no private copy of the shared art (anti-patterns #63)", function()
     -- The whole point of the move. media/logos/ and media/screenshots/ stay — the brand TGA the
     -- settings landing page draws is this addon's own and is sanctioned — but media/fonts/ is gone
     -- and must not come back: two copies of a font is two licenses to track and two provenance
     -- stories, and the second copy is the one that goes stale.
-    local fh = io.open((T.root or ".") .. "/media/fonts/JetBrainsMono-Regular.ttf", "rb")
-    if fh then fh:close() end
-    assertNil(fh, "media/fonts/ is the library's payload now, not this addon's")
+    --
+    -- Scanned, not spelled out. The path this case used to stat by hand was
+    -- media/fonts/JetBrainsMono-Regular.ttf and nothing else, so the ONE arrangement it could see
+    -- was a re-added copy of the same face under the same name — a second face, the same face
+    -- under another basename, or a private duplicate of a catalog icon all walked past a green
+    -- case whose title promised to have looked.
+    --
+    -- Red under either mutation:
+    --   `git add`ing media/fonts/JetBrainsMono-Regular.ttf back →
+    --     "media/ carries a private font face; media/fonts/ is the library's payload now
+    --      (expected , got media/fonts/JetBrainsMono-Regular.ttf)"
+    --   `git add`ing a copy of a catalog mark, e.g. media/logos/close.tga →
+    --     "media/ carries a private copy of a catalog icon; the catalog is the library's
+    --      (expected , got media/logos/close.tga (\"close\"))"
+    local _, env = T.newAddon()
+    local Media = env.LibStub("LibKa0s-Media-1.0", true)
+    local catalog = {}
+    for _, name in ipairs(Media.ICONS) do catalog[name:lower()] = true end
+
+    local fonts, icons = {}, {}
+    for _, path in ipairs(trackedMedia()) do
+        local lower = path:lower()
+        if lower:match("%.ttf$") or lower:match("%.otf$") then
+            fonts[#fonts + 1] = path
+        end
+        -- The catalog is keyed by extensionless name and the art ships as .tga, so compare on the
+        -- basename with its extension taken off. A LOGO that happens to share a mark's name is
+        -- still a duplicate of that mark by every test the client applies, which is why the check
+        -- is over the whole of media/ rather than a subdirectory of it.
+        local base = lower:match("([^/]+)%.%w+$")
+        if base and catalog[base] then
+            icons[#icons + 1] = path .. ' ("' .. base .. '")'
+        end
+    end
+
+    assertEqual(table.concat(fonts, ", "), "",
+        "media/ carries a private font face; media/fonts/ is the library's payload now")
+    assertEqual(table.concat(icons, ", "), "",
+        "media/ carries a private copy of a catalog icon; the catalog is the library's")
 end)
 
 -- ---------------------------------------------------------------------------
