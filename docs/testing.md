@@ -54,10 +54,12 @@ file that typed the same string out are indistinguishable while the folder is
 called what the literal says, and telling them apart is the only way to keep a
 label like **Enable WhatGroup** honest about which addon it is turning off.
 
-The suites, in run order: `test_harness`, `test_libka0s`, `test_mediasetup`,
-`test_envsetup`, `test_util`, `test_compat`, `test_database`, `test_settings`,
-`test_slash`, `test_labels`, `test_capture`, `test_notify`, `test_frame`,
-`test_panel`, `test_lifecycle`, `test_debuglog`, `test_vendor_sync`.
+The suites, in run order: `test_harness`, `test_libka0s`,
+`test_surface_parity`, `test_mediasetup`, `test_envsetup`, `test_util`,
+`test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
+`test_capture`, `test_notify`, `test_frame`, `test_panel`, `test_lifecycle`,
+`test_debuglog`, `test_vendor_sync`. `test_eol` runs last and arrives with the
+vendored kit rather than living in `tests/`.
 
 `test_libka0s` is the integration suite for the adopted LibKa0s majors: that
 each really registers, that each descriptor is well-formed, that the degraded
@@ -67,6 +69,27 @@ also carries the two cases that pin the ARGUMENT nothing else can see — that
 argument, and that the DebugLog descriptor passes `addonName` beside `name`.
 Both are invisible in game except by comparison: the factory receives no name,
 builds no texture path, and draws a perfectly good button.
+
+`test_surface_parity` is the degradation gate. Each of the four adopted seams
+carries a hand-written stub for the install where `libs/LibKa0s` is missing, and
+a stub is a second implementation of somebody else's surface — so it drifts the
+moment the library grows a member the addon starts calling, staying green on the
+live path and raising on exactly the path the stub exists for. The four cases
+compare the two halves as a **set**, and both halves come from a real load: the
+degraded arm loads the addon with the library's files omitted, never by
+hand-stubbing the member under test.
+
+Three of the four name their live half rather than rebuilding it —
+`assertSurfaceParity(stub, "LibKa0s-Options-1.0")` — which compares only the
+surface's public members, so the library's own `__`-prefixed internals are the
+kit's business rather than a hand-kept exemption list that grows on every
+re-vendor. Where that name resolves is registered in `tests/run.lua`: all three
+stubs mirror an **instance**, what `lib:New(descriptor)` returned, and not the
+library table `LibStub` answers for the same major. Core keeps the two-table form
+because it is not a major's surface at all — `core/CoreSetup.lua` hangs its
+members on `NS` itself, so there is no name to look one up under. A member that
+is live-only on purpose is named in the case's `ignore` list with the rule that
+makes it so, because a deliberate omission and a bug otherwise read identically.
 
 `test_mediasetup` is the `LibKa0s-Media-1.0` seam's own suite, and the case that
 earns it is the catalog cross-check: every icon this addon draws is a plain

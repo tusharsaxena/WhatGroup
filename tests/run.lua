@@ -5,8 +5,9 @@
 -- Everything generic — the case registry, the assertions, the runner, the `--list` inventory
 -- renderer, the sandboxed source loader and the TOC reader — comes from tests/_kit/ and is never
 -- edited here. What stays is what is genuinely this addon's: the instance factory
--- (tests/loader.lua), the mock extender (tests/wow_mock.lua), the three lifecycle factories below
--- and the ordered suite list.
+-- (tests/loader.lua), the mock extender (tests/wow_mock.lua), the three lifecycle factories below,
+-- the surface source tests/test_surface_parity.lua resolves its live half through, and the ordered
+-- suite list.
 --
 -- Run from the repo root:
 --   lua tests/run.lua          -- run all suites (non-zero exit on failure)
@@ -42,6 +43,32 @@ local function enableAddon(opts)
     return NS, env, m
 end
 
+-- Where Kit.assertSurfaceParity's by-name form looks the LIVE half up (kit 15, vendored by M4-01).
+--
+-- Registered explicitly, and the explicitness is doing two jobs at once. `Kit.expose` auto-wires a
+-- LibStub off the exposed table for a repo whose stubs mirror LIBRARY TABLES; this runner exposes
+-- factories rather than a built addon, so nothing is auto-wired and every by-name case in
+-- tests/test_surface_parity.lua fails outright with "no surface source is registered" — which is
+-- the kit's deliberate bargain, an unresolvable name reddens rather than silently passing. And even
+-- if a LibStub were reachable it would be the wrong answer: all three of this addon's
+-- library-backed stubs mirror an INSTANCE — what `lib:New(descriptor)` returned — and
+-- "LibKa0s-Options-1.0" resolves to the four-member library table (LAYOUT, New,
+-- PatchAlwaysShowScrollbar, STRINGS), not to the surface settings/Panel.lua calls.
+--
+-- ONE extra addon load, at runner start, used for nothing but reading member names off. It is not
+-- handed to any case and no case mutates it, so the per-case isolation the factories above exist
+-- for is untouched — and it is why this file's live half carries no test seams stamped on by a
+-- suite that ran earlier.
+--
+-- Set BEFORE Kit.expose, which is what makes it stick: expose registers a source only when none is
+-- registered yet, precisely so a runner like this one keeps its own.
+local surfaceNS = loadAddon()
+Kit.setSurfaceSource{
+    ["LibKa0s-DebugLog-1.0"] = surfaceNS.DebugLog,
+    ["LibKa0s-Slash-1.0"]    = surfaceNS.SlashCommands,
+    ["LibKa0s-Options-1.0"]  = surfaceNS.addon.Settings.Helpers,
+}
+
 -- The shared table every suite reaches through `_G.WHATGROUP_TEST`. Kit.expose merges `test` and
 -- the kit assertions in beside this repo's own keys, so no suite file changed when the harness
 -- moved onto the kit.
@@ -59,6 +86,7 @@ Kit.run{
     suites = {
         "test_harness",
         "test_libka0s",
+        "test_surface_parity",
         "test_mediasetup",
         "test_envsetup",
         "test_util",

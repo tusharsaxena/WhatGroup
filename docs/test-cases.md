@@ -16,7 +16,7 @@ badge and any count quoted in the docs must agree with it.
 - harness: every LibKa0s file the runner loads exists on disk
 - harness: the libraries load BEFORE the addon's own files
 
-### test_libka0s.lua (51)
+### test_libka0s.lua (47)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
@@ -60,15 +60,18 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the settings stub carries no widget maker and no layout constant
 - degraded: the settings panel explains itself once at load and once per config
 - degraded: `/wg debug on` still moves the flag and explains the missing window ONCE
-- parity: the Core seam's whole namespace surface survives the library's absence
-- parity: the DebugLog stub carries the whole live surface
-- parity: the Slash stub carries the whole live surface
-- parity: the Options helpers stub carries the whole live surface
 - libka0s: the Master controls hook is keyed off the library's constant, not a copy of it
 - libka0s: the L-trap matcher flags the table and the `or` spelling, not the `and` one
 - libka0s: no seam file hands a descriptor this addon's locale table (the L trap)
 - libka0s: Core has no STRINGS and reads no descriptor L (tripwire)
 - libka0s: Options reads no descriptor L (tripwire)
+
+### test_surface_parity.lua (4)
+
+- parity: the Core seam's whole namespace surface survives the library's absence
+- parity: the DebugLog stub carries the whole live surface
+- parity: the Slash stub carries the whole live surface
+- parity: the Options helpers stub carries the whole live surface
 
 ### test_mediasetup.lua (11)
 
@@ -610,7 +613,8 @@ badge and any count quoted in the docs must agree with it.
 | Suite | Cases |
 |-------|------:|
 | test_harness.lua | 7 |
-| test_libka0s.lua | 51 |
+| test_libka0s.lua | 47 |
+| test_surface_parity.lua | 4 |
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
 | test_util.lua | 31 |

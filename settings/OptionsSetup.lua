@@ -66,7 +66,7 @@ if not lib then
     -- The tabbed page (options-ui-§13) and the page banner (options-ui-§14). settings/Panel.lua
     -- calls RenderTabbedSchema and nothing else here; the rest are the members the live surface
     -- grew with them, carried so the degraded table is the same SHAPE as the live one rather than
-    -- the subset somebody remembered -- tests/test_libka0s.lua's parity case is what says so.
+    -- the subset somebody remembered -- tests/test_surface_parity.lua is what says so.
     -- PageBanner has no host call site at all (WhatGroup has no per-window state to name) and is
     -- stubbed for the same reason.
     H.RenderTabbedSchema   = function() end
@@ -75,9 +75,21 @@ if not lib then
     H.PageHeader           = function() end
     H.SubTabStrip          = function() end
     H.SetChromeHeight      = function() end
-    -- The chrome band's own arithmetic. Library-internal, reached only from the makers above --
-    -- present here because the parity case compares the whole set, and absent from anything this
-    -- addon calls.
+    -- The chrome band's own arithmetic. Library-internal, reached only from the makers above, and
+    -- absent from anything this addon calls.
+    --
+    -- These nine, and the three `__` members further down -- twelve in all -- are NO LONGER GATED,
+    -- which is worth saying here rather than leaving to be discovered.
+    -- tests/test_surface_parity.lua moved onto Kit.assertSurfaceParity's by-name form at kit 15,
+    -- and that form compares Kit.publicMembers, which drops every `__`-prefixed key before it
+    -- compares anything. That is the kit's rule rather than this file's, and it is the right one:
+    -- the library publishes these to talk to itself across a file boundary, and
+    -- libs/LibKa0s/Options.lua's comment at O.__print says in as many words that a degradation
+    -- stub does not mirror them.
+    --
+    -- So the reason the twelve stay is now SHAPE alone, and shape is a weaker reason than a gate.
+    -- They are kept rather than deleted because deleting shipped lines was not what the item that
+    -- un-gated them was for; whichever way that goes later, it goes deliberately.
     H.__bannerBand         = function() end
     H.__tabBand            = function() end
     H.__tabPlacement       = function() end
@@ -105,7 +117,7 @@ if not lib then
     -- CLASS_COLOR_NOTE. They are the composers' published DATA, and hand-copying the value sets
     -- and the wording whose nine-way drift OptionsCompose exists to end is anti-patterns #47 in
     -- the same spirit the layout scalars are: a host copy is the copy that goes stale.
-    -- tests/test_libka0s.lua's parity case lists all six as live-only on purpose.
+    -- tests/test_surface_parity.lua lists all six as live-only on purpose.
     --
     -- ONE of them now has a host reader: settings/Panel.lua keys its afterGroup hook off
     -- MASTER_GROUP rather than respelling the group name, which is the whole point of publishing
