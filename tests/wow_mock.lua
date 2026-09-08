@@ -168,7 +168,19 @@ local function build()
         local api = {}
 
         -- visibility
+        --
+        -- SHOW IS PROTECTED EXACTLY AS HIDE IS, and this stub said otherwise until 2026-09-09. The
+        -- client's rule is about changing a protected frame's visibility, and showing an ancestor
+        -- changes it just as hiding one does. `/wg test` during combat raised
+        -- ADDON_ACTION_BLOCKED on `WhatGroupFrame:Show()` in a real client while this mock answered
+        -- "fine" — modelling only the Hide half is what let that reach a player, one report after
+        -- the Hide half did.
         api.Show      = function()
+            if mock.combat and f.__holdsProtected and f.__holdsProtected() then
+                mock.blocked[#mock.blocked + 1] =
+                    (f.__name or "<anonymous>") .. ":Show()"
+                return f
+            end
             local was = f.__shown
             f.__shown = true
             if not was then

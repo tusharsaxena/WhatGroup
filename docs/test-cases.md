@@ -401,7 +401,7 @@ badge and any count quoted in the docs must agree with it.
 - notify: the Leader row still prints when leaderName is nil
 - notify: Playstyle and Teleport drop their rows while Leader keeps its own
 
-### test_frame.lua (83)
+### test_frame.lua (84)
 
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
@@ -444,7 +444,8 @@ badge and any count quoted in the docs must agree with it.
 - frame: leaving combat builds the deferred popup
 - frame: the deferred show restores a pendingInfo cleared during the wait
 - frame: repeated in-combat shows queue exactly one wait frame
-- frame: once built, showing during combat is allowed
+- frame: a show requested in combat is deferred, not forced
+- frame: a popup held at alpha 0 comes back in combat without a Show
 - frame: reconfiguring the teleport button in combat stashes and replays it
 - frame: a fresh profile leaves the popup at its default center anchor
 - frame: dragging the title bar persists the popup position
@@ -659,7 +660,7 @@ badge and any count quoted in the docs must agree with it.
 | test_labels.lua | 34 |
 | test_capture.lua | 32 |
 | test_notify.lua | 48 |
-| test_frame.lua | 83 |
+| test_frame.lua | 84 |
 | test_panel.lua | 53 |
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
@@ -669,4 +670,4 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 2 |
 | test_eol.lua | 1 |
-| **Total** | **567** |
+| **Total** | **568** |

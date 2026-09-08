@@ -367,8 +367,12 @@ The popup parents a `SecureActionButtonTemplate` teleport button, so the client 
    - **Expected:** the popup goes off screen **on the pull**, not a fight later. No error.
 6. Drop combat.
    - **Expected:** **it comes back by itself.** This is the gate releasing what it withheld, and it is the half that must not be lost to the fix for step 2.
-7. Set `General visibility` = **In combat**, out of combat, holding a capture. The popup is hidden. Pull.
-   - **Expected:** it opens. Drop combat — it hides again.
+7. `/wg test` **while in combat**, with the popup closed.
+   - **Expected:** no red error, and the popup does **not** appear. One chat line: *"Popup deferred until combat ends."*
+8. Drop combat.
+   - **Expected:** the popup opens now, carrying the capture from step 7.
+9. Set `General visibility` = **In combat**, out of combat, holding a capture. The popup is hidden. Pull.
+   - **Expected:** no red error, and — **known limitation** — the popup does **not** open. `Show` is protected in combat, so this value cannot be delivered from a hidden frame. See `docs/frame.md`; making it work means keeping the frame invisible-but-present out of combat, which is a decision nobody has taken.
 
 **Known and accepted:** between steps 2 and 3 the frame is invisible but still present — it has not been `Hide`n yet, so its title bar can still be dragged and the teleport button still occupies its 24px. A teleport cannot be cast in combat, so a click there does nothing. If you can find a way to make that matter to a player, it is worth a finding.
 

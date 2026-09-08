@@ -214,11 +214,29 @@ local function hidePopup()
     return true
 end
 
+-- SHOW IS PROTECTED EXACTLY AS HIDE IS, and this file claimed the opposite until 2026-09-09 —
+-- "f:Show() on an already-built frame is not a secure write". It is: the rule is about changing a
+-- protected frame's visibility, and showing an ancestor changes it just as hiding one does. A
+-- player ran `/wg test` mid-fight and got ADDON_ACTION_BLOCKED on `WhatGroupFrame:Show()`.
+--
+-- There is one legal way to put the popup back during a lockdown, and it is the mirror of the way
+-- it goes away: a frame that is still SHOWN at alpha 0 needs no Show call, only its alpha back.
+-- Anything else waits for combat to end. Returns false when it could not, so the caller can defer
+-- rather than fire into a refusal.
 local function showPopup()
+    if not f then return false end
+    if f:IsShown() then
+        softHidden, pendingHide = false, false
+        WhatGroup:ApplyFrameAlpha()
+        if not InCombatLockdown() then f:Raise() end
+        return true
+    end
+    if InCombatLockdown() then return false end
     softHidden, pendingHide = false, false
     WhatGroup:ApplyFrameAlpha()
     f:Show()
     f:Raise()
+    return true
 end
 
 -- On screen means the player can SEE it. A soft-hidden popup is still shown and still anchored, so
@@ -792,7 +810,15 @@ function WhatGroup:ShowFrame()
     -- print a chat hint. Once buildFrame has run once, subsequent calls
     -- are safe in combat (only the secure-button reconfigure, handled
     -- by ConfigureTeleportButton's own combat guard, is at risk).
-    if not f and InCombatLockdown() then
+    -- REFUSED IN COMBAT, and it is the show that is refused now, not only the build. Building
+    -- creates the secure button and the UISpecialFrames entry, both protected; showing changes a
+    -- protected frame's visibility through its ancestor, equally protected. `/wg test` mid-fight
+    -- proved the second half in a client after this file spent a release asserting it was safe.
+    --
+    -- The one case that does NOT defer is a popup still shown at alpha 0: putting that back needs
+    -- no protected call at all, only its alpha, which is the exact mirror of how it went away.
+    -- That is what keeps "hiding an open popup in combat" reversible rather than one-way.
+    if InCombatLockdown() and not (f and f:IsShown()) then
         if WhatGroup._print then
             WhatGroup._print(L["Popup deferred until combat ends."])
         end
@@ -839,6 +865,5 @@ function WhatGroup:ShowFrame()
             .. tostring(self.db and self.db.profile and self.db.profile.visibility))
         return
     end
-    f:Show()
-    f:Raise()
+    showPopup()
 end

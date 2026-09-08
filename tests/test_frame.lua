@@ -613,14 +613,47 @@ test("frame: repeated in-combat shows queue exactly one wait frame", function()
     assertEqual(#mock.frames, afterFirst, "the _frameBuildQueued guard holds")
 end)
 
-test("frame: once built, showing during combat is allowed", function()
+test("frame: a show requested in combat is deferred, not forced", function()
+    -- This case asserted the opposite until 2026-09-09 — "no defer needed once the frame exists" —
+    -- and a player proved it wrong with `/wg test` mid-fight: ADDON_ACTION_BLOCKED on
+    -- WhatGroupFrame:Show(). Show is protected for the same reason Hide is, because showing an
+    -- ancestor changes a protected child's visibility. The mock modelled only the Hide half, so
+    -- this case passed while the client refused the call.
+    -- red under: a ShowFrame that only defers the BUILD.
     local NS, _, mock = T.bootAddon()
     NS.addon.pendingInfo = pending()
     NS.addon:ShowFrame()          -- build out of combat
     popup(mock):Hide()
     mock.combat = true
     NS.addon:ShowFrame()
-    assertTrue(popup(mock):IsShown(), "no defer needed once the frame exists")
+    assertEqual(#mock.blocked, 0, "the error the player actually saw")
+    assertFalse(popup(mock):IsShown(), "and it must not appear mid-fight either")
+
+    mock.combat = false
+    mock.fireCTimers()
+    for _, fr in ipairs(mock.frames) do
+        if fr.__events and fr.__events["PLAYER_REGEN_ENABLED"] and fr.__scripts.OnEvent then
+            fr.__scripts.OnEvent(fr, "PLAYER_REGEN_ENABLED")
+        end
+    end
+    assertTrue(popup(mock):IsShown(), "the deferred show has to land when combat ends")
+end)
+
+test("frame: a popup held at alpha 0 comes back in combat without a Show", function()
+    -- The one legal way back during a lockdown, and the mirror of how it went away. The frame is
+    -- still SHOWN, so restoring its alpha needs no protected call — which is what makes "hiding an
+    -- open popup in combat" reversible instead of one-way.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    mock.combat = true
+    local btn = closeButton(mock)
+    btn.__scripts.OnClick(btn)
+    assertEqual(popup(mock):GetAlpha(), 0)
+
+    NS.addon:ShowFrame()
+    assertEqual(#mock.blocked, 0, "no Show may be attempted for this")
+    assertEqual(popup(mock):GetAlpha(), 1, "and the popup is back on screen")
 end)
 
 test("frame: reconfiguring the teleport button in combat stashes and replays it", function()
@@ -875,7 +908,15 @@ test("frame: visibility 'inCombat' BUILDS out of combat but only SHOWS in it", f
     assertFalse(popup(mock):IsShown(), "and out of combat it stays off screen")
     mock.combat = true
     NS.addon:ShowFrame()
-    assertTrue(popup(mock):IsShown(), "in combat it opens")
+    -- AND IT CANNOT OPEN, which is the finding rather than the fix. `inCombat` asks for a popup
+    -- that appears during a lockdown, and Show is protected there — so from a genuinely hidden
+    -- frame the setting cannot be delivered at all. What this case pins is that the addon does not
+    -- ASK: the attempt would not open it either way and would cost the player a red error.
+    -- Delivering `inCombat` would mean keeping the frame shown at alpha 0 for the whole time the
+    -- player is OUT of combat, so the edge needs only an alpha change — an invisible 420x260
+    -- click-target at rest, which is a trade for the owner to make, not this case.
+    assertEqual(#mock.blocked, 0, "no protected Show may be attempted")
+    assertFalse(popup(mock):IsShown(), "the client will not open it mid-fight")
 end)
 
 test("frame: visibility 'outOfCombat' is the mirror of it", function()
@@ -1019,8 +1060,13 @@ test("frame: a combat edge brings back a popup the gate had hidden", function()
 
     mock.combat = true
     assertTrue(mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED"))
-    assertTrue(popup(mock):IsShown(), "the invite the player is still holding comes back with it")
-    assertEqual(#mock.blocked, 0)
+    -- The gate wants to open it here and the client will not let it: the frame is genuinely
+    -- hidden, so putting it back needs a Show, and Show inside a lockdown is protected. The
+    -- re-show half is therefore real only on the OTHER edge — `outOfCombat` releasing when combat
+    -- ends, where Show is legal — and for a popup held at alpha 0, which needs no Show at all.
+    -- Both of those are pinned by their own cases below.
+    assertEqual(#mock.blocked, 0, "and it must not fire into the refusal to find that out")
+    assertFalse(popup(mock):IsShown(), "'inCombat' cannot be delivered from a hidden frame")
 end)
 
 -- On screen means the player can see it. A popup the client refused to Hide is held at alpha 0,
