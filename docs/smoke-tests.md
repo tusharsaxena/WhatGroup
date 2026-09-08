@@ -476,6 +476,24 @@ Run after bumping the `## Interface:` line in `WhatGroup.toc` for a major patch.
 
 If any Blizzard API broke (e.g. fields renamed on `C_LFGList.GetActivityInfoTable`), the most likely failure point is `CaptureGroupInfo` returning incomplete data — see [data-flow.md → Captured info](./data-flow.md#captured-info) for the field list and remediation steps.
 
+### 7a · `Compat.IsSpellKnown` — is the modern rung there yet? (`WHATGROUP-R-06`)
+
+`core/Compat.lua:62-67` is the one shim of six with no modern rung. Its five siblings at `:24`, `:40`, `:52`, `:83` and `:105` try `C_Spell.*` first and keep the legacy global as the fallback; this one calls the bare `IsSpellKnown` and returns `false` when it is absent. Nothing throws, so the degrade is safe — but it is not quiet. Every teleport in the popup would draw desaturated with `Teleport spell not learned` beside it (section 4.1b) on a character who has learned all of them, and the chat summary would tag every row `(not learned)`. That is what patch day looks like if Blizzard retires the global, and no headless case can see it coming. `tests/test_compat.lua:143` already nils the global and asserts the shim answers `false`, which is the shim behaving as designed; what it cannot assert is whether `false` is the *right* answer on a client where a modern API knows better.
+
+The fix — a `C_SpellBook.IsSpellKnown` rung above the global, in the shape the siblings use — **is conditional on this observation**. Until someone makes it, the shim stays exactly as written.
+
+1. Pick a teleport you have learned and one you have not, and note both spell IDs.
+2. `/dump C_SpellBook.IsSpellKnown(<the learned one>)` then `/dump IsSpellKnown(<the same>)`.
+3. Repeat both for the one you have not learned.
+
+**Pass** — both APIs resolve and both agree, on the learned spell and the unlearned one. Write down the client build and the two spell IDs; that is the evidence the rung waits on, and a bare "it worked" is not.
+
+**Fail** — either call errors, meaning `C_SpellBook.IsSpellKnown` is not there on this client, or the two answers disagree. Record what you saw and **do not add the rung**. A disagreement means the two are not interchangeable, and the shim then needs a decision rather than a fallback ladder.
+
+Re-run on patch day, and on any day the popup starts calling learned teleports unlearned.
+
+The finding and its blocked state are on the books as issue #15; record the reading there.
+
 ---
 
 ## 8. Lib-refresh smoke (~2 min)
@@ -624,5 +642,7 @@ For a fast pre-release pass, run at minimum:
 - [ ] section 12a — the tab strip's labels, selection and band height survive three passes
 
 Run section 9 (degraded install), section 12 (shared art), section 12a (the pooled tab strip) and the rest of section 11 after a LibKa0s re-vendor or any change to the six seam files.
+
+Section 7a is a one-off that has **never been run**. It is the observation `WHATGROUP-R-06` is gated on, and until someone runs it on a live client `core/Compat.lua`'s `IsSpellKnown` shim keeps the shape the finding questions — deliberately, because adding the rung without the observation would be inventing the evidence the finding asks for.
 
 If all of those pass, the addon is in shippable shape for the 80% case. Run the full suite for releases tagged with feature work.
