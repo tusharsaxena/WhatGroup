@@ -94,8 +94,11 @@ This root file is a **stub** (documentation-§2). The real detail lives in `docs
 
 Green gate before every commit: `lua tests/run.lua` and `luacheck .` (0/0), plus the
 **vendor gate** — `diff -r --strip-trailing-cr` and plain `diff -r` of `../LibKa0s/LibKa0s`
-against `libs/LibKa0s` and of `../LibKa0s/testkit` against `tests/_kit`; a non-empty
-*content* diff is a real fork, a bytes-only one is a line-ending divergence
+against `libs/LibKa0s` and of `../LibKa0s/testkit` against `tests/_kit`. Against the
+**tag `CLAUDE.md` names** a non-empty *content* diff is a real fork and a bytes-only one
+is a line-ending divergence; against the sibling's *working tree* a non-empty diff means
+only that the library has tagged a release this addon has not taken yet, which it
+usually has — `tests/test_vendor_sync.lua` runs the tag comparison inside the suite
 ([docs/testing.md](docs/testing.md)). Plus the
 in-game [smoke tests](docs/smoke-tests.md) before tagging a release, after an
 `## Interface:` bump, or after a `libs/` refresh.
