@@ -200,6 +200,26 @@ end
 -- silently does nothing and the popup returns as if the press never happened.
 local dismissPending = false
 
+-- WHY THE POPUP IS OFF SCREEN — the question the re-show arm has to answer, and could not. Four
+-- states reach "hidden", and only two of them are the gate's doing:
+--
+--   never shown                        -- leave it shut
+--   the gate DECLINED a requested show -- reopen when the gate opens  (ShowFrame's refusal)
+--   the gate HID a shown popup         -- reopen when the gate opens  (the hide below)
+--   the player dismissed it            -- leave it shut               (Close, ESC, any Hide)
+--
+-- Reported from a client on 2026-09-08: `/wg test`, close it, pull something, and it springs back
+-- open. No Lua error, because nothing about the call is wrong. Under `always` — the SHIPPED DEFAULT
+-- — the gate never hides at all, so every firing of the re-show arm was a popup the player had put
+-- away. On the default value the arm had no legitimate case whatsoever, which is how it reached a
+-- client through 559 green cases.
+--
+-- The bookkeeping is inverted on purpose, so the next hide path cannot forget it: `OnHide` clears
+-- this for EVERY hide, and only the gate's own two sites set it back, immediately after. ESC goes
+-- through `UISpecialFrames` to a bare `f:Hide()` and leaves no other trace, so anything keyed off
+-- one button's handler is wrong by construction rather than by oversight.
+local gateWithheld = false
+
 function WhatGroup:ApplyFrameVisibility(inCombat)
     if not f then return end
     -- The deferred Close lands first and wins over the gate: the player's explicit dismissal
@@ -209,8 +229,14 @@ function WhatGroup:ApplyFrameVisibility(inCombat)
         f:Hide()
         return
     end
-    if not visibilityAllows(inCombat) then return hidePopup() end
-    if WhatGroup.pendingInfo and not f:IsShown() then
+    if not visibilityAllows(inCombat) then
+        local down = hidePopup()
+        -- After the hide, never before: f:Hide() fires OnHide, which clears the flag for every
+        -- hide including this one. Setting it first would be undone by our own call.
+        if down then gateWithheld = true end
+        return down
+    end
+    if gateWithheld and WhatGroup.pendingInfo and not f:IsShown() then
         f:Show()
         f:Raise()
     end
@@ -422,9 +448,18 @@ local function buildFrame()
     NS.Windows.Restore("popup", f)
     f:Hide()
 
-    -- The ticker's hard stop. OnHide covers every way the popup can close — the Close button, ESC
-    -- through UISpecialFrames, a `f:Hide()` from anywhere — so no exit path has to remember.
-    f:SetScript("OnHide", stopCooldownTicker)
+    -- The ticker's hard stop, and the same reasoning now carries a second passenger. OnHide covers
+    -- every way the popup can close — the Close button, ESC through UISpecialFrames, a `f:Hide()`
+    -- from anywhere — so no exit path has to remember either of them.
+    --
+    -- Clearing `gateWithheld` here is what makes a player's dismissal stick: this runs for the
+    -- gate's own hide too, and the gate sets the flag back immediately afterwards. Every OTHER hide
+    -- therefore leaves it false, which is exactly the answer the re-show arm needs and the one it
+    -- could not previously get.
+    f:SetScript("OnHide", function(self)
+        gateWithheld = false
+        stopCooldownTicker(self)
+    end)
 
     -- And OnShow is where it arms, the exact mirror, for the same reason: the ticker is armed only
     -- against a visible popup (see applyTeleportNote), so the arm has to sit on the one seam every
@@ -761,6 +796,10 @@ function WhatGroup:ShowFrame()
     end
     PopulateFields()
     if not visibilityAllows() then
+        -- The gate DECLINED a show the player asked for, which is the second of the two states the
+        -- re-show arm is allowed to act on. Without this, `Only in combat` would show once on the
+        -- next pull and never again — the request would be forgotten the moment it was refused.
+        gateWithheld = true
         NS.Debug("Frame", "popup built but not shown: visibility = "
             .. tostring(self.db and self.db.profile and self.db.profile.visibility))
         return

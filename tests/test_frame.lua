@@ -1016,6 +1016,61 @@ test("frame: a combat edge brings back a popup the gate had hidden", function()
     assertEqual(#mock.blocked, 0)
 end)
 
+test("frame: a popup the PLAYER closed does not come back when combat starts", function()
+    -- Reported from the client on 2026-09-08: `/wg test`, close the popup, pull something, and it
+    -- springs open again. No Lua error, because nothing is wrong with the call -- the re-show arm
+    -- simply cannot tell "the gate is withholding this" from "the player put it away".
+    --
+    -- Note the visibility value: `always`, the shipped default. Under it the gate NEVER hides, so
+    -- every firing of the re-show arm is a popup the player closed. There is no legitimate case at
+    -- all on the default setting, which is why this reached a client.
+    -- red under: `if WhatGroup.pendingInfo and not f:IsShown() then f:Show() end`.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    assertTrue(popup(mock):IsShown())
+
+    local btn = closeButton(mock)
+    btn.__scripts.OnClick(btn)
+    assertFalse(popup(mock):IsShown(), "the Close press itself")
+
+    mock.combat = true
+    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    assertFalse(popup(mock):IsShown(), "combat reopened a popup the player had dismissed")
+end)
+
+test("frame: a popup closed with ESC does not come back either", function()
+    -- ESC routes through UISpecialFrames to a plain f:Hide(), so it leaves no trace the Close
+    -- button's own handler could record. Whatever distinguishes a gate hide from a player hide has
+    -- to sit on the frame, not on one button.
+    -- red under: the same arm.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    popup(mock):Hide()          -- exactly what CloseSpecialWindows does
+
+    mock.combat = true
+    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    assertFalse(popup(mock):IsShown(), "ESC must be as durable as the Close button")
+end)
+
+test("frame: leaving combat does not reopen a popup the player closed mid-fight either", function()
+    -- The other edge. `always` permits the popup on both transitions, so a dismissal has to
+    -- survive PLAYER_REGEN_ENABLED as well -- and that edge is the one that also flushes a
+    -- deferred Close, so the two must not fight.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    local btn = closeButton(mock)
+    btn.__scripts.OnClick(btn)
+
+    mock.combat = true
+    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    mock.combat = false
+    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_ENABLED")
+    assertFalse(popup(mock):IsShown(), "the dismissal has to outlive the whole fight")
+end)
+
 test("frame: a combat transition never opens a popup with nothing to show", function()
     -- A "No data" popup appearing the moment the player pulls is worse than no popup at all, so
     -- the re-show is gated on there being a capture to render.

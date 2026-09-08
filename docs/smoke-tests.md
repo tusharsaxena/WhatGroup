@@ -367,6 +367,24 @@ Then, once the cooldown has expired, `/wg test` again: full alpha, no swipe, no 
 
 **Failure means:** any red error, or a Close press in combat silently forgotten once combat ends.
 
+### 4.6 A popup you closed stays closed
+
+**Reported from the client on 2026-09-08**, on the shipped default (`General visibility` = **Always**): `/wg test`, close the popup, pull something, and it springs open again. No Lua error — nothing about the call was wrong. The re-show arm could not tell "the gate is withholding this" from "the player put it away", and under `Always` the gate never withholds, so every firing of it was the second case.
+
+1. `General visibility` = **Always** (the default). `/wg test`, then press **Close**.
+2. Pull a training dummy.
+   - **Expected:** the popup stays closed.
+3. Drop combat.
+   - **Expected:** still closed. The dismissal outlives the whole fight.
+4. `/wg test` again, then press **ESC** instead of Close. Pull, drop combat.
+   - **Expected:** identical. ESC routes through `UISpecialFrames` to a bare `Hide()`, so it must be exactly as durable as the button.
+5. Now the direction that *must* still work: `General visibility` = **In combat**, out of combat, holding a capture. The popup is hidden. Pull.
+   - **Expected:** the popup **opens**. This is the gate withholding and then releasing, and it is the one case the re-show arm exists for.
+6. Drop combat.
+   - **Expected:** hides again.
+
+**Failure means:** a popup you dismissed reappearing on any combat edge (steps 2-4), or the `In combat` value never opening the popup at all (step 5) — the second would mean the fix went too far and killed the legitimate case with the bug.
+
 ---
 
 ## 5. Real LFG flow smoke (~5–10 min)
