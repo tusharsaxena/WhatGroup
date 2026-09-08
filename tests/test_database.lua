@@ -22,7 +22,7 @@ test("database: RunMigrations re-seeds a missing schemaVersion", function()
     assertEqual(NS.addon.db.global.schemaVersion, 1)
 end)
 
-local assertTrue, assertNil = T.assertTrue, T.assertNil
+local assertTrue = T.assertTrue
 
 test("database: BuildDefaults seeds global.schemaVersion from NS.SCHEMA_VERSION", function()
     local NS = T.newAddon()

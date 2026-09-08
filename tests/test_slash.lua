@@ -77,7 +77,7 @@ test("slash: whitespace-only input is treated as bare /wg", function()
 end)
 
 test("slash: nil input is tolerated", function()
-    local NS, _, mock = T.bootAddon()
+    local NS = T.bootAddon()
     local ok = pcall(function() NS.addon:OnSlashCommand(nil) end)
     assertTrue(ok, "the dispatcher must not raise on nil input")
 end)

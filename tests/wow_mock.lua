@@ -491,8 +491,11 @@ local function build()
     local aceGUI = M.__libs["AceGUI-3.0"]
     local baseCreate = aceGUI.Create
 
-    aceGUI.Create = function(self, widgetType)
-        local w = baseCreate(self, widgetType)
+    -- The receiver is named `lib` and not `self`: AceGUI is called as `aceGUI:Create(...)`, but
+    -- the three widget methods defined below take their own implicit `self` (the WIDGET), and two
+    -- names for two different tables in one scope is how a mock grows a bug that reads as correct.
+    aceGUI.Create = function(lib, widgetType)
+        local w = baseCreate(lib, widgetType)
         w.frame = stubFrame("Frame", nil, "AceGUI-" .. widgetType)
         w.label = stubFrame("FontString")
         w.Fire  = w.__fire

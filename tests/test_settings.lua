@@ -117,7 +117,8 @@ end)
 -- Schema shape
 -- ---------------------------------------------------------------------------
 
-local assertTrue, assertFalse = T.assertTrue, T.assertFalse
+-- assertTrue is already bound at the head of the file; only assertFalse is new here.
+local assertFalse = T.assertFalse
 
 -- Source-text cases below read the seam files themselves: a declaration that must NOT be present
 -- is invisible in the loaded schema, because a hand-written copy of a composed row looks exactly

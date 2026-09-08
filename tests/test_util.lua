@@ -210,7 +210,7 @@ test("util: Restore clears existing anchors before applying the saved one", func
 end)
 
 test("util: a Save/Restore round trip survives through the real frame stub", function()
-    local NS, env, mock = T.bootAddon()
+    local NS, env = T.bootAddon()
     local src = env.CreateFrame("Frame")
     src:SetPoint("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 33, 44)
     NS.Windows.Save("roundtrip", src)

@@ -123,7 +123,7 @@ test("frame: buildFrame is one-shot — a second show reuses the same frame", fu
 end)
 
 test("frame: ESC-to-close is registered lazily, on the first show only", function()
-    local NS, env, mock = T.bootAddon()
+    local NS, env = T.bootAddon()
     assertEqual(#env.UISpecialFrames, 0, "no UISpecialFrames entry at load (taint)")
     NS.addon:ShowFrame()
     NS.addon:ShowFrame()

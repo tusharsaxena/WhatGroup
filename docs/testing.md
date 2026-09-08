@@ -273,9 +273,14 @@ naming `CLAUDE.md`.
 ## Lint scope
 
 `luacheck`'s 0/0 is **scoped by `.luacheckrc`'s `exclude_files`**, not
-repo-wide: `libs/`, `tests/` and the frozen audit/review bundles are excluded.
-Before reading a clean run as a clean change, confirm the files you touched are
-inside the checked set:
+repo-wide: `libs/`, `tests/_kit/`, `_dev/` and the frozen audit/review bundles
+are excluded. **The rest of `tests/` is linted** — the suites, `run.lua`,
+`loader.lua` and `wow_mock.lua` are this addon's code and are held to the same
+gate as `core/`, and a run that reports fewer than the full file count is a run
+that has stopped checking half the Lua in the repo. `tests/_kit/` is the one
+carve-out inside that tree, because it is a byte copy of LibKa0s' `testkit/`
+and is linted there as source. Before reading a clean run as a clean change,
+confirm the files you touched are inside the checked set:
 
 ```sh
 luacheck . --formatter plain | tail -1     # check the file count it reports
