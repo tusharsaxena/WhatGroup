@@ -320,3 +320,64 @@ test("every settings tab the README sends a player to exists in the schema", fun
         .. table.concat(wrong, ", ") .. ". Declared tabs are the `group` values in "
         .. "settings/Schema.lua plus the composed `Master controls`")
 end)
+
+-- ── The smoke suite's non-English-client section ───────────────────────────────
+
+-- WHAT IT PROVES, AND WHAT IT DOES NOT. That docs/smoke-tests.md still carries a section addressed
+-- to a non-English client, that the section names the locale to run it on, and that it says what a
+-- failure looks like rather than only what a pass does. It proves nothing whatever about that
+-- section having been RUN -- a checklist is a checklist, and this repository has no client.
+--
+-- WHY THIS REPOSITORY IN PARTICULAR. Everything this addon puts on screen about a group comes out
+-- of the client in the player\'s language: the activity name, the short name, the playstyle string,
+-- and the spell name that goes into the teleport button\'s `/cast` macrotext. tests/wow_mock.lua
+-- answers enUS for all of it, and core/WhatGroup.lua\'s own test fixture spells the activity name
+-- out in English, so nothing here has ever seen a German one. The section is also where session 6
+-- schedules § 7a, the observation WHATGROUP-R-06 is gated on.
+--
+-- The failure vocabulary is matched loosely on purpose: this file says "Fail" in some sections and
+-- "Expected" in others, and pinning one spelling would redden the tree for a rewording.
+local LOCALE_HEADING = "[Nn]on%-English client"
+local FAILURE_WORDS = { "Fail", "failure", "Failure", "the finding" }
+
+test("docs/smoke-tests.md carries a non-English-client section", function()
+    local body = read("docs/smoke-tests.md")
+
+    local capture, level, section = false, nil, {}
+    for line in (body .. "\n"):gmatch("([^\n]*)\n") do
+        local hashes = line:match("^(#+)%s")
+        if hashes and capture and #hashes <= level then break end
+        if hashes and not capture and line:match(LOCALE_HEADING) then
+            capture, level = true, #hashes
+        end
+        if capture then section[#section + 1] = line end
+    end
+    assertTrue(capture, "docs/smoke-tests.md has no heading naming a non-English client. The step "
+        .. "is unconditional (M5-08): where an addon reads nothing localized the section still "
+        .. "ships and says what it checked and why it came back empty")
+
+    local text = table.concat(section, "\n")
+    assertTrue(text:find("deDE", 1, true) or text:find("frFR", 1, true),
+        "the non-English-client section names no client to run it on -- deDE and frFR are the two "
+        .. "the collection\'s other locale steps use")
+
+    local named = false
+    for _, word in ipairs(FAILURE_WORDS) do
+        if text:find(word, 1, true) then named = true break end
+    end
+    assertTrue(named, "the non-English-client section says what passing looks like and never what "
+        .. "failing looks like. A step whose only outcome is \'it works\' is unfalsifiable in a "
+        .. "client the operator booted specially")
+
+    assertTrue(#section >= 10, "the non-English-client section is " .. #section .. " lines -- a "
+        .. "heading with a sentence under it records the gap as coverage, which is the failure "
+        .. "M5-08 was filed for")
+
+    -- Session 6 owns § 7a as well as this section: one login, both jobs. The finding it is gated
+    -- on has waited through five milestones for want of someone being in a client at the time, so
+    -- the pointer is part of the section rather than a nicety.
+    assertTrue(text:find("C_SpellBook.IsSpellKnown", 1, true),
+        "session 6 owns § 7a -- the C_SpellBook.IsSpellKnown observation WHATGROUP-R-06 is gated "
+        .. "on -- and the locale section is what schedules it. Naming it here is what stops the "
+        .. "one login this repository needs from being spent without it")
+end)

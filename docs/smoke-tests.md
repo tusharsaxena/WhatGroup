@@ -622,6 +622,114 @@ nothing about one out of game.
 
 ---
 
+## 12b. Non-English client (~10 min, session 6)
+
+**Session 6 of the 2026-09-07 remediation plan, owned by `M5-08`. NOT YET RUN — no WoW client was
+available when it landed. Nothing in this section has been performed and no step in it is recorded
+as passed.** Run on a client set to **deDE or frFR**, the two the collection's other locale steps
+use (`ConsumableMaster/docs/smoke-tests.md` § 3c, `KickCD/docs/smoke-tests.md` § 9b).
+
+**This section and § 7a are one login.** Session 6 schedules both, and § 7a — the
+`C_SpellBook.IsSpellKnown` observation `WHATGROUP-R-06` is gated on — has waited through five
+milestones for want of somebody being in a client at the time. Step 5 below is where it gets run.
+
+**What this addon reads in the player's language.** Nearly everything it puts on screen about a
+group:
+
+- **`info.fullName`** and **`info.shortName`** from `C_LFGList.GetActivityInfoTable`
+  (`core/Compat.lua:125-130`, stored at `core/WhatGroup.lua:309`, drawn at `modules/Frame.lua:680`
+  and in the chat summary at `core/WhatGroup.lua:514`). German activity names are materially longer
+  than English ones.
+- **`info.playstyleString`**, which the server renders in the player's language, preferred over the
+  enum lookup by `Labels.GetPlaystyleLabel` (`core/WhatGroup.lua:462-467`).
+- **`GROUP_FINDER_GENERAL_PLAYSTYLE1` … `4`**, read into `Labels.PLAYSTYLE` at **file load time**
+  (`core/WhatGroup.lua:435-440`). A global that is nil at load leaves that label nil for the whole
+  session — there is no second read.
+- **`Compat.GetSpellName`** (`core/Compat.lua:24-34`), whose return goes straight into the teleport
+  button's `/cast` macrotext (`modules/Frame.lua:274`, built at `:386`). Casting by name only works
+  when the name is the client's own, which is what makes this locale-independent by construction —
+  and is therefore worth confirming rather than assuming.
+
+What the addon **prints itself** — every `NS.L` label, the group-type words, the chat banner — is
+English on every client. That is the addon's scope and not a defect. § 10 (the `L` trap) is the check
+that they render as prose rather than as keys, and it is unrelated to this section.
+
+**`/wg test` will not do for most of this.** Its fixture spells the activity name out in English
+(`core/WhatGroup.lua:873`), so on a German client it is *expected* to show English. Use a real group
+for steps 1 to 3.
+
+1. **A real application, with a real German activity name.** Apply to a group through the LFG UI
+   and let the popup appear (section 5.1's flow).
+   **Expected:** the **Instance** field shows the client's own name for the activity, the **Type**
+   field shows a short name or the group-type label, and the **Playstyle** row shows the server's
+   own wording. No field shows `Unknown` where the client plainly has a name.
+   **Fail:** `Unknown` in the Instance row — `fullName` came back empty on this locale and the
+   `activityName` fallback at `core/WhatGroup.lua:309` did not cover it. Also fail: a name that
+   renders as mojibake or `?` glyphs, which is the text not surviving the trip to the font.
+2. **Field width.** Read the popup with that longer name in it, and check the chat summary line too.
+   **Expected:** the name fits its row or is truncated cleanly at the field's edge.
+   **Fail:** text overrunning the popup's border, overlapping the next field, or pushing the frame
+   wider than the screen. German activity names are the longest the client produces, and this is the
+   only place anything will notice.
+3. **Playstyle, including the load-time capture.** With the popup up, run
+   `/dump GROUP_FINDER_GENERAL_PLAYSTYLE1` and the same for `2`, `3` and `4`.
+   **Expected:** four non-empty strings in the client's language, and a Playstyle row that reads as
+   words rather than a number or a blank.
+   **Fail:** any of the four nil. `Labels.PLAYSTYLE` is built once at file load, so a nil there is
+   nil for the session and the enum fallback silently renders nothing for that playstyle — visible
+   only when a group with that playstyle turns up, which may not be this login. Record which ones
+   came back nil either way.
+4. **The teleport button casts by the client's own name.** With a popup up for an instance whose
+   teleport you have learned, hover the teleport button and then click it (section 4.1's flow).
+   **Expected:** the tooltip is the German spell tooltip, and the click casts the teleport. The
+   macrotext is `/cast ` plus whatever `C_Spell.GetSpellName` returned, so the name in it is the
+   client's own.
+   **Fail:** a click that does nothing while the button is drawn as ready. That means the macrotext
+   holds a name this client does not answer to, which on this locale would mean `GetSpellName`
+   returned an English name from somewhere — the one thing that would prove the shim is not reading
+   the client's string table.
+5. **Run § 7a now — this is the login it has been waiting for.** Follow § 7a as written:
+   `/dump C_SpellBook.IsSpellKnown(<a teleport you have learned>)` and
+   `/dump IsSpellKnown(<the same spell>)`, then both again for one you have **not** learned.
+
+   **Record all six of these, in issue #15 and in the session-6 result:**
+
+   ```
+   client build (/dump GetBuildInfo()):
+   client locale (/dump GetLocale()):
+   learned spellID:            C_SpellBook.IsSpellKnown = ___   IsSpellKnown = ___
+   unlearned spellID:          C_SpellBook.IsSpellKnown = ___   IsSpellKnown = ___
+   did C_SpellBook.IsSpellKnown exist at all? (yes / no, it errored)
+   ```
+
+   **Pass** — both APIs resolve and agree on both spells. That is the evidence `WHATGROUP-R-06`'s
+   fix text conditions the rung on, and `M5-10` can then add a `C_SpellBook.IsSpellKnown` rung above
+   the global in the shape the five siblings use.
+   **Fail** — either call errors, or the two disagree. **Do not add the rung.** A disagreement means
+   the two are not interchangeable and the shim needs a decision rather than a fallback ladder;
+   record what you saw on issue #15 and leave `core/Compat.lua:62-67` exactly as written. Both
+   outcomes close session 6's obligation — one ships a rung, the other files a finding — and a
+   blank is the only result that does not.
+
+   The locale is not incidental to this step. `GetLocale()` is recorded because "both APIs present"
+   is a claim about a client build, and the one this observation is finally made on should be
+   written down rather than assumed to be the English one somebody imagined.
+
+6. **Nothing else moved.** Run section 1 (boot), section 4 (`/wg test`) and section 5.1 once on this
+   client.
+   **Expected:** identical behavior to English throughout.
+   **Fail:** any Lua error, which here means a localized string reached something that assumed an
+   English one.
+
+**Sign-off without a non-English client.** There is none, for any step. `tests/wow_mock.lua` answers
+enUS for every string the capture path reads, `tests/test_capture.lua` and `tests/test_labels.lua`
+assert against those English values, and the `/wg test` fixture is English by construction — so the
+suite is green on all of it whether it is right or wrong. Step 5 in particular can only be answered
+in a client, which is the whole reason `WHATGROUP-R-06` is still open. Until the pass runs, the
+honest state of this section is unrun, and it is recorded that way rather than as coverage.
+
+---
+
 ## 13. Quick reference checklist
 
 For a fast pre-release pass, run at minimum:
@@ -640,9 +748,10 @@ For a fast pre-release pass, run at minimum:
 - [ ] sections 11.5 / 11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
 - [ ] sections 12.1 / 12.4 — marks on the console title bar, and a mark **beside** the footer Close word
 - [ ] section 12a — the tab strip's labels, selection and band height survive three passes
+- [ ] section 12b — the non-English-client pass, which is also the only login § 7a will get
 
 Run section 9 (degraded install), section 12 (shared art), section 12a (the pooled tab strip) and the rest of section 11 after a LibKa0s re-vendor or any change to the six seam files.
 
-Section 7a is a one-off that has **never been run**. It is the observation `WHATGROUP-R-06` is gated on, and until someone runs it on a live client `core/Compat.lua`'s `IsSpellKnown` shim keeps the shape the finding questions — deliberately, because adding the rung without the observation would be inventing the evidence the finding asks for.
+Section 7a is a one-off that has **never been run**. Session 6 (section 12b, step 5) is where it is scheduled, and section 12b carries the block to record its six readings in. It is the observation `WHATGROUP-R-06` is gated on, and until someone runs it on a live client `core/Compat.lua`'s `IsSpellKnown` shim keeps the shape the finding questions — deliberately, because adding the rung without the observation would be inventing the evidence the finding asks for.
 
 If all of those pass, the addon is in shippable shape for the 80% case. Run the full suite for releases tagged with feature work.
