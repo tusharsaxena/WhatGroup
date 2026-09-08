@@ -495,7 +495,7 @@ test("frame: the ticker rearms the cast the moment the cooldown expires", functi
 end)
 
 -- The note carries BOTH reasons a teleport is unusable, in the same place, so the popup never just
--- greys out and says nothing.
+-- grays out and says nothing.
 test("frame: an unlearned teleport says so beside the button", function()
     local NS, _, mock = T.bootAddon()
     NS.TeleportSpells[2652] = 445269   -- never marked known
@@ -509,7 +509,7 @@ end)
 
 -- "Not learned" outranks "on cooldown". A spell the player has never learned may still report a
 -- cooldown, and saying so answers a question nobody asked while burying the one that matters.
-test("frame: an unlearned teleport is never labelled as on cooldown", function()
+test("frame: an unlearned teleport is never labeled as on cooldown", function()
     local NS, _, mock = T.bootAddon()
     NS.TeleportSpells[2652] = 445269   -- never marked known
     onCooldown(mock, 445269, 28692)
@@ -943,7 +943,7 @@ test("frame: entering combat does NOT attempt a hide the client would refuse", f
     assertTrue(popup(mock):IsShown(), "the client will not take it down mid-fight")
 end)
 
-test("frame: 'never' set during combat is honoured the moment the lockdown lifts", function()
+test("frame: 'never' set during combat is honored the moment the lockdown lifts", function()
     -- The deferred half. A gate that cannot fire on the combat edge must still be true one edge
     -- later, or "never" means "never, until you reload".
     local NS, _, mock = T.enableAddon()
@@ -983,7 +983,7 @@ end)
 
 test("frame: a deferred Close outranks a gate that would still permit the popup", function()
     -- The default gate re-shows on every edge. Unless the dismissal is checked FIRST, the player's
-    -- press is overwritten by the gate on the very edge that was meant to honour it.
+    -- press is overwritten by the gate on the very edge that was meant to honor it.
     local NS, _, mock = T.enableAddon()
     NS.addon.pendingInfo = pending()
     NS.addon:ShowFrame()

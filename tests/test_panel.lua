@@ -68,7 +68,7 @@ end
 -- ClearScroll plus a fresh RenderTabbedSchema inside an already-open panel.
 local function selectTab(mock, label)
     local b = tabButton(mock, label)
-    assertTrue(b ~= nil, "no tab labelled " .. label)
+    assertTrue(b ~= nil, "no tab labeled " .. label)
     b.__fire("OnClick")
     return b
 end

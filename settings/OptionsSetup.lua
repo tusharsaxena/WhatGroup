@@ -89,7 +89,7 @@ if not lib then
     H.__resetTabArtHeight  = function() end
     -- The five schema COMPOSERS (options-ui-§15/§16/§17). Four of them have no call site here --
     -- the schema is bool, number and one enum, so there is no font, border, bar or standalone
-    -- colour block to compose -- and they are stubbed for the shape reason the chrome members
+    -- color block to compose -- and they are stubbed for the shape reason the chrome members
     -- above are. MasterControls is different: settings/Panel.lua calls it at FILE LOAD, which is
     -- the one load-time call this seam has, so its stub has to ANSWER rather than return nil. Two
     -- values, because the caller takes two: no rows, and an afterGroup hook that draws nothing.

@@ -112,7 +112,7 @@ end
 --
 -- `subgroup` breaks a tab that mixes control kinds into named blocks (options-ui-§7): a slider
 -- that says WHEN standing among seven checkboxes that say WHAT is two subjects under one label,
--- and so is a behaviour toggle above two size sliders. The heading is declared by the row exactly
+-- and so is a behavior toggle above two size sliders. The heading is declared by the row exactly
 -- as the tab is, and it is NOT suppressed the way the group heading is.
 
 local function add(t) Schema[#Schema + 1] = t end

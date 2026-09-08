@@ -21,7 +21,7 @@
 -- That parenthetical is a cross-check, not decoration. A spell name never
 -- contains its dungeon's name ("Path of the Fractured Core" is
 -- Nexus-Point Xenas), so searching a wiki by dungeon returns something
--- adjacent rather than nothing, and neighbouring IDs in a patch block are
+-- adjacent rather than nothing, and neighboring IDs in a patch block are
 -- unrelated spells. Take IDs off a spellbook that owns them — the sweep
 -- is in docs/common-tasks.md — and treat a name that does not fit its
 -- dungeon as a wrong ID.

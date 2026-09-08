@@ -53,7 +53,7 @@ test("envsetup: NS.Meta asks about this addon's FOLDER, not its title or its fra
     end)
 
 test("envsetup: NS.Meta degrades to nil when the client exposes no manifest reader", function()
-    -- The behaviour both inline copies had: nil, never a raise. Panel's caller supplies "" and
+    -- The behavior both inline copies had: nil, never a raise. Panel's caller supplies "" and
     -- Slash's supplies the in-code constant, which only works because this answers rather than
     -- throws.
     local NS = T.newAddon{ mock = function(m) m.C_AddOns = nil end }

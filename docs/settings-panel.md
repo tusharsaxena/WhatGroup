@@ -330,7 +330,7 @@ The page is **tabbed** (`options-ui-§13`). `LibKa0s-Options-1.0`'s `RenderTabbe
 | 2 | **Chat** | 8 | `Timing`, `Text` | When the join summary fires (`notify.delay`) and what it says: the **Print to Chat** master and the six lines it can contain. Plus the **Test** button (`afterGroup`). |
 | 3 | **Popup** | 3 | `Behavior`, `Layout` | The group-info window: whether it opens by itself, and how big it is. |
 
-Two tabs mix control kinds and therefore carry **subsection headings** (options-ui-§7): a slider that says *when* standing among seven checkboxes that say *what*, and a behaviour toggle above two size sliders. The headings are declared by the rows (`subgroup`), never drawn by the builder, and a `subgroup` never repeats its own tab's name.
+Two tabs mix control kinds and therefore carry **subsection headings** (options-ui-§7): a slider that says *when* standing among seven checkboxes that say *what*, and a behavior toggle above two size sliders. The headings are declared by the rows (`subgroup`), never drawn by the builder, and a `subgroup` never repeats its own tab's name.
 
 There is **no page banner** (`options-ui-§14`) and there cannot be one: WhatGroup has no per-window settings and no active-window state, so there is no instance for a banner to name. `db.global.windows` stores the popup's *position*, which is geometry, not a setting.
 
@@ -344,7 +344,7 @@ Rows on the **Master controls** tab are emitted by `Helpers.MasterControls` and 
 
 | Tab | Section | Path | Type | Default | Layout | Purpose |
 |---|---|---|---|---|---|---|
-| Master controls | general | `enabled` | bool | true | startsLine, (paired) | **Master switch**, labelled *Enable WhatGroup*. When false, `OnApplyToGroup` short-circuits — no capture, no notification, no popup. `/wg test` and `/wg show` bypass this gate. Its off-flip `onChange` wipes any in-flight capture. |
+| Master controls | general | `enabled` | bool | true | startsLine, (paired) | **Master switch**, labeled *Enable WhatGroup*. When false, `OnApplyToGroup` short-circuits — no capture, no notification, no popup. `/wg test` and `/wg show` bypass this gate. Its off-flip `onChange` wipes any in-flight capture. |
 | Master controls | general | `visibility` | string | `"always"` | (paired) | *General visibility* — `always` / `inCombat` / `outOfCombat` / `never`. Gates every path the popup takes to the screen, in `WhatGroup:ShowFrame()`. `never` refuses before the frame is built; the combat-dependent values gate the `Show` only, or `Only in combat` would deadlock against the taint-driven lazy build. The two combat-dependent values are also re-asked on `PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED`, so the gate follows a transition taken while the popup is already open — this row's `onChange` is not its only driver. |
 | Master controls | general | `scale` | number | 1 | startsLine, (paired) | *Master scale* (0.5–2, step 0.05). `WhatGroup:ApplyFrameScale()`, **refused in combat** — scaling the parent moves the secure teleport button. |
 | Master controls | general | `alpha` | number | 1 | (paired) | *Master alpha* (0–1, step 0.05, rendered as a percentage). `WhatGroup:ApplyFrameAlpha()`, **not** refused in combat: opacity moves nothing. |

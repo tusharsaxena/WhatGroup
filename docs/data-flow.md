@@ -103,7 +103,7 @@ GROUP_ROSTER_UPDATE  ¬inGroup
 
 A player can have multiple applications in flight before any of them resolve, so one slot cannot hold them.
 
-It used to be a FIFO, on the reasoning that the LFG API fires `applied` in apply-order: each `applied` popped the head and paired it with the freshly-assigned `appID`. That reasoning is not sound. Apply-order is the client's; the order the server acknowledges applications in is the server's, and nothing enforces that they agree. With two applications outstanding and the acknowledgements arriving out of order, each capture is paired with the *other* application's id, and the popup then names the wrong group.
+It used to be a FIFO, on the reasoning that the LFG API fires `applied` in apply-order: each `applied` popped the head and paired it with the freshly-assigned `appID`. That reasoning is not sound. Apply-order is the client's; the order the server acknowledges applications in is the server's, and nothing enforces that they agree. With two applications outstanding and the acknowledgments arriving out of order, each capture is paired with the *other* application's id, and the popup then names the wrong group.
 
 The join that actually exists is `C_LFGList.GetApplicationInfo(appID)`, whose first return is the search-result id the application was made against. So the capture is filed under the `searchResultID` the apply hook already has, and `applied` resolves its `appID` through that bridge to find it. Order stops mattering. `WhatGroup:ResolveSearchResultID(appID)` is the one implementation of the hop, shared with `CaptureGroupInfoFromApplication` (F-004).
 

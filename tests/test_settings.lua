@@ -689,12 +689,12 @@ test("settings: every row on every page carries a `group`", function()
     end
 end)
 
-test("settings: every colour row is followed by its class-colour companion, and none is disabled",
+test("settings: every color row is followed by its class-color companion, and none is disabled",
 function()
-    -- WhatGroup declares no colour row today — the schema is bool, number and one enum — so this
+    -- WhatGroup declares no color row today — the schema is bool, number and one enum — so this
     -- is a GUARD rather than a measurement, and it is the loop that will catch the first one added
     -- without its companion (options-ui-§17). `disabledIf` on a swatch is forbidden outright: the
-    -- swatch is still read for its ALPHA under class colour, so graying it would say something
+    -- swatch is still read for its ALPHA under class color, so graying it would say something
     -- untrue.
     -- red under: adding a `type = "color"` row with no `useClassColor*` bool after it, or putting
     -- `disabledIf` on one.
@@ -708,7 +708,7 @@ function()
             local next_ = S[i + 1]
             assertTrue(next_ ~= nil and next_.type == "bool"
                 and next_.path:find("useClassColor") ~= nil,
-                row.path .. " has no class-colour companion beside it")
+                row.path .. " has no class-color companion beside it")
             assertTrue(next_.classColorSource == "player" or next_.classColorSource == "unit",
                 row.path .. "'s companion does not declare whose class it means")
         end

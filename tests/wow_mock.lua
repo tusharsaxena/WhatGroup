@@ -112,7 +112,7 @@ local function build()
     -- PascalCase key (WoW frame methods are always PascalCase) and nil otherwise — so addon code
     -- doing `if not f.someCustomField then f.someCustomField = ... end` still works.
     --
-    -- The catch-all deliberately returns the FRAME (not a number) from unmodelled getters.
+    -- The catch-all deliberately returns the FRAME (not a number) from unmodeled getters.
     -- LibKa0s-DebugLog-1.0's scroll sync type-guards exactly that case, so the guard stays
     -- exercised.
 
@@ -137,7 +137,7 @@ local function build()
             __name      = name,
             __template  = template,
             __parent    = parent,
-            -- A frame built from a Secure* template is PROTECTED, and modelling that is not
+            -- A frame built from a Secure* template is PROTECTED, and modeling that is not
             -- decoration. The client refuses Hide on a protected frame in combat, and refuses it on
             -- every ANCESTOR of one too, because hiding the parent would hide the protected child.
             -- A mock that models combat but not protection answers "fine" to the one call the
@@ -272,7 +272,7 @@ local function build()
             return tex
         end
 
-        -- Fonts. The ONE font behavior that is MODELLED rather than caught by the PascalCase
+        -- Fonts. The ONE font behavior that is MODELED rather than caught by the PascalCase
         -- catch-all, because the catch-all's truthy return is exactly the answer that hides the
         -- failure: the client returns FALSE from SetFont when it cannot fetch the file, and does
         -- not raise. `mock.fontFetchFails[path] = true` reproduces that, which is the only way a
@@ -306,7 +306,7 @@ local function build()
         api.IsDesaturated   = function() return f.__desaturated end
         api.SetAlpha        = function(_, a) f.__alpha = a; return f end
         api.GetAlpha        = function() return f.__alpha end
-        -- SCALE AND THE DRAG STATE, modelled rather than caught by the PascalCase catch-all, for
+        -- SCALE AND THE DRAG STATE, modeled rather than caught by the PascalCase catch-all, for
         -- the reason (1) gives about visibility: the catch-all answers the FRAME, which is truthy
         -- and non-numeric, so "the master scale reached the popup" and "SetScale was never called"
         -- are the same assertion, and a lock that never stops a drag looks exactly like one that
@@ -320,7 +320,7 @@ local function build()
         api.IsMoving        = function() return f.__moving end
 
         -- ScrollingMessageFrame line sink. Recorded rather than discarded so the console's log
-        -- content is assertable; the scroll getters stay UNMODELLED on purpose, so they answer the
+        -- content is assertable; the scroll getters stay UNMODELED on purpose, so they answer the
         -- frame from the catch-all and the library's type-guarded scroll sync takes its no-op path
         -- (anti-patterns #41).
         api.AddMessage = function(_, msg) f.__messages[#f.__messages + 1] = msg; return f end
@@ -413,7 +413,7 @@ local function build()
             end
             -- A repeating timer is a DIFFERENT object from a one-shot, and the difference is the
             -- whole risk: a repeating handle that is never canceled outlives the window that armed
-            -- it and keeps firing for the rest of the session. Modelled so `fireAceTimers` can be
+            -- it and keeps firing for the rest of the session. Modeled so `fireAceTimers` can be
             -- called twice and a test can prove the second call does — or does not — fire it.
             obj.ScheduleRepeatingTimer = function(_, callback, delay)
                 local handle = { callback = callback, delay = delay,
@@ -434,7 +434,7 @@ local function build()
     -- Dispatch an addon event the way the client plus AceEvent would: look up the method the
     -- registration named and call it on the addon object with the event name as the first
     -- argument. Returns false when nothing is registered for the event, so a case can assert the
-    -- wiring and the behaviour in one act rather than asserting the registration exists and then
+    -- wiring and the behavior in one act rather than asserting the registration exists and then
     -- calling the handler by hand -- which passes just as happily when the two are not connected.
     mock.fireAddonEvent = function(addon, event, ...)
         local handler = mock.addonEvents[event]

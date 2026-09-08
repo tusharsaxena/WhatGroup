@@ -420,14 +420,14 @@ test("capture: a declined application drops its queued capture", function()
     assertNil(addon.pendingInfo, "the declined capture is gone, not stale")
 end)
 
-test("capture: a cancelled application drops its unanswered capture", function()
+test("capture: a canceled application drops its unanswered capture", function()
     local NS, _, mock = T.bootAddon()
     local addon = NS.addon
-    mock.searchResults[10] = baseInfo({ name = "Cancelled", activityIDs = { 500 } })
+    mock.searchResults[10] = baseInfo({ name = "Canceled", activityIDs = { 500 } })
     mock.activities[500] = { fullName = "A", mapID = 111 }
     mock.applications[100] = 10
 
-    -- Cancelled BEFORE "applied" ever arrives: the capture is still sitting
+    -- Canceled BEFORE "applied" ever arrives: the capture is still sitting
     -- against its search-result id and has no application id yet.
     addon:OnApplyToGroup(10)
     addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "cancelled")
@@ -436,7 +436,7 @@ test("capture: a cancelled application drops its unanswered capture", function()
     mock.searchResults[10] = nil
     addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
 
-    assertNil(addon.pendingInfo, "a cancelled application leaves nothing behind")
+    assertNil(addon.pendingInfo, "a canceled application leaves nothing behind")
 end)
 
 -- ---------------------------------------------------------------------------

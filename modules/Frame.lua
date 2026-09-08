@@ -167,9 +167,9 @@ end
 --
 -- What that costs, per value, because it is not uniform:
 --   * `inCombat`   — hides when combat ENDS. InCombatLockdown() is already false on that edge, so
---                    the hide is legal and the gate is honoured exactly.
+--                    the hide is legal and the gate is honored exactly.
 --   * `outOfCombat` — would hide when combat STARTS, which is inside the lockdown and refused. The
---                    popup therefore STAYS UP for the fight and the gate is honoured late, at
+--                    popup therefore STAYS UP for the fight and the gate is honored late, at
 --                    PLAYER_REGEN_ENABLED. There is no way to do better while the secure child
 --                    exists; the only real alternative is to stop parenting it to f, which costs a
 --                    floating orphan button the client will equally refuse to hide.
@@ -330,7 +330,7 @@ local function applyTeleportNote(spellID, known, remaining, info)
 
     -- Three states, one note. Order matters: an unlearned spell can still report a cooldown,
     -- and "on cooldown" would answer a question nobody asked while burying the one that
-    -- explains the grey icon. A ready teleport needs no explanation, so the note goes.
+    -- explains the gray icon. A ready teleport needs no explanation, so the note goes.
     if not known then
         note:SetText("|cff888888" .. L["Teleport spell not learned"] .. "|r")
         note:Show()
@@ -589,7 +589,7 @@ local function buildFrame()
     closeBtn:SetText(L["Close"])
     -- Goes through hidePopup for the reason spelled out at ApplyFrameVisibility: f parents a
     -- SecureActionButtonTemplate button, so f:Hide() is refused in combat and calling it anyway
-    -- raised ADDON_ACTION_BLOCKED naming this addon. The press is remembered instead and honoured
+    -- raised ADDON_ACTION_BLOCKED naming this addon. The press is remembered instead and honored
     -- the moment the lockdown lifts, which is the closest thing to "close" the client permits.
     closeBtn:SetScript("OnClick", function()
         if hidePopup() then return end

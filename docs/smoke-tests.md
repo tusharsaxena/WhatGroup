@@ -349,7 +349,7 @@ Then, once the cooldown has expired, `/wg test` again: full alpha, no swipe, no 
 
 ### 4.5 The popup in combat — no blocked action, and Close is not lost
 
-**This is the check a player found for us on 2026-09-07**, reported as `AddOn 'WhatGroup' tried to call the protected function 'WhatGroupFrame:Hide()'`. The popup parents a `SecureActionButtonTemplate` teleport button, so the client refuses `Hide` on it — and on any ancestor of it — during a lockdown. The addon's mock now models frame protection and four cases pin the behaviour, but only the client raises the real error.
+**This is the check a player found for us on 2026-09-07**, reported as `AddOn 'WhatGroup' tried to call the protected function 'WhatGroupFrame:Hide()'`. The popup parents a `SecureActionButtonTemplate` teleport button, so the client refuses `Hide` on it — and on any ancestor of it — during a lockdown. The addon's mock now models frame protection and four cases pin the behavior, but only the client raises the real error.
 
 **Run with BugGrabber (or any error display) enabled, or this check cannot fail visibly.**
 
@@ -359,7 +359,7 @@ Then, once the cooldown has expired, `/wg test` again: full alpha, no swipe, no 
 3. Press **Close** while still in combat.
    - **Expected:** No error. Popup stays, and one chat line reads *"Popup deferred until combat ends."*
 4. Drop combat.
-   - **Expected:** Popup disappears, honouring the press from step 3.
+   - **Expected:** Popup disappears, honoring the press from step 3.
 5. Repeat 1–2 with `General visibility` = **Out of combat**.
    - **Expected:** Still no error. Popup stays for the fight, goes when combat drops.
 6. Set `General visibility` = **In combat**, out of combat, holding a capture.

@@ -750,7 +750,7 @@ test("parity: the Options helpers stub carries the whole live surface", function
         -- The composers' published DATA (OptionsCompose). They are value sets and one sentence of
         -- wording, and copying them into the stub is the same mistake copying a layout scalar is:
         -- the composer exists precisely so nine addons cannot each hold their own spelling of the
-        -- visibility enum or the class-colour note. So the stub answers the five composer
+        -- visibility enum or the class-color note. So the stub answers the five composer
         -- FUNCTIONS and carries none of their data.
         --
         -- MASTER_GROUP is the one with a host reader: settings/Panel.lua keys its afterGroup hook

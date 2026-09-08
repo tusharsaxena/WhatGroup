@@ -64,7 +64,7 @@ test("compat: GetSpellCooldownRemaining ignores a global-cooldown-length window"
 end)
 
 -- isEnabled = false means "do not draw a cooldown" (the spell is mid-cast), not "unusable
--- forever". Treating it as a cooldown would grey the button out during any cast.
+-- forever". Treating it as a cooldown would gray the button out during any cast.
 test("compat: GetSpellCooldownRemaining reports 0 when the cooldown is disabled", function()
     local NS, _, mock = T.newAddon()
     mock.now = 10000

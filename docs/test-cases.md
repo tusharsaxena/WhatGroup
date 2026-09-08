@@ -224,7 +224,7 @@ badge and any count quoted in the docs must agree with it.
 - settings: the debug console is a SESSION-ONLY row that never reaches db.profile (WG-12)
 - settings: a global reset closes the console a profile reset cannot reach (options-ui-§12)
 - settings: every row on every page carries a `group`
-- settings: every colour row is followed by its class-colour companion, and none is disabled
+- settings: every color row is followed by its class-color companion, and none is disabled
 
 ### test_slash.lua (46)
 
@@ -342,7 +342,7 @@ badge and any count quoted in the docs must agree with it.
 - capture: a raising GetApplicationInfo is caught and falls back
 - capture: two outstanding applications pair to their own search results
 - capture: a declined application drops its queued capture
-- capture: a cancelled application drops its unanswered capture
+- capture: a canceled application drops its unanswered capture
 - capture: a search field holding false takes the default, not the false
 - capture: an activity field holding false takes the default, not the false
 - capture: a stored zero survives the defaults, because 0 is truthy in Lua
@@ -432,7 +432,7 @@ badge and any count quoted in the docs must agree with it.
 - frame: a popup that reaches the screen later still gets its ticker
 - frame: the ticker rearms the cast the moment the cooldown expires
 - frame: an unlearned teleport says so beside the button
-- frame: an unlearned teleport is never labelled as on cooldown
+- frame: an unlearned teleport is never labeled as on cooldown
 - frame: a map with no teleport hides the button entirely
 - frame: the button clears a stale macro when re-shown for a teleport-less map
 - frame: the teleport icon uses the spell's texture
@@ -468,7 +468,7 @@ badge and any count quoted in the docs must agree with it.
 - frame: switching visibility to 'never' hides a popup that is already open
 - frame: both combat-transition events are registered, and to one handler
 - frame: entering combat does NOT attempt a hide the client would refuse
-- frame: 'never' set during combat is honoured the moment the lockdown lifts
+- frame: 'never' set during combat is honored the moment the lockdown lifts
 - frame: Close pressed in combat is remembered, not fired into a refusal
 - frame: a deferred Close outranks a gate that would still permit the popup
 - frame: a combat edge brings back a popup the gate had hidden
