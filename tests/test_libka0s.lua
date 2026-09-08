@@ -760,6 +760,15 @@ test("parity: the Options helpers stub carries the whole live surface", function
         -- the library's constant") is what stops the guard becoming an `or`-fallback copy.
         "FONT_FLAGS", "FONT_FLAGS_SORT", "VISIBILITY_VALUES", "VISIBILITY_SORT",
         "MASTER_GROUP", "CLASS_COLOR_NOTE",
+        -- New at LibKa0s v1.27.0 (Options minor 8): the ONE instance print sink the shell
+        -- publishes so OptionsWidgets stops building a second one from the same descriptor
+        -- (libs/LibKa0s/Options.lua:392, read at OptionsWidgets.lua:763). It is the library
+        -- talking to itself across a file boundary and no host calls it -- `grep -rn
+        -- "__print" core modules settings` is empty. Its own comment there says a degradation
+        -- stub does not mirror it because Kit.assertSurfaceParity skips the `__` prefix; that
+        -- holds for the kit's BY-NAME form, which filters through Kit.publicMembers, and not
+        -- for the four-argument form this case uses, which walks every key of the live table.
+        "__print",
     })
 end)
 

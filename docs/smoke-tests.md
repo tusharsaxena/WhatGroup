@@ -578,6 +578,30 @@ back to `Copy`, `Clear` and `×`, and the footer button back to the plain word `
 correct — the art is inside the payload that is missing. What must **not** happen is a blank control,
 an error, or a console that refuses to open.
 
+## 12a. The pooled tab strip (~3 min)
+
+**Smoke, session 3 of the 2026-09-07 remediation plan. NOT YET RUN.** New with `M4-01`'s LibKa0s
+v1.27.0 re-vendor. `TabStrip` (`libs/LibKa0s/OptionsWidgets.lua`) no longer builds a button and a
+content panel per click: it acquires both from per-`ctx` `LibKa0s-Pool-1.0` pools and re-dresses
+them, re-setting `OnClick` on every dress. Its only headless proof counts `CreateFrame` calls on a
+second selection pass, and the case that would pin band geometry as invariant under selection cannot
+be written yet — the shared mock answers `GetHeight` with 0 for every frame, and that flips at kit
+16, not here. **So a stale label, a mis-anchored button or a band that changed height on a
+re-dressed tab is invisible to every automated check in this repo.** This addon hands its whole
+strip to `RenderTabbedSchema` and measures no band of its own, which is exactly why it can say
+nothing about one out of game.
+
+| # | Step | Expect |
+|---|------|--------|
+| 12a.1 | `/wg config`, then cycle every tab of the strip three times, ending back on the first | Each tab shows **its own** label on all three passes. A label carried over from the previously-dressed tab is the pool handing back a frame it did not finish dressing. |
+| 12a.2 | Watch the selection highlight as you go | The highlighted tab is the one you pressed, every time. A highlight on the wrong button means `OnClick` was not re-set on the dress. |
+| 12a.3 | Watch the strip's band height across all three passes | It does not move. A band that grows or shrinks between passes is the geometry case kit 16 will be able to assert and kit 15 cannot. |
+| 12a.4 | Watch the body under the strip | It is always the selected tab's rows. A body drawn under the wrong tab means the pooled content panel came back still parented to the previous selection. |
+| 12a.5 | `Esc`, then `/wg config` again, and walk the strip once more | The same three things hold on a fresh build. The pools are per-`ctx`, so a second build is where a released frame can come back dressed for a different tab. |
+
+`LibKa0s-Perf-1.0` minor 8 arrived in the same payload and respells five player-facing strings.
+`Perf` is not wired in this addon, so none of them has a surface here.
+
 ---
 
 ## 13. Quick reference checklist
@@ -597,7 +621,8 @@ For a fast pre-release pass, run at minimum:
 - [ ] section 10 — no `SCREAMING_SNAKE` string on any page, in the console, or in chat
 - [ ] sections 11.5 / 11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
 - [ ] sections 12.1 / 12.4 — marks on the console title bar, and a mark **beside** the footer Close word
+- [ ] section 12a — the tab strip's labels, selection and band height survive three passes
 
-Run section 9 (degraded install), section 12 (shared art) and the rest of section 11 after a LibKa0s re-vendor or any change to the six seam files.
+Run section 9 (degraded install), section 12 (shared art), section 12a (the pooled tab strip) and the rest of section 11 after a LibKa0s re-vendor or any change to the six seam files.
 
 If all of those pass, the addon is in shippable shape for the 80% case. Run the full suite for releases tagged with feature work.

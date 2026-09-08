@@ -601,6 +601,10 @@ badge and any count quoted in the docs must agree with it.
 - libs/LibKa0s is the LibKa0s release CLAUDE.md says this addon bundles
 - tests/_kit is the test kit that shipped with that release
 
+### test_eol.lua (1)
+
+- eol: every tracked file carries the terminator .gitattributes declares for it
+
 ## Totals
 
 | Suite | Cases |
@@ -622,4 +626,5 @@ badge and any count quoted in the docs must agree with it.
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
 | test_vendor_sync.lua | 2 |
-| **Total** | **544** |
+| test_eol.lua | 1 |
+| **Total** | **545** |

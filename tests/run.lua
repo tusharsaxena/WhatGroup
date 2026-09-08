@@ -74,5 +74,11 @@ Kit.run{
         "test_lifecycle",
         "test_debuglog",
         "test_vendor_sync",
+        -- The kit has shipped one suite of its own since revision 15: the working-tree
+        -- line-ending gate, over every path `git ls-files` reports. It lives where the rest
+        -- of the kit lives rather than being re-typed into nine repositories, so it is
+        -- declared with its own `dir`. Kit.assertSuiteInventory fails the run until it is
+        -- declared, so it cannot arrive with a re-vendor and then quietly run nothing.
+        { name = "test_eol", dir = "tests/_kit/" },
     },
 }
