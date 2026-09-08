@@ -599,6 +599,10 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state
 - debuglog: enable ack is color-coded green/red matching the header (debug-logging-§5)
 
+### test_docmap.lua (1)
+
+- docmap: every Tier 2 row agrees with what docs/ holds
+
 ### test_vendor_sync.lua (2)
 
 - libs/LibKa0s is the LibKa0s release CLAUDE.md says this addon bundles
@@ -629,6 +633,7 @@ badge and any count quoted in the docs must agree with it.
 | test_panel.lua | 53 |
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
+| test_docmap.lua | 1 |
 | test_vendor_sync.lua | 2 |
 | test_eol.lua | 1 |
-| **Total** | **545** |
+| **Total** | **546** |

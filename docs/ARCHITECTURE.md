@@ -319,7 +319,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `midnight-quirks.md` | Present | LFG and group-API behavior the addon works around |
 | `debug.md` | Present | The addon’s own debug surface beyond the library console |
 | `message-bus.md` | Not applicable | The addon defines no cross-module messages — it is a single feature module |
-| `compat-layer.md` | Not applicable | `core/Compat.lua` normalizes LFG and unit APIs with no addon-specific shim to document separately |
+| `compat-layer.md` | Present | `core/Compat.lua` publishes seven addon-specific shims, over the three-or-more threshold |
 | `profiles.md` | Not applicable | No profile control ships in the options UI; a hook is noted in `settings/Schema.lua` if AceDBOptions is ever added |
 | `perf-analysis/README.md` | Not applicable | No performance harness is wired — see `performance.md` |
 
