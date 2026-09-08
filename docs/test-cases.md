@@ -603,6 +603,16 @@ badge and any count quoted in the docs must agree with it.
 
 - docmap: every Tier 2 row agrees with what docs/ holds
 
+### test_doc_structure.lua (7)
+
+- docs/ARCHITECTURE.md carries the ten sections documentation-§3 names
+- every mandated hub section that has a topic doc has spilled into it
+- every anchor pointing into docs/ARCHITECTURE.md resolves to a heading
+- the player-facing history has the two homes documentation-§1 allows, and no third
+- README.md's top-level sections are the ones documentation-§1 names, in its order
+- the README's settings table is page-granular, not per-tab
+- every settings tab the README sends a player to exists in the schema
+
 ### test_vendor_sync.lua (2)
 
 - libs/LibKa0s is the LibKa0s release CLAUDE.md says this addon bundles
@@ -634,6 +644,7 @@ badge and any count quoted in the docs must agree with it.
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
 | test_docmap.lua | 1 |
+| test_doc_structure.lua | 7 |
 | test_vendor_sync.lua | 2 |
 | test_eol.lua | 1 |
-| **Total** | **546** |
+| **Total** | **553** |

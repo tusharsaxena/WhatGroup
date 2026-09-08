@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-546%2F546_passing-green)
+![Tests](https://img.shields.io/badge/Tests-553%2F553_passing-green)
 
 ![Logo](https://media.forgecdn.net/attachments/1794/926/whatgroup-logo-png.png)
 
@@ -64,13 +64,13 @@ Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Set
 
 `/wg config` opens the Blizzard Settings panel. It starts on the **Ka0s WhatGroup** landing page (logo, notes, and the command list); click **General** in the sidebar to reach the options.
 
-The General page carries a tab strip across the top. Three tabs, in the order you meet the addon:
+There is one settings page, and it carries a tab strip across the top:
 
-| Tab | Covers |
+| Page | Covers |
 |---|---|
-| Master controls | **Enable WhatGroup**, **General visibility**, **Master scale**, **Master alpha**, **Lock frame** and the **Debug console** checkbox, closed by the **Reset position** and **Reset all settings** buttons |
-| Chat | **Notification Delay**, then **Print to Chat** and the six per-line toggles that decide what the chat message says |
-| Popup | **Open Automatically**, and the popup's **Width** and **Height** |
+| **General** | Three tabs. **Master controls** — the master switch, the visibility rule, scale, alpha, the frame lock and the debug console, closed by the two reset buttons. **Chat** — the notification delay, and what the join summary says. **Popup** — whether the group-info window opens by itself, and how big it is. |
+
+Tab by tab, with every row and where it is stored: [docs/settings-panel.md](docs/settings-panel.md#the-tab-strip).
 
 **Master controls** — the same first tab every Ka0s addon has, so "how do I turn this off, how do I make it smaller, how do I put it back" is always in the same place. **Enable WhatGroup** turns the addon off without unloading it. **General visibility** decides when the popup is allowed on screen at all — always, only in combat, only out of combat, or never. **Master scale** and **Master alpha** size and fade the popup; **Lock frame** stops you dragging it by accident. **Debug console** only shows or hides the debug window — it isn't a saved setting and doesn't turn logging on (use `/wg debug` for that). **Reset position** puts the popup back where it started, and **Reset all settings** restores everything after a confirmation (so does the **Defaults** button in the top-right corner).
 
@@ -118,7 +118,7 @@ All bugs, feature requests, and outstanding work are tracked at [https://github.
 
 | Version | Date | Highlights |
 |---|---|---|
-| 1.3.0 | 2026-07-12 | The Settings page now appears in the AddOns list as soon as you log in.<br>The chat message and popup appear instantly on join (add a delay under Notify if you prefer).<br>New on-screen debug window, toggled with `/wg debug`; debug output no longer goes to chat.<br>Color-coded `/wg list`, `/wg get`, and `/wg set` output.<br>The Defaults button now performs a full, clean reset.<br>Updated for game patch 12.0.7. |
+| 1.3.0 | 2026-07-12 | The Settings page now appears in the AddOns list as soon as you log in.<br>The chat message and popup appear instantly on join (add a delay under Chat if you prefer).<br>New on-screen debug window, toggled with `/wg debug`; debug output no longer goes to chat.<br>Color-coded `/wg list`, `/wg get`, and `/wg set` output.<br>The Defaults button now performs a full, clean reset.<br>Updated for game patch 12.0.7. |
 | 1.2.0 | 2026-05-03 | Added the Settings panel and the `/wg` slash commands.<br>Added a teleport button to the popup, grayed out until you learn the spell.<br>Fixed a logout error, stale notification timers, and the wrong teleport spell and playstyle showing on real group joins. |
 | 1.1.0 | 2026-04-24 | Updated for a new game patch. |
 | 1.0.0 | 2026-03-19 | Initial release: a chat message and popup whenever you join a group through the Premade Group Finder. |
