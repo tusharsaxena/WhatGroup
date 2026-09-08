@@ -613,6 +613,10 @@ badge and any count quoted in the docs must agree with it.
 - the README's settings table is page-granular, not per-tab
 - every settings tab the README sends a player to exists in the schema
 
+### test_register.lua (1)
+
+- every deviation id the register cites is assigned by a bundle in docs/audits/
+
 ### test_vendor_sync.lua (2)
 
 - libs/LibKa0s is the LibKa0s release CLAUDE.md says this addon bundles
@@ -645,6 +649,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 21 |
 | test_docmap.lua | 1 |
 | test_doc_structure.lua | 7 |
+| test_register.lua | 1 |
 | test_vendor_sync.lua | 2 |
 | test_eol.lua | 1 |
-| **Total** | **553** |
+| **Total** | **554** |
