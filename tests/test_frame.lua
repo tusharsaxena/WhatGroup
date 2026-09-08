@@ -38,6 +38,18 @@ end
 
 local function popup(mock) return mock.frames["WhatGroupFrame"] end
 
+-- The Close button is anonymous, so it is found by the thing that identifies it to a player: its
+-- label. Anchored to the popup rather than searched globally, so a second button with the same text
+-- elsewhere in the addon could not silently become the one under test.
+local function closeButton(mock)
+    local f = popup(mock)
+    if not f then return nil end
+    for _, kid in ipairs(f.__children or {}) do
+        if kid.__text == "Close" and kid.__scripts and kid.__scripts.OnClick then return kid end
+    end
+    return nil
+end
+
 -- The popup's five value FontStrings, by name. buildFrame creates them on the
 -- `content` frame in a fixed label/value/label/value order (MakeLabel emits the
 -- gold label then its value), followed by the standalone "Teleport:" label and
@@ -111,7 +123,7 @@ test("frame: buildFrame is one-shot — a second show reuses the same frame", fu
 end)
 
 test("frame: ESC-to-close is registered lazily, on the first show only", function()
-    local NS, env, mock = T.bootAddon()
+    local NS, env = T.bootAddon()
     assertEqual(#env.UISpecialFrames, 0, "no UISpecialFrames entry at load (taint)")
     NS.addon:ShowFrame()
     NS.addon:ShowFrame()
@@ -422,6 +434,43 @@ test("frame: a ready teleport arms no ticker at all", function()
     assertEqual(mock.fireAceTimers(), 0, "nothing to count down")
 end)
 
+test("frame: a popup the gate keeps off screen arms no ticker", function()
+    -- The whole basis of the performance-§12 deviation row is that the ticker cannot outlive the
+    -- window that armed it, and OnHide -- the cancel site -- fires on a TRANSITION. A ticker armed
+    -- against a frame that was never shown therefore has no cancel site at all and runs for the rest
+    -- of the session.
+    -- red under: arming the ticker from applyTeleportNote unconditionally.
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db.profile.visibility = "inCombat"
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    onCooldown(mock, 445269, 3600)
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    assertTrue(popup(mock) ~= nil, "the frame is built, it is just not shown")
+    assertFalse(popup(mock):IsShown())
+    assertEqual(mock.fireAceTimers(), 0,
+        "a ticker with no cancel site is the one thing the deviation row says cannot happen")
+end)
+
+test("frame: a popup that reaches the screen later still gets its ticker", function()
+    -- The mirror of the case above: arming only against a visible popup is only correct if every
+    -- path that makes the popup visible arms it. OnShow is that one place.
+    -- red under: gating the arm on IsShown() and leaving ShowFrame's own Show as the only arm site.
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db.profile.visibility = "outOfCombat"
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    onCooldown(mock, 445269, 3600)
+    mock.combat = true
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()          -- builds nothing: first show in combat defers
+    mock.combat = false
+    NS.addon:ShowFrame()          -- out of combat now, so it builds and shows
+    assertTrue(popup(mock):IsShown())
+    assertEqual(mock.fireAceTimers(), 1, "the visible popup counts down")
+end)
+
 test("frame: the ticker rearms the cast the moment the cooldown expires", function()
     local NS, _, mock = T.bootAddon()
     mock.spellNames[445269] = "Path of the Corrupted Foundry"
@@ -446,7 +495,7 @@ test("frame: the ticker rearms the cast the moment the cooldown expires", functi
 end)
 
 -- The note carries BOTH reasons a teleport is unusable, in the same place, so the popup never just
--- greys out and says nothing.
+-- grays out and says nothing.
 test("frame: an unlearned teleport says so beside the button", function()
     local NS, _, mock = T.bootAddon()
     NS.TeleportSpells[2652] = 445269   -- never marked known
@@ -460,7 +509,7 @@ end)
 
 -- "Not learned" outranks "on cooldown". A spell the player has never learned may still report a
 -- cooldown, and saying so answers a question nobody asked while burying the one that matters.
-test("frame: an unlearned teleport is never labelled as on cooldown", function()
+test("frame: an unlearned teleport is never labeled as on cooldown", function()
     local NS, _, mock = T.bootAddon()
     NS.TeleportSpells[2652] = 445269   -- never marked known
     onCooldown(mock, 445269, 28692)
@@ -858,4 +907,157 @@ test("frame: switching visibility to 'never' hides a popup that is already open"
     assertTrue(popup(mock):IsShown())
     NS.addon.Settings.Helpers.Set("visibility", "never")
     assertFalse(popup(mock):IsShown())
+end)
+
+-- ---------------------------------------------------------------------------
+-- The combat transition (WHATGROUP-R-01). `inCombat` and `outOfCombat` are the only two settings
+-- in the addon whose answer changes without the player touching the panel, so they are the only
+-- two that need an event rather than an onChange.
+-- ---------------------------------------------------------------------------
+
+test("frame: both combat-transition events are registered, and to one handler", function()
+    -- red under: never registering them, which is how the gate came to be evaluated only at show.
+    local NS, _, mock = T.enableAddon()
+    assertEqual(mock.addonEvents["PLAYER_REGEN_DISABLED"], "OnCombatStateChanged")
+    assertEqual(mock.addonEvents["PLAYER_REGEN_ENABLED"],  "OnCombatStateChanged")
+    assertTrue(NS.addon.OnCombatStateChanged ~= nil)
+end)
+
+test("frame: entering combat does NOT attempt a hide the client would refuse", function()
+    -- This case asserted the opposite until 2026-09-08, and the ASSERTION was wrong rather than the
+    -- code under it. f parents a SecureActionButtonTemplate button, so the client refuses f:Hide()
+    -- inside a lockdown and raises ADDON_ACTION_BLOCKED naming this addon -- which is what a player
+    -- reported. The popup genuinely stays up for the fight and there is no way around that while
+    -- the secure child exists. What is pinned here is that the addon does not ASK: the attempt does
+    -- not hide the frame either way, and costs the player a red error for nothing.
+    -- red under: the M2-21 seam, which called f:Hide() straight off the PLAYER_REGEN_DISABLED edge.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.db.profile.visibility = "outOfCombat"
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    assertTrue(popup(mock):IsShown())
+
+    mock.combat = true
+    assertTrue(mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED"))
+    assertEqual(#mock.blocked, 0, "an ADDON_ACTION_BLOCKED the player sees as a red error")
+    assertTrue(popup(mock):IsShown(), "the client will not take it down mid-fight")
+end)
+
+test("frame: 'never' set during combat is honored the moment the lockdown lifts", function()
+    -- The deferred half. A gate that cannot fire on the combat edge must still be true one edge
+    -- later, or "never" means "never, until you reload".
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    assertTrue(popup(mock):IsShown())
+
+    mock.combat = true
+    NS.addon.db.profile.visibility = "never"
+    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    assertEqual(#mock.blocked, 0, "still never asks inside the lockdown")
+
+    mock.combat = false
+    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_ENABLED")
+    assertFalse(popup(mock):IsShown(), "'never' means never, one edge late")
+end)
+
+test("frame: Close pressed in combat is remembered, not fired into a refusal", function()
+    -- The pre-existing half of the same defect, and the one the player actually hit:
+    -- closeBtn's OnClick called f:Hide() unconditionally, from inside a lockdown.
+    -- red under: `closeBtn:SetScript("OnClick", function() f:Hide() end)`.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+
+    mock.combat = true
+    local btn = closeButton(mock)
+    assertTrue(btn ~= nil, "no Close button found to press")
+    btn.__scripts.OnClick(btn)
+    assertEqual(#mock.blocked, 0, "'WhatGroup tried to call the protected function Hide()'")
+    assertTrue(popup(mock):IsShown(), "the client keeps it up; the addon must not pretend otherwise")
+
+    mock.combat = false
+    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_ENABLED")
+    assertFalse(popup(mock):IsShown(), "the press survives the fight, or Close silently did nothing")
+end)
+
+test("frame: a deferred Close outranks a gate that would still permit the popup", function()
+    -- The default gate re-shows on every edge. Unless the dismissal is checked FIRST, the player's
+    -- press is overwritten by the gate on the very edge that was meant to honor it.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+
+    mock.combat = true
+    local btn = closeButton(mock)
+    btn.__scripts.OnClick(btn)
+    mock.combat = false
+    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_ENABLED")
+    assertFalse(popup(mock):IsShown(), "the gate re-showed over the player's own dismissal")
+end)
+
+test("frame: a combat edge brings back a popup the gate had hidden", function()
+    -- The re-show half. It is driven off `inCombat` rather than `outOfCombat` because the hide has
+    -- to be a LEGAL one for this case to be about the re-show at all: the gate closes here while
+    -- the player is out of combat, where f:Hide() is permitted. Written the other way round it
+    -- silently tested the refusal path instead, which is how it came to assert a hide the client
+    -- never performs.
+    -- red under: an ApplyFrameVisibility that hides but never shows.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.db.profile.visibility = "inCombat"
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    assertFalse(popup(mock) and popup(mock):IsShown(),
+        "out of combat, 'inCombat' forbids the popup -- and that hide is legal")
+
+    mock.combat = true
+    assertTrue(mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED"))
+    assertTrue(popup(mock):IsShown(), "the invite the player is still holding comes back with it")
+    assertEqual(#mock.blocked, 0)
+end)
+
+test("frame: a combat transition never opens a popup with nothing to show", function()
+    -- A "No data" popup appearing the moment the player pulls is worse than no popup at all, so
+    -- the re-show is gated on there being a capture to render.
+    -- red under: a symmetric ApplyFrameVisibility that shows on any open gate.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.db.profile.visibility = "inCombat"
+    NS.addon:ShowFrame()               -- builds it, out of combat, off screen
+    assertTrue(popup(mock) ~= nil)
+    assertFalse(popup(mock):IsShown())
+
+    NS.addon.pendingInfo = nil
+    mock.combat = true
+    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    assertFalse(popup(mock):IsShown(), "nothing to render, so nothing opens")
+end)
+
+test("frame: PLAYER_REGEN_DISABLED is answered from the event, not from a lockdown flag that has not flipped", function()
+    -- The client fires PLAYER_REGEN_DISABLED at the START of the lockdown and InCombatLockdown()
+    -- can still answer false on that same frame. A handler that asks the API evaluates the gate
+    -- against the state the player has just left, which is the wrong answer in both directions.
+    -- red under: ApplyFrameVisibility reading InCombatLockdown() with no override.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.db.profile.visibility = "outOfCombat"
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    assertTrue(popup(mock):IsShown())
+
+    mock.combat = false                -- the flag has not caught up yet
+    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    assertFalse(popup(mock):IsShown(), "the event name is the authority on which edge this is")
+end)
+
+test("frame: a combat transition with no popup built is a no-op, not an error", function()
+    -- The events register at OnEnable and the popup is lazy, so most transitions in a session
+    -- arrive with nothing on screen. That must not build one.
+    -- red under: an ApplyFrameVisibility that reaches buildFrame.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.db.profile.visibility = "outOfCombat"
+    NS.addon.pendingInfo = pending()
+    mock.combat = true
+    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    mock.combat = false
+    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_ENABLED")
+    assertNil(popup(mock), "the lazy build is the taint contract; a transition must not trip it")
 end)

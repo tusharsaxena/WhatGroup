@@ -20,12 +20,19 @@ end
 
 -- Every file the addon's own source may hand a descriptor to a LibKa0s module from. The `L`-trap
 -- source guard below sweeps exactly these.
-local SEAM_FILES = {
-    "core/CoreSetup.lua",
-    "core/DebugLogSetup.lua",
-    "settings/OptionsSetup.lua",
-    "settings/Slash.lua",
-}
+--
+-- Derived from the TOC, not typed out. The hand-written list this replaced named four paths —
+-- core/CoreSetup.lua, core/DebugLogSetup.lua, settings/OptionsSetup.lua, settings/Slash.lua — the
+-- four files that happened to build descriptors on the day it was written. Nothing made it grow: a
+-- fifth file that starts calling `lib:New` is swept by nothing, and the sweep reports green over
+-- it forever, because a list of paths cannot notice a path that was never added to it.
+--
+-- The whole TOC load list is the honest denominator. The trap only matches a descriptor field
+-- spelled `L = NS.L`, so a file that builds no descriptor contributes no match and costs one
+-- io.open; there is no reason to guess in advance which of the sixteen might grow one. It is also
+-- the same derivation tests/loader.lua feeds the sandbox, so the set the guard sweeps and the set
+-- the addon actually loads cannot drift apart.
+local SEAM_FILES = T.loadAddon.tocFiles
 
 -- ---------------------------------------------------------------------------
 -- The vendored library is really there
@@ -673,89 +680,33 @@ test("degraded: `/wg debug on` still moves the flag and explains the missing win
     end
 end)
 
--- ---------------------------------------------------------------------------
--- Stub-surface parity — the whole member set, per adopted seam (testing-§8)
--- ---------------------------------------------------------------------------
---
--- The member-by-member cases above each pin the members somebody thought of. `assertSurfaceParity`
--- pins the SET: every key the live surface carries is present on the degraded one, and a key that
--- is a function live is a function degraded — the `H.Foo = UI and UI.Foo` shape leaves `false` in
--- place, and a "is the key set?" check waves that through while the call site still raises.
---
--- Both arms come from a real load — the degraded one from the PARTIAL FILE LIST above
--- (`skip = NO_LIBKA0S`), never from hand-stubbing the member under test, or the case would be
--- asserting the test's own typing (anti-patterns #56).
---
--- Each `ignore` entry below is a member that is live-only ON PURPOSE, with the rule that makes it
--- so. An omission that is not in one of these lists is a defect.
+test("libka0s: the Master controls hook is keyed off the library's constant, not a copy of it",
+function()
+    -- options-ui-§8. `["Master controls"]` in settings/Panel.lua was a hand-typed copy of
+    -- libs/LibKa0s/OptionsCompose.lua:50, which publishes the same string as O.MASTER_GROUP at
+    -- :189. That the two agree today is not the point — they do, and that is exactly why the copy
+    -- survived a review. The point is what a library-side rename does: it moves the `group` on
+    -- every composed row, and RenderTabbedSchema fires the afterGroup hook PER GROUP, so a host
+    -- keyed to the old spelling has its hook fire for a group that no longer exists. The reset
+    -- button pair stops being drawn. Nothing raises, no row goes missing, and the tab looks
+    -- ordinary — which is the failure this case exists to make impossible rather than unlikely.
+    --
+    -- red under: keying the hook off any literal spelling of the group name.
+    local src = readFile("settings/Panel.lua")
+    assertNil(src:find('"Master controls"', 1, true),
+        "the group name is the library's to spell — key off Helpers.MASTER_GROUP")
 
-test("parity: the Core seam's whole namespace surface survives the library's absence", function()
-    -- Live surface produced by: grep -nE "^NS\.[A-Za-z_]+ *=|^function NS\." core/CoreSetup.lua
-    -- Core publishes into NS itself rather than onto an instance, so the namespace IS the seam's
-    -- surface — and comparing the whole of it also catches a later seam quietly dropping a key.
-    local live = T.newAddon()
-    local degraded = T.newAddon{ skip = NO_LIBKA0S }
-    T.assertSurfaceParity(live, degraded, "the addon namespace (Core seam)")
-    -- NS.Util is the printer half: `print` is ~40 call sites, `format` has none yet, which is
-    -- exactly why its absence would go unnoticed without this.
-    T.assertSurfaceParity(live.Util, degraded.Util, "NS.Util (Core printer seam)")
-end)
-
-test("parity: the DebugLog stub carries the whole live surface", function()
-    -- Live surface produced by: grep -nE "^function log[.:]|^ *log\.[A-Za-z]" libs/LibKa0s/DebugLog.lua
-    local live = T.newAddon()
-    local degraded = T.newAddon{ skip = NO_LIBKA0S }
-    T.assertSurfaceParity(live.DebugLog, degraded.DebugLog, "NS.DebugLog stub", {
-        -- debug-logging-§3: the stub must NOT carry the formatters — hand-copying the color codes
-        -- whose seven-way drift the extraction exists to end is the one duplicate the standard
-        -- most specifically forbids. Pinned as an absence by the "copies NO library formatter"
-        -- case above; named here so the omission reads as a decision, not as a gap.
-        "FormatPlain", "FormatColored",
-    })
-end)
-
-test("parity: the Slash stub carries the whole live surface", function()
-    -- Live surface produced by: grep -nE "^function Sl[.:]|^ *Sl\.[A-Z]" libs/LibKa0s/Slash.lua
-    -- Nothing is ignored: slash-commands-§1 keeps every host-owned verb working on the degraded
-    -- path, so the CLI seam degrades in what it ANSWERS, never in what it exposes.
-    local live = T.newAddon()
-    local degraded = T.newAddon{ skip = NO_LIBKA0S }
-    T.assertSurfaceParity(live.SlashCommands, degraded.SlashCommands, "NS.SlashCommands stub")
-end)
-
-test("parity: the Options helpers stub carries the whole live surface", function()
-    -- Live surface produced by: grep -nE "^function O[.:]|^ *O\.[A-Z_]" libs/LibKa0s/Options.lua
-    local live = T.newAddon()
-    local degraded = T.newAddon{ skip = NO_LIBKA0S }
-    T.assertSurfaceParity(live.addon.Settings.Helpers, degraded.addon.Settings.Helpers,
-        "Settings.Helpers stub", {
-        -- options-ui-§1 / §8: the layout scalars must not be carried into the stub and must not be
-        -- copied by a host anywhere — a host copy is the copy that goes stale. Every consumer of
-        -- them in settings/Panel.lua sits behind a maker that is a no-op on this path.
-        -- CHROME_GAP / TAB_H / BANNER_H arrived with the tabbed page and the banner
-        -- (options-ui-§13 / §14) and are the same kind of thing: scalars the library publishes so
-        -- a host drawing BESPOKE chrome can measure its own band. This addon draws none -- its one
-        -- page hands the whole strip to RenderTabbedSchema -- so nothing here reads them, degraded
-        -- or live.
-        "PADDING_X", "ROW_VSPACER", "SECTION_HEADING_H", "BUTTON_PAIR_REL",
-        "CHROME_GAP", "TAB_H", "BANNER_H",
-        -- The widget factory itself. settings/Panel.lua:40 and :163 read it and return early when
-        -- it is nil, and both sites only run inside the page builder, which never runs degraded.
-        "AceGUI",
-        -- Library-internal renderers this addon never calls: it builds its landing page from its
-        -- own settings/Panel.lua and has no TextRow call site, and `RestoreDefaults` on the
-        -- instance is the library's per-page verb, a different one from the host's bulk
-        -- `RestoreAllDefaults` (settings/OptionsSetup.lua:201).
-        "BuildLandingPage", "TextRow", "RestoreDefaults",
-        -- The composers' published DATA (OptionsCompose). They are value sets and one sentence of
-        -- wording, and copying them into the stub is the same mistake copying a layout scalar is:
-        -- the composer exists precisely so nine addons cannot each hold their own spelling of the
-        -- visibility enum or the class-colour note. No host reads one -- O.MasterControls stamps
-        -- them onto the rows it emits -- so the stub answers the five composer FUNCTIONS and
-        -- carries none of their data.
-        "FONT_FLAGS", "FONT_FLAGS_SORT", "VISIBILITY_VALUES", "VISIBILITY_SORT",
-        "MASTER_GROUP", "CLASS_COLOR_NOTE",
-    })
+    -- And the constant is genuinely the one the rows are filed under, which is what makes keying
+    -- off it equivalent to the literal today and correct after a rename.
+    local NS = T.newAddon()
+    local H  = NS.addon.Settings.Helpers
+    assertTrue(type(H.MASTER_GROUP) == "string" and H.MASTER_GROUP ~= "",
+        "the live surface publishes the group name")
+    local composed = 0
+    for _, row in ipairs(NS.addon.Settings.Schema) do
+        if row.group == H.MASTER_GROUP then composed = composed + 1 end
+    end
+    assertEqual(composed, 6, "the whole composed block answers to the published constant")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -801,12 +752,27 @@ test("libka0s: the L-trap matcher flags the table and the `or` spelling, not the
 end)
 
 test("libka0s: no seam file hands a descriptor this addon's locale table (the L trap)", function()
+    -- What this case sweeps is now the whole TOC load list, not four hand-typed paths, and that is
+    -- the half that changes what it can catch: put `local d = { L = NS.L }` in core/Util.lua and
+    -- the old four-path form reported PASS, because Util was never on the list and a list cannot
+    -- notice a file nobody added to it.
+    --
+    -- Red under the mutation, seen (M4-19): `local d = { L = NS.L }` anywhere in core/Util.lua →
+    --   "core/Util.lua hands a descriptor NS.L: NS.L }"
+    --
+    -- `assertTrue(src ~= nil)` replaces an `if src then` that wrapped the assertion and swallowed
+    -- an unreadable path — the sweep quietly covered one file fewer and still printed PASS. Be
+    -- clear about what that guard is worth NOW: with SEAM_FILES derived from the TOC, a path that
+    -- does not resolve kills tests/loader.lua's `loadfile` at runner start, so the repo is already
+    -- red before this case is reached and I have not seen this line fail on its own. It stays
+    -- because the sweep must never be able to narrow in silence, whatever the list is derived from
+    -- later; it is a guard, not a gate, and it is not coverage of anything.
     for _, path in ipairs(SEAM_FILES) do
         local src = readFile(path)
-        if src then
-            local bad = offendingL(src)
-            assertNil(bad, path .. " hands a descriptor NS.L: " .. tostring(bad))
-        end
+        assertTrue(src ~= nil, path .. " is in the TOC load list but could not be read; the sweep "
+            .. "would have skipped it and still reported green")
+        local bad = offendingL(src)
+        assertNil(bad, path .. " hands a descriptor NS.L: " .. tostring(bad))
     end
 end)
 

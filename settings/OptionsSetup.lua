@@ -10,7 +10,7 @@
 -- TOC slot: after settings/Schema.lua, whose Get/Set/FindSchema the descriptor reads, and before
 -- settings/Panel.lua, which registers its page at file load (options-ui-§1).
 
-local addonName, NS = ...
+local _, NS = ...
 local WhatGroup = NS.addon
 local Settings  = WhatGroup.Settings
 
@@ -66,7 +66,7 @@ if not lib then
     -- The tabbed page (options-ui-§13) and the page banner (options-ui-§14). settings/Panel.lua
     -- calls RenderTabbedSchema and nothing else here; the rest are the members the live surface
     -- grew with them, carried so the degraded table is the same SHAPE as the live one rather than
-    -- the subset somebody remembered -- tests/test_libka0s.lua's parity case is what says so.
+    -- the subset somebody remembered -- tests/test_surface_parity.lua is what says so.
     -- PageBanner has no host call site at all (WhatGroup has no per-window state to name) and is
     -- stubbed for the same reason.
     H.RenderTabbedSchema   = function() end
@@ -75,9 +75,21 @@ if not lib then
     H.PageHeader           = function() end
     H.SubTabStrip          = function() end
     H.SetChromeHeight      = function() end
-    -- The chrome band's own arithmetic. Library-internal, reached only from the makers above --
-    -- present here because the parity case compares the whole set, and absent from anything this
-    -- addon calls.
+    -- The chrome band's own arithmetic. Library-internal, reached only from the makers above, and
+    -- absent from anything this addon calls.
+    --
+    -- These nine, and the three `__` members further down -- twelve in all -- are NO LONGER GATED,
+    -- which is worth saying here rather than leaving to be discovered.
+    -- tests/test_surface_parity.lua moved onto Kit.assertSurfaceParity's by-name form at kit 15,
+    -- and that form compares Kit.publicMembers, which drops every `__`-prefixed key before it
+    -- compares anything. That is the kit's rule rather than this file's, and it is the right one:
+    -- the library publishes these to talk to itself across a file boundary, and
+    -- libs/LibKa0s/Options.lua's comment at O.__print says in as many words that a degradation
+    -- stub does not mirror them.
+    --
+    -- So the reason the twelve stay is now SHAPE alone, and shape is a weaker reason than a gate.
+    -- They are kept rather than deleted because deleting shipped lines was not what the item that
+    -- un-gated them was for; whichever way that goes later, it goes deliberately.
     H.__bannerBand         = function() end
     H.__tabBand            = function() end
     H.__tabPlacement       = function() end
@@ -89,7 +101,7 @@ if not lib then
     H.__resetTabArtHeight  = function() end
     -- The five schema COMPOSERS (options-ui-§15/§16/§17). Four of them have no call site here --
     -- the schema is bool, number and one enum, so there is no font, border, bar or standalone
-    -- colour block to compose -- and they are stubbed for the shape reason the chrome members
+    -- color block to compose -- and they are stubbed for the shape reason the chrome members
     -- above are. MasterControls is different: settings/Panel.lua calls it at FILE LOAD, which is
     -- the one load-time call this seam has, so its stub has to ANSWER rather than return nil. Two
     -- values, because the caller takes two: no rows, and an afterGroup hook that draws nothing.
@@ -104,9 +116,17 @@ if not lib then
     -- No FONT_FLAGS / FONT_FLAGS_SORT / VISIBILITY_VALUES / VISIBILITY_SORT / MASTER_GROUP /
     -- CLASS_COLOR_NOTE. They are the composers' published DATA, and hand-copying the value sets
     -- and the wording whose nine-way drift OptionsCompose exists to end is anti-patterns #47 in
-    -- the same spirit the layout scalars are: a host copy is the copy that goes stale. Nothing in
-    -- this addon reads one -- the composer stamps them onto the rows it emits -- so a nil reaches
-    -- nothing here, and tests/test_libka0s.lua's parity case lists them as live-only on purpose.
+    -- the same spirit the layout scalars are: a host copy is the copy that goes stale.
+    -- tests/test_surface_parity.lua lists all six as live-only on purpose.
+    --
+    -- ONE of them now has a host reader: settings/Panel.lua keys its afterGroup hook off
+    -- MASTER_GROUP rather than respelling the group name, which is the whole point of publishing
+    -- the constant. That read is guarded there BECAUSE of this omission, and the guard is not
+    -- defensive padding -- it is the degraded shape stated honestly. On this path MasterControls
+    -- emits no rows and its tail draws nothing, so there is no Master controls group in the schema
+    -- for a hook to key to, and the correct number of hooks is zero. Carrying the string here to
+    -- spare the caller an `if` would trade a real omission for a host copy, which is the trade this
+    -- whole block exists to refuse.
     H.SetRenderer          = function() end
     H.RegisterOptionsPage  = function() end
     H.RefreshAllPanels     = function() end

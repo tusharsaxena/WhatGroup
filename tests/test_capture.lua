@@ -364,6 +364,82 @@ test("capture: a raising GetApplicationInfo is caught and falls back", function(
 end)
 
 -- ---------------------------------------------------------------------------
+-- WG-R-07: captures are keyed by searchResultID, not by arrival order
+-- ---------------------------------------------------------------------------
+--
+-- The queue used to be a FIFO and "applied" popped its head, so the pairing
+-- between a capture and an application id was positional. Two outstanding
+-- applications is the smallest arrangement that can put those two orders out
+-- of step: the player applies to A then B, and the server answers B first.
+
+test("capture: two outstanding applications pair to their own search results", function()
+    local NS, _, mock = T.bootAddon()
+    local addon = NS.addon
+    mock.searchResults[10] = baseInfo({ name = "First",  activityIDs = { 500 } })
+    mock.searchResults[20] = baseInfo({ name = "Second", activityIDs = { 500 } })
+    mock.activities[500] = { fullName = "A", mapID = 111 }
+    -- Application ids that are nothing like the search-result ids they were
+    -- made against, which is what the bridge exists to survive.
+    mock.applications[100] = 10
+    mock.applications[200] = 20
+
+    addon:OnApplyToGroup(10)
+    addon:OnApplyToGroup(20)
+    -- The SECOND application is acknowledged first. Under a FIFO the head of
+    -- the queue is First, so appID 200 would be handed First's capture.
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 200, "applied")
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "applied")
+
+    -- Drop both search results so the fresh re-fetch yields nothing and the
+    -- queued capture is the one that reaches pendingInfo — the merge at
+    -- inviteaccepted would otherwise hide a mispairing behind a fresh fetch.
+    mock.searchResults[10] = nil
+    mock.searchResults[20] = nil
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 200, "inviteaccepted")
+
+    assertEqual(addon.pendingInfo.title, "Second")
+end)
+
+test("capture: a declined application drops its queued capture", function()
+    local NS, _, mock = T.bootAddon()
+    local addon = NS.addon
+    mock.searchResults[10] = baseInfo({ name = "Declined", activityIDs = { 500 } })
+    mock.activities[500] = { fullName = "A", mapID = 111 }
+    mock.applications[100] = 10
+
+    addon:OnApplyToGroup(10)
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "applied")
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "declined")
+
+    -- A later invite for the same id must not resurrect the dead application:
+    -- with the listing gone the fresh fetch is nil, so anything that surfaces
+    -- came out of the pending table.
+    mock.searchResults[10] = nil
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+
+    assertNil(addon.pendingInfo, "the declined capture is gone, not stale")
+end)
+
+test("capture: a canceled application drops its unanswered capture", function()
+    local NS, _, mock = T.bootAddon()
+    local addon = NS.addon
+    mock.searchResults[10] = baseInfo({ name = "Canceled", activityIDs = { 500 } })
+    mock.activities[500] = { fullName = "A", mapID = 111 }
+    mock.applications[100] = 10
+
+    -- Canceled BEFORE "applied" ever arrives: the capture is still sitting
+    -- against its search-result id and has no application id yet.
+    addon:OnApplyToGroup(10)
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "cancelled")
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "applied")
+
+    mock.searchResults[10] = nil
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+
+    assertNil(addon.pendingInfo, "a canceled application leaves nothing behind")
+end)
+
+-- ---------------------------------------------------------------------------
 -- Behavior pin (CCN split): the defaults are `or`, not `== nil`
 -- ---------------------------------------------------------------------------
 --

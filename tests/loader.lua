@@ -71,6 +71,11 @@ return function(root, mockBuilder)
     ---
     --- opts.mock = function(mock) end runs against the fresh environment BEFORE any source is
     --- loaded, for the client-shape scenarios a post-hoc assignment cannot reach.
+    ---
+    --- opts.addonName = "<folder>" changes the FIRST VARARG the addon's own files are handed, which
+    --- in the client is the folder the addon was installed into. It defaults to "WhatGroup" because
+    --- that is what the folder is called; a case overrides it to prove a file reads the vararg
+    --- rather than a literal it typed out, which is the only way that distinction is observable.
     local function build(opts)
         opts = opts or {}
         local skipSet = {}
@@ -89,7 +94,7 @@ return function(root, mockBuilder)
             if not skipSet[src.path] then
                 local chunk = chunkFor(src.path)
                 setfenv(chunk, env)
-                if src.lib then chunk() else chunk("WhatGroup", NS) end
+                if src.lib then chunk() else chunk(opts.addonName or "WhatGroup", NS) end
             end
         end
 

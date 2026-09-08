@@ -10,7 +10,7 @@
 -- place that changes. Every shim degrades to a safe default (nil / false)
 -- rather than throwing when the underlying API is absent.
 
-local addonName, NS = ...
+local _, NS = ...
 
 local Compat = {}
 NS.Compat = Compat

@@ -50,6 +50,23 @@ Repeat after each of these to make sure no surface re-introduces the leak:
 
 If **any** of these tests reproduces the taint error, the boot path has regressed — see [midnight-quirks.md → Taint propagation in the boot window](./midnight-quirks.md) and [common-tasks.md → Adding a Blizzard-protected surface touch](./common-tasks.md).
 
+### 1.4 Reset popup — registered in combat as well as out (CRITICAL)
+
+`Settings.EnsureResetPopup` writes one key into `StaticPopupDialogs` and no longer assigns the table
+itself. The assignment it used to carry (`StaticPopupDialogs = StaticPopupDialogs or {}`) guarded
+against a client with no such table, which does not exist, and was itself the kind of write to the
+protected global that § 1.3 exists to keep out of the boot window. Nothing headless can see the
+difference — taint is not a test failure — so it is checked here.
+
+1. Out of combat: `/wg config`, open the settings page, press **Defaults**, confirm the popup, then
+   dismiss it.
+2. Pull a target and stay in combat. Do step 1 again — the popup must still appear and still accept.
+3. Out of combat again, press **ESC** and click **Logout**, then cancel at the confirmation.
+
+**Expected:** the popup shows and dismisses in both combat states, and no step raises "Interface
+action failed because of an AddOn" or `ADDON_ACTION_FORBIDDEN`. Step 3 is § 1.3 run after a reset has
+touched the table, and is the step that actually catches a leak.
+
 ---
 
 ## 2. Slash commands smoke (~3 min)
@@ -201,6 +218,51 @@ first with `/wg test` so there is something to watch, and keep the Settings pane
 **Guards against:** a declared setting the drawing code ignores; a scale change taken in combat
 tainting the secure button; a lock read once at build time instead of at drag time; a *Reset
 position* the next login undoes; and `Only in combat` deadlocking against the lazy first build.
+
+### 3.8 The visibility gate follows a combat transition (options-ui-§15)
+
+`Only in combat` and `Only out of combat` are the only two settings in the addon whose answer
+changes without the player touching the panel. Until 2026-09-08 the gate was read only when
+something opened the popup, so a transition taken with the popup already on screen was missed
+entirely — the setting looked right on every fresh open and did nothing in the one window it was
+bought for. `core/WhatGroup.lua`'s `OnEnable` now registers `PLAYER_REGEN_DISABLED` /
+`PLAYER_REGEN_ENABLED` and both re-ask the gate. **Headless cases pin the logic; only the client
+can prove the events actually arrive and that hiding a live popup mid-pull raises nothing.**
+
+1. **General visibility** → *Only out of combat*. `/wg test` so the popup is on screen with a
+   capture in it.
+2. Pull a training dummy **without closing the popup**.
+3. Drop combat and wait for the lockdown to end.
+4. Repeat with **General visibility** → *Only in combat*: `/wg test` out of combat (nothing shows),
+   then pull, then drop combat.
+5. Close the popup, `/wg reset pendingInfo` is not a thing — instead `/reload` to clear the capture,
+   then pull a dummy with *Only out of combat* still set and drop combat again.
+
+**Pass** —
+- Step 2: the popup **hides the moment combat starts**, and no `ADDON_ACTION_FORBIDDEN` or
+  "Interface action failed because of an AddOn" line appears. The hide is what the setting promises;
+  the absence of a taint line is what makes hiding a live frame from a combat-edge handler safe.
+- Step 3: the popup **comes back**, with the same capture in it — all six rows still populated, not
+  "No data".
+- Step 4: the mirror. Nothing on screen out of combat, the popup appears on the pull, and it goes
+  again when combat ends.
+- Step 5: **nothing opens.** With no capture pending, a combat transition must never put an empty
+  popup on screen — that is worse than no popup at all.
+
+**Fail** — the popup stays up in combat; it hides and never returns; it returns showing "No data";
+a popup appears in step 5; or any taint line at the transition.
+
+**Also here, and it is the reason this step exists twice over:** with the popup **hidden by the
+gate** (step 4, out of combat, *Only in combat* set, teleport on cooldown), the countdown ticker must
+not be running. The observable is in § 4.1a — leave the popup hidden for a stretch, then let it open
+and confirm the time shown has dropped by the real elapsed amount rather than sitting where it was.
+Before 2026-09-08 the ticker armed against a frame that was never shown, and because `OnHide` fires
+only on a transition it then had no cancel site at all and ran for the rest of the session. That is
+the invariant the `performance-§12` deviation row in [`ARCHITECTURE.md`](./ARCHITECTURE.md) rests on.
+
+**Guards against:** a combat-dependent setting that is only ever evaluated at open time; a
+combat-edge `Hide` that taints; a re-show that resurrects an empty popup; and a repeating ticker
+armed against a frame with no cancel site.
 ---
 
 ## 4. Synthetic flow smoke — `/wg test` (~1 min)
@@ -284,6 +346,27 @@ Then, once the cooldown has expired, `/wg test` again: full alpha, no swipe, no 
 
 **Expected:** Whole popup including the teleport button moves. Dropping near a screen edge clamps without going off-screen.
 
+
+### 4.5 The popup in combat — no blocked action, and Close is not lost
+
+**This is the check a player found for us on 2026-09-07**, reported as `AddOn 'WhatGroup' tried to call the protected function 'WhatGroupFrame:Hide()'`. The popup parents a `SecureActionButtonTemplate` teleport button, so the client refuses `Hide` on it — and on any ancestor of it — during a lockdown. The addon's mock now models frame protection and four cases pin the behavior, but only the client raises the real error.
+
+**Run with BugGrabber (or any error display) enabled, or this check cannot fail visibly.**
+
+1. `/wg test` to raise the popup, out of combat.
+2. Pull a training dummy, popup still on screen.
+   - **Expected:** No red error, nothing in BugGrabber naming WhatGroup. The popup **stays up** — correct, not a bug; the client will not take it down mid-fight.
+3. Press **Close** while still in combat.
+   - **Expected:** No error. Popup stays, and one chat line reads *"Popup deferred until combat ends."*
+4. Drop combat.
+   - **Expected:** Popup disappears, honoring the press from step 3.
+5. Repeat 1–2 with `General visibility` = **Out of combat**.
+   - **Expected:** Still no error. Popup stays for the fight, goes when combat drops.
+6. Set `General visibility` = **In combat**, out of combat, holding a capture.
+   - **Expected:** Popup hidden. Pull — popup appears. Drop combat — popup hides. **This direction is the legal one** and must work on the edge itself, not late.
+
+**Failure means:** any red error, or a Close press in combat silently forgotten once combat ends.
+
 ---
 
 ## 5. Real LFG flow smoke (~5–10 min)
@@ -318,13 +401,26 @@ The end-to-end test. Requires an active LFG and at least one group leader willin
 
 ### 5.2 Multiple concurrent applications
 
-Tests the FIFO `captureQueue` + `pendingApplications[appID]` pairing.
+Tests the `capturesByResult[searchResultID]` + `pendingApplications[appID]` pairing. This is the step that
+only ever meant anything with **more than one** application outstanding: with one, every possible pairing is
+the right one. It is also the check that a decline leaves nothing behind — the pairing used to be positional,
+so a capture that never got an invite sat in the tables until group-leave.
 
-1. Apply to 3 groups in quick succession (different dungeons / activities if possible).
-2. Wait for an invite from one of them.
-3. Accept.
+1. `/wg debug on`.
+2. Apply to **two** group-finder listings in quick succession — different dungeons or activities if you can,
+   so the two titles are told apart at a glance.
+3. Let both resolve, one **accepted** and one **declined**, in either order. If you can arrange for the
+   decline to land first, do — that is the ordering the old code got wrong.
+4. Repeat with three listings if two of them are easy to come by.
 
-**Expected:** The chat notification + popup show the **specific** group you joined (not the first or most-recent applied). The other two captures are wiped at `inviteaccepted`.
+**Expected:**
+- The chat notification and popup name the group you actually joined — not the first applied, not the
+  most-recent applied, and not the other one of the pair.
+- The console shows one `[LFG] dropped the capture for appID=<N> (declined)` line for the declined
+  application, at the moment it is declined rather than at group-leave.
+- The remaining captures are wiped at `inviteaccepted`.
+
+**Fail:** the two swap, or the declined application's group is the one that surfaces.
 
 ### 5.3 Group leave
 
@@ -379,6 +475,24 @@ Run after bumping the `## Interface:` line in `WhatGroup.toc` for a major patch.
 4. Run section 5.1 (Real LFG flow, single application).
 
 If any Blizzard API broke (e.g. fields renamed on `C_LFGList.GetActivityInfoTable`), the most likely failure point is `CaptureGroupInfo` returning incomplete data — see [data-flow.md → Captured info](./data-flow.md#captured-info) for the field list and remediation steps.
+
+### 7a · `Compat.IsSpellKnown` — is the modern rung there yet? (`WHATGROUP-R-06`)
+
+`core/Compat.lua:62-67` is the one shim of six with no modern rung. Its five siblings at `:24`, `:40`, `:52`, `:83` and `:105` try `C_Spell.*` first and keep the legacy global as the fallback; this one calls the bare `IsSpellKnown` and returns `false` when it is absent. Nothing throws, so the degrade is safe — but it is not quiet. Every teleport in the popup would draw desaturated with `Teleport spell not learned` beside it (section 4.1b) on a character who has learned all of them, and the chat summary would tag every row `(not learned)`. That is what patch day looks like if Blizzard retires the global, and no headless case can see it coming. `tests/test_compat.lua:143` already nils the global and asserts the shim answers `false`, which is the shim behaving as designed; what it cannot assert is whether `false` is the *right* answer on a client where a modern API knows better.
+
+The fix — a `C_SpellBook.IsSpellKnown` rung above the global, in the shape the siblings use — **is conditional on this observation**. Until someone makes it, the shim stays exactly as written.
+
+1. Pick a teleport you have learned and one you have not, and note both spell IDs.
+2. `/dump C_SpellBook.IsSpellKnown(<the learned one>)` then `/dump IsSpellKnown(<the same>)`.
+3. Repeat both for the one you have not learned.
+
+**Pass** — both APIs resolve and both agree, on the learned spell and the unlearned one. Write down the client build and the two spell IDs; that is the evidence the rung waits on, and a bare "it worked" is not.
+
+**Fail** — either call errors, meaning `C_SpellBook.IsSpellKnown` is not there on this client, or the two answers disagree. Record what you saw and **do not add the rung**. A disagreement means the two are not interchangeable, and the shim then needs a decision rather than a fallback ladder.
+
+Re-run on patch day, and on any day the popup starts calling learned teleports unlearned.
+
+The finding and its blocked state are on the books as issue #15; record the reading there.
 
 ---
 
@@ -482,6 +596,138 @@ back to `Copy`, `Clear` and `×`, and the footer button back to the plain word `
 correct — the art is inside the payload that is missing. What must **not** happen is a blank control,
 an error, or a console that refuses to open.
 
+## 12a. The pooled tab strip (~3 min)
+
+**Smoke, session 3 of the 2026-09-07 remediation plan. NOT YET RUN.** New with `M4-01`'s LibKa0s
+v1.27.0 re-vendor. `TabStrip` (`libs/LibKa0s/OptionsWidgets.lua`) no longer builds a button and a
+content panel per click: it acquires both from per-`ctx` `LibKa0s-Pool-1.0` pools and re-dresses
+them, re-setting `OnClick` on every dress. Its only headless proof counts `CreateFrame` calls on a
+second selection pass, and the case that would pin band geometry as invariant under selection cannot
+be written yet — the shared mock answers `GetHeight` with 0 for every frame, and that flips at kit
+16, not here. **So a stale label, a mis-anchored button or a band that changed height on a
+re-dressed tab is invisible to every automated check in this repo.** This addon hands its whole
+strip to `RenderTabbedSchema` and measures no band of its own, which is exactly why it can say
+nothing about one out of game.
+
+| # | Step | Expect |
+|---|------|--------|
+| 12a.1 | `/wg config`, then cycle every tab of the strip three times, ending back on the first | Each tab shows **its own** label on all three passes. A label carried over from the previously-dressed tab is the pool handing back a frame it did not finish dressing. |
+| 12a.2 | Watch the selection highlight as you go | The highlighted tab is the one you pressed, every time. A highlight on the wrong button means `OnClick` was not re-set on the dress. |
+| 12a.3 | Watch the strip's band height across all three passes | It does not move. A band that grows or shrinks between passes is the geometry case kit 16 will be able to assert and kit 15 cannot. |
+| 12a.4 | Watch the body under the strip | It is always the selected tab's rows. A body drawn under the wrong tab means the pooled content panel came back still parented to the previous selection. |
+| 12a.5 | `Esc`, then `/wg config` again, and walk the strip once more | The same three things hold on a fresh build. The pools are per-`ctx`, so a second build is where a released frame can come back dressed for a different tab. |
+
+`LibKa0s-Perf-1.0` minor 8 arrived in the same payload and respells five player-facing strings.
+`Perf` is not wired in this addon, so none of them has a surface here.
+
+---
+
+## 12b. Non-English client (~10 min, session 6)
+
+**Session 6 of the 2026-09-07 remediation plan, owned by `M5-08`. NOT YET RUN — no WoW client was
+available when it landed. Nothing in this section has been performed and no step in it is recorded
+as passed.** Run on a client set to **deDE or frFR**, the two the collection's other locale steps
+use (`ConsumableMaster/docs/smoke-tests.md` § 3c, `KickCD/docs/smoke-tests.md` § 9b).
+
+**This section and § 7a are one login.** Session 6 schedules both, and § 7a — the
+`C_SpellBook.IsSpellKnown` observation `WHATGROUP-R-06` is gated on — has waited through five
+milestones for want of somebody being in a client at the time. Step 5 below is where it gets run.
+
+**What this addon reads in the player's language.** Nearly everything it puts on screen about a
+group:
+
+- **`info.fullName`** and **`info.shortName`** from `C_LFGList.GetActivityInfoTable`
+  (`core/Compat.lua:125-130`, stored at `core/WhatGroup.lua:309`, drawn at `modules/Frame.lua:680`
+  and in the chat summary at `core/WhatGroup.lua:514`). German activity names are materially longer
+  than English ones.
+- **`info.playstyleString`**, which the server renders in the player's language, preferred over the
+  enum lookup by `Labels.GetPlaystyleLabel` (`core/WhatGroup.lua:462-467`).
+- **`GROUP_FINDER_GENERAL_PLAYSTYLE1` … `4`**, read into `Labels.PLAYSTYLE` at **file load time**
+  (`core/WhatGroup.lua:435-440`). A global that is nil at load leaves that label nil for the whole
+  session — there is no second read.
+- **`Compat.GetSpellName`** (`core/Compat.lua:24-34`), whose return goes straight into the teleport
+  button's `/cast` macrotext (`modules/Frame.lua:274`, built at `:386`). Casting by name only works
+  when the name is the client's own, which is what makes this locale-independent by construction —
+  and is therefore worth confirming rather than assuming.
+
+What the addon **prints itself** — every `NS.L` label, the group-type words, the chat banner — is
+English on every client. That is the addon's scope and not a defect. § 10 (the `L` trap) is the check
+that they render as prose rather than as keys, and it is unrelated to this section.
+
+**`/wg test` will not do for most of this.** Its fixture spells the activity name out in English
+(`core/WhatGroup.lua:873`), so on a German client it is *expected* to show English. Use a real group
+for steps 1 to 3.
+
+1. **A real application, with a real German activity name.** Apply to a group through the LFG UI
+   and let the popup appear (section 5.1's flow).
+   **Expected:** the **Instance** field shows the client's own name for the activity, the **Type**
+   field shows a short name or the group-type label, and the **Playstyle** row shows the server's
+   own wording. No field shows `Unknown` where the client plainly has a name.
+   **Fail:** `Unknown` in the Instance row — `fullName` came back empty on this locale and the
+   `activityName` fallback at `core/WhatGroup.lua:309` did not cover it. Also fail: a name that
+   renders as mojibake or `?` glyphs, which is the text not surviving the trip to the font.
+2. **Field width.** Read the popup with that longer name in it, and check the chat summary line too.
+   **Expected:** the name fits its row or is truncated cleanly at the field's edge.
+   **Fail:** text overrunning the popup's border, overlapping the next field, or pushing the frame
+   wider than the screen. German activity names are the longest the client produces, and this is the
+   only place anything will notice.
+3. **Playstyle, including the load-time capture.** With the popup up, run
+   `/dump GROUP_FINDER_GENERAL_PLAYSTYLE1` and the same for `2`, `3` and `4`.
+   **Expected:** four non-empty strings in the client's language, and a Playstyle row that reads as
+   words rather than a number or a blank.
+   **Fail:** any of the four nil. `Labels.PLAYSTYLE` is built once at file load, so a nil there is
+   nil for the session and the enum fallback silently renders nothing for that playstyle — visible
+   only when a group with that playstyle turns up, which may not be this login. Record which ones
+   came back nil either way.
+4. **The teleport button casts by the client's own name.** With a popup up for an instance whose
+   teleport you have learned, hover the teleport button and then click it (section 4.1's flow).
+   **Expected:** the tooltip is the German spell tooltip, and the click casts the teleport. The
+   macrotext is `/cast ` plus whatever `C_Spell.GetSpellName` returned, so the name in it is the
+   client's own.
+   **Fail:** a click that does nothing while the button is drawn as ready. That means the macrotext
+   holds a name this client does not answer to, which on this locale would mean `GetSpellName`
+   returned an English name from somewhere — the one thing that would prove the shim is not reading
+   the client's string table.
+5. **Run § 7a now — this is the login it has been waiting for.** Follow § 7a as written:
+   `/dump C_SpellBook.IsSpellKnown(<a teleport you have learned>)` and
+   `/dump IsSpellKnown(<the same spell>)`, then both again for one you have **not** learned.
+
+   **Record all six of these, in issue #15 and in the session-6 result:**
+
+   ```
+   client build (/dump GetBuildInfo()):
+   client locale (/dump GetLocale()):
+   learned spellID:            C_SpellBook.IsSpellKnown = ___   IsSpellKnown = ___
+   unlearned spellID:          C_SpellBook.IsSpellKnown = ___   IsSpellKnown = ___
+   did C_SpellBook.IsSpellKnown exist at all? (yes / no, it errored)
+   ```
+
+   **Pass** — both APIs resolve and agree on both spells. That is the evidence `WHATGROUP-R-06`'s
+   fix text conditions the rung on, and `M5-10` can then add a `C_SpellBook.IsSpellKnown` rung above
+   the global in the shape the five siblings use.
+   **Fail** — either call errors, or the two disagree. **Do not add the rung.** A disagreement means
+   the two are not interchangeable and the shim needs a decision rather than a fallback ladder;
+   record what you saw on issue #15 and leave `core/Compat.lua:62-67` exactly as written. Both
+   outcomes close session 6's obligation — one ships a rung, the other files a finding — and a
+   blank is the only result that does not.
+
+   The locale is not incidental to this step. `GetLocale()` is recorded because "both APIs present"
+   is a claim about a client build, and the one this observation is finally made on should be
+   written down rather than assumed to be the English one somebody imagined.
+
+6. **Nothing else moved.** Run section 1 (boot), section 4 (`/wg test`) and section 5.1 once on this
+   client.
+   **Expected:** identical behavior to English throughout.
+   **Fail:** any Lua error, which here means a localized string reached something that assumed an
+   English one.
+
+**Sign-off without a non-English client.** There is none, for any step. `tests/wow_mock.lua` answers
+enUS for every string the capture path reads, `tests/test_capture.lua` and `tests/test_labels.lua`
+assert against those English values, and the `/wg test` fixture is English by construction — so the
+suite is green on all of it whether it is right or wrong. Step 5 in particular can only be answered
+in a client, which is the whole reason `WHATGROUP-R-06` is still open. Until the pass runs, the
+honest state of this section is unrun, and it is recorded that way rather than as coverage.
+
 ---
 
 ## 13. Quick reference checklist
@@ -493,6 +739,7 @@ For a fast pre-release pass, run at minimum:
 - [ ] section 1.3 — ESC → Logout after `/wg config`
 - [ ] sections 2.1, 2.10, 2.12, 2.13 — `/wg help`, `/wg test`, `/wg config`, `/wg reset`
 - [ ] section 3.4 — Defaults button confirm flow
+- [ ] section 3.8 — the visibility gate follows a combat transition, in both directions, with no taint line
 - [ ] section 4.1 — Click teleport button (no taint)
 - [ ] section 4.1a — Teleport on cooldown: swipe, ticking note, and a click that casts nothing
 - [ ] section 4.1b — Teleport not learned: the note says so, and never says cooldown
@@ -500,7 +747,11 @@ For a fast pre-release pass, run at minimum:
 - [ ] section 10 — no `SCREAMING_SNAKE` string on any page, in the console, or in chat
 - [ ] sections 11.5 / 11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
 - [ ] sections 12.1 / 12.4 — marks on the console title bar, and a mark **beside** the footer Close word
+- [ ] section 12a — the tab strip's labels, selection and band height survive three passes
+- [ ] section 12b — the non-English-client pass, which is also the only login § 7a will get
 
-Run section 9 (degraded install), section 12 (shared art) and the rest of section 11 after a LibKa0s re-vendor or any change to the six seam files.
+Run section 9 (degraded install), section 12 (shared art), section 12a (the pooled tab strip) and the rest of section 11 after a LibKa0s re-vendor or any change to the six seam files.
+
+Section 7a is a one-off that has **never been run**. Session 6 (section 12b, step 5) is where it is scheduled, and section 12b carries the block to record its six readings in. It is the observation `WHATGROUP-R-06` is gated on, and until someone runs it on a live client `core/Compat.lua`'s `IsSpellKnown` shim keeps the shape the finding questions — deliberately, because adding the rung without the observation would be inventing the evidence the finding asks for.
 
 If all of those pass, the addon is in shippable shape for the 80% case. Run the full suite for releases tagged with feature work.

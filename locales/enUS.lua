@@ -34,7 +34,7 @@
 -- translator a surface is covered when it is not. This table therefore holds
 -- only keys something actually looks up.
 
-local addonName, NS = ...
+local _, NS = ...
 
 local L = setmetatable({}, {
     __index = function(_, k) return k end,

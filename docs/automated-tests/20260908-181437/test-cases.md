@@ -603,14 +603,7 @@ badge and any count quoted in the docs must agree with it.
 
 - docmap: every Tier 2 row agrees with what docs/ holds
 
-### test_lintconfig.lua (4)
-
-- lintconfig: .luacheckrc sets no top-level ignore
-- lintconfig: .luacheckrc switches no warning class off wholesale
-- lintconfig: every files[...] ignore is narrowed to a file or a name
-- lintconfig: no source file carries a bare inline luacheck ignore
-
-### test_doc_structure.lua (8)
+### test_doc_structure.lua (7)
 
 - docs/ARCHITECTURE.md carries the ten sections documentation-§3 names
 - every mandated hub section that has a topic doc has spilled into it
@@ -619,7 +612,6 @@ badge and any count quoted in the docs must agree with it.
 - README.md's top-level sections are the ones documentation-§1 names, in its order
 - the README's settings table is page-granular, not per-tab
 - every settings tab the README sends a player to exists in the schema
-- docs/smoke-tests.md carries a non-English-client section
 
 ### test_register.lua (1)
 
@@ -656,9 +648,8 @@ badge and any count quoted in the docs must agree with it.
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
 | test_docmap.lua | 1 |
-| test_lintconfig.lua | 4 |
-| test_doc_structure.lua | 8 |
+| test_doc_structure.lua | 7 |
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 2 |
 | test_eol.lua | 1 |
-| **Total** | **559** |
+| **Total** | **554** |

@@ -59,7 +59,7 @@ Helpers.RenderTabbedSchema(generalCtx, "general", {
 })
 ```
 
-The callback fires once, immediately after the last schema row of the named group — so on a tabbed page it draws only while THAT tab is open, which is what keeps a Chat action off the Popup tab. `AFTER_GROUP["Master controls"]` is already taken by the composer's closing reset pair; a second hook for one group is not possible, so a new action goes on another tab. `Helpers.InlineButton` renders a 160-px button (override via `spec.width`) left-aligned in a full-width row.
+The callback fires once, immediately after the last schema row of the named group — so on a tabbed page it draws only while THAT tab is open, which is what keeps a Chat action off the Popup tab. `AFTER_GROUP[Helpers.MASTER_GROUP]` is already taken by the composer's closing reset pair (added after the table constructor, under a presence check, because the library-less stub publishes no `MASTER_GROUP` and that path has no Master controls rows to hook); a second hook for one group is not possible, so a new action goes on another tab. `Helpers.InlineButton` renders a 160-px button (override via `spec.width`) left-aligned in a full-width row.
 
 ### After adding a row
 
@@ -126,9 +126,9 @@ Find the **spell ID** from a spellbook that owns the teleport — that is the on
 
 It prints every learned "Path of …" with its ID, alphabetically. Take the ID from that list verbatim.
 
-The Warcraft Wiki ([`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities), e.g. [`Path of the Corrupted Foundry`](https://warcraft.wiki.gg/wiki/Path_of_the_Corrupted_Foundry)) and Wowhead (`wowhead.com/spell=<id>`) are the fallback when nobody available has the spell, and a reasonable cross-check otherwise — but treat them as unverified. **The spell name never contains the dungeon name**, so searching by dungeon returns something adjacent rather than nothing, and neighbouring IDs in the same patch block are different spells entirely: `1254553` (one digit off Nexus-Point Xenas' real `1254563`) is a spell called "Hero's Path", and it shipped twice from name-based lookups before a spellbook dump caught it.
+The Warcraft Wiki ([`Category:Instance teleport abilities`](https://warcraft.wiki.gg/wiki/Category:Instance_teleport_abilities), e.g. [`Path of the Corrupted Foundry`](https://warcraft.wiki.gg/wiki/Path_of_the_Corrupted_Foundry)) and Wowhead (`wowhead.com/spell=<id>`) are the fallback when nobody available has the spell, and a reasonable cross-check otherwise — but treat them as unverified. **The spell name never contains the dungeon name**, so searching by dungeon returns something adjacent rather than nothing, and neighboring IDs in the same patch block are different spells entirely: `1254553` (one digit off Nexus-Point Xenas' real `1254563`) is a spell called "Hero's Path", and it shipped twice from name-based lookups before a spellbook dump caught it.
 
-A wrong ID does not error. The row renders desaturated with a `(not learned)` tag for a player who owns the teleport, and the button's `/cast` names a spell nobody has — so "it looks fine, just greyed out" is the failure mode to watch for, not a clue that the player is missing the teleport.
+A wrong ID does not error. The row renders desaturated with a `(not learned)` tag for a player who owns the teleport, and the button's `/cast` names a spell nobody has — so "it looks fine, just grayed out" is the failure mode to watch for, not a clue that the player is missing the teleport.
 
 `WhatGroup:GetTeleportSpell(activityID, mapID)` checks `mapID` first; the `activityID` parameter is kept for back-compat but the table no longer carries activityID-keyed rows (Blizzard rotates activity IDs every season, so they're not a reliable key). When the value is a list, the lookup picks the first spell the player has learned via `IsSpellKnown`; if none are known, it falls back to the first entry so the popup at least shows the icon (desaturated).
 

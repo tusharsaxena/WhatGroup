@@ -92,9 +92,11 @@ Retail's secure-frame system rejects any `SetPoint` call on a protected frame th
    - **learned but recharging** (WG-31): 50% alpha, desaturated icon, secure attributes cleared — clearing them *is* the disable, since the button still takes the click and the secure handler finds no action to run. `:Disable()` would be the obvious alternative and is the wrong tool on a protected frame. The tooltip **stays** (mouse enabled): it is where the spell's own text and exact timing live, and a player who owns the teleport is entitled to it. A `CooldownFrameTemplate` swipe is armed over the icon with the raw `(start, duration)` pair, and the note beside the button reads `On cooldown — 7h 58m 12s`, counting down once a second.
    - **not known / unnamed**: 50% alpha, desaturated icon, `EnableMouse(false)`, secure attributes cleared, and the note reads `Teleport spell not learned`.
 
-**One note, three states, and the order is the point.** An unlearned spell can still report a cooldown, so `not known` is tested first: labelling it "on cooldown" would answer a question nobody asked while burying the one that explains the grey icon. A ready teleport needs no explanation and the note hides. The popup never greys a button out and says nothing.
+**One note, three states, and the order is the point.** An unlearned spell can still report a cooldown, so `not known` is tested first: labeling it "on cooldown" would answer a question nobody asked while burying the one that explains the gray icon. A ready teleport needs no explanation and the note hides. The popup never grays a button out and says nothing.
 
-The countdown **ticks**, via a 1-second `ScheduleRepeatingTimer` (`modules/Frame.lua:275`). That timer is the only repeating anything in the addon and it ends `performance-§12`'s no-combat-path exemption — a **ratified deviation**, recorded with its reasoning and re-check trigger in [`ARCHITECTURE.md`](./ARCHITECTURE.md) `## Documented deviations`, with the regenerated sweep in [`performance.md`](./performance.md). What makes it defensible is that it cannot outlive the popup: **one** handle, replaced rather than stacked, cancelled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. That last tick re-runs `ConfigureTeleportButton` rather than hand-reversing the four things the cooldown branch changed, so the button becomes castable without the player closing and re-opening the popup. Five cases in `tests/test_frame.lua` pin all of it, including that three consecutive `ShowFrame()` calls leave exactly one timer and a `Hide()` leaves none.
+The countdown **ticks**, via a 1-second `ScheduleRepeatingTimer` (`modules/Frame.lua:351`). That timer is the only repeating anything in the addon and it ends `performance-§12`'s no-combat-path exemption — a **ratified deviation**, recorded with its reasoning and re-check trigger in [`ARCHITECTURE.md`](./ARCHITECTURE.md) `## Documented deviations`, with the regenerated sweep in [`performance.md`](./performance.md). What makes it defensible is that it cannot outlive the popup: **one** handle, replaced rather than stacked, canceled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. That last tick re-runs `ConfigureTeleportButton` rather than hand-reversing the four things the cooldown branch changed, so the button becomes castable without the player closing and re-opening the popup.
+
+**The arm site is `OnShow`, and the guard is `f:IsShown()`** — which is what makes "cannot outlive the popup" enforced rather than asserted. `applyTeleportNote` runs on paths where the frame is not on screen: `PopulateFields` runs before `ShowFrame` reaches `f:Show()`, and the `inCombat` / `outOfCombat` gate can build the popup and decline to show it at all. `OnHide` fires on a **transition**, so a ticker armed against a frame that was never shown has no cancel site and runs for the rest of the session. Arming from `OnShow` — the exact mirror of the `OnHide` that cancels — means every path to the screen arms it and no path has to remember to. `OnShow` re-runs the whole `ConfigureTeleportButton`, which cancels any live handle first, so it cannot stack. Seven cases in `tests/test_frame.lua` pin all of it, including that three consecutive `ShowFrame()` calls leave exactly one timer, a `Hide()` leaves none, and a popup the gate keeps off screen arms none at all.
 
 The swipe is the half that needs no timer at all — a `Cooldown` widget animates engine-side once armed. Both the note and the swipe are cleared (`SetCooldown(0, 0)`, `Hide()`) on every ready path, so neither can outlive the cooldown that armed it.
 
@@ -121,7 +123,7 @@ function WhatGroup:ShowFrame()
 end
 ```
 
-The other master-control seams are one function each: `WhatGroup:ApplyFrameVisibility()` (hides a popup that is already open when the gate closes — the `visibility` row's `onChange`) and `WhatGroup:ResetFramePosition()` (the Master controls tab's *Reset position* button: drops `db.global.windows.popup` **and** re-anchors the live frame to the shipped `CENTER` point; the re-anchor is combat-guarded, dropping the stored point is not, because either half alone is a reset the next login undoes).
+The other master-control seams are one function each: `WhatGroup:ApplyFrameVisibility(inCombat)` (re-applies the gate to a popup that already exists — the `visibility` row's `onChange` **and** both combat-transition events) and `WhatGroup:ResetFramePosition()` (the Master controls tab's *Reset position* button: drops `db.global.windows.popup` **and** re-anchors the live frame to the shipped `CENTER` point; the re-anchor is combat-guarded, dropping the stored point is not, because either half alone is a reset the next login undoes).
 
 ## Visibility
 
@@ -131,6 +133,29 @@ The other master-control seams are one function each: `WhatGroup:ApplyFrameVisib
 - **`inCombat` / `outOfCombat` gate the `Show`, not the build.** Refusing the build would deadlock `Only in combat`: the first show is always out of combat, so the frame would never be built, and the in-combat show would then meet the never-built defer instead of a popup. Under `inCombat` the frame is therefore built and populated out of combat and simply left off screen.
 
 Anything the addon does not recognize — a hand-edited SavedVariable, a profile written by a future version — answers **yes**, along with `always`. A display setting that failed closed would make the addon look broken rather than configured.
+
+### The gate is re-asked on the combat transition
+
+`inCombat` and `outOfCombat` are the only two settings in the addon whose answer changes without the player touching the panel, so they are the only two that need an **event** rather than an `onChange`. `core/WhatGroup.lua`'s `OnEnable` registers `PLAYER_REGEN_DISABLED` and `PLAYER_REGEN_ENABLED`, both to one `OnCombatStateChanged` handler, which calls `WhatGroup:ApplyFrameVisibility(event == "PLAYER_REGEN_DISABLED")`.
+
+`ApplyFrameVisibility` is symmetric in intent and **asymmetric in combat**, because the client makes it so. `buildFrame` parents a `SecureActionButtonTemplate` button — the teleport button — to `f`, and the client refuses `Hide` on a protected frame *and on every ancestor of one* during a lockdown. So the two combat-driven values are not equally serviceable:
+
+| Value | Wants to hide on | Legal? |
+|---|---|---|
+| `inCombat` | combat **ending** | Yes — `InCombatLockdown()` is already false on that edge |
+| `outOfCombat` | combat **starting** | **No** — inside the lockdown, refused |
+
+For `outOfCombat` the popup stays up for the fight and the gate is honored late, at `PLAYER_REGEN_ENABLED`. Attempting it anyway is strictly worse than deferring: the frame does not go down either way, and the player additionally gets `ADDON_ACTION_BLOCKED` naming this addon. **Every hide goes through one `hidePopup()` seam** that returns `false` rather than calling into a refusal, and the Close button remembers a press it could not honor so the dismissal survives the fight rather than evaporating.
+
+This corrects a claim `modules/Frame.lua` and this document both carried until 2026-09-08 — that `f:Hide()` was unprotected. It never was. `ApplyFrameSize` and `ResetFramePosition` sit two functions away and were already combat-guarded for exactly this reason; the visibility seam was the one place that reasoned the other way, and a player found it.
+
+Three conditions bound the show half:
+
+- **`f` must already exist.** A transition never builds the popup — the lazy build is the taint contract, and tripping it from a combat edge would be the worst possible moment.
+- **`pendingInfo` must be set.** A "No data" popup appearing the moment the player pulls is worse than no popup at all.
+- **The frame must not already be shown**, so a transition that changes nothing does nothing.
+
+The `inCombat` argument overrides the live `InCombatLockdown()` read and exists for one caller. `PLAYER_REGEN_DISABLED` fires at the *start* of the lockdown and the API can still answer `false` on that same frame, so a handler that asked the API would evaluate the gate against the state the player has just left — wrong in both directions. The **event name** is the authority on which edge this is; every other caller passes nothing and gets the live read, which is correct for them because they are not on an edge.
 
 `ShowFrame` re-populates from the current `pendingInfo` every call — so toggling `pendingInfo` and re-calling `ShowFrame` updates the visible rows without recreating widgets. The `Raise()` call ensures the dialog comes to the front of its strata when re-opened over another popup.
 
@@ -156,5 +181,5 @@ There is intentionally no programmatic Hide method. The frame is closed by:
 ## Frame dependencies
 
 - **`WhatGroup` addon object** (`NS.addon`, aliased file-locally as `local WhatGroup = NS.addon` — not a `_G.WhatGroup` global) — read at `PopulateFields` time for `WhatGroup.pendingInfo`, `WhatGroup:GetTeleportSpell`, and `WhatGroup.Labels.{GetGroupTypeLabel, PLAYSTYLE}`. Read at file-load time to attach the `ShowFrame` method. Also calls `NS.Debug("Frame", …)` (the on-screen debug console) and reads `WhatGroup._print` for the combat-deferred chat hint.
-- **WoW API** — `CreateFrame`, `BackdropTemplate`, `UISpecialFrames`, `GameFontNormalLarge` / `GameFontNormal` / `GameFontHighlight`, `GameTooltip`, `InCombatLockdown`, `PLAYER_REGEN_ENABLED` event. The version-variant spell lookups (`GetSpellName` / `GetSpellTexture` / `IsSpellKnown`) go through `NS.Compat.*`, not the raw `C_Spell.*` / legacy globals directly — `Compat.lua` is the sole caller. Casting itself is delegated to Blizzard's secure action handler via `type="macro"` + `macrotext="/cast <SpellName>"` — `CastSpellByID` is never called from non-secure code.
+- **WoW API** — `CreateFrame`, `BackdropTemplate`, `UISpecialFrames`, `GameFontNormalLarge` / `GameFontNormal` / `GameFontHighlight`, `GameTooltip`, `InCombatLockdown`, `PLAYER_REGEN_ENABLED` and `PLAYER_REGEN_DISABLED` events. The version-variant spell lookups (`GetSpellName` / `GetSpellTexture` / `IsSpellKnown`) go through `NS.Compat.*`, not the raw `C_Spell.*` / legacy globals directly — `Compat.lua` is the sole caller. Casting itself is delegated to Blizzard's secure action handler via `type="macro"` + `macrotext="/cast <SpellName>"` — `CastSpellByID` is never called from non-secure code.
 - **No Ace3 dependencies.** The popup uses raw Blizzard `Frame` / `FontString` / `Texture` / `Button` — no AceGUI. (AceGUI is only used in the Settings panel.)

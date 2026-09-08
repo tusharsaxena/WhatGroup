@@ -16,10 +16,10 @@
 -- Mock fidelity is load-bearing
 -- ---------------------------------------------------------------------------
 --
--- Five pieces of this file model REAL client behavior rather than no-op'ing it, and must not be
+-- Six pieces of this file model REAL client behavior rather than no-op'ing it, and must not be
 -- "simplified" back into blanket stubs — each one is the only reason a whole class of addon bug is
--- catchable headlessly. All five are also why this is an extender rather than a swap: the kit's own
--- README names the last of them as a divergence it deliberately keeps.
+-- catchable headlessly. They are also why this is an extender rather than a swap: the kit's own
+-- README names the fifth of them as a divergence it deliberately keeps.
 --
 --  1. FRAME VISIBILITY. A blanket self-returning no-op makes IsShown() return the frame —
 --     permanently truthy — so "the console closed" is untestable and a window that never hides
@@ -52,6 +52,16 @@
 --     "every field shows the same string" — and the debug console's title, ON/OFF toggle and line
 --     counter all hang off one title bar.
 
+--
+--  6. ADDON EVENT REGISTRATIONS CARRY THEIR HANDLER NAME, and `fireAddonEvent` dispatches them the
+--     way AceEvent does. Recording only that something was registered lets a suite prove the
+--     registration exists and then call the handler by hand — which passes just as happily when
+--     the two are not connected to each other. It matters most where several events share one
+--     handler (`PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` → `OnCombatStateChanged`), because
+--     the event NAME is then the only thing telling the handler which edge it is on, and a suite
+--     that calls the method directly is free to pass the name the code wants rather than the one
+--     the client would send.
+
 local base = dofile("tests/_kit/mock_base.lua")
 
 local function build()
@@ -75,6 +85,8 @@ local function build()
     mock.prints        = {}   -- captured chat output lines
     mock.hooks         = {}   -- [name] -> { fn, ... } recorded by hooksecurefunc
     mock.frames        = {}   -- every CreateFrame'd stub, creation order (+ keyed by name)
+    mock.blocked       = {}   -- "<frame>:Hide()" per call the client would have refused in combat,
+                              -- i.e. every ADDON_ACTION_BLOCKED this addon would have raised
     mock.fontStrings   = {}   -- every CreateFontString'd stub, creation order
     mock.fontFetchFails = {}  -- [fontPath] = true -> SetFont answers false, as the client does
                               -- when it cannot load the file (debug-logging-§2's fetch failure)
@@ -88,7 +100,7 @@ local function build()
     }
     mock.aceWidgets    = {}   -- every AceGUI:Create'd widget, creation order
     mock.chatCommands  = {}   -- [verb] -> handler name, via RegisterChatCommand
-    mock.addonEvents   = {}   -- [event] -> true, via the addon's RegisterEvent
+    mock.addonEvents   = {}   -- [event] -> handler name, via the addon's RegisterEvent
 
     local function noop() end
 
@@ -100,7 +112,7 @@ local function build()
     -- PascalCase key (WoW frame methods are always PascalCase) and nil otherwise — so addon code
     -- doing `if not f.someCustomField then f.someCustomField = ... end` still works.
     --
-    -- The catch-all deliberately returns the FRAME (not a number) from unmodelled getters.
+    -- The catch-all deliberately returns the FRAME (not a number) from unmodeled getters.
     -- LibKa0s-DebugLog-1.0's scroll sync type-guards exactly that case, so the guard stays
     -- exercised.
 
@@ -119,11 +131,19 @@ local function build()
                  x = c or 0, y = d or 0 }
     end
 
-    function stubFrame(kind, name, template)
+    function stubFrame(kind, name, template, parent)
         local f = {
             __kind      = kind or "Frame",
             __name      = name,
             __template  = template,
+            __parent    = parent,
+            -- A frame built from a Secure* template is PROTECTED, and modeling that is not
+            -- decoration. The client refuses Hide on a protected frame in combat, and refuses it on
+            -- every ANCESTOR of one too, because hiding the parent would hide the protected child.
+            -- A mock that models combat but not protection answers "fine" to the one call the
+            -- client blocks -- which is how WhatGroup shipped a popup whose Close button raises
+            -- ADDON_ACTION_BLOCKED mid-fight with every case green.
+            __protected = (template and template:find("Secure", 1, true)) and true or false,
             __shown     = true,
             __points    = {},
             __w         = 100,
@@ -157,7 +177,25 @@ local function build()
             end
             return f
         end
+        -- True when this frame is protected or holds a protected descendant. The client's rule is
+        -- about the subtree, not the frame, so the check has to walk down.
+        local function holdsProtected(node)
+            if node.__protected then return true end
+            for _, kid in ipairs(node.__children) do
+                if holdsProtected(kid) then return true end
+            end
+            return false
+        end
+        f.__holdsProtected = function() return holdsProtected(f) end
+
         api.Hide      = function()
+            -- The client blocks this call rather than performing it, and fires ADDON_ACTION_BLOCKED
+            -- naming the frame. Record and refuse, so a case can assert the call was never made.
+            if mock.combat and holdsProtected(f) then
+                mock.blocked[#mock.blocked + 1] =
+                    (f.__name or "<anonymous>") .. ":Hide()"
+                return f
+            end
             local was = f.__shown
             f.__shown = false
             if was then
@@ -234,7 +272,7 @@ local function build()
             return tex
         end
 
-        -- Fonts. The ONE font behavior that is MODELLED rather than caught by the PascalCase
+        -- Fonts. The ONE font behavior that is MODELED rather than caught by the PascalCase
         -- catch-all, because the catch-all's truthy return is exactly the answer that hides the
         -- failure: the client returns FALSE from SetFont when it cannot fetch the file, and does
         -- not raise. `mock.fontFetchFails[path] = true` reproduces that, which is the only way a
@@ -268,7 +306,7 @@ local function build()
         api.IsDesaturated   = function() return f.__desaturated end
         api.SetAlpha        = function(_, a) f.__alpha = a; return f end
         api.GetAlpha        = function() return f.__alpha end
-        -- SCALE AND THE DRAG STATE, modelled rather than caught by the PascalCase catch-all, for
+        -- SCALE AND THE DRAG STATE, modeled rather than caught by the PascalCase catch-all, for
         -- the reason (1) gives about visibility: the catch-all answers the FRAME, which is truthy
         -- and non-numeric, so "the master scale reached the popup" and "SetScale was never called"
         -- are the same assertion, and a lock that never stops a drag looks exactly like one that
@@ -282,7 +320,7 @@ local function build()
         api.IsMoving        = function() return f.__moving end
 
         -- ScrollingMessageFrame line sink. Recorded rather than discarded so the console's log
-        -- content is assertable; the scroll getters stay UNMODELLED on purpose, so they answer the
+        -- content is assertable; the scroll getters stay UNMODELED on purpose, so they answer the
         -- frame from the catch-all and the library's type-guarded scroll sync takes its no-op path
         -- (anti-patterns #41).
         api.AddMessage = function(_, msg) f.__messages[#f.__messages + 1] = msg; return f end
@@ -354,8 +392,13 @@ local function build()
             obj.RegisterChatCommand = function(_, cmd, handler)
                 mock.chatCommands[cmd] = handler
             end
-            obj.RegisterEvent = function(_, event)
-                mock.addonEvents[event] = true
+            -- The HANDLER NAME, not just `true`. AceEvent resolves a registration to a method on
+            -- the addon object -- the event's own name unless a second argument overrides it -- and
+            -- two events routed to one shared handler is exactly the shape a test cannot see if the
+            -- mock only records that something was registered. Every existing assertion is a
+            -- truthiness check, and a non-empty string is truthy.
+            obj.RegisterEvent = function(_, event, handler)
+                mock.addonEvents[event] = handler or event
             end
             obj.UnregisterEvent = function(_, event)
                 mock.addonEvents[event] = nil
@@ -370,7 +413,7 @@ local function build()
             end
             -- A repeating timer is a DIFFERENT object from a one-shot, and the difference is the
             -- whole risk: a repeating handle that is never canceled outlives the window that armed
-            -- it and keeps firing for the rest of the session. Modelled so `fireAceTimers` can be
+            -- it and keeps firing for the rest of the session. Modeled so `fireAceTimers` can be
             -- called twice and a test can prove the second call does — or does not — fire it.
             obj.ScheduleRepeatingTimer = function(_, callback, delay)
                 local handle = { callback = callback, delay = delay,
@@ -387,6 +430,20 @@ local function build()
         end,
         GetAddon = function(_, name) return addons[name] end,
     }
+
+    -- Dispatch an addon event the way the client plus AceEvent would: look up the method the
+    -- registration named and call it on the addon object with the event name as the first
+    -- argument. Returns false when nothing is registered for the event, so a case can assert the
+    -- wiring and the behavior in one act rather than asserting the registration exists and then
+    -- calling the handler by hand -- which passes just as happily when the two are not connected.
+    mock.fireAddonEvent = function(addon, event, ...)
+        local handler = mock.addonEvents[event]
+        if not handler then return false end
+        local fn = addon[handler]
+        if not fn then return false end
+        fn(addon, event, ...)
+        return true
+    end
 
     -- Run every AceTimer scheduled so far. Canceled handles are skipped (that is the whole point).
     -- Returns how many actually fired, so a test can prove N rapid joins produce exactly ONE notify.
@@ -434,8 +491,11 @@ local function build()
     local aceGUI = M.__libs["AceGUI-3.0"]
     local baseCreate = aceGUI.Create
 
-    aceGUI.Create = function(self, widgetType)
-        local w = baseCreate(self, widgetType)
+    -- The receiver is named `lib` and not `self`: AceGUI is called as `aceGUI:Create(...)`, but
+    -- the three widget methods defined below take their own implicit `self` (the WIDGET), and two
+    -- names for two different tables in one scope is how a mock grows a bug that reads as correct.
+    aceGUI.Create = function(lib, widgetType)
+        local w = baseCreate(lib, widgetType)
         w.frame = stubFrame("Frame", nil, "AceGUI-" .. widgetType)
         w.label = stubFrame("FontString")
         w.Fire  = w.__fire
@@ -497,8 +557,13 @@ local function build()
         mock.hooks[key][#mock.hooks[key] + 1] = fn
     end
 
-    mock.CreateFrame = function(kind, name, _parent, template)
-        local f = stubFrame(kind, name, template)
+    mock.CreateFrame = function(kind, name, parent, template)
+        local f = stubFrame(kind, name, template, parent)
+        -- The parent link is what makes protection reachable: a popup is refused Hide because of
+        -- what hangs off it, so the subtree has to actually exist in the mock.
+        if parent and type(parent) == "table" and parent.__children then
+            parent.__children[#parent.__children + 1] = f
+        end
         mock.frames[#mock.frames + 1] = f
         if name then mock.frames[name] = f end
         return f

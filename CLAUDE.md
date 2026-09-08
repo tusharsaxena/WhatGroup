@@ -66,7 +66,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Bundled LibKa0s
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.25.0 (MIT). That line is the
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.27.0 (MIT). That line is the
 repo's provenance claim — the tag `libs/LibKa0s/` and `tests/_kit/` were copied from — and
 `tests/test_vendor_sync.lua` reads it out of *this* file and compares both payloads against
 that tag in the sibling checkout. It is an input to the gate, not a comment: bump the version
@@ -94,8 +94,11 @@ This root file is a **stub** (documentation-§2). The real detail lives in `docs
 
 Green gate before every commit: `lua tests/run.lua` and `luacheck .` (0/0), plus the
 **vendor gate** — `diff -r --strip-trailing-cr` and plain `diff -r` of `../LibKa0s/LibKa0s`
-against `libs/LibKa0s` and of `../LibKa0s/testkit` against `tests/_kit`; a non-empty
-*content* diff is a real fork, a bytes-only one is a line-ending divergence
+against `libs/LibKa0s` and of `../LibKa0s/testkit` against `tests/_kit`. Against the
+**tag `CLAUDE.md` names** a non-empty *content* diff is a real fork and a bytes-only one
+is a line-ending divergence; against the sibling's *working tree* a non-empty diff means
+only that the library has tagged a release this addon has not taken yet, which it
+usually has — `tests/test_vendor_sync.lua` runs the tag comparison inside the suite
 ([docs/testing.md](docs/testing.md)). Plus the
 in-game [smoke tests](docs/smoke-tests.md) before tagging a release, after an
 `## Interface:` bump, or after a `libs/` refresh.

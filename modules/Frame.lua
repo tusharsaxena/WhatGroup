@@ -18,7 +18,7 @@
 -- the closures it builds for Logout / Settings / Macros are
 -- taint-free. See [docs/midnight-quirks.md] for the full taint analysis.
 
-local addonName, NS = ...
+local _, NS = ...
 local WhatGroup = NS.addon
 local L         = NS.L
 
@@ -134,20 +134,86 @@ end
 -- Is the popup allowed on screen right now? `always` and anything unrecognized (a hand-edited
 -- SavedVariable, a profile from a future version) answer yes: a display setting that fails closed
 -- would make the addon look broken rather than configured.
-local function visibilityAllows()
+--
+-- `inCombat` OVERRIDES the live InCombatLockdown() read, and exists for exactly one caller: the
+-- PLAYER_REGEN_DISABLED handler. That event fires at the START of the lockdown and
+-- InCombatLockdown() can still answer false on the same frame — a client quirk this collection has
+-- been bitten by before — so a handler that asked the API would evaluate the gate against the state
+-- the player has just left. The event NAME is the authority on which edge this is; every other
+-- caller passes nothing and gets the live read, which is correct for them because they are not on
+-- an edge.
+local function visibilityAllows(inCombat)
+    if inCombat == nil then inCombat = InCombatLockdown() and true or false end
     local v = WhatGroup.db and WhatGroup.db.profile and WhatGroup.db.profile.visibility
     if v == "never"       then return false end
-    if v == "inCombat"    then return InCombatLockdown() and true or false end
-    if v == "outOfCombat" then return not InCombatLockdown() end
+    if v == "inCombat"    then return inCombat end
+    if v == "outOfCombat" then return not inCombat end
     return true
 end
 
--- A popup already on screen when the gate closes has to go, or the dropdown reads as ignored until
--- the next open. Hidden without a combat guard, matching the Close button: this addon has always
--- taken f:Hide() as unprotected, and the alternative is a window the player cannot dismiss.
-function WhatGroup:ApplyFrameVisibility()
+-- SYMMETRIC, and that is the whole point (options-ui-§15). Two of `visibility`'s four values are
+-- functions of combat state, which the player changes without touching the panel, so the gate has
+-- to be re-asked on the transition rather than only when something opens the popup. A popup already
+-- on screen when the gate closes has to go, or the dropdown reads as ignored until the next open;
+-- a popup the gate hid has to come back when it opens again, or "hide in combat" quietly means
+-- "close for the rest of the session".
+--
+-- ASYMMETRIC IN COMBAT, AND THAT IS THE CLIENT'S RULE RATHER THAN A CHOICE. This comment used to
+-- read "neither direction is combat-guarded ... this addon has always taken f:Hide() as
+-- unprotected". That was false, and it is what shipped WG's ADDON_ACTION_BLOCKED: buildFrame parents
+-- a SecureActionButtonTemplate button to f (see the teleport button), and the client refuses Hide on
+-- a protected frame AND on every ancestor of one while in combat. So f:Hide() is protected, from
+-- every call site — the Close button, ESC, this gate.
+--
+-- What that costs, per value, because it is not uniform:
+--   * `inCombat`   — hides when combat ENDS. InCombatLockdown() is already false on that edge, so
+--                    the hide is legal and the gate is honored exactly.
+--   * `outOfCombat` — would hide when combat STARTS, which is inside the lockdown and refused. The
+--                    popup therefore STAYS UP for the fight and the gate is honored late, at
+--                    PLAYER_REGEN_ENABLED. There is no way to do better while the secure child
+--                    exists; the only real alternative is to stop parenting it to f, which costs a
+--                    floating orphan button the client will equally refuse to hide.
+-- Attempting it anyway is strictly worse than deferring: the frame does not hide either way, and the
+-- player additionally gets a red error naming this addon.
+--
+-- f:Show() on an already-built frame is not a secure write — the secure work is buildFrame's, and it
+-- has already happened by the time f exists. Only the hide direction is constrained.
+--
+-- The re-show is gated on there being a capture to render: a "No data" popup appearing the moment
+-- the player pulls is worse than no popup at all. It is deliberately NOT gated on the caller, so
+-- the dropdown's own onChange re-shows too — moving `General visibility` back to a value that
+-- permits the popup applies that answer on the spot, exactly as moving it to `never` closes an open
+-- one. One seam, both directions, every caller.
+-- The ONE seam allowed to hide the popup. Returns true when the popup is down, false when the
+-- client would have refused — never calls Hide in combat, so the addon cannot raise
+-- ADDON_ACTION_BLOCKED through this path. Every caller must go through it.
+local function hidePopup()
+    if not f then return true end
+    if InCombatLockdown() then return false end
+    f:Hide()
+    return true
+end
+
+-- Set when the player asked to dismiss during combat and the client refused. Distinct from the
+-- visibility gate on purpose: the gate re-asks itself on the next edge and needs no memory, but
+-- "the player pressed Close" is an instruction that must survive the fight, or Close in combat
+-- silently does nothing and the popup returns as if the press never happened.
+local dismissPending = false
+
+function WhatGroup:ApplyFrameVisibility(inCombat)
     if not f then return end
-    if not visibilityAllows() then f:Hide() end
+    -- The deferred Close lands first and wins over the gate: the player's explicit dismissal
+    -- outranks a value that would merely permit the popup to be up.
+    if dismissPending and not InCombatLockdown() then
+        dismissPending = false
+        f:Hide()
+        return
+    end
+    if not visibilityAllows(inCombat) then return hidePopup() end
+    if WhatGroup.pendingInfo and not f:IsShown() then
+        f:Show()
+        f:Raise()
+    end
 end
 
 -- The Reset position button (options-ui-§15). Drops the persisted point (WG-26) as well as
@@ -264,12 +330,22 @@ local function applyTeleportNote(spellID, known, remaining, info)
 
     -- Three states, one note. Order matters: an unlearned spell can still report a cooldown,
     -- and "on cooldown" would answer a question nobody asked while burying the one that
-    -- explains the grey icon. A ready teleport needs no explanation, so the note goes.
+    -- explains the gray icon. A ready teleport needs no explanation, so the note goes.
     if not known then
         note:SetText("|cff888888" .. L["Teleport spell not learned"] .. "|r")
         note:Show()
     elseif remaining > 0 then
         renderNote(remaining)
+        -- ARMED ONLY AGAINST A POPUP THAT IS ACTUALLY ON SCREEN, and that condition is the whole
+        -- of the `performance-§12` deviation row's argument rather than a tidiness. `OnHide` — the
+        -- ticker's hard stop — fires on a TRANSITION, so a ticker armed against a frame that was
+        -- never shown has no cancel site at all and runs for the rest of the session. The popup
+        -- reaches this function while still hidden on two ordinary paths: `PopulateFields` runs
+        -- before `ShowFrame`'s `f:Show()`, and the `inCombat` / `outOfCombat` gate can build the
+        -- popup and decline to show it. The note above is rendered either way, so a later `Show`
+        -- finds the right text; the popup's `OnShow` re-runs the configure and arms from there.
+        if not (f and f:IsShown()) then return end
+
         -- One second: the smallest unit the note renders, so a faster tick would repaint an
         -- identical string and a slower one would visibly skip.
         cooldownTimer = WhatGroup:ScheduleRepeatingTimer(function()
@@ -349,6 +425,20 @@ local function buildFrame()
     -- The ticker's hard stop. OnHide covers every way the popup can close — the Close button, ESC
     -- through UISpecialFrames, a `f:Hide()` from anywhere — so no exit path has to remember.
     f:SetScript("OnHide", stopCooldownTicker)
+
+    -- And OnShow is where it arms, the exact mirror, for the same reason: the ticker is armed only
+    -- against a visible popup (see applyTeleportNote), so the arm has to sit on the one seam every
+    -- path to the screen crosses. There is more than one such path now — `ShowFrame`, and the
+    -- `PLAYER_REGEN_ENABLED` re-evaluation that returns a popup the combat gate had hidden — and a
+    -- per-caller arm would be the thing the next path forgets. Re-running the whole configure
+    -- rather than starting a timer here keeps ONE owner of the button's state;
+    -- ConfigureTeleportButton cancels any live handle first, so it cannot stack. Guarded on
+    -- pendingInfo exactly as PopulateFields is: with no capture there is no teleport to draw.
+    f:SetScript("OnShow", function()
+        if fields and ConfigureTeleportButton and WhatGroup.pendingInfo then
+            ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, WhatGroup.pendingInfo)
+        end
+    end)
 
     -- The whole look — backdrop AND colors — now comes from LibKa0s-Core-1.0's shared SKIN
     -- through NS.ApplySkin (standalone-windows: the Ka0s window edge is normative, and a window
@@ -497,7 +587,15 @@ local function buildFrame()
     closeBtn:SetSize(90, 24)
     closeBtn:SetPoint("BOTTOM", f, "BOTTOM", 0, 12)
     closeBtn:SetText(L["Close"])
-    closeBtn:SetScript("OnClick", function() f:Hide() end)
+    -- Goes through hidePopup for the reason spelled out at ApplyFrameVisibility: f parents a
+    -- SecureActionButtonTemplate button, so f:Hide() is refused in combat and calling it anyway
+    -- raised ADDON_ACTION_BLOCKED naming this addon. The press is remembered instead and honored
+    -- the moment the lockdown lifts, which is the closest thing to "close" the client permits.
+    closeBtn:SetScript("OnClick", function()
+        if hidePopup() then return end
+        dismissPending = true
+        if NS.Print then NS.Print(L["Popup deferred until combat ends."]) end
+    end)
 
     -- ESC to close — register with UISpecialFrames *now*, lazily.
     -- Earlier versions did this at file-load and that addition was

@@ -262,7 +262,7 @@ test("teleport: the Midnight season 2 rows match the spellbook-verified IDs", fu
 end)
 
 -- Siege of Boralus shipped with an unconfirmed wiki ID as its only value, so a player holding the
--- real spell saw the same greyed-out row. The verified spell must stay FIRST: that is the entry
+-- real spell saw the same grayed-out row. The verified spell must stay FIRST: that is the entry
 -- pickKnownSpell falls back to when the player knows neither candidate.
 test("teleport: Siege of Boralus offers the spellbook-verified spell first", function()
     local NS = T.newAddon()

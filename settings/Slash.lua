@@ -12,7 +12,7 @@
 -- WhatGroup.COMMANDS, which settings/Panel.lua's landing page renders — at render time, not at
 -- load, so nothing here has to precede it.
 
-local addonName, NS = ...
+local _, NS = ...
 local WhatGroup = NS.addon
 local L         = NS.L
 
@@ -244,7 +244,7 @@ function runReset(rest)
 end
 
 -- Kept host-owned rather than delegated to CliResetAll, and the popup is why: the library's form
--- resets every row and prints one acknowledgement, with no confirmation step. This one is
+-- resets every row and prints one acknowledgment, with no confirmation step. This one is
 -- irreversible, so it routes through the same StaticPopup the Defaults button uses — one OnAccept
 -- body, which also resets the whole profile to drop orphaned keys (settings/Schema.lua).
 function runResetAll()

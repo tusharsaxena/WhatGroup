@@ -17,7 +17,7 @@
 -- install that is already missing a library. Seeding from this table first makes the stored
 -- profile the same shape either way, and keeps this file what savedvariables-§2 says it is.
 
-local addonName, NS = ...
+local _, NS = ...
 
 NS.C = {
     -- Master controls (options-ui-§15). Every one of these is stored at the profile ROOT, which

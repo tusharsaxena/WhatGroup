@@ -53,22 +53,35 @@ NS.PREFIX = "|cff00FFFF[WG]|r"
 -- ADDON_ACTION_FORBIDDEN. File-load hook registration runs before
 -- GameMenu's InitButtons builds those closures, so they remain
 -- taint-free.
-hooksecurefunc(C_LFGList, "ApplyToGroup", function(searchResultID, ...)
+-- Both closures take ONLY what they read. The client passes more -- ApplyToGroup also carries the
+-- role flags and the applicant note, SetItemRef the link text, the mouse button and the chat frame
+-- -- and a post-hook closure that declares fewer parameters simply drops the rest, which is what
+-- happens to them here anyway. Until `M4c-04` these two mirrored the client's full signatures and
+-- forwarded them on, so `text`, `button` and two varargs travelled into handler bodies that read
+-- none of them, on every apply and every link click. The client's signatures are recorded in
+-- docs/data-flow.md, which is where a signature nothing reads belongs.
+hooksecurefunc(C_LFGList, "ApplyToGroup", function(searchResultID)
     if WhatGroup.OnApplyToGroup then
-        WhatGroup:OnApplyToGroup(searchResultID, ...)
+        WhatGroup:OnApplyToGroup(searchResultID)
     end
 end)
 
-hooksecurefunc("SetItemRef", function(linkArg, text, button, ...)
+hooksecurefunc("SetItemRef", function(linkArg)
     if type(linkArg) ~= "string" then return end
     if not linkArg:match("^WhatGroup:") then return end
     if WhatGroup.OnSetItemRef then
-        WhatGroup:OnSetItemRef(linkArg, text, button, ...)
+        WhatGroup:OnSetItemRef()
     end
 end)
 
 -- Session-only state. Cleared on group leave; never persisted.
-local captureQueue        = {}   -- FIFO: captures awaiting their appID assignment
+-- Keyed by SEARCH-RESULT id, not by arrival order (WG-R-07). The apply hook knows the
+-- search-result id and nothing else; the status event knows the application id and nothing
+-- else. The only thing that joins them is C_LFGList.GetApplicationInfo, so that is what the
+-- key has to be. A FIFO looks equivalent while one application is outstanding and silently
+-- swaps the two captures the moment a second one is, because the server answers applications
+-- in whatever order it likes.
+local capturesByResult    = {}   -- [searchResultID] -> capturedInfo (set at apply time)
 local pendingApplications = {}   -- [appID] -> capturedInfo (set when "applied" fires)
 local wasInGroup          = false
 local notifiedFor         = nil  -- pendingInfo identity that already fired notify+popup
@@ -185,6 +198,13 @@ function WhatGroup:OnEnable()
     -- Hooks are installed at file-load (top of this file), not here.
     self:RegisterEvent("GROUP_ROSTER_UPDATE")
     self:RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
+    -- The popup's `visibility` setting has two combat-dependent values, and combat state changes
+    -- without the player touching the panel — so the gate needs an event, not just an onChange.
+    -- Both edges route to ONE handler because the answer is a single re-evaluation either way;
+    -- which edge it is comes from the event name (see modules/Frame.lua's visibilityAllows).
+    -- Registered here in OnEnable and never in OnInitialize, like the two above.
+    self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnCombatStateChanged")
+    self:RegisterEvent("PLAYER_REGEN_ENABLED",  "OnCombatStateChanged")
     wasInGroup = IsInGroup()
 
     -- Register the Settings panel at login so the "Ka0s WhatGroup" entry shows
@@ -265,8 +285,8 @@ local function buildCapture(info)
         generalPlaystyle  = info.generalPlaystyle or info.playstyle or 0,
         playstyleString   = info.playstyleString or "",
         age               = info.age or 0,
-        -- A FRESH table per call, never a shared module-level empty one: captures are queued in
-        -- captureQueue, and a shared fallback would alias every id-less capture together.
+        -- A FRESH table per call, never a shared module-level empty one: captures are held in
+        -- capturesByResult, and a shared fallback would alias every id-less capture together.
         activityIDs       = info.activityIDs or {},
         activityID        = nil,
         fullName          = "",
@@ -323,7 +343,7 @@ function WhatGroup:CaptureGroupInfo(searchResultID)
     return captured
 end
 
--- Re-capture from an *application* id (F-004).
+-- Application id -> search-result id (F-004).
 --
 -- CaptureGroupInfo above takes a searchResultID, but the LFG status events hand
 -- us an appID. C_LFGList.GetApplicationInfo(appID) is the documented bridge:
@@ -338,7 +358,11 @@ end
 -- degrades to the old behavior instead of going dark. Both returns shapes are
 -- accepted — the multi-return form (id, appStatus, …) and a table, in case a
 -- future patch converts it like it did GetActivityInfoTable.
-function WhatGroup:CaptureGroupInfoFromApplication(appID)
+-- This is a resolver rather than part of the capture wrapper because two callers need the id
+-- and only one of them wants a capture: the "applied" status event uses it to find the capture
+-- the apply hook already took, and re-capturing there would be a second LFG round-trip for a
+-- table that is already in hand.
+function WhatGroup:ResolveSearchResultID(appID)
     local resultID = appID
     local getAppInfo = C_LFGList and C_LFGList.GetApplicationInfo
 
@@ -363,7 +387,12 @@ function WhatGroup:CaptureGroupInfoFromApplication(appID)
             NS.SafeToString(appID))
     end
 
-    return self:CaptureGroupInfo(resultID)
+    return resultID
+end
+
+-- Re-capture from an application id: resolve, then capture.
+function WhatGroup:CaptureGroupInfoFromApplication(appID)
+    return self:CaptureGroupInfo(self:ResolveSearchResultID(appID))
 end
 
 -- Resolve a TeleportSpells value (number OR list) to (spellID, isKnown).
@@ -536,7 +565,7 @@ end
 -- Hooks
 -- ---------------------------------------------------------------------------
 
-function WhatGroup:OnApplyToGroup(searchResultID, ...)
+function WhatGroup:OnApplyToGroup(searchResultID)
     -- Master enable gate: when disabled, the addon ignores the apply
     -- entirely so no capture → no pendingInfo → no notification or
     -- popup later. /wg test and /wg show still work (they bypass the
@@ -546,7 +575,7 @@ function WhatGroup:OnApplyToGroup(searchResultID, ...)
     end
     local captured = self:CaptureGroupInfo(searchResultID)
     if captured then
-        table.insert(captureQueue, captured)
+        capturesByResult[searchResultID] = captured
         NS.Debug("Apply", 'id=%s captured "%s" (activity=%s map=%s m+=%s)',
             tostring(searchResultID), tostring(captured.title),
             tostring(captured.activityID), tostring(captured.mapID),
@@ -558,7 +587,13 @@ end
 -- whenever the link prefix matches "WhatGroup:". Blizzard's default
 -- SetItemRef has already run by this point and no-op'd on our prefix;
 -- this just opens the popup (or prints a hint if pendingInfo is gone).
-function WhatGroup:OnSetItemRef(linkArg, text, button, ...)
+--
+-- TAKES NOTHING. The hook has already decided the click is ours -- that is the whole content of
+-- the link argument by the time control gets here -- and there is exactly one "WhatGroup:" link,
+-- the one built in ShowNotification, so there is no sub-prefix left to branch on. The link text,
+-- the mouse button and the chat frame the client also passes were carried into this signature and
+-- never read.
+function WhatGroup:OnSetItemRef()
     NS.Debug("ChatLink", "clicked hasPending=" .. tostring(self.pendingInfo ~= nil))
     -- pendingInfo is session-only (cleared on group-leave or /reload).
     -- A click on a stale chat link from a previous session would
@@ -602,8 +637,6 @@ function WhatGroup:_TryFireJoinNotify(reason)
     local capturedInfo = self.pendingInfo
     local delay = (self.db and self.db.profile and self.db.profile.notify
                    and self.db.profile.notify.delay) or 0
-    local autoShow = not (self.db and self.db.profile and self.db.profile.frame
-                          and self.db.profile.frame.autoShow == false)
     -- Cancel any still-pending notify before scheduling a fresh one so a rapid
     -- re-fire can't leave two timers racing to the same popup.
     if self.notifyTimer then self:CancelTimer(self.notifyTimer) end
@@ -624,7 +657,14 @@ function WhatGroup:_TryFireJoinNotify(reason)
         end
         NS.Debug("Notify", "fired")
         self:ShowNotification()
-        if autoShow then self:ShowFrame() end
+        -- Read at FIRE time, not at schedule time (WG-R-14). autoShow decides what to do now;
+        -- a player who turns the popup off during the delay window means it now. `delay` above
+        -- is the opposite case and stays where it is: it is the timer's own argument, and
+        -- there is no later moment at which it could be read.
+        if not (self.db and self.db.profile and self.db.profile.frame
+                and self.db.profile.frame.autoShow == false) then
+            self:ShowFrame()
+        end
     end, delay)
 end
 
@@ -637,18 +677,34 @@ end
 -- flight. Group-leave passes nothing — the [Roster] line already tells that story.
 function WhatGroup:WipeCapture(reason)
     local hadInFlight = self.pendingInfo ~= nil
-        or next(captureQueue) ~= nil or next(pendingApplications) ~= nil
+        or next(capturesByResult) ~= nil or next(pendingApplications) ~= nil
     self.pendingInfo = nil
     notifiedFor      = nil
     if self.notifyTimer then
         self:CancelTimer(self.notifyTimer)
         self.notifyTimer = nil
     end
-    wipe(captureQueue)
+    wipe(capturesByResult)
     wipe(pendingApplications)
     if reason and hadInFlight then
         NS.Debug("Capture", "wiped (" .. reason .. ")")
     end
+end
+
+-- Both combat edges, one handler. The body is deliberately the smallest thing that can be: this is
+-- the addon's first PLAYER_REGEN_DISABLED registration and therefore its first handler that runs
+-- inside a combat window, which is a `performance-§12` question — a table read, up to three string
+-- compares, and at most one Show or Hide, twice per pull.
+--
+-- The event name is passed down rather than re-derived from InCombatLockdown(), because the API can
+-- still answer false on the frame PLAYER_REGEN_DISABLED fires.
+--
+-- Guarded on the method existing: modules/Frame.lua loads after this file, so at file-load time
+-- the member is not there yet. It always is by the time an event fires; the guard is the same
+-- belt-and-braces the other cross-file seams carry rather than a live possibility.
+function WhatGroup:OnCombatStateChanged(event)
+    if not self.ApplyFrameVisibility then return end
+    self:ApplyFrameVisibility(event == "PLAYER_REGEN_DISABLED")
 end
 
 function WhatGroup:GROUP_ROSTER_UPDATE()
@@ -672,15 +728,61 @@ function WhatGroup:GROUP_ROSTER_UPDATE()
     end
 end
 
+-- Statuses that end an application with no invite behind them. Blizzard sends the bare
+-- "declined" only sometimes — a full or delisted group carries its reason in the status
+-- string, and those are the declines a player actually meets — so all three spellings are
+-- here. Without this arm a dead application's capture stayed in the tables until the next
+-- group-leave and could be handed to a later invite (WG-R-07).
+local APPLICATION_ENDED = {
+    declined          = true,
+    declined_full     = true,
+    declined_delisted = true,
+    cancelled         = true,
+}
+
+-- The two short status arms live out here rather than inline. The handler is the file's most
+-- complex function and sits at the `code-quality-§3` ceiling; the "inviteaccepted" arm is the
+-- one that has to be read as a whole, so the other two pay for it by being named instead.
+
+-- Move the capture off its search-result key and onto the application id the server has just
+-- minted for it. Nothing under that key is not an error: the apply may have happened with the
+-- master switch off, or GetSearchResultInfo may have given nothing back.
+local function pairApplication(self, appID)
+    local resultID = self:ResolveSearchResultID(appID)
+    local capture = capturesByResult[resultID]
+    if capture then
+        capturesByResult[resultID] = nil
+        pendingApplications[appID] = capture
+    end
+end
+
+-- Clear BOTH sides: "applied" may never have arrived, in which case the capture is still filed
+-- under its search-result id and has no application id at all.
+local function dropApplication(self, appID, newStatus)
+    local resultID = self:ResolveSearchResultID(appID)
+    local dropped  = pendingApplications[appID] or capturesByResult[resultID]
+    capturesByResult[resultID] = nil
+    pendingApplications[appID] = nil
+    if dropped then
+        NS.Debug("LFG", "dropped the capture for appID=%s (%s)",
+            NS.SafeToString(appID), NS.SafeToString(newStatus))
+    end
+end
+
 function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
     NS.Debug("LFG", "appID=" .. tostring(appID) .. " status=" .. tostring(newStatus))
     if newStatus == "applied" then
-        local capture = table.remove(captureQueue, 1)
-        if capture then
-            pendingApplications[appID] = capture
-        end
-    elseif newStatus == "invited" then
-        -- Wait for the user to accept; multiple invites can arrive.
+        pairApplication(self, appID)
+    elseif APPLICATION_ENDED[newStatus] then
+        dropApplication(self, appID, newStatus)
+    elseif newStatus == "invited" then -- luacheck: ignore 542
+        -- Deliberately empty, and the emptiness is the behaviour: "invited" is the client asking
+        -- the player, not an answer, and the capture must survive untouched until "inviteaccepted"
+        -- or one of APPLICATION_ENDED arrives -- multiple invites can arrive for one application.
+        -- Named rather than folded into the `else` so a status this addon has no arm for still
+        -- falls through to nothing by accident and this one falls through to nothing on purpose.
+        -- The pragma is on the branch line and covers that line alone: the next empty branch
+        -- written anywhere in this file, or this one, still reports.
     elseif newStatus == "inviteaccepted" then
         -- Master enable gate, same read as OnApplyToGroup: when disabled the
         -- addon must capture nothing, so the fresh re-fetch below never runs,
@@ -723,7 +825,7 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
             NS.Debug("Invite", "accepted appID=" .. tostring(appID) .. " → no capture")
         end
 
-        wipe(captureQueue)
+        wipe(capturesByResult)
         wipe(pendingApplications)
 
         -- Retail timing: GROUP_ROSTER_UPDATE often fires BEFORE this

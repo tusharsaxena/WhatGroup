@@ -17,7 +17,7 @@
 -- The canvas-layout panel that renders these rows into AceGUI widgets lives in
 -- settings/Panel.lua (loads after this file).
 
-local addonName, NS = ...
+local _, NS = ...
 local WhatGroup = NS.addon
 local L         = NS.L
 -- Default VALUES live in defaults/Profile.lua as NS.C (savedvariables-§2); each
@@ -112,7 +112,7 @@ end
 --
 -- `subgroup` breaks a tab that mixes control kinds into named blocks (options-ui-§7): a slider
 -- that says WHEN standing among seven checkboxes that say WHAT is two subjects under one label,
--- and so is a behaviour toggle above two size sliders. The heading is declared by the row exactly
+-- and so is a behavior toggle above two size sliders. The heading is declared by the row exactly
 -- as the tab is, and it is NOT suppressed the way the group heading is.
 
 local function add(t) Schema[#Schema + 1] = t end
@@ -571,10 +571,14 @@ end
 -- built leaks taint into them. Deferring registration until the user
 -- actually invokes a reset means the table is untouched during the
 -- boot sequence.
+--
+-- There is deliberately no `StaticPopupDialogs = StaticPopupDialogs or {}`
+-- guard below. Assigning the global is precisely the write the paragraph
+-- above exists to avoid, and it guards nothing: every retail client has
+-- the table built long before an addon file runs. Only the key is set.
 function Settings.EnsureResetPopup()
     if Settings._resetPopupRegistered then return end
     Settings._resetPopupRegistered = true
-    StaticPopupDialogs = StaticPopupDialogs or {}
     StaticPopupDialogs["WHATGROUP_RESET_ALL"] = {
         -- THE COLLECTION'S ONE WORDING (options-ui-§12), verbatim. Addon-agnostic on purpose --
         -- no addon enumerates its own nouns -- and explicit about the destruction. Eight

@@ -44,10 +44,22 @@ module refuse to register — so every seam falls back to its stub and the suite
 happily measures the stub, green. `tests/test_harness.lua` pins the derivation
 against a fresh read of the TOC and the XML.
 
-The suites, in run order: `test_harness`, `test_libka0s`, `test_mediasetup`,
-`test_envsetup`, `test_util`, `test_compat`, `test_database`, `test_settings`,
-`test_slash`, `test_labels`, `test_capture`, `test_notify`, `test_frame`,
-`test_panel`, `test_lifecycle`, `test_debuglog`, `test_vendor_sync`.
+The factory takes three options. `skip` omits files, which is how the degraded
+cases load with LibKa0s genuinely absent rather than by hand-stubbing the member
+under test; `mock` runs against the fresh environment before any source loads;
+and `addonName` changes the **first vararg** the addon's own files are handed —
+the folder the addon was installed into, `"WhatGroup"` unless a case says
+otherwise. That last one exists because a file reading its `:14` upvalue and a
+file that typed the same string out are indistinguishable while the folder is
+called what the literal says, and telling them apart is the only way to keep a
+label like **Enable WhatGroup** honest about which addon it is turning off.
+
+The suites, in run order: `test_harness`, `test_libka0s`,
+`test_surface_parity`, `test_mediasetup`, `test_envsetup`, `test_util`,
+`test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
+`test_capture`, `test_notify`, `test_frame`, `test_panel`, `test_lifecycle`,
+`test_debuglog`, `test_vendor_sync`. `test_eol` runs last and arrives with the
+vendored kit rather than living in `tests/`.
 
 `test_libka0s` is the integration suite for the adopted LibKa0s majors: that
 each really registers, that each descriptor is well-formed, that the degraded
@@ -57,6 +69,27 @@ also carries the two cases that pin the ARGUMENT nothing else can see — that
 argument, and that the DebugLog descriptor passes `addonName` beside `name`.
 Both are invisible in game except by comparison: the factory receives no name,
 builds no texture path, and draws a perfectly good button.
+
+`test_surface_parity` is the degradation gate. Each of the four adopted seams
+carries a hand-written stub for the install where `libs/LibKa0s` is missing, and
+a stub is a second implementation of somebody else's surface — so it drifts the
+moment the library grows a member the addon starts calling, staying green on the
+live path and raising on exactly the path the stub exists for. The four cases
+compare the two halves as a **set**, and both halves come from a real load: the
+degraded arm loads the addon with the library's files omitted, never by
+hand-stubbing the member under test.
+
+Three of the four name their live half rather than rebuilding it —
+`assertSurfaceParity(stub, "LibKa0s-Options-1.0")` — which compares only the
+surface's public members, so the library's own `__`-prefixed internals are the
+kit's business rather than a hand-kept exemption list that grows on every
+re-vendor. Where that name resolves is registered in `tests/run.lua`: all three
+stubs mirror an **instance**, what `lib:New(descriptor)` returned, and not the
+library table `LibStub` answers for the same major. Core keeps the two-table form
+because it is not a major's surface at all — `core/CoreSetup.lua` hangs its
+members on `NS` itself, so there is no name to look one up under. A member that
+is live-only on purpose is named in the case's `ignore` list with the rule that
+makes it so, because a deliberate omission and a bug otherwise read identically.
 
 `test_mediasetup` is the `LibKa0s-Media-1.0` seam's own suite, and the case that
 earns it is the catalog cross-check: every icon this addon draws is a plain
@@ -85,7 +118,7 @@ degraded path while the suite stayed green — plus AceDB's merge-in-place
 `copyDefaults`, AceConsole's `:Print` clobber, the AceGUI widget recorder and
 the Settings registrars.
 
-Five of this addon's overrides model real client behavior instead of
+Six of this addon's overrides model real client behavior instead of
 no-op'ing it, and each is the sole reason a class of bug is catchable at all —
 the header comment in that file explains why. In short: frame **visibility** and
 **geometry** are real state (otherwise "the window closed" and "the position was
@@ -100,7 +133,13 @@ frame itself — its own README records that this addon is right to differ);
 screen-space getters answer real **numbers**, because the popup derives the
 secure teleport button's offsets by subtracting them; and the **AceTimer queue**
 is fireable, cancelable and **separate from the `C_Timer` queue**, so the
-notify delay and the panel's secure-defer hop can be fired independently.
+notify delay and the panel's secure-defer hop can be fired independently; and
+an **addon event registration records the handler name** it was given, with
+`mock.fireAddonEvent` dispatching the way AceEvent does — otherwise a suite can
+only show that a registration exists and then call the handler by hand, which
+passes just as happily when the two are not wired to each other. That gap is
+widest where two events share one handler and the event *name* is what tells
+the handler which edge it is on.
 
 `_G` points back at the mock table itself, because `settings/Panel.lua` and the
 library both read several APIs through an explicit `_G.` — without it
@@ -175,11 +214,43 @@ that catches it.
 Run all four, from this repo's root, and read the pairs against each other:
 
 ```sh
-diff -r --strip-trailing-cr ../LibKa0s/LibKa0s libs/LibKa0s    # content — MUST be empty
+diff -r --strip-trailing-cr ../LibKa0s/LibKa0s libs/LibKa0s    # content — empty vs the CLAIMED tag
 diff -r ../LibKa0s/LibKa0s libs/LibKa0s                        # bytes  — SHOULD be empty
-diff -r --strip-trailing-cr ../LibKa0s/testkit tests/_kit      # content — MUST be empty
+diff -r --strip-trailing-cr ../LibKa0s/testkit tests/_kit      # content — empty vs the CLAIMED tag
 diff -r ../LibKa0s/testkit tests/_kit                          # bytes  — SHOULD be empty
 ```
+
+### When these diffs are supposed to be non-empty
+
+They compare against the sibling checkout's **working tree** — whatever `../LibKa0s` happens to have
+checked out — which is a different question from *"is the vendored payload the release this addon
+claims?"*. The two questions give the same answer only while the library has tagged nothing newer
+than the tag this addon has taken.
+
+Between a library release and the re-vendor that carries it they disagree, and that disagreement is
+the normal state rather than a defect. It is the state as this is written: `../LibKa0s` sits on
+**v1.27.0**, [`CLAUDE.md`](../CLAUDE.md) names **v1.26.0**, and the commands above report **306**
+differing lines for the library and **947** for the test kit. Re-vendoring to quiet them would be
+the actual mistake — it would pull an untested library release for the sake of a clean diff.
+
+**The authoritative comparison is against the tag `CLAUDE.md` names**, and that one must be empty at
+every commit:
+
+```sh
+tag=$(grep -oE 'Bundles \[LibKa0s\]\([^)]*\) v[0-9]+\.[0-9]+\.[0-9]+' CLAUDE.md \
+        | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
+rm -rf "/tmp/libka0s-$tag" && mkdir -p "/tmp/libka0s-$tag"
+git -C ../LibKa0s archive "$tag" | tar -x -C "/tmp/libka0s-$tag"
+diff -r --strip-trailing-cr "/tmp/libka0s-$tag/LibKa0s" libs/LibKa0s   # MUST be empty
+diff -r --strip-trailing-cr "/tmp/libka0s-$tag/testkit" tests/_kit     # MUST be empty
+```
+
+`tests/test_vendor_sync.lua` asks exactly this question inside the suite — it greps the tag out of
+`CLAUDE.md` and reads that blob out of git — so **a green suite has already answered it**, and the
+block above is only the by-eye version for when you want to see the hunks. Which leaves the
+working-tree diffs above answering a real but different question: *how far behind the library is
+this addon?* That is release planning, not a gate.
+
 
 | Result | Means | Fix |
 |---|---|---|
@@ -202,9 +273,14 @@ naming `CLAUDE.md`.
 ## Lint scope
 
 `luacheck`'s 0/0 is **scoped by `.luacheckrc`'s `exclude_files`**, not
-repo-wide: `libs/`, `tests/` and the frozen audit/review bundles are excluded.
-Before reading a clean run as a clean change, confirm the files you touched are
-inside the checked set:
+repo-wide: `libs/`, `tests/_kit/`, `_dev/` and the frozen audit/review bundles
+are excluded. **The rest of `tests/` is linted** — the suites, `run.lua`,
+`loader.lua` and `wow_mock.lua` are this addon's code and are held to the same
+gate as `core/`, and a run that reports fewer than the full file count is a run
+that has stopped checking half the Lua in the repo. `tests/_kit/` is the one
+carve-out inside that tree, because it is a byte copy of LibKa0s' `testkit/`
+and is linted there as source. Before reading a clean run as a clean change,
+confirm the files you touched are inside the checked set:
 
 ```sh
 luacheck . --formatter plain | tail -1     # check the file count it reports
@@ -215,6 +291,41 @@ A warning inside one of the six LibKa0s seam files (`core/CoreSetup.lua`,
 `settings/OptionsSetup.lua`, `settings/Slash.lua`) is a defect in this addon's
 wiring. A warning under `libs/` is not this addon's to
 fix — it is a finding for `../LibKa0s`.
+
+### The suppression gate — `tests/test_lintconfig.lua`
+
+`exclude_files` narrows **which files** the run reads. The other half of "is 0/0
+a fact about the code?" is **which findings** the config throws away, and
+`tests/test_lintconfig.lua` is the four cases that hold it honest (lint-§1,
+`M4-11`):
+
+| Case | Red when |
+|---|---|
+| `.luacheckrc` sets no top-level `ignore` | any top-level `ignore = { … }` returns |
+| no warning class is switched off wholesale | `unused_args = false` and eight relatives — a blanket spelled as a switch |
+| every `files[…]` ignore is narrowed | a stanza keyed on a **directory** whose entry names no variable |
+| no bare inline `-- luacheck: ignore` | the directive appears in any tracked `.lua` with no code after it |
+
+It reads `.luacheckrc` **as Lua**, under a sandbox that auto-creates tables the
+way luacheck's own loader does, so it inspects the table luacheck obeys rather
+than text a different spelling would slip past. Like the doc-map and EOL gates it
+**fails rather than skips** when it cannot look: no config, an unreadable one, a
+chunk that will not compile, no `io.popen`, no git.
+
+Why it exists here. `.luacheckrc` carried
+`ignore = { "211/addonName", "212", "542" }` until `M4c-04`. Removing those three
+lines turned up **twenty-four** findings, and **fifteen were not conventions at
+all** — ten files opening `local addonName, NS = ...` over a folder name they
+never read, and five parameters carried into the two `hooksecurefunc` handlers
+and never used. All fifteen were fixed in the source. The **nine** that remain
+are eight receivers a calling convention forces (`212/self` on method-sugar
+bodies that read upvalues, `212/event` on the AceEvent handler) plus one
+deliberately empty `invited` branch, and they now sit in three per-file
+`<code>/<variable>` stanzas and one line-scoped `-- luacheck: ignore 542`.
+
+The narrowing is **measured, not asserted**: adding a dead second parameter to
+`WhatGroup:RunTest` reports under the current config and reported nothing under
+the blanket.
 
 ## Automated test records — the consolidated run
 
