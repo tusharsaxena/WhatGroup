@@ -18,7 +18,7 @@
 -- the closures it builds for Logout / Settings / Macros are
 -- taint-free. See [docs/midnight-quirks.md] for the full taint analysis.
 
-local addonName, NS = ...
+local _, NS = ...
 local WhatGroup = NS.addon
 local L         = NS.L
 

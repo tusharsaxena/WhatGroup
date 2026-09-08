@@ -118,6 +118,7 @@ Kit.run{
         "test_lifecycle",
         "test_debuglog",
         "test_docmap",
+        "test_lintconfig",
         "test_doc_structure",
         "test_register",
         "test_vendor_sync",

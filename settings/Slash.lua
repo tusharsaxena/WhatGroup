@@ -12,7 +12,7 @@
 -- WhatGroup.COMMANDS, which settings/Panel.lua's landing page renders — at render time, not at
 -- load, so nothing here has to precede it.
 
-local addonName, NS = ...
+local _, NS = ...
 local WhatGroup = NS.addon
 local L         = NS.L
 

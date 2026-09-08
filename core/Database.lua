@@ -8,7 +8,7 @@
 -- profile, so a future breaking change to the profile shape has a single,
 -- ordered, idempotent place to upgrade old saved data.
 
-local addonName, NS = ...
+local _, NS = ...
 
 -- Bump when the persisted profile shape changes in a way that needs a
 -- migration step below. Settings.BuildDefaults threads this into

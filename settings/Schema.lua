@@ -17,7 +17,7 @@
 -- The canvas-layout panel that renders these rows into AceGUI widgets lives in
 -- settings/Panel.lua (loads after this file).
 
-local addonName, NS = ...
+local _, NS = ...
 local WhatGroup = NS.addon
 local L         = NS.L
 -- Default VALUES live in defaults/Profile.lua as NS.C (savedvariables-§2); each

@@ -13,7 +13,7 @@
 -- Nothing here reads NS.PREFIX / NS.addon / NS.db at load — every function reads them at call
 -- time, by which point the later files have run.
 
-local addonName, NS = ...
+local _, NS = ...
 
 -- ---------------------------------------------------------------------------
 -- Standalone-window geometry persistence (standalone-windows, WG-26)

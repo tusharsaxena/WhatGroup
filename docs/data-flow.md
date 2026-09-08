@@ -162,14 +162,24 @@ The notification's last line is a clickable green hyperlink:
 We *don't* need to suppress the original — Blizzard's `SetItemRef` walks an `if/elseif` chain on `linkType` and silently returns for unknown prefixes, so when our `WhatGroup:show` link is clicked the default already does nothing useful. A secure post-hook is enough:
 
 ```lua
-hooksecurefunc("SetItemRef", function(linkArg, text, button, ...)
+hooksecurefunc("SetItemRef", function(linkArg)
     if not (linkArg and linkArg:match("^WhatGroup:")) then return end
-    WhatGroup:OnSetItemRef(linkArg, text, button, ...)
+    WhatGroup:OnSetItemRef()
 end)
 ```
 
+The closure takes **only `linkArg`**, and the handler takes nothing. The client
+also passes the link text, the mouse button and the chat frame; a post-hook
+closure that declares fewer parameters simply drops them, and none of the three
+was ever read here. By the time control reaches `OnSetItemRef` the prefix test
+has already answered the only question the arguments could — is this click ours
+— and there is exactly one `WhatGroup:` link to answer it about, so there is no
+sub-prefix left to branch on. Both signatures carried those names unread until
+`M4c-04`, where removing the top-level `ignore` from `.luacheckrc` finally
+reported them.
+
 ```lua
-function WhatGroup:OnSetItemRef(linkArg, text, button, ...)
+function WhatGroup:OnSetItemRef()
     if not self.pendingInfo then
         -- Stale link from a previous session — the chat scrollback
         -- survives /reload but pendingInfo doesn't. Print a hint

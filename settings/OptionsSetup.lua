@@ -10,7 +10,7 @@
 -- TOC slot: after settings/Schema.lua, whose Get/Set/FindSchema the descriptor reads, and before
 -- settings/Panel.lua, which registers its page at file load (options-ui-§1).
 
-local addonName, NS = ...
+local _, NS = ...
 local WhatGroup = NS.addon
 local Settings  = WhatGroup.Settings
 

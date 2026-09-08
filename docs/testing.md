@@ -292,6 +292,41 @@ A warning inside one of the six LibKa0s seam files (`core/CoreSetup.lua`,
 wiring. A warning under `libs/` is not this addon's to
 fix — it is a finding for `../LibKa0s`.
 
+### The suppression gate — `tests/test_lintconfig.lua`
+
+`exclude_files` narrows **which files** the run reads. The other half of "is 0/0
+a fact about the code?" is **which findings** the config throws away, and
+`tests/test_lintconfig.lua` is the four cases that hold it honest (lint-§1,
+`M4-11`):
+
+| Case | Red when |
+|---|---|
+| `.luacheckrc` sets no top-level `ignore` | any top-level `ignore = { … }` returns |
+| no warning class is switched off wholesale | `unused_args = false` and eight relatives — a blanket spelled as a switch |
+| every `files[…]` ignore is narrowed | a stanza keyed on a **directory** whose entry names no variable |
+| no bare inline `-- luacheck: ignore` | the directive appears in any tracked `.lua` with no code after it |
+
+It reads `.luacheckrc` **as Lua**, under a sandbox that auto-creates tables the
+way luacheck's own loader does, so it inspects the table luacheck obeys rather
+than text a different spelling would slip past. Like the doc-map and EOL gates it
+**fails rather than skips** when it cannot look: no config, an unreadable one, a
+chunk that will not compile, no `io.popen`, no git.
+
+Why it exists here. `.luacheckrc` carried
+`ignore = { "211/addonName", "212", "542" }` until `M4c-04`. Removing those three
+lines turned up **twenty-four** findings, and **fifteen were not conventions at
+all** — ten files opening `local addonName, NS = ...` over a folder name they
+never read, and five parameters carried into the two `hooksecurefunc` handlers
+and never used. All fifteen were fixed in the source. The **nine** that remain
+are eight receivers a calling convention forces (`212/self` on method-sugar
+bodies that read upvalues, `212/event` on the AceEvent handler) plus one
+deliberately empty `invited` branch, and they now sit in three per-file
+`<code>/<variable>` stanzas and one line-scoped `-- luacheck: ignore 542`.
+
+The narrowing is **measured, not asserted**: adding a dead second parameter to
+`WhatGroup:RunTest` reports under the current config and reported nothing under
+the blanket.
+
 ## Automated test records — the consolidated run
 
 All four out-of-game suites go through one vendored runner, and every run is recorded

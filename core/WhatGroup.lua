@@ -53,17 +53,24 @@ NS.PREFIX = "|cff00FFFF[WG]|r"
 -- ADDON_ACTION_FORBIDDEN. File-load hook registration runs before
 -- GameMenu's InitButtons builds those closures, so they remain
 -- taint-free.
-hooksecurefunc(C_LFGList, "ApplyToGroup", function(searchResultID, ...)
+-- Both closures take ONLY what they read. The client passes more -- ApplyToGroup also carries the
+-- role flags and the applicant note, SetItemRef the link text, the mouse button and the chat frame
+-- -- and a post-hook closure that declares fewer parameters simply drops the rest, which is what
+-- happens to them here anyway. Until `M4c-04` these two mirrored the client's full signatures and
+-- forwarded them on, so `text`, `button` and two varargs travelled into handler bodies that read
+-- none of them, on every apply and every link click. The client's signatures are recorded in
+-- docs/data-flow.md, which is where a signature nothing reads belongs.
+hooksecurefunc(C_LFGList, "ApplyToGroup", function(searchResultID)
     if WhatGroup.OnApplyToGroup then
-        WhatGroup:OnApplyToGroup(searchResultID, ...)
+        WhatGroup:OnApplyToGroup(searchResultID)
     end
 end)
 
-hooksecurefunc("SetItemRef", function(linkArg, text, button, ...)
+hooksecurefunc("SetItemRef", function(linkArg)
     if type(linkArg) ~= "string" then return end
     if not linkArg:match("^WhatGroup:") then return end
     if WhatGroup.OnSetItemRef then
-        WhatGroup:OnSetItemRef(linkArg, text, button, ...)
+        WhatGroup:OnSetItemRef()
     end
 end)
 
@@ -558,7 +565,7 @@ end
 -- Hooks
 -- ---------------------------------------------------------------------------
 
-function WhatGroup:OnApplyToGroup(searchResultID, ...)
+function WhatGroup:OnApplyToGroup(searchResultID)
     -- Master enable gate: when disabled, the addon ignores the apply
     -- entirely so no capture → no pendingInfo → no notification or
     -- popup later. /wg test and /wg show still work (they bypass the
@@ -580,7 +587,13 @@ end
 -- whenever the link prefix matches "WhatGroup:". Blizzard's default
 -- SetItemRef has already run by this point and no-op'd on our prefix;
 -- this just opens the popup (or prints a hint if pendingInfo is gone).
-function WhatGroup:OnSetItemRef(linkArg, text, button, ...)
+--
+-- TAKES NOTHING. The hook has already decided the click is ours -- that is the whole content of
+-- the link argument by the time control gets here -- and there is exactly one "WhatGroup:" link,
+-- the one built in ShowNotification, so there is no sub-prefix left to branch on. The link text,
+-- the mouse button and the chat frame the client also passes were carried into this signature and
+-- never read.
+function WhatGroup:OnSetItemRef()
     NS.Debug("ChatLink", "clicked hasPending=" .. tostring(self.pendingInfo ~= nil))
     -- pendingInfo is session-only (cleared on group-leave or /reload).
     -- A click on a stale chat link from a previous session would
@@ -762,8 +775,14 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
         pairApplication(self, appID)
     elseif APPLICATION_ENDED[newStatus] then
         dropApplication(self, appID, newStatus)
-    elseif newStatus == "invited" then
-        -- Wait for the user to accept; multiple invites can arrive.
+    elseif newStatus == "invited" then -- luacheck: ignore 542
+        -- Deliberately empty, and the emptiness is the behaviour: "invited" is the client asking
+        -- the player, not an answer, and the capture must survive untouched until "inviteaccepted"
+        -- or one of APPLICATION_ENDED arrives -- multiple invites can arrive for one application.
+        -- Named rather than folded into the `else` so a status this addon has no arm for still
+        -- falls through to nothing by accident and this one falls through to nothing on purpose.
+        -- The pragma is on the branch line and covers that line alone: the next empty branch
+        -- written anywhere in this file, or this one, still reports.
     elseif newStatus == "inviteaccepted" then
         -- Master enable gate, same read as OnApplyToGroup: when disabled the
         -- addon must capture nothing, so the fresh re-fetch below never runs,

@@ -36,7 +36,7 @@
 -- Writes straight to the shared private namespace (NS) so load order
 -- relative to WhatGroup.lua doesn't matter — `self.TeleportSpells`
 -- (self == NS.addon == NS) reads this same slot at lookup time.
-local addonName, NS = ...
+local _, NS = ...
 
 NS.TeleportSpells = {
 
