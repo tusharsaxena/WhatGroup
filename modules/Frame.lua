@@ -184,21 +184,49 @@ end
 -- the dropdown's own onChange re-shows too — moving `General visibility` back to a value that
 -- permits the popup applies that answer on the spot, exactly as moving it to `never` closes an open
 -- one. One seam, both directions, every caller.
--- The ONE seam allowed to hide the popup. Returns true when the popup is down, false when the
--- client would have refused — never calls Hide in combat, so the addon cannot raise
--- ADDON_ACTION_BLOCKED through this path. Every caller must go through it.
+-- The ONE seam allowed to take the popup off screen. Never calls Hide in combat, so the addon
+-- cannot raise ADDON_ACTION_BLOCKED through this path. Every caller must go through it.
+--
+-- ALPHA IS THE SEAM, and it is this file's own ruling rather than a trick. `ApplyFrameAlpha` above
+-- is deliberately NOT combat-guarded — "opacity moves nothing, and in combat is the one time an
+-- alpha setting is being judged" — while `ApplyFrameSize` and `ApplyFrameScale` both refuse,
+-- because those move the secure child. Hide is refused for the same reason size is, so a close in
+-- combat takes the frame to alpha 0 and owes the real Hide to the next legal edge.
+--
+-- The player gets a popup that closes when they press Close, in combat or out, which is the
+-- requirement. What they do not get is the frame leaving the screen's hit-testing until the
+-- lockdown lifts: alpha 0 is invisible, not absent, so the title bar still drags and the teleport
+-- button still takes a click it cannot act on — a teleport cannot be cast in combat anyway. That
+-- residue is exactly why `pendingHide` exists and why the soft state is never a resting one.
+local softHidden  = false   -- alpha-0 stand-in for a Hide the client refused
+local pendingHide = false   -- a real Hide owed once the lockdown lifts
+
 local function hidePopup()
     if not f then return true end
-    if InCombatLockdown() then return false end
+    if InCombatLockdown() then
+        softHidden, pendingHide = true, true
+        f:SetAlpha(0)
+        return true
+    end
+    softHidden, pendingHide = false, false
     f:Hide()
+    WhatGroup:ApplyFrameAlpha()
     return true
 end
 
--- Set when the player asked to dismiss during combat and the client refused. Distinct from the
--- visibility gate on purpose: the gate re-asks itself on the next edge and needs no memory, but
--- "the player pressed Close" is an instruction that must survive the fight, or Close in combat
--- silently does nothing and the popup returns as if the press never happened.
-local dismissPending = false
+local function showPopup()
+    softHidden, pendingHide = false, false
+    WhatGroup:ApplyFrameAlpha()
+    f:Show()
+    f:Raise()
+end
+
+-- On screen means the player can SEE it. A soft-hidden popup is still shown and still anchored, so
+-- IsShown() alone answers the wrong question everywhere the gate asks it.
+local function onScreen()
+    return f and f:IsShown() and not softHidden
+end
+
 
 -- WHY THE POPUP IS OFF SCREEN — the question the re-show arm has to answer, and could not. Four
 -- states reach "hidden", and only two of them are the gate's doing:
@@ -222,23 +250,28 @@ local gateWithheld = false
 
 function WhatGroup:ApplyFrameVisibility(inCombat)
     if not f then return end
-    -- The deferred Close lands first and wins over the gate: the player's explicit dismissal
-    -- outranks a value that would merely permit the popup to be up.
-    if dismissPending and not InCombatLockdown() then
-        dismissPending = false
-        f:Hide()
-        return
+    -- Settle what the lockdown deferred, before the gate is asked anything. `hidePopup` performs
+    -- the real Hide now that it is legal and restores the alpha, so a popup that spent the fight at
+    -- alpha 0 is genuinely gone rather than invisibly present.
+    --
+    -- `gateWithheld` is saved across it because that real Hide fires OnHide, which clears the flag
+    -- for every hide. WHO withheld the popup was decided when it went off screen, and settling the
+    -- debt must not relitigate it — otherwise a gate hide would come back as a player dismissal and
+    -- never reopen, which is the whole bug this pair of flags exists to prevent.
+    if pendingHide and not InCombatLockdown() then
+        local wasGate = gateWithheld
+        hidePopup()
+        gateWithheld = wasGate
     end
     if not visibilityAllows(inCombat) then
         local down = hidePopup()
-        -- After the hide, never before: f:Hide() fires OnHide, which clears the flag for every
+        -- After the hide, never before: the real Hide fires OnHide, which clears the flag for every
         -- hide including this one. Setting it first would be undone by our own call.
         if down then gateWithheld = true end
         return down
     end
-    if gateWithheld and WhatGroup.pendingInfo and not f:IsShown() then
-        f:Show()
-        f:Raise()
+    if gateWithheld and WhatGroup.pendingInfo and not onScreen() then
+        showPopup()
     end
 end
 
@@ -627,9 +660,11 @@ local function buildFrame()
     -- raised ADDON_ACTION_BLOCKED naming this addon. The press is remembered instead and honored
     -- the moment the lockdown lifts, which is the closest thing to "close" the client permits.
     closeBtn:SetScript("OnClick", function()
-        if hidePopup() then return end
-        dismissPending = true
-        if NS.Print then NS.Print(L["Popup deferred until combat ends."]) end
+        hidePopup()
+        -- The player owns this one, so the gate must not undo it on the next combat edge. Set
+        -- explicitly rather than left to OnHide: in combat `hidePopup` takes the alpha route and
+        -- never fires it.
+        gateWithheld = false
     end)
 
     -- ESC to close — register with UISpecialFrames *now*, lazily.

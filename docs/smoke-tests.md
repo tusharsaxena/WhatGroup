@@ -347,25 +347,32 @@ Then, once the cooldown has expired, `/wg test` again: full alpha, no swipe, no 
 **Expected:** Whole popup including the teleport button moves. Dropping near a screen edge clamps without going off-screen.
 
 
-### 4.5 The popup in combat — no blocked action, and Close is not lost
+### 4.5 The popup in combat — it closes, and nothing is blocked
 
-**This is the check a player found for us on 2026-09-07**, reported as `AddOn 'WhatGroup' tried to call the protected function 'WhatGroupFrame:Hide()'`. The popup parents a `SecureActionButtonTemplate` teleport button, so the client refuses `Hide` on it — and on any ancestor of it — during a lockdown. The addon's mock now models frame protection and four cases pin the behavior, but only the client raises the real error.
+**Reported from the client on 2026-09-07** as `AddOn 'WhatGroup' tried to call the protected function 'WhatGroupFrame:Hide()'`, and revised on 2026-09-08 when the owner ruled that closing in combat has to actually work.
 
-**Run with BugGrabber (or any error display) enabled, or this check cannot fail visibly.**
+The popup parents a `SecureActionButtonTemplate` teleport button, so the client refuses `Hide` on it — and on any ancestor of it — during a lockdown. Alpha is not refused, and this addon already ruled so: `ApplyFrameAlpha` is deliberately un-guarded because opacity moves nothing. So a close in combat takes the frame to alpha 0 and the real `Hide` lands when combat ends.
 
-1. `/wg test` to raise the popup, out of combat.
-2. Pull a training dummy, popup still on screen.
-   - **Expected:** No red error, nothing in BugGrabber naming WhatGroup. The popup **stays up** — correct, not a bug; the client will not take it down mid-fight.
-3. Press **Close** while still in combat.
-   - **Expected:** No error. Popup stays, and one chat line reads *"Popup deferred until combat ends."*
-4. Drop combat.
-   - **Expected:** Popup disappears, honoring the press from step 3.
-5. Repeat 1–2 with `General visibility` = **Out of combat**.
-   - **Expected:** Still no error. Popup stays for the fight, goes when combat drops.
-6. Set `General visibility` = **In combat**, out of combat, holding a capture.
-   - **Expected:** Popup hidden. Pull — popup appears. Drop combat — popup hides. **This direction is the legal one** and must work on the edge itself, not late.
+**Run with BugGrabber (or `/console scriptErrors 1`) enabled, or this check cannot fail visibly.**
 
-**Failure means:** any red error, or a Close press in combat silently forgotten once combat ends.
+1. `/wg test` to raise the popup, out of combat. Pull a training dummy.
+   - **Expected:** no red error, nothing in BugGrabber naming WhatGroup.
+2. Press **Close** while still in combat.
+   - **Expected:** **the popup goes away immediately.** No error, no chat line. This is the behaviour the 2026-09-08 ruling asked for; before it, Close in combat did nothing visible.
+3. Drop combat.
+   - **Expected:** it is still gone, and stays gone.
+4. `/wg test` again, pull, and this time press **ESC** in combat.
+   - **Expected:** identical to step 2.
+5. Set `General visibility` = **Out of combat**, `/wg test` out of combat, then pull.
+   - **Expected:** the popup goes off screen **on the pull**, not a fight later. No error.
+6. Drop combat.
+   - **Expected:** **it comes back by itself.** This is the gate releasing what it withheld, and it is the half that must not be lost to the fix for step 2.
+7. Set `General visibility` = **In combat**, out of combat, holding a capture. The popup is hidden. Pull.
+   - **Expected:** it opens. Drop combat — it hides again.
+
+**Known and accepted:** between steps 2 and 3 the frame is invisible but still present — it has not been `Hide`n yet, so its title bar can still be dragged and the teleport button still occupies its 24px. A teleport cannot be cast in combat, so a click there does nothing. If you can find a way to make that matter to a player, it is worth a finding.
+
+**Failure means:** any red error; a Close in combat that leaves the popup on screen (steps 2, 4); the `Out of combat` value not clearing on the pull (step 5); or — the subtle one — the popup **not** returning at step 6 or **not** opening at step 7, which would mean the fix for closing killed the legitimate re-show along with the bug.
 
 ### 4.6 A popup you closed stays closed
 

@@ -140,14 +140,20 @@ Anything the addon does not recognize — a hand-edited SavedVariable, a profile
 
 `ApplyFrameVisibility` is symmetric in intent and **asymmetric in combat**, because the client makes it so. `buildFrame` parents a `SecureActionButtonTemplate` button — the teleport button — to `f`, and the client refuses `Hide` on a protected frame *and on every ancestor of one* during a lockdown. So the two combat-driven values are not equally serviceable:
 
-| Value | Wants to hide on | Legal? |
+| Value | Wants to go off screen on | `Hide` legal there? |
 |---|---|---|
 | `inCombat` | combat **ending** | Yes — `InCombatLockdown()` is already false on that edge |
 | `outOfCombat` | combat **starting** | **No** — inside the lockdown, refused |
 
-For `outOfCombat` the popup stays up for the fight and the gate is honored late, at `PLAYER_REGEN_ENABLED`. Attempting it anyway is strictly worse than deferring: the frame does not go down either way, and the player additionally gets `ADDON_ACTION_BLOCKED` naming this addon. **Every hide goes through one `hidePopup()` seam** that returns `false` rather than calling into a refusal, and the Close button remembers a press it could not honor so the dismissal survives the fight rather than evaporating.
+**Alpha is what closes it, and that is this file's own ruling rather than a trick.** `ApplyFrameAlpha` is deliberately not combat-guarded — opacity moves nothing, so the secure child stays exactly where it is — while `ApplyFrameSize` and `ApplyFrameScale` both refuse for the same reason `Hide` is refused. So a close during a lockdown takes the frame to **alpha 0** and owes the real `Hide` to the next legal edge, which `ApplyFrameVisibility` settles before it asks the gate anything.
 
-This corrects a claim `modules/Frame.lua` and this document both carried until 2026-09-08 — that `f:Hide()` was unprotected. It never was. `ApplyFrameSize` and `ResetFramePosition` sit two functions away and were already combat-guarded for exactly this reason; the visibility seam was the one place that reasoned the other way, and a player found it.
+The player therefore gets what they asked for in both directions: **Close works in combat**, and `outOfCombat` takes the popup off screen on the pull rather than a fight later and **puts it back by itself when combat ends**.
+
+What alpha does not buy is the frame leaving hit-testing. Alpha 0 is invisible, not absent: until the lockdown lifts the title bar still drags and the teleport button still takes a click it cannot act on — a teleport cannot be cast in combat anyway. That residue is why `pendingHide` exists and why the soft state is never a resting one.
+
+**Every path off screen goes through `hidePopup()`**, and `gateWithheld` records *who* put it there — the gate, or the player. `OnHide` clears that flag on every hide and the gate's two sites re-assert it immediately afterwards, so ESC, which routes through `UISpecialFrames` to a bare `Hide()`, is exactly as durable as the button without having to know anything about either.
+
+This section has been wrong twice, both times found by a player rather than by the suite, and both corrections are worth keeping. It claimed `f:Hide()` was unprotected — it never was, and `ApplyFrameSize` and `ResetFramePosition` sit two functions away already combat-guarded for exactly that reason. It then claimed the popup simply had to stay up for the fight, which was true only of `Hide` and not of the requirement: alpha closes it, and the addon's own rule about opacity was on the page the whole time.
 
 Three conditions bound the show half:
 

@@ -401,7 +401,7 @@ badge and any count quoted in the docs must agree with it.
 - notify: the Leader row still prints when leaderName is nil
 - notify: Playstyle and Teleport drop their rows while Leader keeps its own
 
-### test_frame.lua (78)
+### test_frame.lua (83)
 
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
@@ -475,6 +475,11 @@ badge and any count quoted in the docs must agree with it.
 - frame: Close pressed in combat is remembered, not fired into a refusal
 - frame: a deferred Close outranks a gate that would still permit the popup
 - frame: a combat edge brings back a popup the gate had hidden
+- frame: Close in combat takes the popup off screen at once
+- frame: the real Hide lands when the lockdown lifts, and the alpha comes back with it
+- frame: the alpha restored is the player's own, not a hardcoded 1
+- frame: 'out of combat' takes the popup off screen the moment combat starts
+- frame: and it opens again by itself when combat ends
 - frame: a popup the PLAYER closed does not come back when combat starts
 - frame: a popup closed with ESC does not come back either
 - frame: leaving combat does not reopen a popup the player closed mid-fight either
@@ -654,7 +659,7 @@ badge and any count quoted in the docs must agree with it.
 | test_labels.lua | 34 |
 | test_capture.lua | 32 |
 | test_notify.lua | 48 |
-| test_frame.lua | 78 |
+| test_frame.lua | 83 |
 | test_panel.lua | 53 |
 | test_lifecycle.lua | 37 |
 | test_debuglog.lua | 21 |
@@ -664,4 +669,4 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 2 |
 | test_eol.lua | 1 |
-| **Total** | **562** |
+| **Total** | **567** |
