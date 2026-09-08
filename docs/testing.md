@@ -296,7 +296,7 @@ fix — it is a finding for `../LibKa0s`.
 
 `exclude_files` narrows **which files** the run reads. The other half of "is 0/0
 a fact about the code?" is **which findings** the config throws away, and
-`tests/test_lintconfig.lua` is the four cases that hold it honest (lint-§1,
+`tests/test_lintconfig.lua` is the four cases that hold it honest (lint.md,
 `M4-11`):
 
 | Case | Red when |

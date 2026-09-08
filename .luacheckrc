@@ -10,13 +10,13 @@ codes = true
 -- library's testkit/, linted in LibKa0s as source, and linting the copy too would report every
 -- finding twice while letting the copy drift green as the original went red -- the one state
 -- tests/test_vendor_sync.lua exists to make impossible. Everything else under tests/ is ours and is
--- linted (lint-§1). Under docs/ only the FROZEN evidence bundles are excluded; a blanket docs/
+-- linted (lint.md). Under docs/ only the FROZEN evidence bundles are excluded; a blanket docs/
 -- exclude would silently drop any Lua a future doc directory carries out of the gate. _dev/ is the
 -- scratch directory .pkgmeta:12 already reserves, listed here so the two config files agree about
 -- it whether or not it exists today.
 exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "_dev/", "tests/_kit/" }
 
--- NO TOP-LEVEL `ignore`, and none is coming back (lint-§1, `M4-11`). This file carried
+-- NO TOP-LEVEL `ignore`, and none is coming back (lint.md, `M4-11`). This file carried
 -- `ignore = { "211/addonName", "212", "542" }` until `M4c-04`. All three codes named something
 -- real, but a top-level ignore reaches all 40 files, so it silenced them in every file that has no
 -- business producing them too. Removing the three lines reported TWENTY-FOUR findings, and FIFTEEN
@@ -70,7 +70,7 @@ files["tests/"] = {
 }
 
 -- ---------------------------------------------------------------------------
--- The narrowed 212s (lint-§1, `M4c-04`)
+-- The narrowed 212s (lint.md, `M4c-04`)
 -- ---------------------------------------------------------------------------
 --
 -- Every stanza below names ONE file, and every entry inside it names the code AND the variable, in

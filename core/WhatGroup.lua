@@ -57,7 +57,7 @@ NS.PREFIX = "|cff00FFFF[WG]|r"
 -- role flags and the applicant note, SetItemRef the link text, the mouse button and the chat frame
 -- -- and a post-hook closure that declares fewer parameters simply drops the rest, which is what
 -- happens to them here anyway. Until `M4c-04` these two mirrored the client's full signatures and
--- forwarded them on, so `text`, `button` and two varargs travelled into handler bodies that read
+-- forwarded them on, so `text`, `button` and two varargs traveled into handler bodies that read
 -- none of them, on every apply and every link click. The client's signatures are recorded in
 -- docs/data-flow.md, which is where a signature nothing reads belongs.
 hooksecurefunc(C_LFGList, "ApplyToGroup", function(searchResultID)
@@ -776,7 +776,7 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
     elseif APPLICATION_ENDED[newStatus] then
         dropApplication(self, appID, newStatus)
     elseif newStatus == "invited" then -- luacheck: ignore 542
-        -- Deliberately empty, and the emptiness is the behaviour: "invited" is the client asking
+        -- Deliberately empty, and the emptiness is the behavior: "invited" is the client asking
         -- the player, not an answer, and the capture must survive untouched until "inviteaccepted"
         -- or one of APPLICATION_ENDED arrives -- multiple invites can arrive for one application.
         -- Named rather than folded into the `else` so a status this addon has no arm for still
