@@ -281,10 +281,10 @@ test("the README's settings table is page-granular, not per-tab", function()
         if first and first:lower():gsub("%s+", "") == "tab" then rows[#rows + 1] = line end
     end
     assertTrue(#rows == 0, README .. " carries a `| Tab |` table: " .. table.concat(rows, " / ")
-        .. ". documentation-§1 keeps the README's `### Settings panel` table at PAGE granularity — "
-        .. "one row per settings subcategory, and this addon has one — and puts the per-tab "
-        .. "breakdown in docs/settings-panel.md, which is where options-ui-§13's strip makes it "
-        .. "derivable")
+        .. ". documentation-§1 keeps `## Usage` as prose with no tables in it at all, and puts "
+        .. "the per-tab breakdown in docs/settings-panel.md, which is where options-ui-§13's "
+        .. "strip makes it derivable. A settings table anywhere in the README would have to be "
+        .. "PAGE-granular — one row per settings subcategory, and this addon has one")
 end)
 
 test("every settings tab the README sends a player to exists in the schema", function()

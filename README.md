@@ -8,20 +8,17 @@
 
 ![Logo](https://media.forgecdn.net/attachments/1794/926/whatgroup-logo-png.png)
 
-WhatGroup remembers the details of any group you join through the Premade Group Finder, so you can close the LFG window and still know what you signed up for. It shows those details two ways:
+WhatGroup remembers what you signed up for. Apply through the Premade Group Finder, join, shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who is leading, and the playstyle.
 
-*   A **chat message** a moment after you join. It lists the group name, the instance, the type (Mythic+, Raid, Dungeon, PvP, and so on), the leader, and the group's playstyle. If the dungeon has a teleport spell, that's shown too — tagged `(not learned)` or `(on cooldown)` if you can't use it right now — plus a "view details" link that re-opens the popup.
-*   A **popup window** with the same details and a teleport button for the dungeon (grayed out until you learn the spell, and while it's on cooldown — with the time remaining shown beside it). Drag it anywhere, close it with `ESC`, or re-open it with `/wg show` while you're still in the group.
-
-Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Settings panel, or with the `/wg` commands below.
+It tells you twice, on purpose. A chat line lands a moment after you join, tagged with a cyan `[WG]` and ending in a "view details" link. A popup window carries the same fields plus a teleport button for the dungeon. The chat line you can trim down to only the fields you care about; the popup always shows everything.
 
 ## What's new in 1.3.0
 
-*   The **Ka0s WhatGroup** page now shows up in the game's AddOns settings list the moment you log in — you no longer have to run `/wg config` first to make it appear.
-*   The chat message and popup now appear **instantly** when you join a group. Prefer a short pause? Set a delay under **Chat**.
-*   A new **on-screen debug window** — open or close it with `/wg debug` (or the **Debug console** box in **General**). Debug output goes there instead of cluttering your chat.
-*   Output from `/wg list`, `/wg get`, and `/wg set` is now **color-coded** and easier to read at a glance.
-*   The **Defaults** button now does a full, clean reset — no leftover settings survive it.
+*   The **Ka0s WhatGroup** page turns up in the game's AddOns settings list the moment you log in. Running `/wg config` first is no longer the price of admission.
+*   The chat message and popup now arrive **instantly** on join. If you preferred the pause, there is a delay setting under **Chat**.
+*   Debug output moved out of your chat log into an on-screen window of its own, opened and closed with `/wg debug` (or the **Debug console** box in **General**).
+*   `/wg list`, `/wg get` and `/wg set` print in color now, which makes a long settings dump scannable.
+*   **Defaults** does a full, clean reset. Nothing survives it.
 *   Updated for game patch **12.0.7**.
 
 ## Screenshots
@@ -40,75 +37,47 @@ Every chat line starts with a cyan `[WG]` tag. Set things up in the Blizzard Set
 
 ## Usage
 
-### Slash commands
+WhatGroup starts working the moment it loads, with nothing to switch on. Apply to a group through the Premade Group Finder, join it, and the summary prints while the popup opens — instantly, unless you have asked for a pause of up to ten seconds under **Chat**. Join in the middle of a fight and the popup holds, tells you it is holding, and opens the second you drop out of combat.
 
-`/wg` is the short form and `/whatgroup` is the long form; both take the same commands, and every reply is tagged with `[WG]`.
+The popup is six rows: group, instance, type, leader, playstyle, and the teleport. That last one is the row people install this for. It is a real spell button, so clicking it casts. It sits grayed out until you have learned that dungeon's teleport, and grayed again while the spell recharges, with the time left spelled out beside the icon and a cooldown swipe over it; a dungeon with no teleport at all just skips the row. The chat line marks the same states with `(not learned)` and `(on cooldown)`. Drag the window by its title bar and it remembers where you left it. `ESC` or the Close button puts it away; `/wg show`, or that "view details" link, brings it back for as long as you are still in the group. To watch the whole thing without joining anything, `/wg test` runs it on sample data, and the **Test** button on the **Chat** tab does the same.
 
-| Command | What it does |
-|---|---|
-| `/wg` or `/wg help` | Show the list of commands |
-| `/wg show` | Re-open the last group popup (while you're still in that group) |
-| `/wg test` | Preview the chat message and popup with sample data — also a **Test** button in the Settings panel |
-| `/wg config` | Open the Settings panel |
-| `/wg version` | Print the addon version |
-| `/wg list` | Show every setting and its current value |
-| `/wg get name` | Show one setting's current value |
-| `/wg set name value` | Change a setting. On/off settings accept `on`, `off`, or `toggle`; number settings stay within their allowed range |
-| `/wg reset name` | Reset one setting to its default |
-| `/wg resetall` | Reset every setting to its default, after a confirmation |
-| `/wg debug` | Open or close the on-screen debug window |
-| `/wg debug on` / `/wg debug off` | Turn debug logging on or off (resets to off each login) |
-| `/whatgroup` | Long-form alias for `/wg` |
+Three tabs hold the tailoring. Six toggles on the **Chat** tab decide what the join summary contains — instance, type, leader, playstyle, the link, the teleport spell — and **Print to Chat** turns the message off entirely; the mirror of that is **Open Automatically** under **Popup**, which skips the window and leaves you the chat line, with **Width** and **Height** beside it. The **Master controls** tab is the one every Ka0s addon shares, so "how do I turn this off, make it smaller, put it back" is always in the same place: **Enable WhatGroup**, **General visibility** (always, only in combat, only out of combat, or never), **Master scale**, **Master alpha**, **Lock frame** for when you keep nudging the window by accident, **Debug console**, and then **Reset position** and **Reset all settings**. Every row of every tab, and where each one is stored, is written up in [docs/settings-panel.md](docs/settings-panel.md#the-tab-strip).
 
-### Settings panel
+All of it is reachable from chat as well. `/wg config` opens the panel, `/wg list` dumps every setting and its value, `/wg get` and `/wg set` read and write one by path (switches take `on`, `off` or `toggle`), `/wg reset <path>` restores one and `/wg resetall` restores the lot behind a confirmation. When something misbehaves, `/wg debug on` starts logging and `/wg debug` opens the window holding it.
 
-`/wg config` opens the Blizzard Settings panel. It starts on the **Ka0s WhatGroup** landing page (logo, notes, and the command list); click **General** in the sidebar to reach the options.
-
-There is one settings page, and it carries a tab strip across the top:
-
-| Page | Covers |
-|---|---|
-| **General** | Three tabs. **Master controls** — the master switch, the visibility rule, scale, alpha, the frame lock and the debug console, closed by the two reset buttons. **Chat** — the notification delay, and what the join summary says. **Popup** — whether the group-info window opens by itself, and how big it is. |
-
-Tab by tab, with every row and where it is stored: [docs/settings-panel.md](docs/settings-panel.md#the-tab-strip).
-
-**Master controls** — the same first tab every Ka0s addon has, so "how do I turn this off, how do I make it smaller, how do I put it back" is always in the same place. **Enable WhatGroup** turns the addon off without unloading it. **General visibility** decides when the popup is allowed on screen at all — always, only in combat, only out of combat, or never. **Master scale** and **Master alpha** size and fade the popup; **Lock frame** stops you dragging it by accident. **Debug console** only shows or hides the debug window — it isn't a saved setting and doesn't turn logging on (use `/wg debug` for that). **Reset position** puts the popup back where it started, and **Reset all settings** restores everything after a confirmation (so does the **Defaults** button in the top-right corner).
-
-**Chat** — **Notification Delay** sets how long to wait after joining before anything happens (0-10 seconds; the same pause gates both the chat message and the popup). **Print to Chat** turns the join summary on or off, and the six toggles under it choose what that summary contains: instance, type, leader, playstyle, the "view details" link, and the teleport spell. These only change the chat message; the popup always shows everything. The **Test** button at the bottom previews the whole thing with sample data.
-
-**Popup** — **Open Automatically** decides whether the group-info window opens by itself on join, and **Width** and **Height** set its size (320-700 by 200-520 pixels; it ships at 420 x 260). Where you drag it is remembered separately.
+Everything else is configuration, and it lives in two places: the **Ka0s WhatGroup** page in the game's Settings → AddOns list, and `/wg` (or `/whatgroup`), which prints the full command list.
 
 ## How it works
 
-When you click **Apply** in the Premade Group Finder, WhatGroup quietly notes the group's details. It keeps track of your application so the right group info is waiting for you when you join — even if you've applied to several groups at once. When you join, the chat message prints and the popup opens — instantly by default, or after the delay you set under **Chat → Notification Delay** if you'd rather let the zone-in settle first.
+Click **Apply** in the Premade Group Finder and WhatGroup quietly writes down what the tile said. Applications queue, so four in flight at once do not confuse it — the details waiting for you when an invite lands are the ones belonging to the group you actually joined. Then the chat message prints and the popup opens, instantly by default, or after the pause you set under **Chat → Notification Delay** if you would rather let the zone-in settle first.
 
-The group info is only remembered for your current play session and clears when you leave the group. Only your settings are saved between sessions, plus where you've dragged the popup. For the technical details, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+The group info does not outlive the session. It is dropped the moment you leave the group, which is exactly why `/wg show` stops answering then. Your settings persist, and so do the places you dragged the two windows to. The machinery is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## FAQ
 
 | Question | Answer |
 |---|---|
-| Does this work for cross-realm or cross-faction groups? | Yes. WhatGroup just reads whatever the group finder shows it, so realm, faction, and category don't matter. |
-| Is anything saved between sessions? | Your settings, plus where you've dragged the popup and debug windows. The group info itself is session-only — it clears the moment you leave the group, so `/wg show` only works while you're still in it. |
-| How do I preview the popup without joining a real group? | Use `/wg test`, or the **Test** button in Settings. Both run the full message and popup with sample data. |
+| Does this work for cross-realm or cross-faction groups? | Yes. WhatGroup reads whatever the group finder shows it, so realm, faction and category don't matter. |
+| Is anything saved between sessions? | Your settings, plus where you've dragged the popup and debug windows. The group info itself is session-only. It clears the moment you leave the group, so `/wg show` only works while you're still in it. |
+| How do I preview the popup without joining a real group? | `/wg test`, or the **Test** button in Settings. Both run the full message and popup on sample data. |
 | Can I delay the message and popup instead of getting them instantly? | Yes. They appear instantly by default; set a pause under **Chat → Notification Delay** (0-10 seconds). |
-| What is the **Debug console**, and how do I turn on debug logging? | `/wg debug` opens the on-screen debug window; `/wg debug on` starts logging into it, `off` stops it. Logging is session-only and starts off after every login. The **Debug console** checkbox in **General** only shows or hides the window — it doesn't turn logging on. |
-| Why is the teleport button or teleport line grayed out or missing? | Three reasons, and the popup says which: you haven't learned the spell (`Teleport spell not learned` beside the button), you have it but it's still recharging (`On cooldown — 7h 58m 12s`, counting down, with a cooldown swipe over the icon), or that dungeon has no teleport at all (the row is skipped entirely). |
+| What is the **Debug console**, and how do I turn on debug logging? | `/wg debug` opens the on-screen window; `/wg debug on` starts logging into it, `off` stops it. Logging is session-only and starts off after every login. The **Debug console** checkbox only shows or hides the window; it doesn't turn logging on. |
+| Why is the teleport button or teleport line grayed out or missing? | Three reasons, and the popup says which: you haven't learned the spell (`Teleport spell not learned` beside the button), you have it but it's still recharging (`On cooldown — 7h 58m 12s`, counting down, with a cooldown swipe over the icon), or that dungeon has no teleport at all, in which case the row is skipped. |
 | Can I keep the chat message but hide the popup, or the reverse? | Yes. Turn **Popup → Open Automatically** off to skip the popup, or **Chat → Print to Chat** off to skip the message. They work independently. |
-| Can I make the popup bigger or smaller? | Yes. **Popup → Width** and **Popup → Height** move it between 320-700 and 200-520 pixels; it ships at 420 x 260. Dragging the popup itself still remembers where you left it. |
+| Can I make the popup bigger or smaller? | Yes. **Popup → Width** and **Popup → Height** move it between 320-700 and 200-520 pixels; it ships at 420 x 260. Dragging still remembers where you left it. |
 | Are there per-character settings? | No. Your settings are shared across all your characters. |
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
-| The popup never appears when I join a group | Make sure **Enable WhatGroup** (the **Master controls** tab) and **Open Automatically** (the **Popup** tab) are both turned on. If you joined while in combat, the popup is held until combat ends ("Popup deferred until combat ends.") and opens the moment you drop out. |
+| The popup never appears when I join a group | Check that **Enable WhatGroup** (the **Master controls** tab) and **Open Automatically** (the **Popup** tab) are both on. If you joined while fighting, the popup is held ("Popup deferred until combat ends.") and opens when you drop out. |
 | The chat message is missing some lines | The per-line toggles on the **Chat** tab control what the chat message includes. The popup always shows every line. |
 | `/wg show` says "No group info available" | The group info clears when you leave the group, so `/wg show` only works while you're still in it. Use `/wg test` to preview the popup instead. |
 | The teleport button is grayed out | You haven't learned that dungeon's teleport spell on this character, or the dungeon has no teleport. |
-| I opened Settings but can't find the toggles | `/wg config` lands on the landing page; click **General** in the sidebar to reach the options. |
-| `/wg config` says "cannot open settings during combat" and nothing opens | The Blizzard settings panel can't be opened in combat. Leave combat and run `/wg config` again. |
-| I ticked **Debug console** but no debug output shows up | That checkbox only shows or hides the debug window. Turn logging on with `/wg debug on` (or the **Debug: OFF** button inside the window). Logging always starts off after a login or `/reload`. |
+| I opened Settings but can't find the toggles | `/wg config` lands on the landing page. Click **General** in the sidebar. |
+| `/wg config` says "cannot open settings during combat" and nothing opens | The Blizzard settings panel can't be opened in combat. Leave combat and run it again. |
+| I ticked **Debug console** but no debug output shows up | That checkbox only shows or hides the window. Turn logging on with `/wg debug on`, or the **Debug: OFF** button inside the window itself. Logging always starts off after a login or `/reload`. |
 
 ## Issues and feature requests
 
