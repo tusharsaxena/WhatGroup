@@ -28,8 +28,8 @@
 -- WHAT IT DOES NOT DO, DELIBERATELY. It does not assert the 400-line whole-file SHOULD: the two
 -- registers are legitimately large here and the section says an audit "reports the shape, not the
 -- arithmetic". It does not check heading ORDER inside ARCHITECTURE.md, does not check that
--- `## What's new` names the TOC's version (that is `wow-addon:bump-version`'s, and pinning it here
--- would redden the tree between that command's own two edits), and does not count links per section
+-- `## Version History`'s top row names the TOC's version (that is `wow-addon:bump-version`'s, and
+-- pinning it here would redden the tree between that command's own two edits), and does not count links per section
 -- — "exactly one link" is the spill's shape, but a compliant section may also cite a second doc, as
 -- §3's own Module Map example does.
 --
@@ -73,7 +73,6 @@ local FORBIDDEN_HISTORY = {
 -- the SHOULD and MAY sections — omit one only when it would be empty, but when present the relative
 -- order MUST hold.
 local README_ORDER = {
-    { pattern = "^What's new in ",              required = true,  name = "## What's new in <X.Y.Z>" },
     { pattern = "^Screenshots$",                required = false, name = "## Screenshots" },
     { pattern = "^Usage$",                      required = true,  name = "## Usage" },
     { pattern = "^How .+ works?$",              required = true,  name = "## How <it> works" },
@@ -219,16 +218,13 @@ test("every anchor pointing into docs/ARCHITECTURE.md resolves to a heading", fu
         .. table.concat(dead, ", "))
 end)
 
-test("the player-facing history has the two homes documentation-§1 allows, and no third", function()
-    local whatsNew, versionHistory = 0, 0
+test("the player-facing history has the ONE home documentation-§1 allows, and no second", function()
+    local versionHistory = 0
     for _, h in ipairs(headings(README)) do
         if h.level == 2 then
-            if h.text:match("^What's new in ") then whatsNew = whatsNew + 1 end
             if h.text:lower() == "version history" then versionHistory = versionHistory + 1 end
         end
     end
-    assertTrue(whatsNew == 1, README .. " must carry exactly one `## What's new in <X.Y.Z>`; found "
-        .. whatsNew)
     assertTrue(versionHistory == 1, README .. " must carry exactly one `## Version History`; found "
         .. versionHistory)
 
@@ -299,7 +295,7 @@ test("every settings tab the README sends a player to exists in the schema", fun
 
     -- "under <Tab>" is how this README points a player at one, in both its bold and its plain
     -- form. It is the phrasing that went wrong: the 1.3.0 Version History row said "add a delay
-    -- under Notify" while the same feature's `## What's new` bullet said Chat, and `notify.delay`
+    -- under Notify" while the same feature's release-notes row said Chat, and `notify.delay`
     -- is filed under group Chat. `notify` is the row's SECTION — where the value is stored and
     -- how `/wg list` groups it — not the tab it is edited on, and a player reading the README has
     -- no way to know the difference.

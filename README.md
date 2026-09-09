@@ -12,15 +12,6 @@ WhatGroup remembers what you signed up for. Apply through the Premade Group Find
 
 It tells you twice, on purpose. A chat line lands a moment after you join, tagged with a cyan `[WG]` and ending in a "view details" link. A popup window carries the same fields plus a teleport button for the dungeon. The chat line you can trim down to only the fields you care about; the popup always shows everything.
 
-## What's new in 1.3.0
-
-*   The **Ka0s WhatGroup** page turns up in the game's AddOns settings list the moment you log in. Running `/wg config` first is no longer the price of admission.
-*   The chat message and popup now arrive **instantly** on join. If you preferred the pause, there is a delay setting under **Chat**.
-*   Debug output moved out of your chat log into an on-screen window of its own, opened and closed with `/wg debug` (or the **Debug console** box in **General**).
-*   `/wg list`, `/wg get` and `/wg set` print in color now, which makes a long settings dump scannable.
-*   **Defaults** does a full, clean reset. Nothing survives it.
-*   Updated for game patch **12.0.7**.
-
 ## Screenshots
 
 **_Popup Dialog_**
