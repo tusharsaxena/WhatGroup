@@ -18,7 +18,7 @@ exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "_dev/", "tests/_kit
 
 -- NO TOP-LEVEL `ignore`, and none is coming back (lint.md, `M4-11`). This file carried
 -- `ignore = { "211/addonName", "212", "542" }` until `M4c-04`. All three codes named something
--- real, but a top-level ignore reaches all 40 files, so it silenced them in every file that has no
+-- real, but a top-level ignore reaches all 41 files, so it silenced them in every file that has no
 -- business producing them too. Removing the three lines reported TWENTY-FOUR findings, and FIFTEEN
 -- of them were not conventions at all: ten `local addonName, NS = ...` headers over a folder name
 -- the file never read, and five parameters carried into the two `hooksecurefunc` handlers in

@@ -192,7 +192,7 @@ After either refresh, run the [Lib-refresh smoke](./smoke-tests.md#8-lib-refresh
 When a major WoW patch ships, the `## Interface:` line in `WhatGroup.toc` moves to the new build number:
 
 ```
-## Interface: 120007
+## Interface: 120100
 ```
 
 **One number, never a comma-separated list.** This addon is Retail-only (toc-file-§3, [scope.md](./scope.md)), so there is exactly one supported build at a time and a multi-build list is anti-pattern #15 — it is the shape an addon carries when it also ships Classic, which this one deliberately does not. Blizzard rejects the addon at load if the live client's build number is not the one named (or the user opts in via the AddOns "Load out-of-date" checkbox), which is the intended signal on patch day: the addon goes quiet until someone has actually checked the API surface still holds.

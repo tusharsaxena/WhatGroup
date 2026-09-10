@@ -58,7 +58,8 @@ The suites, in run order: `test_harness`, `test_libka0s`,
 `test_surface_parity`, `test_mediasetup`, `test_envsetup`, `test_util`,
 `test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
 `test_capture`, `test_notify`, `test_frame`, `test_panel`, `test_lifecycle`,
-`test_debuglog`, `test_vendor_sync`. `test_eol` runs last and arrives with the
+`test_debuglog`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
+`test_register`, `test_vendor_sync`. `test_eol` runs last and arrives with the
 vendored kit rather than living in `tests/`.
 
 `test_libka0s` is the integration suite for the adopted LibKa0s majors: that
@@ -228,10 +229,11 @@ claims?"*. The two questions give the same answer only while the library has tag
 than the tag this addon has taken.
 
 Between a library release and the re-vendor that carries it they disagree, and that disagreement is
-the normal state rather than a defect. It is the state as this is written: `../LibKa0s` sits on
-**v1.27.0**, [`CLAUDE.md`](../CLAUDE.md) names **v1.26.0**, and the commands above report **306**
-differing lines for the library and **947** for the test kit. Re-vendoring to quiet them would be
-the actual mistake — it would pull an untested library release for the sake of a clean diff.
+the normal state rather than a defect. It is not the state as this is written: `../LibKa0s` sits on
+**v1.29.0**, [`CLAUDE.md`](../CLAUDE.md) names **v1.29.0**, and all four commands above report zero
+differing lines. Read a non-empty pair here as *the library has tagged a release this addon has not
+taken yet* — not as a fault. Re-vendoring to quiet them would be the actual mistake: it would pull
+an untested library release for the sake of a clean diff.
 
 **The authoritative comparison is against the tag `CLAUDE.md` names**, and that one must be empty at
 every commit:

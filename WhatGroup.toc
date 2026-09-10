@@ -41,7 +41,7 @@ core\Compat.lua
 core\EnvSetup.lua
 core\Database.lua
 core\WhatGroup.lua
-# After core\WhatGroup.lua, which assigns NS.FONT_MONO at load (core/WhatGroup.lua:121). The
+# After core\WhatGroup.lua, which assigns NS.FONT_MONO at load (core/WhatGroup.lua:128). The
 # LibKa0s-DebugLog :New here runs at file scope (core/DebugLogSetup.lua:120) and the library
 # validates `font` as a string, so above that line the console is built from nil. Load-bearing.
 core\DebugLogSetup.lua

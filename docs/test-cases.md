@@ -624,7 +624,7 @@ badge and any count quoted in the docs must agree with it.
 - docs/ARCHITECTURE.md carries the ten sections documentation-§3 names
 - every mandated hub section that has a topic doc has spilled into it
 - every anchor pointing into docs/ARCHITECTURE.md resolves to a heading
-- the player-facing history has the two homes documentation-§1 allows, and no third
+- the player-facing history has the ONE home documentation-§1 allows, and no second
 - README.md's top-level sections are the ones documentation-§1 names, in its order
 - the README's settings table is page-granular, not per-tab
 - every settings tab the README sends a player to exists in the schema
