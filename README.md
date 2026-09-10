@@ -1,6 +1,6 @@
 # Ka0s WhatGroup
 
-![WoW](https://img.shields.io/badge/WoW-Midnight_12.0.7-purple)
+![WoW](https://img.shields.io/badge/WoW-Midnight_12.1.0-purple)
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
@@ -72,6 +72,7 @@ All bugs, feature requests, and outstanding work are tracked at [https://github.
 
 | Version | Date | Highlights |
 |---|---|---|
+| 1.4.0 | 2026-09-10 | **Show** and **Close** are now combat-safe — the popup is no longer asked to hide while protected<br>A popup you closed stays closed instead of returning on the next update<br>The visibility gate is re-asked when combat starts and ends<br>Each capture is paired to its own application rather than to whichever answered first<br>Updated for game patch 12.1.0<br>_Verified against lint, tests and complexity. This addon ships no `tests/perf.lua`, so the perf suite was skipped rather than measured — the release gate covered three suites, not four._ |
 | 1.3.0 | 2026-07-12 | The Settings page now appears in the AddOns list as soon as you log in.<br>The chat message and popup appear instantly on join (add a delay under Chat if you prefer).<br>New on-screen debug window, toggled with `/wg debug`; debug output no longer goes to chat.<br>Color-coded `/wg list`, `/wg get`, and `/wg set` output.<br>The Defaults button now performs a full, clean reset.<br>Updated for game patch 12.0.7. |
 | 1.2.0 | 2026-05-03 | Added the Settings panel and the `/wg` slash commands.<br>Added a teleport button to the popup, grayed out until you learn the spell.<br>Fixed a logout error, stale notification timers, and the wrong teleport spell and playstyle showing on real group joins. |
 | 1.1.0 | 2026-04-24 | Updated for a new game patch. |

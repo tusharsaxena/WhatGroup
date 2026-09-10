@@ -95,7 +95,7 @@ local function build()
     mock.categories    = {}   -- Settings.Register*Category calls, in order
     mock.openedTo      = {}   -- Settings.OpenToCategory(id) calls, in order
     mock.metadata      = {    -- C_AddOns.GetAddOnMetadata fields
-        Version = "1.3.0",
+        Version = "1.4.0",
         Notes   = "Tells you what group you just joined.",
     }
     mock.aceWidgets    = {}   -- every AceGUI:Create'd widget, creation order

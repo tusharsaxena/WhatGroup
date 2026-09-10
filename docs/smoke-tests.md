@@ -414,7 +414,7 @@ The end-to-end test. Requires an active LFG and at least one group leader willin
 **Expected debug trace in the console (order may vary slightly), each line `HH:MM:SS | [Tag] …`:**
 
 ```
-<ts> | [Init] WhatGroup v1.3.0, schema v1, profile 'Default' (enabled=true, notify.delay=0s, autoShow=true, inGroup=false, hasPending=false)
+<ts> | [Init] WhatGroup v1.4.0, schema v1, profile 'Default' (enabled=true, notify.delay=0s, autoShow=true, inGroup=false, hasPending=false)
 <ts> | [Apply] id=<N> captured "<title>" (activity=<A> map=<M> m+=true)
 <ts> | [LFG] appID=<N> status=applied
 <ts> | [LFG] appID=<N> status=invited            (some flows skip this)

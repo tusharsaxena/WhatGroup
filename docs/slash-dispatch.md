@@ -63,7 +63,7 @@ local runShow, runTest, runConfig, runDebug, runReset, runResetAll
 ## Help output convention
 
 ```
-[WG] v1.3.0 — slash commands (/whatgroup is an alias for /wg)
+[WG] v1.4.0 — slash commands (/whatgroup is an alias for /wg)
   /wg help — List available commands
   /wg show — Show the last group info dialog
 ```

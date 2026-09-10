@@ -29,7 +29,7 @@ local NO_LIBKA0S = {
 
 test("envsetup: NS.Meta reads this addon's TOC", function()
     local NS = T.newAddon()
-    assertEqual(NS.Meta("Version"), "1.3.0")
+    assertEqual(NS.Meta("Version"), "1.4.0")
     assertEqual(NS.Meta("Notes"), "Tells you what group you just joined.")
 end)
 
@@ -88,8 +88,8 @@ test("envsetup degraded: an install with no LibKa0s still reads its own TOC", fu
     -- version in the slash banner. Nothing here loads the library, so this runs the else-branch of
     -- both helpers.
     local NS = T.newAddon{ skip = NO_LIBKA0S }
-    assertEqual(NS.Meta("Version"), "1.3.0")
-    assertEqual(NS.Version(), "1.3.0")
+    assertEqual(NS.Meta("Version"), "1.4.0")
+    assertEqual(NS.Version(), "1.4.0")
 end)
 
 -- ---------------------------------------------------------------------------
