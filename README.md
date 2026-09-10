@@ -6,25 +6,19 @@
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
 ![Tests](https://img.shields.io/badge/Tests-568%2F568_passing-green)
 
-![Logo](https://media.forgecdn.net/attachments/1794/926/whatgroup-logo-png.png)
-
-WhatGroup remembers what you signed up for. Apply through the Premade Group Finder, join, shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who is leading, and the playstyle.
+WhatGroup remembers what group you signed up for via the Group Finder tool. Once you get accepted to a group, shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who is leading, and the playstyle.
 
 It tells you twice, on purpose. A chat line lands a moment after you join, tagged with a cyan `[WG]` and ending in a "view details" link. A popup window carries the same fields plus a teleport button for the dungeon. The chat line you can trim down to only the fields you care about; the popup always shows everything.
 
 ## Screenshots
 
-**_Popup Dialog_**
+**_Popup dialog_**
 
-![Popup Dialog](https://media.forgecdn.net/attachments/1806/616/whatgroup-screenshot-01-png.png)
+![Popup dialog](https://media.forgecdn.net/attachments/1936/728/whatgroup-screenshot-01-png.png)
 
-**_Chat Message with Clickable Link_**
+**_Chat message with clickable link_**
 
-![Chat Message with Clickable Link](https://media.forgecdn.net/attachments/1806/617/whatgroup-screenshot-02-png.png)
-
-**_Settings Panel_**
-
-![Settings Panel](https://media.forgecdn.net/attachments/1806/618/whatgroup-screenshot-03-png.png)
+![Chat message with clickable link](https://media.forgecdn.net/attachments/1936/729/whatgroup-screenshot-02-png.png)
 
 ## Usage
 
