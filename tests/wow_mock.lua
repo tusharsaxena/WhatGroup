@@ -681,7 +681,7 @@ local function build()
             mock.eventRegistryLog[#mock.eventRegistryLog + 1] = { event = event, owner = owner }
             return owner
         end,
-        UnregisterCallback = function(_, event, owner)            -- :225-250
+        UnregisterCallback = function(_, event, owner)            -- :225-249
             if owner == nil then error("UnregisterCallback 'owner' is required.") end
             if registry[event] then registry[event][owner] = nil end
         end,
