@@ -386,11 +386,12 @@ end
 function Helpers.Set(path, value, opts)
     -- Inside a bulk bracket, tally the write only if it CHANGES the stored value: that tally, not the
     -- library's count of rows walked, is §10's N, and a row already at its default is not counted.
-    -- Read only while bracketed, so an ordinary write pays nothing for it.
-    if bulkDepth > 0 and not sameValue(Helpers.Get(path), value) then
-        bulkChanged = bulkChanged + 1
-    end
+    -- Read only while bracketed, so an ordinary write pays nothing for it. The comparison needs the
+    -- value from BEFORE the write, but the tally is taken only AFTER RawSet returns: a write that
+    -- raised changed nothing, and N counts rows actually written.
+    local changed = bulkDepth > 0 and not sameValue(Helpers.Get(path), value)
     Helpers.RawSet(path, value)
+    if changed then bulkChanged = bulkChanged + 1 end
     -- Settings-change trace (debug-logging-§10): one canonical [Set] line at the single write
     -- seam, unless the write is one row of a bulk reset, which §10 logs as ONE line for the whole
     -- act. Two ways in: the Settings.Bulk bracket (the library's page reset), and opts.skipLog
@@ -428,19 +429,34 @@ end
 -- reset the whole profile (`info.profileReset`): the OnProfileReset handler (core/WhatGroup.lua) has
 -- logged that one, and §10 forbids a second line. On Settings rather than Helpers, so the pair is not
 -- copied onto the Options instance and the instance's surface does not move.
+--
+-- An act that ends in an error (the library hands `finish` the raised value as `err`, then re-raises
+-- it) still logs its one line, with STOPPED appended so the line does not read as a finished act.
+-- `bulkFailed` records that some level of the bracket was handed an error.
 local Bulk = {}
+local STOPPED = " (stopped by an error)"
+local bulkFailed = false
 
 function Bulk.begin()
-    if bulkDepth == 0 then bulkChanged, bulkSilent = 0, false end
+    if bulkDepth == 0 then bulkChanged, bulkSilent, bulkFailed = 0, false, false end
     bulkDepth = bulkDepth + 1
 end
 
-function Bulk.finish(act, scope, _, _, info)
+function Bulk.finish(act, scope, _, err, info)
     if bulkDepth == 0 then return end
     bulkDepth = bulkDepth - 1
     if info and info.profileReset then bulkSilent = true end
+    if err ~= nil then bulkFailed = true end
     if bulkDepth > 0 or bulkSilent then return end
-    NS.Debug("Set", "%s %s: %d rows", tostring(act), tostring(scope), bulkChanged)
+    NS.Debug("Set", "%s %s: %d rows%s", tostring(act), tostring(scope), bulkChanged,
+             bulkFailed and STOPPED or "")
+end
+
+-- A whole-profile reset fired while a bracket is open. The OnProfileReset handler's line stands for
+-- the act, so the bracket's close must not add a second one (debug-logging-§10). No path does this
+-- today; the handler reaches it through Settings.ConsumeResetCount below.
+local function silenceOpenBracket()
+    if bulkDepth > 0 then bulkSilent = true end
 end
 
 Settings.Bulk = Bulk
@@ -575,7 +591,10 @@ local pendingResetCount
 
 -- The OnProfileReset handler's count, taken once. nil when the reset did not come through
 -- RestoreAllDefaults, which is the only caller that counted before the profile was replaced.
+-- The handler calls this on EVERY OnProfileReset, which also makes it the place to silence a bulk
+-- bracket that is open around the reset: the handler's line stands for the act.
 function Settings.ConsumeResetCount()
+    silenceOpenBracket()
     local n = pendingResetCount
     pendingResetCount = nil
     return n
@@ -595,10 +614,24 @@ function Helpers.RestoreAllDefaults()
     local db = WhatGroup.db
     if db and db.ResetProfile then
         pendingResetCount = countChangedProfileRows()
-        db:ResetProfile()
-        -- Consumed by the handler. Cleared here too, so a count the handler never took (no callback
-        -- registered) cannot be claimed by some later, unrelated reset.
+        local ok, err = pcall(db.ResetProfile, db)
+        -- Consumed by the handler. Cleared here too, on BOTH exits, so a count the handler never took
+        -- (no callback registered, or a reset that raised before AceDB fired the event) cannot be
+        -- claimed by some later, unrelated reset. A count still pending means the handler never ran.
+        local unlogged = pendingResetCount ~= nil
         pendingResetCount = nil
+        if not ok then
+            -- The act still gets its one line, once, saying it did not finish. The handler never ran,
+            -- so it is logged here, with no count: nothing knows how many rows a reset that raised
+            -- part-way changed. (A raise from inside a handler cannot reach here in the client, where
+            -- CallbackHandler swallows handler errors, and that handler has logged already.) Then the
+            -- error is re-raised, unchanged, and the sessionOnly sweep below does not run.
+            if unlogged then
+                NS.Debug("Set", "reset profile '%s' to defaults%s", tostring(db:GetCurrentProfile()),
+                         STOPPED)
+            end
+            error(err, 0)
+        end
     end
     -- The one thing a profile reset cannot reach (options-ui-§12): a `sessionOnly` row's storage is
     -- its own set(), not the db, so it would otherwise outlive a reset that took everything around

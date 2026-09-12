@@ -181,6 +181,28 @@ end
 -- Lifecycle
 -- ---------------------------------------------------------------------------
 
+-- The three profile events' shared reaction: switching, copying or resetting a profile replaces
+-- every stored value at once. At file scope, so the OnProfileCopied method below and the closures
+-- OnInitialize registers share one copy.
+local function reloadProfile(self)
+    -- The incoming profile may predate the current schema version.
+    self:RunMigrations()
+    -- And every open panel is showing the outgoing profile's values.
+    local H = NS.Settings and NS.Settings.Helpers
+    if H and H.RefreshAll then H.RefreshAll() end
+end
+
+-- A profile copy is logged HERE, once (debug-logging-§10): AceDB copying one profile over another is
+-- wholesale replacement, not a write through the helper, so its line comes from the profile-event
+-- handler, worded by the event. AceDB fires OnProfileCopied(event, db, sourceProfileKey), and the
+-- copy has landed in the ACTIVE profile. A method rather than a closure, so a test can call it with
+-- those real arguments: the kit's AceDB mock passes the current key where AceDB passes the source.
+function WhatGroup:OnProfileCopied(_, _, source)
+    NS.Debug("Set", "copied profile '%s' \226\134\146 '%s'", tostring(source),
+             tostring(self.db:GetCurrentProfile()))
+    reloadProfile(self)
+end
+
 function WhatGroup:OnInitialize()
     -- settings/Schema.lua loads after this file but BEFORE OnInitialize
     -- fires (OnInitialize runs on ADDON_LOADED, after every TOC line has
@@ -206,16 +228,12 @@ function WhatGroup:OnInitialize()
     -- reset, which fires the same event and needs the same reaction.
     --
     -- The function form rather than the string-method one: CallbackHandler takes
-    -- both, and a closure keeps this readable without adding a method to the
-    -- addon object whose only caller is AceDB.
+    -- both, and a closure keeps this readable. The reaction itself is the
+    -- file-scope reloadProfile above. OnProfileCopied is the one method, because
+    -- its line needs AceDB's source-key argument and a test has to be able to
+    -- pass it the real one.
     if self.db.RegisterCallback then
-        local function reload()
-            -- The incoming profile may predate the current schema version.
-            self:RunMigrations()
-            -- And every open panel is showing the outgoing profile's values.
-            local H = NS.Settings and NS.Settings.Helpers
-            if H and H.RefreshAll then H.RefreshAll() end
-        end
+        local function reload() reloadProfile(self) end
         -- A reset is logged HERE, once (debug-logging-§10): AceDB replacing the whole profile is
         -- not a write through the helper, so it gets no per-row line and no bulk-bracket line, just
         -- this one from the profile-event handler. Here rather than in Helpers.RestoreAllDefaults,
@@ -234,7 +252,7 @@ function WhatGroup:OnInitialize()
             end
         end
         self.db.RegisterCallback(self, "OnProfileChanged", reload)
-        self.db.RegisterCallback(self, "OnProfileCopied",  reload)
+        self.db.RegisterCallback(self, "OnProfileCopied",  function(...) self:OnProfileCopied(...) end)
         self.db.RegisterCallback(self, "OnProfileReset",   function()
             logReset()
             reload()

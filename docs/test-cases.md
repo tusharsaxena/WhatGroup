@@ -604,7 +604,7 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: /wg resetall asks for confirmation rather than resetting outright
 - lifecycle: /wg resetall and the Defaults button share one OnAccept body
 
-### test_debuglog.lua (29)
+### test_debuglog.lua (34)
 
 - debuglog: FONT_MONO points at the library payload's JetBrains Mono TTF
 - debuglog: the console renders in the vendored TTF when the client can fetch it
@@ -633,6 +633,11 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: a nested bracket logs once, at the outermost close, with the summed tally (debug-logging-§10)
 - debuglog: a nested bracket that reset the profile silences the outer line (debug-logging-§10)
 - debuglog: a bracket that closes on an error still logs its tally and unmutes (debug-logging-§10)
+- debuglog: a write that raises inside a bracket is not counted (debug-logging-§10)
+- debuglog: a profile reset that raises logs one marked line and re-raises (debug-logging-§10)
+- debuglog: a profile reset that raises leaves no count for a later reset (debug-logging-§10)
+- debuglog: a profile reset inside an open bracket silences the bracket (debug-logging-§10)
+- debuglog: a profile copy logs one [Set] copied line naming the source (debug-logging-§10)
 - debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state
 - debuglog: enable ack is color-coded green/red matching the header (debug-logging-§5)
 
@@ -692,11 +697,11 @@ badge and any count quoted in the docs must agree with it.
 | test_frame.lua | 84 |
 | test_panel.lua | 53 |
 | test_lifecycle.lua | 44 |
-| test_debuglog.lua | 29 |
+| test_debuglog.lua | 34 |
 | test_docmap.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_doc_structure.lua | 8 |
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **597** |
+| **Total** | **602** |

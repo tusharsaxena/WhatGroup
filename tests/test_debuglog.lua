@@ -348,9 +348,100 @@ test("debuglog: a bracket that closes on an error still logs its tally and unmut
     Bulk.begin("reset", "general")
     H.Set("notify.delay", 2)
     Bulk.finish("reset", "general", 1, "boom", { profileReset = false })
-    assertEqual(countLines(NS, "[Set] reset general: 1 rows"), 1, "the rows changed before the error")
+    assertEqual(countLines(NS, "[Set] reset general: 1 rows (stopped by an error)"), 1,
+        "the rows changed before the error, and the line says the act did not finish")
     H.Set("notify.delay", 3)
     assertEqual(countLines(NS, "[Set]") - before, 2, "the mute is released")
+end)
+
+-- A row whose write raises. The debug-console row is the one row whose storage is a set() the test
+-- can reach, so the raise comes out of the real RawSet rather than a stub of the seam under test.
+local function raisingConsoleRow(NS)
+    NS.DebugLog.ConsoleCheckbox = function()
+        return { get = function() return false end, set = function() error("boom", 0) end }
+    end
+end
+
+test("debuglog: a write that raises inside a bracket is not counted (debug-logging-§10)", function()
+    -- The tally is the rows whose stored value CHANGED. A write that raised changed nothing, so it
+    -- must not reach N, even though the row was off its new value when the write began.
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    local H, Bulk = NS.addon.Settings.Helpers, NS.addon.Settings.Bulk
+    raisingConsoleRow(NS)
+    local before = countLines(NS, "[Set]")
+    Bulk.begin("reset", "general")
+    local ok, err = pcall(H.Set, "state.debugConsole", true)
+    Bulk.finish("reset", "general", 1, err, { profileReset = false })
+    assertTrue(not ok, "the write raised")
+    assertEqual(countLines(NS, "[Set]") - before, 1, "one line for the act")
+    assertEqual(countLines(NS, "[Set] reset general: 0 rows (stopped by an error)"), 1,
+        "the raising write is not in N, and the line carries the failure marker")
+end)
+
+test("debuglog: a profile reset that raises logs one marked line and re-raises (debug-logging-§10)", function()
+    -- The error came before AceDB fired OnProfileReset, so the handler never logged. The reset path
+    -- logs the act's one line itself, marked, with no count: nothing says how many rows it changed.
+    local NS = T.bootAddon()
+    dirtyTwoRows(NS)
+    NS.State.debug = true
+    local db = NS.addon.db
+    local real = db.ResetProfile
+    db.ResetProfile = function() error("boom", 0) end
+    local before = countLines(NS, "[Set]")
+    local ok, err = pcall(NS.addon.Settings.Helpers.RestoreAllDefaults)
+    db.ResetProfile = real
+    assertTrue(not ok, "the error is re-raised")
+    assertEqual(err, "boom", "unchanged")
+    assertEqual(countLines(NS, "[Set]") - before, 1, "exactly one line")
+    assertEqual(countLines(NS, "[Set] reset profile 'Default' to defaults (stopped by an error)"), 1,
+        "the reset line, marked, without a count")
+end)
+
+test("debuglog: a profile reset that raises leaves no count for a later reset (debug-logging-§10)", function()
+    -- RestoreAllDefaults counts before it resets. If the reset raises, that count must not survive
+    -- for some later, unrelated reset to claim: the later reset below changed no row it counted.
+    local NS = T.bootAddon()
+    dirtyTwoRows(NS)
+    local db = NS.addon.db
+    local real = db.ResetProfile
+    db.ResetProfile = function() error("boom", 0) end
+    pcall(NS.addon.Settings.Helpers.RestoreAllDefaults)
+    db.ResetProfile = real
+    NS.State.debug = true
+    local before = countLines(NS, "[Set]")
+    db:ResetProfile()
+    assertEqual(countLines(NS, "[Set]") - before, 1, "one line for the foreign reset")
+    assertEqual(countLines(NS, "rows)"), 0, "and it carries no count")
+end)
+
+test("debuglog: a profile reset inside an open bracket silences the bracket (debug-logging-§10)", function()
+    -- The profile-event handler's line stands for the whole act. Without the silence the bracket's
+    -- close would add a second line for the same act.
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    local H, Bulk = NS.addon.Settings.Helpers, NS.addon.Settings.Bulk
+    local before = countLines(NS, "[Set]")
+    Bulk.begin("reset", "general")
+    H.Set("notify.delay", 3)
+    NS.addon.db:ResetProfile()
+    Bulk.finish("reset", "general", 1, nil, { profileReset = false })
+    assertEqual(countLines(NS, "[Set]") - before, 1, "one line")
+    assertEqual(countLines(NS, "[Set] reset profile 'Default' to defaults"), 1, "the handler's")
+    assertEqual(countLines(NS, "[Set] reset general"), 0, "and no bracket line")
+end)
+
+test("debuglog: a profile copy logs one [Set] copied line naming the source (debug-logging-§10)", function()
+    -- Real AceDB fires OnProfileCopied(event, db, sourceProfileKey), so the handler is called with
+    -- exactly that. db:CopyProfile is not used here: the kit's AceDB mock passes the CURRENT profile
+    -- key as the third argument, which is the destination, not the source (a known LibKa0s issue).
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    local before = countLines(NS, "[Set]")
+    NS.addon:OnProfileCopied("OnProfileCopied", NS.addon.db, "Alt")
+    assertEqual(countLines(NS, "[Set]") - before, 1, "one line")
+    assertEqual(countLines(NS, "[Set] copied profile 'Alt' \226\134\146 'Default'"), 1,
+        "worded by the event: source, then the active profile it landed in")
 end)
 
 test("debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state", function()
