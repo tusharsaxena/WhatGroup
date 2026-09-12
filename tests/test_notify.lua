@@ -156,7 +156,7 @@ test("notify: a re-fire cancels the in-flight timer so two can't race", function
     -- A fresh capture arrives before the first delay elapsed.
     NS.addon.pendingInfo = pending({ title = "Replacement" })
     NS.addon:_TryFireJoinNotify("second")
-    assertTrue(firstHandle.canceled, "the superseded timer is canceled, not left running")
+    assertTrue(firstHandle.cancelled, "the superseded timer is canceled, not left running")
     assertEqual(mock.__fireTimers(), 1, "only the surviving timer fires")
 end)
 
