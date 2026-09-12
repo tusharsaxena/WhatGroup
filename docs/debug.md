@@ -320,7 +320,9 @@ formatters, the `NS.FONT_MONO` constant, the window-vs-flag `/wg debug`
 semantics, the header-toggle flip, the enable/disable bracket lines, the `[Init]`
 summary's content and its position after the bracket, the color-coded ack, the
 zero-write-when-off contract, the `%d`-with-a-secret path, the one-`[Set]`-per-change
-and one-`[Reset]`-per-wipe content rules, and that the debug-logging-§11 scrollbar/counter sync
+and one-`[Set]`-per-bulk-reset content rules (debug-logging-§10: one `[Set] reset profile …`
+line for `/wg resetall`, counting the rows it changed, and one `[Set] reset <scope>: N rows` line
+from the bulk bracket, at its outermost close), and that the debug-logging-§11 scrollbar/counter sync
 stays a safe no-op under the mock.
 
 `tests/test_libka0s.lua` covers the seam itself: that `NS.DebugLog` is the

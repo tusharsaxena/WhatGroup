@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-589%2F589_passing-green)
+![Tests](https://img.shields.io/badge/Tests-597%2F597_passing-green)
 
 WhatGroup remembers what group you signed up for via the Group Finder tool. Once you get accepted to a group, shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who is leading, and the playstyle.
 

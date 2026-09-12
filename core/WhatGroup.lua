@@ -216,9 +216,29 @@ function WhatGroup:OnInitialize()
             local H = NS.Settings and NS.Settings.Helpers
             if H and H.RefreshAll then H.RefreshAll() end
         end
+        -- A reset is logged HERE, once (debug-logging-§10): AceDB replacing the whole profile is
+        -- not a write through the helper, so it gets no per-row line and no bulk-bracket line, just
+        -- this one from the profile-event handler. Here rather than in Helpers.RestoreAllDefaults,
+        -- because a reset driven straight at the db (AceDBOptions, a /run) is the same act. N is the
+        -- rows whose stored value the reset changed. Helpers.RestoreAllDefaults counts them just
+        -- before it resets and hands the count over; a reset from anywhere else has no such count,
+        -- and §10 lets the line omit it.
+        local function logReset()
+            local S = NS.Settings
+            local name = self.db:GetCurrentProfile()
+            local n = S and S.ConsumeResetCount and S.ConsumeResetCount()
+            if n then
+                NS.Debug("Set", "reset profile '%s' to defaults (%d rows)", name, n)
+            else
+                NS.Debug("Set", "reset profile '%s' to defaults", name)
+            end
+        end
         self.db.RegisterCallback(self, "OnProfileChanged", reload)
         self.db.RegisterCallback(self, "OnProfileCopied",  reload)
-        self.db.RegisterCallback(self, "OnProfileReset",   reload)
+        self.db.RegisterCallback(self, "OnProfileReset",   function()
+            logReset()
+            reload()
+        end)
     end
 
     -- Debug is session-only (NS.State.debug), off on every login. It is

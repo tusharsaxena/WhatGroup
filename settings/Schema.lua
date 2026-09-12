@@ -361,12 +361,41 @@ end
 -- suppresses RefreshAll (RestoreAllDefaults uses it on its sessionOnly
 -- sweep, leaving the one reconcile to OnProfileReset's handler). Use
 -- `RawSet` only for genuinely side-effect-free writes (none today).
+--
+-- The Settings.Bulk bracket's state (below). `bulkDepth` is the mute: a depth rather than a boolean,
+-- so a bracket opened inside another still unmutes at the right time. Only the LOG is muted: the
+-- write, the row's onChange and the refresh still run per row (debug-logging-§10). `bulkChanged` is
+-- the tally of rows whose stored value actually changed, summed across nested brackets, and
+-- `bulkSilent` records that some level reset the whole profile.
+local bulkDepth, bulkChanged, bulkSilent = 0, 0, false
+
+-- Deep value equality, for "did this write change the stored value". A table default (none ship
+-- today, but the seam accepts one) is a fresh copy on every write, so identity would call it changed.
+local function sameValue(a, b)
+    if a == b then return true end
+    if type(a) ~= "table" or type(b) ~= "table" then return false end
+    for k, v in pairs(a) do
+        if not sameValue(v, b[k]) then return false end
+    end
+    for k in pairs(b) do
+        if a[k] == nil then return false end
+    end
+    return true
+end
+
 function Helpers.Set(path, value, opts)
+    -- Inside a bulk bracket, tally the write only if it CHANGES the stored value: that tally, not the
+    -- library's count of rows walked, is §10's N, and a row already at its default is not counted.
+    -- Read only while bracketed, so an ordinary write pays nothing for it.
+    if bulkDepth > 0 and not sameValue(Helpers.Get(path), value) then
+        bulkChanged = bulkChanged + 1
+    end
     Helpers.RawSet(path, value)
     -- Settings-change trace (debug-logging-§10): one canonical [Set] line at the single write
-    -- seam. skipLog lets a bulk caller (RestoreDefaults) suppress the per-row
-    -- lines and emit one coalesced summary instead (debug-logging-§9).
-    if not (opts and opts.skipLog) then
+    -- seam, unless the write is one row of a bulk reset, which §10 logs as ONE line for the whole
+    -- act. Two ways in: the Settings.Bulk bracket (the library's page reset), and opts.skipLog
+    -- (RestoreAllDefaults' sessionOnly rows, which the OnProfileReset line already covers).
+    if bulkDepth == 0 and not (opts and opts.skipLog) then
         NS.Debug("Set", tostring(path) .. " = " .. tostring(value))
     end
     if not (opts and opts.skipOnChange) then
@@ -388,6 +417,33 @@ function Helpers.FindSchema(path)
         if def.path == path then return def end
     end
 end
+
+-- The bulk bracket (debug-logging-§10), handed to LibKa0s-Options-1.0 as the descriptor's
+-- bulkBegin / bulkEnd in settings/OptionsSetup.lua. The library calls `begin` before a reset walk
+-- writes its first row and `finish` once after it, always, even when a row raised. Only the
+-- OUTERMOST `finish` logs, with the act's one line `[Set] <act> <scope>: N rows`. N is this seam's
+-- own tally of rows whose stored value changed, summed across any nested bracket; it is NOT the
+-- library's `count`, which is every row walked, including rows already at their default. An
+-- all-default reset therefore logs `: 0 rows`, never a line per row. Nothing is logged if any level
+-- reset the whole profile (`info.profileReset`): the OnProfileReset handler (core/WhatGroup.lua) has
+-- logged that one, and §10 forbids a second line. On Settings rather than Helpers, so the pair is not
+-- copied onto the Options instance and the instance's surface does not move.
+local Bulk = {}
+
+function Bulk.begin()
+    if bulkDepth == 0 then bulkChanged, bulkSilent = 0, false end
+    bulkDepth = bulkDepth + 1
+end
+
+function Bulk.finish(act, scope, _, _, info)
+    if bulkDepth == 0 then return end
+    bulkDepth = bulkDepth - 1
+    if info and info.profileReset then bulkSilent = true end
+    if bulkDepth > 0 or bulkSilent then return end
+    NS.Debug("Set", "%s %s: %d rows", tostring(act), tostring(scope), bulkChanged)
+end
+
+Settings.Bulk = Bulk
 
 -- ---------------------------------------------------------------------------
 -- Schema-shape validation
@@ -498,35 +554,66 @@ end
 -- back, and fires OnProfileReset -- which core/WhatGroup.lua now answers by re-running the
 -- migrations and refreshing every open panel.
 --
--- What the loop bought and this does not lose: the per-row [Set] spam was already suppressed and a
--- single [Reset] summary emitted instead (debug-logging-§9); that summary is still emitted here.
--- What it could not buy at all: a stored ARRAY. A row-by-row sweep can only address rows, and a
--- schema row cannot name one member of a list.
+-- The log: ONE line, `[Set] reset profile '<name>' to defaults (N rows)`, and it is not emitted
+-- here. A profile reset is wholesale replacement, not a write through the helper, so
+-- debug-logging-§10 has the profile-event handler log it once; core/WhatGroup.lua's OnProfileReset
+-- handler does, for this reset and for one driven straight at the db. What this function adds is
+-- the count, because only it runs BEFORE the reset: N is the profile rows whose stored value differs
+-- from the default just before the reset, the rows it actually changes. A row already at its
+-- default is not counted, and neither is a key no row names. The handler takes it through
+-- Settings.ConsumeResetCount.
+--
+-- What the old loop could not buy at all: a stored ARRAY. A row-by-row sweep can only address rows,
+-- and a schema row cannot name one member of a list.
 --
 -- The library's per-page `RestoreDefaults(pageKey, ctx)` is untouched and still reachable; nothing
 -- calls it today because this addon's Defaults button is confirmation-gated and goes through the
 -- popup instead.
 --
 -- db.global (schemaVersion) is intentionally left untouched: a profile reset is not a downgrade.
+local pendingResetCount
+
+-- The OnProfileReset handler's count, taken once. nil when the reset did not come through
+-- RestoreAllDefaults, which is the only caller that counted before the profile was replaced.
+function Settings.ConsumeResetCount()
+    local n = pendingResetCount
+    pendingResetCount = nil
+    return n
+end
+
+local function countChangedProfileRows()
+    local n = 0
+    for _, def in ipairs(Schema) do
+        if def.path and not def.sessionOnly and not sameValue(Helpers.Get(def.path), def.default) then
+            n = n + 1
+        end
+    end
+    return n
+end
+
 function Helpers.RestoreAllDefaults()
     local db = WhatGroup.db
     if db and db.ResetProfile then
+        pendingResetCount = countChangedProfileRows()
         db:ResetProfile()
+        -- Consumed by the handler. Cleared here too, so a count the handler never took (no callback
+        -- registered) cannot be claimed by some later, unrelated reset.
+        pendingResetCount = nil
     end
     -- The one thing a profile reset cannot reach (options-ui-§12): a `sessionOnly` row's storage is
     -- its own set(), not the db, so it would otherwise outlive a reset that took everything around
     -- it. Restored row by row, which for the debug console means the window closes -- the state a
     -- freshly-created profile is in.
     -- The same three suppressions the row sweep this function replaced used: no per-row [Set]
-    -- (one coalesced [Reset] stands in, debug-logging-§9), no per-row refresh (OnProfileReset's
-    -- handler does the single reconcile), and no onChange (the row's own set() is the effect).
+    -- (the handler's one line stands for the whole reset, debug-logging-§10), no per-row refresh
+    -- (OnProfileReset's handler does the single reconcile), and no onChange (the row's own set() is
+    -- the effect).
     for _, def in ipairs(Schema) do
         if def.sessionOnly then
             Helpers.Set(def.path, deepcopy(def.default),
                         { skipRefresh = true, skipLog = true, skipOnChange = true })
         end
     end
-    NS.Debug("Reset", "active profile reset to defaults")
     -- NO RefreshAll HERE. `db:ResetProfile()` fires OnProfileReset, and core/WhatGroup.lua's
     -- handler runs the migrations and refreshes -- one reconcile, on the same path a profile
     -- SWITCH takes. Calling it here as well would refresh twice for one action, which is the

@@ -194,6 +194,17 @@ local O = lib:New({
     -- half by design (options-ui-§5), handed over as a hook so the library still owns WHEN it draws.
     buildMain = function(ctx) Settings.Helpers.BuildMainContent(ctx) end,
 
+    -- The bulk bracket (Options minor 16, debug-logging-§10) around the library's RestoreDefaults and
+    -- RestoreAllDefaults: the seam's per-row [Set] line is muted inside it, and the act logs one
+    -- `[Set] reset <scope>: N rows` line. Neither walk is on the live path today (the host's
+    -- RestoreAllDefaults overrides the library's, and the Defaults button goes through the popup), so
+    -- this is defensive: a future caller of either logs one line per act, not one per row. Forwarders,
+    -- so the pair is resolved at call time from settings/Schema.lua.
+    bulkBegin = function(act, scope) Settings.Bulk.begin(act, scope) end,
+    bulkEnd   = function(act, scope, count, err, info)
+        Settings.Bulk.finish(act, scope, count, err, info)
+    end,
+
     -- Deliberately NOT passed, each for a reason worth writing down rather than leaving as an
     -- absence:
     --
@@ -261,9 +272,10 @@ end
 -- UNCONDITIONAL, and the one collision is the point. `RestoreAllDefaults` exists on both sides and
 -- the HOST's wins, deliberately (issue #10, LIBKA0S-08): the library's is row-by-row
 -- over every row, while this addon's is a `db:ResetProfile()` — which is what drops a key from a
--- removed or renamed schema row instead of leaving it in the profile forever — and coalesces the
--- per-row [Set] lines into one [Reset] summary (debug-logging-§9). Copying only where the instance
--- was nil silently gave the library's, and the suite said so.
+-- removed or renamed schema row instead of leaving it in the profile forever — and whose reset is
+-- logged once, as `[Set] reset profile '<name>' to defaults (N rows)` by the OnProfileReset handler,
+-- never one [Set] per row (debug-logging-§10). Copying only where the instance was nil silently gave
+-- the library's, and the suite said so.
 --
 -- The library's per-page `RestoreDefaults(pageKey, ctx)` is a DIFFERENT verb with a different
 -- arity, and it is left alone.
