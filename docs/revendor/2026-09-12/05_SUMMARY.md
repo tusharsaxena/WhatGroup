@@ -26,10 +26,14 @@ No shims were removed. This addon never carried a copy of any of the four kit-16
 
 ## What was declined
 
-- **#29 and #27**: the kit fixes cannot reach this harness without a migration. `tests/wow_mock.lua`
+- **#29 and #27**: #29 cannot reach this harness without a migration. `tests/wow_mock.lua`
   replaces `NewAddon`'s event recorder with its own handler-name model (`mock.addonEvents` and
-  `fireAddonEvent`). Its ScrollFrame `OnRelease` models a different thing from `AceGUI:Release`.
-  Proposed as an issue; nothing was filed (owner decision, 2026-09-12). Detail is in `02_CANDIDATES.md`.
+  `fireAddonEvent`). #27 does reach it, through the wrapped `aceGUI.Create`, but nothing calls
+  `Release`, and the ScrollFrame `OnRelease` models a different thing from `AceGUI:Release`.
+  Proposed as an issue, and nothing was filed during the run (owner decision, 2026-09-12). The owner
+  later approved it, and it is filed as
+  [tusharsaxena/WhatGroup#19](https://github.com/tusharsaxena/WhatGroup/issues/19). Detail is in
+  `02_CANDIDATES.md`.
 
 ## Gates
 
