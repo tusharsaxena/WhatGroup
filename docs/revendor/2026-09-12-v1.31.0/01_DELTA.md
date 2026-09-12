@@ -85,3 +85,39 @@ The pairing rule (LibKa0s ≥ v1.9.0 takes kit ≥ 11 in the same commit) is met
 
 `lua tests/run.lua`: 573 passed, 0 failed, 0 skipped, 573 total. `luacheck .`: 0 warnings / 0 errors
 in 41 files. The runner is recorded `100755` in the index.
+
+## Addendum, 2026-09-12: the v1.31.0 tag was re-cut before release
+
+This bundle was written against the first cut of the `v1.31.0` tag (commit `30db4ed`). Before anything
+was pushed, a review of that release found defects in the kit-17 fakes, and LibKa0s re-cut the tag on the
+fixed tree: **`v1.31.0` now points at `e7e1962`**. Commit `fa2fdc1` ("Re-vendor LibKa0s v1.31.0 from the
+re-cut tag (e7e1962)") copied both payloads whole from the re-cut tag, and the vendor-sync cases pass
+against it. The provenance line in `CLAUDE.md` already named v1.31.0, so it did not move.
+
+What the re-cut changed, relative to the tables above:
+
+| File | First cut | Re-cut |
+|---|---|---|
+| `Perf.lua` | minor 10 (unchanged) | **minor 11**: `P.Save` traces the ring trim once past its cap (debug-logging-§8) |
+| `OptionsWidgets.lua` | minor 15 | minor 15 (review fixes land inside the unreleased minor: `pairWith` keyed by `row.path or row.field`; a bound row's `disabledIf` reads through `row.get`) |
+| `OptionsCompose.lua` | minor 4 | minor 4 (unchanged surface) |
+| kit (`tests/_kit/`) | revision 17 | revision 17 (review fixes: repeating-timer delay no longer drifts; the nameless `NewAddon` path is exactly one table argument; the timer handle field is AceTimer's own `cancelled`, and `NewTimer` handles answer `IsCancelled()`; dispatch survives a handler error; `ADDON_LOADED` after login enables a load-on-demand addon; the AceEvent library object carries the message API) |
+
+So three files in `LibKa0s/` move in this release, not two, and any "the ring trim is not traced" finding
+recorded above is resolved upstream by Perf minor 11.
+
+The re-cut needed one consumer follow-up. The reviewed kit records a canceled timer handle under
+AceTimer's own field name, `cancelled`, where the first cut used `canceled`. The supersede case in
+`tests/test_notify.lua` read the old name, and it was the one failure `fa2fdc1` left. Commit `0fd5493`
+("Tests: read the canceled timer handle as AceTimer's `cancelled`") ported that read from `.canceled` to
+`.cancelled`. No other addon code reads the renamed field.
+
+The gate, re-run on the re-cut payload:
+
+| Point | `lua tests/run.lua` | `luacheck .` |
+|---|---|---|
+| After the re-cut copy (`fa2fdc1`) | one failure: the `test_notify.lua` supersede case reading `.canceled` | — |
+| After the port (`0fd5493`) | 579 / 0 / 579, `test_vendor_sync` green against `e7e1962` | — |
+| After the chat-link fix (`fcf8197`) | 589 / 0 / 589 | 0 / 0, 41 files |
+
+The ten cases between the last two rows come from `fcf8197`'s chat-link tests, not from the re-cut.
