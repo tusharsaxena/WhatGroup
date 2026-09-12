@@ -64,16 +64,10 @@ block, composed by `LibKa0s-Options-1.0`'s `MasterControls` from one declaration
 `settings/Panel.lua` and spliced at the head of the array (`options-ui-§15`). Either way the schema
 owns the STRUCTURE and `NS.C` owns the VALUES (savedvariables-§2 / WG-24).
 
-The one settings page is **tabbed** (`options-ui-§13`): each row's `group` is a tab, drawn by
-`RenderTabbedSchema` in declaration order — **Master controls** (6), **Chat** (8), **Popup** (3).
-The first tab's name is the literal `options-ui-§15` mandates, and it is also the `afterGroup` key
-the composer's closing button pair is hung from — read off `Helpers.MASTER_GROUP` rather than typed
-out here, because a host copy of that name detaches the hook silently the day the library renames
-the group. Two tabs mix control kinds and carry `subgroup`
-headings (`options-ui-§7`). No page banner (`options-ui-§14`): this addon has no per-window settings
-and no active window for a banner to name. `section` is a different field and is unchanged by the
-tabs — it is `/wg list`'s grouping key, which is why `notify.delay` is edited on Chat and lists
-under `notify`.
+The one settings page is **tabbed** (`options-ui-§13`): one tab per row `group`, in declaration
+order — **Master controls** (6), **Chat** (8), **Popup** (3). The `Helpers.MASTER_GROUP` hook key,
+the `subgroup` headings, the absent page banner and why `section` is not `group` are in
+[docs/settings-panel.md](./settings-panel.md#the-tab-strip).
 
 | Path | Type | Tab |
 |---|---|---|
@@ -98,19 +92,26 @@ under `notify`.
 Every path is **absolute** — there are no window-relative paths, because there is no active-window
 state to be relative to.
 
-The account-wide `global` table carries `schemaVersion` and `windows` (standalone-window geometry,
-WG-26) and no schema rows. Schema-row reads and writes go through `Helpers.Get` / `Helpers.Set` —
-`Set` is the orchestrated single write-path (`RawSet` → the row's `onChange` → `RefreshAll`), and
-`Get` on an unknown path returns nil **without materializing parent tables**. The two `global` keys
-are not rows and are written outside it: `schemaVersion` by the migration runner
-`NS:RunMigrations` (`core/Database.lua`), and `windows.popup` by `NS.Windows.Save`
-(`core/Util.lua`) on drag stop, dropped by `WhatGroup:ResetFramePosition()`. Detail:
-[docs/settings-panel.md](./settings-panel.md).
+The account-wide `global` table carries `schemaVersion` and `windows` and no schema rows. Schema-row
+reads and writes go through `Helpers.Get` / `Helpers.Set` — `Set` is the orchestrated single
+write-path (`RawSet` → the row's `onChange` → `RefreshAll`), and `Get` on an unknown path returns nil
+**without materializing parent tables**. Neither `global` key is a row: `schemaVersion` belongs to the
+savedvariables-§1 load pass (`NS:RunMigrations`, `core/Database.lua`), and `windows` is named state,
+below. Detail: [docs/settings-panel.md](./settings-panel.md).
+
+**Named non-setting state (`architecture-§5`).** Storage key `db.global.windows`: the popup's
+position, `windows.popup = { point, relPoint, x, y }` (WG-26). Only a drag determines it. No control
+sets it and no row addresses it, so it is written outside the helper and carries no register row.
+**Owner:** `NS.Windows` (`core/Util.lua`); its `Restore` reads the entry back on build. **Writers:**
+`NS.Windows.Save` (`core/Util.lua`) on **drag-stop**, called by the title bar's `OnMouseUp` in
+`modules/Frame.lua` (a mouse-up with `locked` set re-saves the unchanged point); and
+`WhatGroup:ResetFramePosition()` (`modules/Frame.lua`) from the Master controls **Reset position**
+button, which sets the entry to nil and so chooses no position. `Settings.BuildDefaults` seeds the
+empty table as part of the load pass. Nothing else writes it, and it is keyed by fixed window names.
 
 **No structural registry (`architecture-§5`).** WhatGroup holds no collection whose members the
 player creates or deletes. Every profile value is a fixed schema row, so there is no registry
-writer and no load pass to name. `db.global.windows` is keyed by fixed window names (only `popup`
-is used), so it is a position store, not a registry.
+writer and no load pass to name.
 
 ## Message Bus
 
