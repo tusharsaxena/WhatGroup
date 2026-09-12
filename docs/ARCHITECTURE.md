@@ -99,10 +99,18 @@ Every path is **absolute** — there are no window-relative paths, because there
 state to be relative to.
 
 The account-wide `global` table carries `schemaVersion` and `windows` (standalone-window geometry,
-WG-26) and no schema rows. Reads and writes go through `Helpers.Get` / `Helpers.Set` — `Set` is the
-orchestrated single write-path (`RawSet` → the row's `onChange` → `RefreshAll`), and `Get` on an
-unknown path returns nil **without materializing parent tables**. Detail:
+WG-26) and no schema rows. Schema-row reads and writes go through `Helpers.Get` / `Helpers.Set` —
+`Set` is the orchestrated single write-path (`RawSet` → the row's `onChange` → `RefreshAll`), and
+`Get` on an unknown path returns nil **without materializing parent tables**. The two `global` keys
+are not rows and are written outside it: `schemaVersion` by the migration runner
+`NS:RunMigrations` (`core/Database.lua`), and `windows.popup` by `NS.Windows.Save`
+(`core/Util.lua`) on drag stop, dropped by `WhatGroup:ResetFramePosition()`. Detail:
 [docs/settings-panel.md](./settings-panel.md).
+
+**No structural registry (`architecture-§5`).** WhatGroup holds no collection whose members the
+player creates or deletes. Every profile value is a fixed schema row, so there is no registry
+writer and no load pass to name. `db.global.windows` is keyed by fixed window names (only `popup`
+is used), so it is a position store, not a registry.
 
 ## Message Bus
 
