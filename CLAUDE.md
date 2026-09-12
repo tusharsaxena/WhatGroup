@@ -53,8 +53,10 @@ are **frozen history** — never treat them as a live requirement, and never "re
 - **Never bump the version** — TOC `## Version:`, `WhatGroup.VERSION`, the README badge or
   Version History — without being told to in the current turn. Refactors and doc changes
   don't justify a bump; mention it in the summary and leave the edit to the user.
-- **Observation-only, direct `hooksecurefunc` only. No AceHook** — its wrappers taint the
-  secure-execute chain and break Logout. See the invariants in `docs/ARCHITECTURE.md`.
+- **Observation-only. No AceHook** — its wrappers taint the secure-execute chain and break
+  Logout. Hooks are direct `hooksecurefunc`. The chat link is an `EventRegistry` `"SetItemRef"`
+  callback on Blizzard's `addon` link type, and a `SetItemRef` post-hook remains only as the
+  degraded-client fallback. See the invariants in `docs/ARCHITECTURE.md`.
 - **Never edit `libs/` or `tests/_kit/`.** Both are whole-folder, byte-identical copies of
   `../LibKa0s`'s ship folders. A library problem is a finding to fix **upstream** and
   re-vendor — a local patch is a fork nobody knows about, and the next re-vendor silently
