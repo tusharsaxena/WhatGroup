@@ -25,6 +25,16 @@ test("compat: IsSpellKnown true when learned", function()
     assertTrue(NS.Compat.IsSpellKnown(99))
 end)
 
+test("compat: the harness answers a learned spell through C_SpellBook, not the global", function()
+    -- The mock models both readers (#15). With the global gone the answer can only have come
+    -- from the rung the ladder asks first, so the learned/unlearned cases measure that rung.
+    local NS, env, mock = T.newAddon()
+    mock.knownSpells[99] = true
+    env.IsSpellKnown = nil
+    assertEqual(NS.Compat.IsSpellKnown(99), true)
+    assertEqual(NS.Compat.IsSpellKnown(12345), false)
+end)
+
 test("compat: IsSpellKnown false when not learned", function()
     local NS = T.newAddon()
     assertFalse(NS.Compat.IsSpellKnown(12345))
@@ -136,12 +146,14 @@ end)
 
 test("compat: IsSpellKnown normalizes to a plain boolean", function()
     local NS, env = T.newAddon()
+    env.C_SpellBook = nil                        -- so the global rung is the one asked
     env.IsSpellKnown = function() return 1 end   -- a truthy non-boolean
     assertEqual(NS.Compat.IsSpellKnown(1), true)
 end)
 
 test("compat: IsSpellKnown returns false when the API is missing", function()
     local NS, env = T.newAddon()
+    env.C_SpellBook = nil   -- both readers, or the modern rung answers and the case tests nothing
     env.IsSpellKnown = nil
     assertEqual(NS.Compat.IsSpellKnown(1), false)
 end)

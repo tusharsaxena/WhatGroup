@@ -137,12 +137,13 @@ badge and any count quoted in the docs must agree with it.
 - util: FormatDuration rounds fractional seconds up
 - util: FormatDuration renders a non-positive duration as 0s
 
-### test_compat.lua (27)
+### test_compat.lua (28)
 
 - compat: GetSpellName returns the C_Spell name
 - compat: GetSpellTexture is non-nil (caller supplies default)
 - compat: GetSpellLink returns a hyperlink for the spell
 - compat: IsSpellKnown true when learned
+- compat: the harness answers a learned spell through C_SpellBook, not the global
 - compat: IsSpellKnown false when not learned
 - compat: GetSpellCooldownRemaining is 0 for a spell that is ready
 - compat: GetSpellCooldownRemaining counts down from start + duration
@@ -663,7 +664,7 @@ badge and any count quoted in the docs must agree with it.
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
 | test_util.lua | 31 |
-| test_compat.lua | 27 |
+| test_compat.lua | 28 |
 | test_database.lua | 9 |
 | test_settings.lua | 56 |
 | test_slash.lua | 46 |
@@ -680,4 +681,4 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **578** |
+| **Total** | **579** |

@@ -79,7 +79,7 @@ local function build()
     mock.searchResults = {}   -- [id] -> C_LFGList.GetSearchResultInfo table
     mock.applications  = {}   -- [appID] -> searchResultID (GetApplicationInfo)
     mock.activities    = {}   -- [id] -> C_LFGList.GetActivityInfoTable table
-    mock.knownSpells   = {}   -- [spellID] -> true when learned
+    mock.knownSpells   = {}   -- [spellID] -> true when learned (C_SpellBook and the global)
     mock.spellNames    = {}   -- [spellID] -> localized name (optional override)
     mock.spellCooldowns = {}  -- [spellID] -> C_Spell.GetSpellCooldown table; absent = ready
     mock.now           = 10000 -- GetTime()'s answer; seed cooldown starts relative to this
@@ -532,6 +532,13 @@ local function build()
         After = function(_delay, fn) mock.timers[#mock.timers + 1] = fn end,
     }
 
+    -- Both readers core/Compat.lua's IsSpellKnown ladder asks, answering from the one table
+    -- (#15). C_SpellBook.IsSpellKnown is the rung it reaches first on today's client, so a mock
+    -- that modeled only the global would have every learned/unlearned case measure the fallback.
+    -- A case that means to exercise the global has to clear C_SpellBook as well.
+    mock.C_SpellBook  = {
+        IsSpellKnown = function(id) return mock.knownSpells[id] and true or false end,
+    }
     mock.IsSpellKnown = function(id) return mock.knownSpells[id] and true or false end
 
     mock.GetTime = function() return mock.now end
