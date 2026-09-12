@@ -132,15 +132,19 @@ called" would be the same assertion; **`CreateFontString` / `CreateTexture`
 return distinct objects** (the base's answer from the frame stub's metatable and hand back the
 frame itself — its own README records that this addon is right to differ);
 screen-space getters answer real **numbers**, because the popup derives the
-secure teleport button's offsets by subtracting them; and the **AceTimer queue**
-is fireable, cancelable and **separate from the `C_Timer` queue**, so the
-notify delay and the panel's secure-defer hop can be fired independently; and
-an **addon event registration records the handler name** it was given, with
-`mock.fireAddonEvent` dispatching the way AceEvent does — otherwise a suite can
-only show that a registration exists and then call the handler by hand, which
-passes just as happily when the two are not wired to each other. That gap is
-widest where two events share one handler and the event *name* is what tells
-the handler which edge it is on.
+secure teleport button's offsets by subtracting them. Two more are the kit's
+own since WhatGroup#19 (kit revision 17), and the mock no longer replaces its
+AceAddon at all: the **AceTimer queue** (`mock.__timers`, fired by
+`mock.__fireTimers()`, which skips a canceled handle) is fireable, cancelable
+and **separate from the `C_Timer` queue** (`mock.timers`), so the notify delay
+and the panel's secure-defer hop can be fired independently; and an **addon
+event registration records the handler name** it was given
+(`NS.addon.__events[event]`), with `mock.__fireEvent(event, ...)` dispatching
+the way AceEvent does and refusing a registration the client would refuse —
+otherwise a suite can only show that a registration exists and then call the
+handler by hand, which passes just as happily when the two are not wired to
+each other. That gap is widest where two events share one handler and the event
+*name* is what tells the handler which edge it is on.
 
 `_G` points back at the mock table itself, because `settings/Panel.lua` and the
 library both read several APIs through an explicit `_G.` — without it

@@ -16,10 +16,12 @@
 -- Mock fidelity is load-bearing
 -- ---------------------------------------------------------------------------
 --
--- Six pieces of this file model REAL client behavior rather than no-op'ing it, and must not be
+-- Six pieces of this harness model REAL client behavior rather than no-op'ing it, and must not be
 -- "simplified" back into blanket stubs — each one is the only reason a whole class of addon bug is
--- catchable headlessly. They are also why this is an extender rather than a swap: the kit's own
--- README names the fifth of them as a divergence it deliberately keeps.
+-- catchable headlessly. Four live in this file, and they are why it is an extender rather than a
+-- swap: the kit's own README names the fifth as a divergence it deliberately keeps. The other two,
+-- the AceTimer queue (3) and the event dispatch (6), have been the KIT'S own since WhatGroup#19
+-- (kit revision 17); they stay listed because the reason they must stay faithful is this addon's.
 --
 --  1. FRAME VISIBILITY. A blanket self-returning no-op makes IsShown() return the frame —
 --     permanently truthy — so "the console closed" is untestable and a window that never hides
@@ -33,11 +35,12 @@
 --     real NUMBERS because modules/Frame.lua derives the secure teleport button's offsets by
 --     subtracting them.
 --
---  3. THE ACETIMER QUEUE. `ScheduleTimer` as a no-op silently deletes the whole delayed-notify
---     pipeline (_TryFireJoinNotify): the delay, the supersede check, and WipeCapture's CancelTimer
---     all become untestable and a broken debounce looks exactly like a working one. AceTimer
---     handles land in their OWN fireable, cancelable queue — separate from the C_Timer queue the
---     panel's secure-defer hop uses, because a suite has to be able to fire one without the other.
+--  3. THE ACETIMER QUEUE (the kit's). `ScheduleTimer` as a no-op silently deletes the whole
+--     delayed-notify pipeline (_TryFireJoinNotify): the delay, the supersede check, and
+--     WipeCapture's CancelTimer all become untestable and a broken debounce looks exactly like a
+--     working one. The kit's AceTimer queues on `mock.__timers` and `mock.__fireTimers()` skips a
+--     canceled handle — separate from the C_Timer queue the panel's secure-defer hop uses
+--     (`mock.timers`, below), because a suite has to be able to fire one without the other.
 --
 --  4. SCALE AND THE DRAG STATE. `Lock frame` and `Master scale` are two of options-ui-§15's
 --     canonical rows, and both are only observable through methods the PascalCase catch-all would
@@ -53,8 +56,10 @@
 --     counter all hang off one title bar.
 
 --
---  6. ADDON EVENT REGISTRATIONS CARRY THEIR HANDLER NAME, and `fireAddonEvent` dispatches them the
---     way AceEvent does. Recording only that something was registered lets a suite prove the
+--  6. ADDON EVENT REGISTRATIONS CARRY THEIR HANDLER NAME (the kit's): `NS.addon.__events[event]`
+--     is the handler as given, and `mock.__fireEvent(event, ...)` dispatches it the way AceEvent
+--     does, answering how many handlers ran. Recording only that something was registered lets a
+--     suite prove the
 --     registration exists and then call the handler by hand — which passes just as happily when
 --     the two are not connected to each other. It matters most where several events share one
 --     handler (`PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` → `OnCombatStateChanged`), because
@@ -80,8 +85,8 @@ local function build()
     mock.now           = 10000 -- GetTime()'s answer; seed cooldown starts relative to this
     mock.inGroup       = false
     mock.combat        = false
-    mock.timers        = {}   -- queued C_Timer.After callbacks (fn list)
-    mock.aceTimers     = {}   -- queued AceTimer handles (fireable, cancelable)
+    mock.timers        = {}   -- queued C_Timer.After callbacks (fn list); AceTimer is the kit's
+                              -- and queues on mock.__timers instead (fidelity note 3)
     mock.prints        = {}   -- captured chat output lines
     mock.hooks         = {}   -- [name] -> { fn, ... } recorded by hooksecurefunc
     mock.frames        = {}   -- every CreateFrame'd stub, creation order (+ keyed by name)
@@ -99,8 +104,6 @@ local function build()
         Notes   = "Tells you what group you just joined.",
     }
     mock.aceWidgets    = {}   -- every AceGUI:Create'd widget, creation order
-    mock.chatCommands  = {}   -- [verb] -> handler name, via RegisterChatCommand
-    mock.addonEvents   = {}   -- [event] -> handler name, via the addon's RegisterEvent
 
     local function noop() end
 
@@ -375,108 +378,25 @@ local function build()
 
     -- ---- Ace library fakes -------------------------------------------------
     --
-    -- The base's AceAddon is kept for its AceConsole `:Print` clobber (anti-patterns #36) and
-    -- replaced for everything else: it no-ops RegisterChatCommand and CancelTimer, and it pushes
-    -- AceTimer handles into the SAME queue as C_Timer.After — which would make the panel's
-    -- secure-defer hop and the notify delay indistinguishable.
-
-    local baseNewAddon = M.__libs["AceAddon-3.0"].NewAddon
-    local addons = {}
-
-    M.__libs["AceAddon-3.0"] = {
-        NewAddon = function(self, objOrName, ...)
-            local obj, name
-            if type(objOrName) == "table" then
-                obj  = objOrName
-                name = ...
-            else
-                obj  = {}
-                name = objOrName
-            end
-            baseNewAddon(self, obj)
-            for _, m in ipairs({ "RegisterMessage", "SendMessage", "Enable", "Disable" }) do
-                if not obj[m] then obj[m] = noop end
-            end
-
-            -- Record the AceConsole / AceEvent registrations so a suite can assert the addon wired
-            -- up the surface it claims to (the slash verbs it answers, the events it listens for)
-            -- rather than only that the handlers work when called by hand.
-            obj.RegisterChatCommand = function(_, cmd, handler)
-                mock.chatCommands[cmd] = handler
-            end
-            -- The HANDLER NAME, not just `true`. AceEvent resolves a registration to a method on
-            -- the addon object -- the event's own name unless a second argument overrides it -- and
-            -- two events routed to one shared handler is exactly the shape a test cannot see if the
-            -- mock only records that something was registered. Every existing assertion is a
-            -- truthiness check, and a non-empty string is truthy.
-            obj.RegisterEvent = function(_, event, handler)
-                mock.addonEvents[event] = handler or event
-            end
-            obj.UnregisterEvent = function(_, event)
-                mock.addonEvents[event] = nil
-            end
-
-            -- A REAL, fireable timer queue, separate from C_Timer's. AceTimer as a no-op deletes
-            -- the entire delayed-notify pipeline from the test surface (fidelity note 3).
-            obj.ScheduleTimer = function(_, callback, delay)
-                local handle = { callback = callback, delay = delay, canceled = false }
-                mock.aceTimers[#mock.aceTimers + 1] = handle
-                return handle
-            end
-            -- A repeating timer is a DIFFERENT object from a one-shot, and the difference is the
-            -- whole risk: a repeating handle that is never canceled outlives the window that armed
-            -- it and keeps firing for the rest of the session. Modeled so `fireAceTimers` can be
-            -- called twice and a test can prove the second call does — or does not — fire it.
-            obj.ScheduleRepeatingTimer = function(_, callback, delay)
-                local handle = { callback = callback, delay = delay,
-                                 canceled = false, repeating = true }
-                mock.aceTimers[#mock.aceTimers + 1] = handle
-                return handle
-            end
-            obj.CancelTimer = function(_, handle)
-                if type(handle) == "table" then handle.canceled = true end
-            end
-
-            addons[name] = obj
-            return obj
-        end,
-        GetAddon = function(_, name) return addons[name] end,
-    }
-
-    -- Dispatch an addon event the way the client plus AceEvent would: look up the method the
-    -- registration named and call it on the addon object with the event name as the first
-    -- argument. Returns false when nothing is registered for the event, so a case can assert the
-    -- wiring and the behavior in one act rather than asserting the registration exists and then
-    -- calling the handler by hand -- which passes just as happily when the two are not connected.
-    mock.fireAddonEvent = function(addon, event, ...)
-        local handler = mock.addonEvents[event]
-        if not handler then return false end
-        local fn = addon[handler]
-        if not fn then return false end
-        fn(addon, event, ...)
-        return true
-    end
-
-    -- Run every AceTimer scheduled so far. Canceled handles are skipped (that is the whole point).
-    -- Returns how many actually fired, so a test can prove N rapid joins produce exactly ONE notify.
-    mock.fireAceTimers = function()
-        local due = mock.aceTimers
-        mock.aceTimers = {}
-        local fired = 0
-        for _, handle in ipairs(due) do
-            if not handle.canceled then
-                fired = fired + 1
-                -- Re-queued BEFORE the callback runs, so a callback that cancels its own handle
-                -- (the cooldown ticker's exit path) still takes effect: the cancel lands on the
-                -- handle already back in the queue, and the next fire skips it.
-                if handle.repeating then
-                    mock.aceTimers[#mock.aceTimers + 1] = handle
-                end
-                handle.callback()
-            end
-        end
-        return fired
-    end
+    -- The kit's own, whole (WhatGroup#19). core/WhatGroup.lua's `NewAddon(NS, addonName,
+    -- "AceConsole-3.0", "AceEvent-3.0", "AceTimer-3.0")` reaches the kit's AceAddon unchanged, so the
+    -- name and the mixin list select its faithful path (kit revision 17): the object is named and
+    -- registered for GetAddon, carries the real Enable / Disable, and embeds exactly those three
+    -- libraries. What the suites read comes from them:
+    --
+    --   events    `NS.addon.__events[event]` is the handler as given (`"OnCombatStateChanged"`) or
+    --             `true`; `mock.__fireEvent(event, ...)` dispatches the way AceEvent does and answers
+    --             how many handlers ran. A registration the client refuses raises (fidelity note 6).
+    --   timers    AceTimer handles queue on `mock.__timers` as `{ fn, delay, timer = <handle> }`;
+    --             `mock.__fireTimers()` runs them, skips a canceled one and answers how many ran. A
+    --             repeating handle carries `looping` and re-queues itself (fidelity note 3).
+    --   commands  `LibStub("AceConsole-3.0").commands[verb]` is `"ACECONSOLE_<VERB>"`, and
+    --             `AceConsole:__slash(verb, input)` runs the verb the way typing it would.
+    --
+    -- Until #19 this file replaced the kit's AceAddon with a copy that recorded events without
+    -- validating them, into a table the kit's own UnregisterAllEvents could not see, and ran its own
+    -- timer queue. Nothing wraps the kit's AceAddon now: a wrapper with nothing left to add would
+    -- only be a second place for the two to drift apart.
 
     -- Run every queued C_Timer.After callback (the panel's secure-defer hops).
     mock.fireCTimers = function()

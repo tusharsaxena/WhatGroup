@@ -4,7 +4,7 @@
 --
 -- This whole surface was previously invisible to the harness: the AceTimer
 -- mock was a no-op, so the delay, the supersede check and CancelTimer all
--- did nothing observable and a broken debounce passed. `mock.fireAceTimers()`
+-- did nothing observable and a broken debounce passed. `mock.__fireTimers()`
 -- now advances the timer queue and returns how many callbacks actually ran,
 -- which is what makes "the canceled notify did NOT fire" an assertion rather
 -- than an assumption.
@@ -61,7 +61,7 @@ test("notify: no pendingInfo schedules no timer", function()
     local NS, _, mock = T.bootAddon()
     mock.inGroup = true
     NS.addon:_TryFireJoinNotify("test")
-    assertEqual(#mock.aceTimers, 0)
+    assertEqual(#mock.__timers, 0)
 end)
 
 test("notify: out of a group schedules no timer even with pendingInfo", function()
@@ -69,7 +69,7 @@ test("notify: out of a group schedules no timer even with pendingInfo", function
     mock.inGroup = false
     NS.addon.pendingInfo = pending()
     NS.addon:_TryFireJoinNotify("test")
-    assertEqual(#mock.aceTimers, 0)
+    assertEqual(#mock.__timers, 0)
 end)
 
 test("notify: in a group with pendingInfo schedules exactly one timer", function()
@@ -77,7 +77,7 @@ test("notify: in a group with pendingInfo schedules exactly one timer", function
     mock.inGroup = true
     NS.addon.pendingInfo = pending()
     NS.addon:_TryFireJoinNotify("test")
-    assertEqual(#mock.aceTimers, 1)
+    assertEqual(#mock.__timers, 1)
     assertTrue(NS.addon.notifyTimer ~= nil, "the handle is stashed for cancellation")
 end)
 
@@ -87,7 +87,7 @@ test("notify: the scheduled delay comes from notify.delay", function()
     mock.inGroup = true
     NS.addon.pendingInfo = pending()
     NS.addon:_TryFireJoinNotify("test")
-    assertEqual(mock.aceTimers[1].delay, 4.5)
+    assertEqual(mock.__timers[1].timer.delay, 4.5)
 end)
 
 test("notify: firing the timer prints the summary and clears the handle", function()
@@ -97,7 +97,7 @@ test("notify: firing the timer prints the summary and clears the handle", functi
     local mark = #mock.prints
     NS.addon:_TryFireJoinNotify("test")
     assertEqual(#mock.prints, mark, "nothing is printed until the timer fires")
-    assertEqual(mock.fireAceTimers(), 1)
+    assertEqual(mock.__fireTimers(), 1)
     assertTrue(anyLine(linesSince(mock, mark), "You have joined a group!"),
         "the summary lands once the delay elapses")
     assertNil(NS.addon.notifyTimer, "the handle is released inside the callback")
@@ -114,7 +114,7 @@ test("notify: a second call for the SAME pendingInfo schedules nothing more", fu
     NS.addon.pendingInfo = pending()
     NS.addon:_TryFireJoinNotify("ROSTER transition")
     NS.addon:_TryFireJoinNotify("inviteaccepted")
-    assertEqual(#mock.aceTimers, 1, "notifiedFor gates the duplicate")
+    assertEqual(#mock.__timers, 1, "notifiedFor gates the duplicate")
 end)
 
 test("notify: both event paths together fire the summary exactly once", function()
@@ -124,7 +124,7 @@ test("notify: both event paths together fire the summary exactly once", function
     local mark = #mock.prints
     NS.addon:_TryFireJoinNotify("ROSTER transition")
     NS.addon:_TryFireJoinNotify("inviteaccepted")
-    assertEqual(mock.fireAceTimers(), 1)
+    assertEqual(mock.__fireTimers(), 1)
     local joined = 0
     for _, l in ipairs(linesSince(mock, mark)) do
         if l:find("You have joined a group!", 1, true) then joined = joined + 1 end
@@ -137,10 +137,10 @@ test("notify: a NEW pendingInfo is eligible to fire again", function()
     mock.inGroup = true
     NS.addon.pendingInfo = pending()
     NS.addon:_TryFireJoinNotify("first")
-    mock.fireAceTimers()
+    mock.__fireTimers()
     NS.addon.pendingInfo = pending({ title = "Second Group" })
     NS.addon:_TryFireJoinNotify("second")
-    assertEqual(#mock.aceTimers, 1, "a different capture identity re-arms")
+    assertEqual(#mock.__timers, 1, "a different capture identity re-arms")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -152,12 +152,12 @@ test("notify: a re-fire cancels the in-flight timer so two can't race", function
     mock.inGroup = true
     NS.addon.pendingInfo = pending()
     NS.addon:_TryFireJoinNotify("first")
-    local firstHandle = mock.aceTimers[1]
+    local firstHandle = mock.__timers[1].timer
     -- A fresh capture arrives before the first delay elapsed.
     NS.addon.pendingInfo = pending({ title = "Replacement" })
     NS.addon:_TryFireJoinNotify("second")
     assertTrue(firstHandle.canceled, "the superseded timer is canceled, not left running")
-    assertEqual(mock.fireAceTimers(), 1, "only the surviving timer fires")
+    assertEqual(mock.__fireTimers(), 1, "only the surviving timer fires")
 end)
 
 test("notify: a callback whose pendingInfo was replaced mid-flight prints nothing", function()
@@ -170,7 +170,7 @@ test("notify: a callback whose pendingInfo was replaced mid-flight prints nothin
     -- catch it. This is the guard that stops a stale group's summary printing.
     NS.addon.pendingInfo = pending({ title = "Different Group" })
     local mark = #mock.prints
-    mock.fireAceTimers()
+    mock.__fireTimers()
     assertFalse(anyLine(linesSince(mock, mark), "You have joined a group!"),
         "the superseded callback bails on the identity check")
 end)
@@ -182,7 +182,7 @@ test("notify: WipeCapture cancels an in-flight notify so it never fires", functi
     NS.addon:_TryFireJoinNotify("test")
     local mark = #mock.prints
     NS.addon:WipeCapture()
-    assertEqual(mock.fireAceTimers(), 0, "the canceled handle is skipped entirely")
+    assertEqual(mock.__fireTimers(), 0, "the canceled handle is skipped entirely")
     assertFalse(anyLine(linesSince(mock, mark), "You have joined a group!"))
     assertNil(NS.addon.notifyTimer)
 end)
@@ -199,11 +199,11 @@ test("notify: WipeCapture re-arms a later capture (notifiedFor is cleared)", fun
     mock.inGroup = true
     NS.addon.pendingInfo = pending()
     NS.addon:_TryFireJoinNotify("first")
-    mock.fireAceTimers()
+    mock.__fireTimers()
     NS.addon:WipeCapture()
     NS.addon.pendingInfo = pending()
     NS.addon:_TryFireJoinNotify("second")
-    assertEqual(#mock.aceTimers, 1)
+    assertEqual(#mock.__timers, 1)
 end)
 
 test("notify: the master-switch off-flip wipes an in-flight capture (Schema onChange)", function()
@@ -213,7 +213,7 @@ test("notify: the master-switch off-flip wipes an in-flight capture (Schema onCh
     NS.addon:_TryFireJoinNotify("test")
     NS.addon.Settings.Helpers.Set("enabled", false)
     assertNil(NS.addon.pendingInfo, "disabling drops the capture")
-    assertEqual(mock.fireAceTimers(), 0, "and cancels its scheduled notify")
+    assertEqual(mock.__fireTimers(), 0, "and cancels its scheduled notify")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -225,7 +225,7 @@ test("notify: autoShow on opens the popup when the timer fires", function()
     mock.inGroup = true
     NS.addon.pendingInfo = pending()
     NS.addon:_TryFireJoinNotify("test")
-    mock.fireAceTimers()
+    mock.__fireTimers()
     assertTrue(mock.frames["WhatGroupFrame"] ~= nil, "the popup was built")
     assertTrue(mock.frames["WhatGroupFrame"]:IsShown(), "and shown")
 end)
@@ -237,7 +237,7 @@ test("notify: autoShow off prints the summary but never builds the popup", funct
     NS.addon.pendingInfo = pending()
     local mark = #mock.prints
     NS.addon:_TryFireJoinNotify("test")
-    mock.fireAceTimers()
+    mock.__fireTimers()
     assertTrue(anyLine(linesSince(mock, mark), "You have joined a group!"),
         "chat summary still prints")
     assertNil(mock.frames["WhatGroupFrame"], "no popup is created")
@@ -253,7 +253,7 @@ test("notify: autoShow is read when the timer FIRES, not when it is scheduled", 
     -- and stays at schedule time: it is the timer's own argument, and there is
     -- no later moment at which it could be read.
     NS.addon.Settings.Helpers.Set("frame.autoShow", false)
-    mock.fireAceTimers()
+    mock.__fireTimers()
     assertNil(mock.frames["WhatGroupFrame"],
         "the popup obeys the setting as it stands when the timer fires")
 end)

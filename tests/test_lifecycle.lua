@@ -72,20 +72,28 @@ test("lifecycle: OnInitialize builds the db from the schema defaults", function(
 end)
 
 test("lifecycle: OnInitialize registers both slash verbs", function()
-    local _, _, mock = T.bootAddon()
-    assertEqual(mock.chatCommands["wg"], "OnSlashCommand")
-    assertEqual(mock.chatCommands["whatgroup"], "OnSlashCommand")
+    local NS, _, mock = T.bootAddon()
+    local AceConsole = mock.LibStub("AceConsole-3.0")
+    assertEqual(AceConsole.commands["wg"], "ACECONSOLE_WG")
+    assertEqual(AceConsole.commands["whatgroup"], "ACECONSOLE_WHATGROUP")
+    -- Both route to OnSlashCommand. The kit's handler looks the method up when the verb is typed,
+    -- so a spy put in its place hears exactly what each verb delivers.
+    local heard = {}
+    NS.addon.OnSlashCommand = function(_, input) heard[#heard + 1] = input end
+    AceConsole:__slash("wg", "one")
+    AceConsole:__slash("whatgroup", "two")
+    assertEqual(table.concat(heard, ","), "one,two")
 end)
 
 test("lifecycle: OnEnable registers the two capture events", function()
-    local _, _, mock = T.enableAddon()
-    assertTrue(mock.addonEvents["GROUP_ROSTER_UPDATE"])
-    assertTrue(mock.addonEvents["LFG_LIST_APPLICATION_STATUS_UPDATED"])
+    local NS = T.enableAddon()
+    assertTrue(NS.addon.__events["GROUP_ROSTER_UPDATE"])
+    assertTrue(NS.addon.__events["LFG_LIST_APPLICATION_STATUS_UPDATED"])
 end)
 
 test("lifecycle: no events are registered before OnEnable", function()
-    local _, _, mock = T.bootAddon()
-    assertNil(mock.addonEvents["GROUP_ROSTER_UPDATE"])
+    local NS = T.bootAddon()
+    assertNil(NS.addon.__events["GROUP_ROSTER_UPDATE"])
 end)
 
 test("lifecycle: OnEnable seeds wasInGroup from the current roster state", function()
@@ -96,7 +104,7 @@ test("lifecycle: OnEnable seeds wasInGroup from the current roster state", funct
     -- Already in a group at login → GROUP_ROSTER_UPDATE is not a transition,
     -- so it must not fire a join notify for a group we were already in.
     NS.addon:GROUP_ROSTER_UPDATE()
-    assertEqual(#mock.aceTimers, 0)
+    assertEqual(#mock.__timers, 0)
 end)
 
 -- ---------------------------------------------------------------------------
@@ -160,7 +168,7 @@ test("lifecycle: joining a group with a capture waiting fires the notify", funct
     NS.addon.pendingInfo = pending()
     mock.inGroup = true
     NS.addon:GROUP_ROSTER_UPDATE()
-    assertEqual(#mock.aceTimers, 1)
+    assertEqual(#mock.__timers, 1)
 end)
 
 test("lifecycle: a roster tick while already grouped is not a transition", function()
@@ -168,10 +176,10 @@ test("lifecycle: a roster tick while already grouped is not a transition", funct
     NS.addon.pendingInfo = pending()
     mock.inGroup = true
     NS.addon:GROUP_ROSTER_UPDATE()
-    mock.fireAceTimers()
+    mock.__fireTimers()
     NS.addon:GROUP_ROSTER_UPDATE()
     NS.addon:GROUP_ROSTER_UPDATE()
-    assertEqual(#mock.aceTimers, 0, "repeat ticks schedule nothing")
+    assertEqual(#mock.__timers, 0, "repeat ticks schedule nothing")
 end)
 
 test("lifecycle: leaving the group wipes the capture", function()
@@ -191,7 +199,7 @@ test("lifecycle: leaving the group cancels an in-flight notify", function()
     NS.addon:GROUP_ROSTER_UPDATE()
     mock.inGroup = false
     NS.addon:GROUP_ROSTER_UPDATE()
-    assertEqual(mock.fireAceTimers(), 0)
+    assertEqual(mock.__fireTimers(), 0)
 end)
 
 test("lifecycle: rejoining after a leave fires a fresh notify", function()
@@ -199,13 +207,13 @@ test("lifecycle: rejoining after a leave fires a fresh notify", function()
     mock.inGroup = true
     NS.addon.pendingInfo = pending()
     NS.addon:GROUP_ROSTER_UPDATE()
-    mock.fireAceTimers()
+    mock.__fireTimers()
     mock.inGroup = false
     NS.addon:GROUP_ROSTER_UPDATE()
     mock.inGroup = true
     NS.addon.pendingInfo = pending({ title = "Next Group" })
     NS.addon:GROUP_ROSTER_UPDATE()
-    assertEqual(#mock.aceTimers, 1)
+    assertEqual(#mock.__timers, 1)
 end)
 
 test("lifecycle: the retail ordering (ROSTER before inviteaccepted) still notifies", function()
@@ -215,13 +223,13 @@ test("lifecycle: the retail ordering (ROSTER before inviteaccepted) still notifi
     -- and only the inviteaccepted fallback can catch up.
     mock.inGroup = true
     NS.addon:GROUP_ROSTER_UPDATE()
-    assertEqual(#mock.aceTimers, 0, "the transition passed with nothing to show")
+    assertEqual(#mock.__timers, 0, "the transition passed with nothing to show")
 
     mock.searchResults[7] = { name = "Late Group", activityIDs = { 500 } }
     mock.activities[500] = { fullName = "Somewhere", mapID = 111 }
     NS.addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 7, "inviteaccepted")
-    assertEqual(#mock.aceTimers, 1, "the inviteaccepted path catches up")
-    mock.fireAceTimers()
+    assertEqual(#mock.__timers, 1, "the inviteaccepted path catches up")
+    mock.__fireTimers()
     assertEqual(NS.addon.pendingInfo.title, "Late Group")
 end)
 
@@ -313,7 +321,7 @@ test("lifecycle: /wg test fires immediately, without the notify delay", function
     local mark = #mock.prints
     runCmd(NS, "test")
     assertTrue(#mock.prints > mark, "the preview is synchronous, not scheduled")
-    assertEqual(#mock.aceTimers, 0)
+    assertEqual(#mock.__timers, 0)
 end)
 
 test("lifecycle: /wg show opens the popup when a capture exists", function()

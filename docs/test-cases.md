@@ -6,7 +6,7 @@ badge and any count quoted in the docs must agree with it.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_harness.lua (7)
+### test_harness.lua (12)
 
 - harness: the runner is on the shared kit and reports its revision
 - harness: the addon's load list is DERIVED from the TOC, in TOC order (testing-§9)
@@ -15,6 +15,11 @@ badge and any count quoted in the docs must agree with it.
 - harness: the explicit LibKa0s list matches LibKa0s.xml, in XML order (anti-patterns #48)
 - harness: every LibKa0s file the runner loads exists on disk
 - harness: the libraries load BEFORE the addon's own files
+- harness: the addon is a named AceAddon the kit can look up
+- harness: the addon's event registrations reach the kit's dispatcher
+- harness: UnregisterAllEvents silences what the dispatcher reaches
+- harness: a registration naming a method the addon lacks is refused
+- harness: the addon's AceTimer handles are the kit's, on the kit's queue
 
 ### test_libka0s.lua (47)
 
@@ -652,7 +657,7 @@ badge and any count quoted in the docs must agree with it.
 
 | Suite | Cases |
 |-------|------:|
-| test_harness.lua | 7 |
+| test_harness.lua | 12 |
 | test_libka0s.lua | 47 |
 | test_surface_parity.lua | 4 |
 | test_mediasetup.lua | 11 |
@@ -675,4 +680,4 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **573** |
+| **Total** | **578** |
