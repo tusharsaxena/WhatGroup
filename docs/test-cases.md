@@ -634,10 +634,11 @@ badge and any count quoted in the docs must agree with it.
 
 - every deviation id the register cites is assigned by a bundle in docs/audits/
 
-### test_vendor_sync.lua (2)
+### test_vendor_sync.lua (3)
 
 - libs/LibKa0s is the LibKa0s release CLAUDE.md says this addon bundles
 - tests/_kit is the test kit that shipped with that release
+- the automated-test runner is recorded executable (100755)
 
 ### test_eol.lua (1)
 
@@ -668,6 +669,6 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_doc_structure.lua | 8 |
 | test_register.lua | 1 |
-| test_vendor_sync.lua | 2 |
+| test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **568** |
+| **Total** | **569** |
