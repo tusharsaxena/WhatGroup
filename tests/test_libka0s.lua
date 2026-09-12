@@ -299,7 +299,8 @@ end)
 
 test("options: the host's RestoreAllDefaults deliberately overrides the library's", function()
     -- Both sides define the name and the HOST's has to win: it wipes db.profile before re-threading
-    -- (which is what drops an orphaned key) and coalesces the per-row [Set] lines into one [Reset].
+    -- (which is what drops an orphaned key), and the reset is logged as one [Set] reset profile line
+    -- rather than one [Set] per row (debug-logging-§10).
     -- Copying only where the instance was nil silently gave the library's, and the suite said so.
     local NS = T.bootAddon()
     NS.addon.db.profile.stale = "orphan"

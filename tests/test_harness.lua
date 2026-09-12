@@ -6,8 +6,8 @@
 -- dependent module refuse to register — so the host's setup file falls back to its stub and the
 -- suite happily measures the stub, green, testing nothing.
 local T = _G.WHATGROUP_TEST
-local test, assertEqual, assertTrue, assertFalse =
-    T.test, T.assertEqual, T.assertTrue, T.assertFalse
+local test, assertEqual, assertTrue, assertFalse, assertNil =
+    T.test, T.assertEqual, T.assertTrue, T.assertFalse, T.assertNil
 
 local Loader = dofile("tests/_kit/loader.lua")
 
@@ -83,4 +83,52 @@ test("harness: the libraries load BEFORE the addon's own files", function()
         end
     end
     assertTrue(sawAddon, "the addon's own files are in the list too")
+end)
+
+-- ---------------------------------------------------------------------------
+-- The addon object runs on the kit's Ace fakes (WhatGroup#19, kit revision 17)
+-- ---------------------------------------------------------------------------
+--
+-- Until #19 tests/wow_mock.lua replaced the kit's AceAddon with its own: a RegisterEvent that
+-- recorded into `mock.addonEvents` without validating, a `fireAddonEvent` that read that table, a
+-- timer queue of its own and a no-op Enable/Disable. The kit's fakes follow the real Ace3 source,
+-- so these cases pin what the addon object gets from them now that nothing is in between.
+
+test("harness: the addon is a named AceAddon the kit can look up", function()
+    local NS, _, mock = T.newAddon()
+    assertEqual(tostring(NS.addon), "WhatGroup", "NewAddon was handed the folder name")
+    assertEqual(mock.LibStub("AceAddon-3.0"):GetAddon("WhatGroup"), NS.addon)
+end)
+
+test("harness: the addon's event registrations reach the kit's dispatcher", function()
+    -- red under: a local RegisterEvent that records somewhere M.__fireEvent never reads.
+    local NS, _, mock = T.enableAddon()
+    assertEqual(NS.addon.__events["PLAYER_REGEN_DISABLED"], "OnCombatStateChanged")
+    assertEqual(mock.__fireEvent("PLAYER_REGEN_DISABLED"), 1, "one handler ran")
+end)
+
+test("harness: UnregisterAllEvents silences what the dispatcher reaches", function()
+    -- The latent gap #19 recorded: the kit's UnregisterAllEvents sat on the addon object beside a
+    -- local recorder it could not see, so it cleared one table and left the one suites read.
+    local NS, _, mock = T.enableAddon()
+    assertEqual(mock.__fireEvent("GROUP_ROSTER_UPDATE"), 1)
+    NS.addon:UnregisterAllEvents()
+    assertNil(NS.addon.__events["GROUP_ROSTER_UPDATE"])
+    assertEqual(mock.__fireEvent("GROUP_ROSTER_UPDATE"), 0, "nothing is left to run")
+end)
+
+test("harness: a registration naming a method the addon lacks is refused", function()
+    -- The kit's fidelity rule 1: a registration the client refuses must not pass headlessly.
+    local NS = T.bootAddon()
+    local ok = pcall(NS.addon.RegisterEvent, NS.addon, "PLAYER_LOGIN", "NoSuchHandler")
+    assertFalse(ok, "AceEvent raises for a string method self does not carry")
+end)
+
+test("harness: the addon's AceTimer handles are the kit's, on the kit's queue", function()
+    local NS, _, mock = T.bootAddon()
+    local handle = NS.addon:ScheduleTimer(function() end, 2)
+    assertEqual(mock.__timers[#mock.__timers].timer, handle, "queued on M.__timers")
+    assertEqual(NS.addon:CancelTimer(handle), true, "CancelTimer answers for a live timer")
+    assertEqual(mock.__fireTimers(), 0, "a canceled timer does not run")
+    assertEqual(#mock.timers, 0, "and the C_Timer.After queue stays separate")
 end)

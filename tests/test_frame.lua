@@ -395,7 +395,7 @@ test("frame: an open popup ticks the cooldown note down each second", function()
     assertTrue(fields(mock).note:GetText():find("12s", 1, true) ~= nil)
 
     mock.now = mock.now + 1
-    assertEqual(mock.fireAceTimers(), 1, "exactly one repeating timer is armed")
+    assertEqual(mock.__fireTimers(), 1, "exactly one repeating timer is armed")
     assertTrue(fields(mock).note:GetText():find("11s", 1, true) ~= nil,
         "got: " .. tostring(fields(mock).note:GetText()))
 end)
@@ -408,7 +408,7 @@ test("frame: closing the popup cancels the ticker", function()
     NS.addon.pendingInfo = pending({ mapID = 2652 })
     NS.addon:ShowFrame()
     popup(mock):Hide()
-    assertEqual(mock.fireAceTimers(), 0,
+    assertEqual(mock.__fireTimers(), 0,
         "a ticker that survives the window it belongs to runs for the rest of the session")
 end)
 
@@ -421,7 +421,7 @@ test("frame: re-opening the popup arms exactly one ticker, not a second", functi
     NS.addon:ShowFrame()
     NS.addon:ShowFrame()
     NS.addon:ShowFrame()
-    assertEqual(mock.fireAceTimers(), 1, "each show must replace the ticker, never stack one")
+    assertEqual(mock.__fireTimers(), 1, "each show must replace the ticker, never stack one")
 end)
 
 test("frame: a ready teleport arms no ticker at all", function()
@@ -431,7 +431,7 @@ test("frame: a ready teleport arms no ticker at all", function()
     NS.TeleportSpells[2652] = 445269
     NS.addon.pendingInfo = pending({ mapID = 2652 })
     NS.addon:ShowFrame()
-    assertEqual(mock.fireAceTimers(), 0, "nothing to count down")
+    assertEqual(mock.__fireTimers(), 0, "nothing to count down")
 end)
 
 test("frame: a popup the gate keeps off screen arms no ticker", function()
@@ -449,7 +449,7 @@ test("frame: a popup the gate keeps off screen arms no ticker", function()
     NS.addon:ShowFrame()
     assertTrue(popup(mock) ~= nil, "the frame is built, it is just not shown")
     assertFalse(popup(mock):IsShown())
-    assertEqual(mock.fireAceTimers(), 0,
+    assertEqual(mock.__fireTimers(), 0,
         "a ticker with no cancel site is the one thing the deviation row says cannot happen")
 end)
 
@@ -468,7 +468,7 @@ test("frame: a popup that reaches the screen later still gets its ticker", funct
     mock.combat = false
     NS.addon:ShowFrame()          -- out of combat now, so it builds and shows
     assertTrue(popup(mock):IsShown())
-    assertEqual(mock.fireAceTimers(), 1, "the visible popup counts down")
+    assertEqual(mock.__fireTimers(), 1, "the visible popup counts down")
 end)
 
 test("frame: the ticker rearms the cast the moment the cooldown expires", function()
@@ -483,7 +483,7 @@ test("frame: the ticker rearms the cast the moment the cooldown expires", functi
 
     mock.now = mock.now + 2
     mock.spellCooldowns[445269] = nil
-    mock.fireAceTimers()
+    mock.__fireTimers()
 
     local btn = teleportBtn(mock)
     assertEqual(btn:GetAttribute("macrotext"), "/cast Path of the Corrupted Foundry",
@@ -491,7 +491,7 @@ test("frame: the ticker rearms the cast the moment the cooldown expires", functi
     assertEqual(btn:GetAlpha(), 1.0)
     assertFalse(btn.__textures[1]:IsDesaturated())
     assertFalse(fields(mock).note:IsShown())
-    assertEqual(mock.fireAceTimers(), 0, "and the ticker stops itself once there is nothing left")
+    assertEqual(mock.__fireTimers(), 0, "and the ticker stops itself once there is nothing left")
 end)
 
 -- The note carries BOTH reasons a teleport is unusable, in the same place, so the popup never just
@@ -518,7 +518,7 @@ test("frame: an unlearned teleport is never labeled as on cooldown", function()
     local note = fields(mock).note
     assertTrue(note:GetText():find("not learned", 1, true) ~= nil)
     assertNil(note:GetText():find("7h 58m", 1, true))
-    assertEqual(mock.fireAceTimers(), 0, "and it arms no countdown for a spell they cannot cast")
+    assertEqual(mock.__fireTimers(), 0, "and it arms no countdown for a spell they cannot cast")
 end)
 
 test("frame: a map with no teleport hides the button entirely", function()
@@ -958,9 +958,9 @@ end)
 
 test("frame: both combat-transition events are registered, and to one handler", function()
     -- red under: never registering them, which is how the gate came to be evaluated only at show.
-    local NS, _, mock = T.enableAddon()
-    assertEqual(mock.addonEvents["PLAYER_REGEN_DISABLED"], "OnCombatStateChanged")
-    assertEqual(mock.addonEvents["PLAYER_REGEN_ENABLED"],  "OnCombatStateChanged")
+    local NS = T.enableAddon()
+    assertEqual(NS.addon.__events["PLAYER_REGEN_DISABLED"], "OnCombatStateChanged")
+    assertEqual(NS.addon.__events["PLAYER_REGEN_ENABLED"],  "OnCombatStateChanged")
     assertTrue(NS.addon.OnCombatStateChanged ~= nil)
 end)
 
@@ -979,7 +979,7 @@ test("frame: entering combat does NOT attempt a hide the client would refuse", f
     assertTrue(popup(mock):IsShown())
 
     mock.combat = true
-    assertTrue(mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED"))
+    assertEqual(mock.__fireEvent("PLAYER_REGEN_DISABLED"), 1)
     assertEqual(#mock.blocked, 0, "an ADDON_ACTION_BLOCKED the player sees as a red error")
     -- Still SHOWN, because the client refuses Hide, and no longer VISIBLE, because the owner asked
     -- for the popup to go away on this edge and alpha is the seam that can deliver it. Asserting
@@ -999,11 +999,11 @@ test("frame: 'never' set during combat is honored the moment the lockdown lifts"
 
     mock.combat = true
     NS.addon.db.profile.visibility = "never"
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    mock.__fireEvent("PLAYER_REGEN_DISABLED")
     assertEqual(#mock.blocked, 0, "still never asks inside the lockdown")
 
     mock.combat = false
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_ENABLED")
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
     assertFalse(popup(mock):IsShown(), "'never' means never, one edge late")
 end)
 
@@ -1025,7 +1025,7 @@ test("frame: Close pressed in combat is remembered, not fired into a refusal", f
     assertEqual(popup(mock):GetAlpha(), 0, "the press has to take it off screen immediately")
 
     mock.combat = false
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_ENABLED")
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
     assertFalse(popup(mock):IsShown(), "the press survives the fight, or Close silently did nothing")
 end)
 
@@ -1040,7 +1040,7 @@ test("frame: a deferred Close outranks a gate that would still permit the popup"
     local btn = closeButton(mock)
     btn.__scripts.OnClick(btn)
     mock.combat = false
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_ENABLED")
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
     assertFalse(popup(mock):IsShown(), "the gate re-showed over the player's own dismissal")
 end)
 
@@ -1059,7 +1059,7 @@ test("frame: a combat edge brings back a popup the gate had hidden", function()
         "out of combat, 'inCombat' forbids the popup -- and that hide is legal")
 
     mock.combat = true
-    assertTrue(mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED"))
+    assertEqual(mock.__fireEvent("PLAYER_REGEN_DISABLED"), 1)
     -- The gate wants to open it here and the client will not let it: the frame is genuinely
     -- hidden, so putting it back needs a Show, and Show inside a lockdown is protected. The
     -- re-show half is therefore real only on the OTHER edge — `outOfCombat` releasing when combat
@@ -1107,7 +1107,7 @@ test("frame: the real Hide lands when the lockdown lifts, and the alpha comes ba
     btn.__scripts.OnClick(btn)
 
     mock.combat = false
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_ENABLED")
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
     assertFalse(popup(mock):IsShown(), "the deferred Hide never landed")
     assertEqual(popup(mock):GetAlpha(), 1, "and the next open would have drawn at alpha 0")
 end)
@@ -1123,7 +1123,7 @@ test("frame: the alpha restored is the player's own, not a hardcoded 1", functio
     local btn = closeButton(mock)
     btn.__scripts.OnClick(btn)
     mock.combat = false
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_ENABLED")
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
     assertEqual(popup(mock):GetAlpha(), 0.6, "the player's opacity was replaced by the default")
 end)
 
@@ -1139,7 +1139,7 @@ test("frame: 'out of combat' takes the popup off screen the moment combat starts
     assertTrue(onScreen(mock))
 
     mock.combat = true
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    mock.__fireEvent("PLAYER_REGEN_DISABLED")
     assertFalse(onScreen(mock), "the dropdown reads as ignored for the length of the fight")
     assertEqual(#mock.blocked, 0)
 end)
@@ -1152,11 +1152,11 @@ test("frame: and it opens again by itself when combat ends", function()
     NS.addon.pendingInfo = pending()
     NS.addon:ShowFrame()
     mock.combat = true
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    mock.__fireEvent("PLAYER_REGEN_DISABLED")
     assertFalse(onScreen(mock))
 
     mock.combat = false
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_ENABLED")
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
     assertTrue(onScreen(mock), "the invite the player is still holding must come back on its own")
     assertEqual(popup(mock):GetAlpha(), 1)
 end)
@@ -1180,7 +1180,7 @@ test("frame: a popup the PLAYER closed does not come back when combat starts", f
     assertFalse(popup(mock):IsShown(), "the Close press itself")
 
     mock.combat = true
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    mock.__fireEvent("PLAYER_REGEN_DISABLED")
     assertFalse(popup(mock):IsShown(), "combat reopened a popup the player had dismissed")
 end)
 
@@ -1195,7 +1195,7 @@ test("frame: a popup closed with ESC does not come back either", function()
     popup(mock):Hide()          -- exactly what CloseSpecialWindows does
 
     mock.combat = true
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    mock.__fireEvent("PLAYER_REGEN_DISABLED")
     assertFalse(popup(mock):IsShown(), "ESC must be as durable as the Close button")
 end)
 
@@ -1210,9 +1210,9 @@ test("frame: leaving combat does not reopen a popup the player closed mid-fight 
     btn.__scripts.OnClick(btn)
 
     mock.combat = true
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    mock.__fireEvent("PLAYER_REGEN_DISABLED")
     mock.combat = false
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_ENABLED")
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
     assertFalse(popup(mock):IsShown(), "the dismissal has to outlive the whole fight")
 end)
 
@@ -1228,7 +1228,7 @@ test("frame: a combat transition never opens a popup with nothing to show", func
 
     NS.addon.pendingInfo = nil
     mock.combat = true
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    mock.__fireEvent("PLAYER_REGEN_DISABLED")
     assertFalse(popup(mock):IsShown(), "nothing to render, so nothing opens")
 end)
 
@@ -1244,7 +1244,7 @@ test("frame: PLAYER_REGEN_DISABLED is answered from the event, not from a lockdo
     assertTrue(popup(mock):IsShown())
 
     mock.combat = false                -- the flag has not caught up yet
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    mock.__fireEvent("PLAYER_REGEN_DISABLED")
     assertFalse(popup(mock):IsShown(), "the event name is the authority on which edge this is")
 end)
 
@@ -1256,8 +1256,8 @@ test("frame: a combat transition with no popup built is a no-op, not an error", 
     NS.addon.db.profile.visibility = "outOfCombat"
     NS.addon.pendingInfo = pending()
     mock.combat = true
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_DISABLED")
+    mock.__fireEvent("PLAYER_REGEN_DISABLED")
     mock.combat = false
-    mock.fireAddonEvent(NS.addon, "PLAYER_REGEN_ENABLED")
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
     assertNil(popup(mock), "the lazy build is the taint contract; a transition must not trip it")
 end)

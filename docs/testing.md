@@ -132,15 +132,32 @@ called" would be the same assertion; **`CreateFontString` / `CreateTexture`
 return distinct objects** (the base's answer from the frame stub's metatable and hand back the
 frame itself — its own README records that this addon is right to differ);
 screen-space getters answer real **numbers**, because the popup derives the
-secure teleport button's offsets by subtracting them; and the **AceTimer queue**
-is fireable, cancelable and **separate from the `C_Timer` queue**, so the
-notify delay and the panel's secure-defer hop can be fired independently; and
-an **addon event registration records the handler name** it was given, with
-`mock.fireAddonEvent` dispatching the way AceEvent does — otherwise a suite can
-only show that a registration exists and then call the handler by hand, which
-passes just as happily when the two are not wired to each other. That gap is
-widest where two events share one handler and the event *name* is what tells
-the handler which edge it is on.
+secure teleport button's offsets by subtracting them. Two more are the kit's
+own since WhatGroup#19 (kit revision 17), and the mock no longer replaces its
+AceAddon at all: the **AceTimer queue** (`mock.__timers`, fired by
+`mock.__fireTimers()`, which skips a canceled handle) is fireable, cancelable
+and **separate from the `C_Timer` queue** (`mock.timers`), so the notify delay
+and the panel's secure-defer hop can be fired independently; and an **addon
+event registration records the handler name** it was given
+(`NS.addon.__events[event]`), with `mock.__fireEvent(event, ...)` dispatching
+the way AceEvent does and refusing a registration the client would refuse —
+otherwise a suite can only show that a registration exists and then call the
+handler by hand, which passes just as happily when the two are not wired to
+each other. That gap is widest where two events share one handler and the event
+*name* is what tells the handler which edge it is on.
+
+A seventh is this file's own, added 2026-09-12: the **chat-link click path**.
+`mock.SetItemRef` is Blizzard's `SetItemRef` body, transcribed from tag 12.1.0.
+It runs `LinkUtil.ProcessLink` first and returns on Handled. Only an unhandled
+link falls through to the ItemRef tooltip, or to `HandleModifiedItemClick` when
+`mock.modifiedClick` is set, and each fallthrough is recorded in
+`mock.itemRefFallthrough`. `hooksecurefunc` post-hooks run after the body
+returns. The `addon` link type's handler re-raises the click through an
+`EventRegistry` that keeps the client's one-callback-per-owner rule and logs every
+registration in `mock.eventRegistryLog`. Suites click with the link the
+notification actually printed. Firing a recorded post-hook by hand skips the
+body that stood between the click and the addon in the 2026-09-12 report, and
+every case passed while the link did nothing in the client.
 
 `_G` points back at the mock table itself, because `settings/Panel.lua` and the
 library both read several APIs through an explicit `_G.` — without it
@@ -230,7 +247,7 @@ than the tag this addon has taken.
 
 Between a library release and the re-vendor that carries it they disagree, and that disagreement is
 the normal state rather than a defect. It is not the state as this is written: `../LibKa0s` sits on
-**v1.30.0**, [`CLAUDE.md`](../CLAUDE.md) names **v1.30.0**, and all four commands above report zero
+**v1.32.0**, [`CLAUDE.md`](../CLAUDE.md) names **v1.32.0**, and all four commands above report zero
 differing lines. Read a non-empty pair here as *the library has tagged a release this addon has not
 taken yet* — not as a fault. Re-vendoring to quiet them would be the actual mistake: it would pull
 an untested library release for the sake of a clean diff.

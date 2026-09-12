@@ -1,11 +1,13 @@
 # Compat layer
 
 `core/Compat.lua` is the sole caller of the version-variant APIs this addon consumes — `C_Spell.*`,
-the legacy `GetSpell*` globals, the bare `IsSpellKnown`, and `C_LFGList.GetActivityInfoTable`. It
+the legacy `GetSpell*` globals, `C_SpellBook.IsSpellKnown` and the `IsSpellKnown` global, and
+`C_LFGList.GetActivityInfoTable` — and the one place that asks whether the client has Blizzard's
+addon chat-link path (`LinkTypes.AddOn` and `EventRegistry`). It
 loads first among the addon's own files, so every later file reaches `NS.Compat.X` without doing its
 own detection inline. When a patch renames or moves one of these, this is the only file that changes.
 
-**Seven shims**, counted the way `documentation-§3` counts them: entry points published on this
+**Eight shims**, counted the way `documentation-§3` counts them: entry points published on this
 addon's own `Compat` table, over this file alone. The threshold is three.
 
 | Group | Shim | Ladder | Answers with, where the API is absent |
@@ -13,14 +15,16 @@ addon's own `Compat` table, over this file alone. The threshold is three.
 | Spell | `GetSpellName(spellID)` | `C_Spell.GetSpellName` → `GetSpellInfo` | `nil` |
 | | `GetSpellTexture(spellID)` | `C_Spell.GetSpellTexture` → `GetSpellTexture` | `nil` |
 | | `GetSpellLink(spellID)` | `C_Spell.GetSpellLink` | `nil` |
-| | `IsSpellKnown(spellID)` | the bare `IsSpellKnown` global — **and only that**; see below | `false` |
+| | `IsSpellKnown(spellID)` | `C_SpellBook.IsSpellKnown` → `IsSpellKnown`; see below | `false` |
 | Cooldown | `GetSpellCooldownRemaining(spellID)` | `C_Spell.GetSpellCooldown` → `GetSpellCooldown` | `0` |
 | | `GetSpellCooldownTimes(spellID)` | `C_Spell.GetSpellCooldown` → `GetSpellCooldown` | `0, 0` |
 | LFG | `GetActivityInfoTable(activityID)` | `C_LFGList.GetActivityInfoTable` | `nil` |
+| Chat link | `AddOnLinkType()` | `LinkTypes.AddOn`, only when `EventRegistry.RegisterCallback` is there too; see below | `nil` |
 
 Callers: `modules/Frame.lua` draws the teleport buttons from the name, texture, cooldown remaining
 and cooldown times; `core/WhatGroup.lua` builds the chat teleport line from the link and the known
-check, and reads the activity table in `CaptureGroupInfo`.
+check, reads the activity table in `CaptureGroupInfo`, and picks the details link's type and click
+route from `AddOnLinkType` once, at file load.
 
 ## The shape, and the one rung that decides everything
 
@@ -52,27 +56,60 @@ the `and` is a nil-index error at the one moment the fallback was supposed to sa
 probed by presence, never by asking which client this is: there is no `WOW_PROJECT_ID` branch in this
 file and there must not be one.
 
-## `IsSpellKnown` is the odd one, on purpose, and it is being watched
+## `IsSpellKnown`: built from the API docs, not yet confirmed in a client
 
-Five of the six spell shims try `C_Spell.*` first. `IsSpellKnown` (`core/Compat.lua:62-67`) calls the
-bare global and answers `false` when it is missing. It is the only accessor of the seven with no
-modern rung, and that asymmetry is **recorded rather than fixed**.
+`IsSpellKnown` lives in a different namespace from its siblings. Its modern rung is
+`C_SpellBook.IsSpellKnown`, not a `C_Spell.*` member, and it was the last of the spell shims to get one
+(`WHATGROUP-R-06`, issue #15).
 
-`WHATGROUP-R-06` asks for a `C_SpellBook.IsSpellKnown` rung above the global, in the shape the
-siblings use — and it conditions that on an in-client observation confirming both APIs are present
-and **agree**. [smoke-tests.md § 7a](./smoke-tests.md) is that observation, and it has never been run.
-Until it has been, the shim keeps the shape the finding questions, because adding the rung without
-the observation would be inventing the evidence the finding asks for.
+The rung is built from Blizzard's generated API documentation rather than from a client.
+`Interface/AddOns/Blizzard_APIDocumentationGenerated/SpellBookDocumentation.lua` on the `live`
+branch of Gethe/wow-ui-source, read at `8ea15b61` (12.1.0, build 69587), documents it as:
 
-The reason it is worth a watch rather than a shrug: the degrade is safe but it is not quiet. Nothing
-throws — `IsSpellKnown` absent simply reads as "not learned". Which means every teleport in the popup
-draws desaturated with *Teleport spell not learned* beside it, on a character who has learned all of
-them, and every chat summary row is tagged *(not learned)*. That is what patch day looks like if
-Blizzard retires the global.
+```
+C_SpellBook.IsSpellKnown(spellID: number, spellBank: SpellBookSpellBank = "Player") -> isKnown: bool
+```
 
-`tests/test_compat.lua:143` nils the global and asserts the shim answers `false`. That proves the
-shim degrades as designed; it cannot prove that `false` is the right answer on a client where a
-modern API knows better. No headless case can.
+`SpellBookSpellBank` is `Player` (0) or `Pet` (1). The shim passes only the spellID and lets the
+bank default to `Player`, which is where teleports live. The legacy global takes `(spellID, isPet)`,
+and the shim passes it only the spellID too.
+
+A `false` from the modern rung is the answer. It does not fall through to the global the way a `nil`
+from `C_Spell.GetSpellName` does. A boolean has no "no answer" value, and falling through on `false`
+would turn the ladder into "either reader says yes", which would hide a disagreement.
+
+What the documentation cannot say is whether the two readers **agree** on a real character. The
+finding originally made the rung conditional on that observation. The owner chose on 2026-09-12 to
+build from the documentation and keep the observation as a smoke-test step instead:
+[smoke-tests.md § 7a](./smoke-tests.md) checks it, and it has not been run. If it ever finds the two
+disagreeing, the ladder is wrong, and the shim needs a decision about which reader is right.
+
+The reason this matters: the degrade is safe but it is not quiet. If both readers are gone, or the
+one in use says `false` wrongly, every teleport in the popup draws desaturated with *Teleport spell
+not learned* beside it on a character who has learned all of them, and every chat summary row is
+tagged *(not learned)*. `tests/test_compat.lua` walks all three rungs. No headless case can show that
+the rung in use gives the right answer.
+
+## `AddOnLinkType`: whether a click on an addon chat link can reach us
+
+This shim calls nothing. It answers one question once, at file load: can this client deliver a
+click on Blizzard's `addon` link type? The answer decides both the details link's type and how its
+click is heard (see [data-flow.md](./data-flow.md)).
+
+The route it detects is Blizzard's. `LinkTypes.AddOn` is `"addon"` (`Blizzard_SharedXML/LinkUtil.lua:4`
+at 12.1.0), and Blizzard registers a handler for it
+(`Blizzard_UIPanels_Game/Shared/ItemRefHandlersShared.lua:278-281`) that raises `EventRegistry`'s
+`"SetItemRef"` event and counts as Handled, so `SetItemRef` returns before its ItemRef-tooltip
+fallthrough. Both 12.0.7 and 12.1.0 carry it.
+
+**Both halves or neither.** A link of that type with no `EventRegistry.RegisterCallback` to subscribe
+through is a link nothing can hear, so the shim answers `LinkTypes.AddOn` only when the member is
+there too, and probes namespace and member separately for the same reason `GetSpellName` does. `nil`
+sends `core/WhatGroup.lua` back to what shipped before 2026-09-12: the unregistered `WhatGroup:show`
+link and a `hooksecurefunc("SetItemRef", …)` post-hook. That is the only click route such a client
+has, and it runs after Blizzard's fallthrough. What the shim cannot probe is whether the handler
+itself is registered: `LinkUtil.IsLinkHandlerRegistered` exists, but asking it would couple this
+file to a second Blizzard internal for a case no client has shipped.
 
 ## Why the two cooldown readers are not one reader
 
@@ -108,6 +145,9 @@ Each default is chosen from its caller's direction, not from habit:
   the result. A `nil` there is a guard at every call site for a case the caller cannot act on.
 - **`nil` for `GetActivityInfoTable`**, because "this activity is unknown" and "this client has no
   LFG reader" are the same thing to `CaptureGroupInfo`: there is no group to describe either way.
+- **`nil` for `AddOnLinkType`**, because `core/WhatGroup.lua` reads it as the fork itself: a type
+  string means "build the `addon:` link and register the callback", and `nil` means "the old link
+  and the post-hook". A default link type string here would build a link nothing can hear.
 
 ## What is deliberately not here
 
@@ -135,5 +175,6 @@ a shim with no absent-API case is a shim whose fallback has never run.
 
 - [midnight-quirks.md](./midnight-quirks.md) — the client behavior these shims sit under.
 - [module-map.md](./module-map.md) — where `core/Compat.lua` sits in the load order.
-- [smoke-tests.md](./smoke-tests.md) — § 7a, the observation `IsSpellKnown` is waiting on.
-- [frame.md](./frame.md) — the teleport buttons that consume five of the seven.
+- [smoke-tests.md](./smoke-tests.md) — § 7a, the in-client check that the two `IsSpellKnown` readers agree.
+- [frame.md](./frame.md) — the teleport buttons that consume five of the eight.
+- [data-flow.md](./data-flow.md) — the details chat link `AddOnLinkType` picks the route for.

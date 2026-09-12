@@ -6,7 +6,7 @@ badge and any count quoted in the docs must agree with it.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_harness.lua (7)
+### test_harness.lua (12)
 
 - harness: the runner is on the shared kit and reports its revision
 - harness: the addon's load list is DERIVED from the TOC, in TOC order (testing-§9)
@@ -15,6 +15,11 @@ badge and any count quoted in the docs must agree with it.
 - harness: the explicit LibKa0s list matches LibKa0s.xml, in XML order (anti-patterns #48)
 - harness: every LibKa0s file the runner loads exists on disk
 - harness: the libraries load BEFORE the addon's own files
+- harness: the addon is a named AceAddon the kit can look up
+- harness: the addon's event registrations reach the kit's dispatcher
+- harness: UnregisterAllEvents silences what the dispatcher reaches
+- harness: a registration naming a method the addon lacks is refused
+- harness: the addon's AceTimer handles are the kit's, on the kit's queue
 
 ### test_libka0s.lua (47)
 
@@ -132,12 +137,13 @@ badge and any count quoted in the docs must agree with it.
 - util: FormatDuration rounds fractional seconds up
 - util: FormatDuration renders a non-positive duration as 0s
 
-### test_compat.lua (23)
+### test_compat.lua (31)
 
 - compat: GetSpellName returns the C_Spell name
 - compat: GetSpellTexture is non-nil (caller supplies default)
 - compat: GetSpellLink returns a hyperlink for the spell
 - compat: IsSpellKnown true when learned
+- compat: the harness answers a learned spell through C_SpellBook, not the global
 - compat: IsSpellKnown false when not learned
 - compat: GetSpellCooldownRemaining is 0 for a spell that is ready
 - compat: GetSpellCooldownRemaining counts down from start + duration
@@ -154,8 +160,15 @@ badge and any count quoted in the docs must agree with it.
 - compat: GetSpellLink returns nil with no API (the caller renders plain text)
 - compat: IsSpellKnown normalizes to a plain boolean
 - compat: IsSpellKnown returns false when the API is missing
+- compat: IsSpellKnown asks C_SpellBook first when both APIs exist
+- compat: IsSpellKnown takes a false from C_SpellBook as the answer
+- compat: IsSpellKnown uses the global when C_SpellBook or its member is absent
+- compat: IsSpellKnown returns false when neither API exists
 - compat: GetActivityInfoTable returns nil for an unknown activity
 - compat: GetActivityInfoTable returns nil when C_LFGList is absent
+- compat: AddOnLinkType answers Blizzard's addon link type
+- compat: AddOnLinkType is nil without LinkTypes.AddOn
+- compat: AddOnLinkType is nil without EventRegistry:RegisterCallback
 - compat: Compat is the sole namespace the addon reads variant APIs through
 
 ### test_database.lua (9)
@@ -544,7 +557,7 @@ badge and any count quoted in the docs must agree with it.
 - panel: the landing page adds logo, notes, heading and command rows in that order
 - panel: a dirty landing page re-renders in place instead of stacking a second copy
 
-### test_lifecycle.lua (37)
+### test_lifecycle.lua (44)
 
 - lifecycle: the addon exposes no public global (WG-01)
 - lifecycle: NS IS the addon object (AceAddon mixes into the namespace)
@@ -557,12 +570,19 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: OnEnable registers the two capture events
 - lifecycle: no events are registered before OnEnable
 - lifecycle: OnEnable seeds wasInGroup from the current roster state
-- lifecycle: the ApplyToGroup and SetItemRef hooks install at file load
+- lifecycle: the ApplyToGroup hook installs at file load
 - lifecycle: the ApplyToGroup hook routes into the capture pipeline
-- lifecycle: the SetItemRef hook ignores links that aren't ours
-- lifecycle: the SetItemRef hook ignores a non-string link argument
-- lifecycle: clicking the chat link opens the popup
-- lifecycle: a stale chat link prints a hint instead of an empty popup
+- chat link: the details link is Blizzard's addon link type, addon:WhatGroup:show
+- chat link: a click through SetItemRef opens the popup and never reaches the ItemRef fallthrough
+- chat link: a shift-click opens the popup and never reaches HandleModifiedItemClick
+- chat link: a stale link prints the hint, opens nothing and never reaches the fallthrough
+- chat link: another addon's addon: link is not ours
+- chat link: an item link goes to the ItemRef tooltip, not to us
+- chat link: the SetItemRef callback registers at file load, exactly once
+- chat link: degraded (no EventRegistry) falls back to the WhatGroup: link and the post-hook
+- chat link: degraded (no LinkTypes.AddOn) falls back to the WhatGroup: link and the post-hook
+- chat link: the degraded post-hook ignores links that aren't ours
+- chat link: the degraded post-hook ignores a non-string link argument
 - lifecycle: joining a group with a capture waiting fires the notify
 - lifecycle: a roster tick while already grouped is not a transition
 - lifecycle: leaving the group wipes the capture
@@ -584,7 +604,7 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: /wg resetall asks for confirmation rather than resetting outright
 - lifecycle: /wg resetall and the Defaults button share one OnAccept body
 
-### test_debuglog.lua (21)
+### test_debuglog.lua (34)
 
 - debuglog: FONT_MONO points at the library payload's JetBrains Mono TTF
 - debuglog: the console renders in the vendored TTF when the client can fetch it
@@ -604,7 +624,20 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: NS.Debug is a no-op (no console write) when debug is off
 - debuglog: debug-logging-§11 scrollbar + line-counter sync is a safe no-op under the mock
 - debuglog: settings change logs one [Set] line at the write seam (debug-logging-§10)
-- debuglog: RestoreAllDefaults coalesces to one [Reset], zero [Set] (debug-logging-§9)
+- debuglog: RestoreAllDefaults logs one [Set] reset profile line counting the rows it changed (debug-logging-§10)
+- debuglog: RestoreAllDefaults on a pristine profile counts 0 rows (debug-logging-§10)
+- debuglog: a profile reset from outside the helper is logged once, without a count (debug-logging-§10)
+- debuglog: the library's page reset is one [Set] line counting the rows it changed (debug-logging-§10)
+- debuglog: an all-default page reset logs 0 rows, not a line per row (debug-logging-§10)
+- debuglog: the bulk bracket adds no line when the act reset the profile (debug-logging-§10)
+- debuglog: a nested bracket logs once, at the outermost close, with the summed tally (debug-logging-§10)
+- debuglog: a nested bracket that reset the profile silences the outer line (debug-logging-§10)
+- debuglog: a bracket that closes on an error still logs its tally and unmutes (debug-logging-§10)
+- debuglog: a write that raises inside a bracket is not counted (debug-logging-§10)
+- debuglog: a profile reset that raises logs one marked line and re-raises (debug-logging-§10)
+- debuglog: a profile reset that raises leaves no count for a later reset (debug-logging-§10)
+- debuglog: a profile reset inside an open bracket silences the bracket (debug-logging-§10)
+- debuglog: a profile copy logs one [Set] copied line naming the source (debug-logging-§10)
 - debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state
 - debuglog: enable ack is color-coded green/red matching the header (debug-logging-§5)
 
@@ -648,13 +681,13 @@ badge and any count quoted in the docs must agree with it.
 
 | Suite | Cases |
 |-------|------:|
-| test_harness.lua | 7 |
+| test_harness.lua | 12 |
 | test_libka0s.lua | 47 |
 | test_surface_parity.lua | 4 |
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
 | test_util.lua | 31 |
-| test_compat.lua | 23 |
+| test_compat.lua | 31 |
 | test_database.lua | 9 |
 | test_settings.lua | 56 |
 | test_slash.lua | 46 |
@@ -663,12 +696,12 @@ badge and any count quoted in the docs must agree with it.
 | test_notify.lua | 48 |
 | test_frame.lua | 84 |
 | test_panel.lua | 53 |
-| test_lifecycle.lua | 37 |
-| test_debuglog.lua | 21 |
+| test_lifecycle.lua | 44 |
+| test_debuglog.lua | 34 |
 | test_docmap.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_doc_structure.lua | 8 |
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **569** |
+| **Total** | **602** |

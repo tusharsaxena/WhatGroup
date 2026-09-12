@@ -300,7 +300,9 @@ autoShow=…, inGroup=…, hasPending=…)` — so a pasted log is self-identify
   `NS.TeleportSpells`. **`[ChatLink]`** / **`[Test]`** mark the chat-link
   click and `/wg test` entry points.
 - **`[Set]`** → one line per settings change (`<path> = <value>`) at the
-  `Helpers.Set` seam; **`[Reset]`** → one summary for `/wg resetall`, naming the profile rather than a row count (it is a profile reset, not a row walk);
+  `Helpers.Set` seam, and **one** `[Set] reset profile '<name>' to defaults (N rows)` line for
+  `/wg resetall`, from the `OnProfileReset` handler, N being the rows the reset changed
+  (debug-logging-§10);
   **`[Schema]`** → an internal path-lookup miss.
 
 To add a new debug line, call `NS.Debug("Tag", "fmt", …)` — it self-gates on

@@ -329,7 +329,7 @@ end)
 -- and the spell name that goes into the teleport button\'s `/cast` macrotext. tests/wow_mock.lua
 -- answers enUS for all of it, and core/WhatGroup.lua\'s own test fixture spells the activity name
 -- out in English, so nothing here has ever seen a German one. The section is also where session 6
--- schedules § 7a, the observation WHATGROUP-R-06 is gated on.
+-- schedules § 7a, the in-client check the WHATGROUP-R-06 rung shipped without.
 --
 -- The failure vocabulary is matched loosely on purpose: this file says "Fail" in some sections and
 -- "Expected" in others, and pinning one spelling would redden the tree for a rewording.
@@ -369,11 +369,12 @@ test("docs/smoke-tests.md carries a non-English-client section", function()
         .. "heading with a sentence under it records the gap as coverage, which is the failure "
         .. "M5-08 was filed for")
 
-    -- Session 6 owns § 7a as well as this section: one login, both jobs. The finding it is gated
-    -- on has waited through five milestones for want of someone being in a client at the time, so
-    -- the pointer is part of the section rather than a nicety.
+    -- Session 6 owns § 7a as well as this section: one login, both jobs. The C_SpellBook rung was
+    -- built from Blizzard's API documentation and has never been checked against the global in a
+    -- client, so the pointer is part of the section rather than a nicety.
     assertTrue(text:find("C_SpellBook.IsSpellKnown", 1, true),
-        "session 6 owns § 7a -- the C_SpellBook.IsSpellKnown observation WHATGROUP-R-06 is gated "
-        .. "on -- and the locale section is what schedules it. Naming it here is what stops the "
-        .. "one login this repository needs from being spent without it")
+        "session 6 owns § 7a -- the check that C_SpellBook.IsSpellKnown and the IsSpellKnown global "
+        .. "agree, which the WHATGROUP-R-06 rung shipped without -- and the locale section is what "
+        .. "schedules it. Naming it here is what stops the one login this repository needs from "
+        .. "being spent without it")
 end)

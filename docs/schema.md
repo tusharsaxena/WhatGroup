@@ -46,7 +46,9 @@ db.global = {
 Sixteen persisted settings, all of them user-facing, all of them schema rows — plus one
 **session-only** row, `state.debugConsole`, which is a schema row and deliberately not persisted (see
 below). There are no storage-only carve-outs in the profile: the popup's dragged POSITION is
-account-wide geometry and lives in `db.global.windows` (WG-26), not here.
+account-wide geometry and lives in `db.global.windows` (WG-26), not here. That store is
+`architecture-§5` named non-setting state, and its owner (`NS.Windows`) and writers are named in
+[ARCHITECTURE.md → Settings Schema](./ARCHITECTURE.md#settings-schema).
 
 `scale`, `alpha` and `locked` are **clamped or read at use time** in `modules/Frame.lua` exactly as
 the size rows are, and for the same reason. `visibility` fails **open**: `always` and any value the

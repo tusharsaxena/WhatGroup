@@ -177,11 +177,24 @@ Tags currently in use:
   (`scheduling` / `fired` / `canceled` / skip), `ChatLink`, `Test`.
 - **Frame** (`modules/Frame.lua`) — `Frame` (`popup shown …`, `teleport
   spellID=… known=…`).
-- **Settings** (`settings/Schema.lua`) — `Set` (the one canonical
-  settings-change line, at the `Helpers.Set` seam — a single-row
-  `/wg reset <path>` lands here too, because it resets through `Helpers.Set`),
-  `Reset` (one coalesced summary for `RestoreAllDefaults`, i.e. `/wg resetall`
-  and the panel's Defaults button), `Schema` (internal path-lookup miss).
+- **Settings** (`settings/Schema.lua`, and the profile-event handlers in
+  `core/WhatGroup.lua`) — `Schema` (internal path-lookup miss), and `Set`, the
+  tag every settings line carries (debug-logging-§10):
+  - `[Set] <path> = <value>` — the one canonical settings-change line, at the
+    `Helpers.Set` seam. A single-row `/wg reset <path>` lands here too, because
+    it resets through `Helpers.Set`.
+  - `[Set] reset profile '<name>' to defaults (N rows)` — the whole-profile
+    reset (`/wg resetall` and the panel's Defaults button), logged once by the
+    `OnProfileReset` handler. N is the rows the reset changed. A reset driven
+    straight at the db logs the line without a count.
+  - `[Set] copied profile '<A>' → '<B>'` — a profile copy, logged once by the
+    `OnProfileCopied` handler: the source, then the active profile it landed in.
+  - `[Set] reset <scope>: N rows` — the defensive `Settings.Bulk` bracket's one
+    line, around the library's reset walks (neither is on a live path). N is
+    the rows whose stored value changed.
+
+  A bulk act that ends in an error still logs its one line, with
+  ` (stopped by an error)` appended.
 - **Console** — `Debug` (the enable/disable bracket lines, written by the
   library).
 
@@ -320,7 +333,9 @@ formatters, the `NS.FONT_MONO` constant, the window-vs-flag `/wg debug`
 semantics, the header-toggle flip, the enable/disable bracket lines, the `[Init]`
 summary's content and its position after the bracket, the color-coded ack, the
 zero-write-when-off contract, the `%d`-with-a-secret path, the one-`[Set]`-per-change
-and one-`[Reset]`-per-wipe content rules, and that the debug-logging-§11 scrollbar/counter sync
+and one-`[Set]`-per-bulk-reset content rules (debug-logging-§10: one `[Set] reset profile …`
+line for `/wg resetall`, counting the rows it changed, and one `[Set] reset <scope>: N rows` line
+from the bulk bracket, at its outermost close), and that the debug-logging-§11 scrollbar/counter sync
 stays a safe no-op under the mock.
 
 `tests/test_libka0s.lua` covers the seam itself: that `NS.DebugLog` is the

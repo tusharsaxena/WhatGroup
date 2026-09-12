@@ -168,8 +168,8 @@ Stated explicitly, because each of these is a reasonable guess that happens to b
 - **No test dependency beyond `git` and a shell.** The suites `require` nothing outside `tests/`, and
   the only shell-outs are the harness's own: `tests/_kit/framework.lua:357-358` lists a directory with
   `ls -A` (`dir /b` on cmd.exe) because the collection takes no LuaFileSystem dependency, and the
-  vendored-payload gate reads the sibling checkout with `git` — `tests/_kit/vendor_sync.lua:184`
-  (the `git -C <sibling> …` runner behind its `show` and `ls-tree` reads) and `:225`
+  vendored-payload gate reads the sibling checkout with `git` — `tests/_kit/vendor_sync.lua:193`
+  (the `git -C <sibling> …` runner behind its `show` and `ls-tree` reads) and `:236`
   (`git cat-file --batch`). With `git` or `../LibKa0s`
   absent, `tests/test_vendor_sync.lua`'s cases report **SKIP** with the reason and the run's exit code
   stays 0; nothing else in the tree needs a subprocess.

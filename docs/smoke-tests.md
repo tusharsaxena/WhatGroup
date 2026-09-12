@@ -87,7 +87,7 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.8b | Click the `Debug: OFF`/`ON` toggle in the console title bar | Flips logging state (green ON / red OFF) with the same chat ack + console bracket line as `/wg debug on\|off`. `Copy` opens a highlight-ready plain-text buffer; `Clear` wipes both views. |
 | 2.8b-i | Scrollbar + line counter (debug-logging-§11) | The console has a **thin scrollbar** on the log's right edge and a **`N / 1500 lines`** counter in the bottom-right, in the log's monospace font. With debug on, spam lines (e.g. `/wg set notify.delay 1` a few times) until the log overflows: the counter climbs and the scrollbar thumb becomes draggable. **Drag the thumb** — the log scrolls; **mouse-wheel the log** — the thumb tracks it. Thumb **top = oldest**, **bottom = newest**. `Clear` resets the counter to `0 / 1500` and parks/grays the thumb. On a short (fitting) log the bar is still shown but inert. **First open must NOT error** — a blank `Debug: ON/OFF` header or dead ESC-to-close means the initial sync threw (anti-pattern #41). |
 | 2.8c | With debug on: `/wg set notify.delay 3.0` | Console shows **one** `[Set] notify.delay = 3` line. Restore with `/wg set notify.delay 0` (another single `[Set]`). |
-| 2.8d | With debug on: `/wg resetall` → **Yes** | Console shows **one** coalesced `[Reset] active profile reset to defaults` line — **not** one `[Set]` per row. |
+| 2.8d | With debug on: `/wg set notify.delay 3`, then `/wg resetall` → **Yes**, then reopen the console with `/wg debug` | The reset closes the console, because reset-all restores the session-only console row, so reopen it to read the log. After the `[Set] notify.delay = 3` line, the console shows **one** `[Set] reset profile '<name>' to defaults (1 rows)` line (debug-logging-§10). There is **no** `[Set]` per row and **no** `[Reset]` line. The count is the rows the reset changed, so a second `/wg resetall` straight after reads `(0 rows)`. |
 | 2.9 | `/wg show` (no group, no pendingInfo) | Prints "No group info available. Use `/wg test` to preview." |
 | 2.10 | `/wg test` | Synthetic chat notification + popup fire (full coverage in section 4). |
 | 2.11 | `/wg show` (right after 2.10) | Re-opens the same popup. |
@@ -332,7 +332,8 @@ Then, once the cooldown has expired, `/wg test` again: full alpha, no swipe, no 
 
 1. Click `[Click here to view details]` in the chat output from step 4.
 
-**Expected:** Popup re-opens with the same data.
+**Expected:** Popup re-opens with the same data. No ItemRef tooltip opens and no Lua error appears.
+A `/wg test` link does **not** stand in for a real join's link. § 5.1a clicks that one.
 
 ### 4.3 ESC closes popup
 
@@ -428,6 +429,21 @@ The end-to-end test. Requires an active LFG and at least one group leader willin
 
 **Expected user-visible output (after `notify.delay` seconds):** Full chat notification + popup, with the **real** group name, leader, mapID-resolved teleport spell.
 
+### 5.1a The real join's details link: click and shift-click
+
+The 2026-09-12 report: after a real join (open world, idle, 12.1.0 client), clicking this link did nothing. No popup opened and no hint printed. A later `/wg test` link worked, so § 4.2 cannot stand in for this step. Since then the link is Blizzard's `addon` link type (`addon:WhatGroup:show`), heard through `EventRegistry` rather than through a `SetItemRef` post-hook ([data-flow.md](./data-flow.md)).
+
+1. Join a real group through the Group Finder, as in § 5.1, with `/wg debug on`. Leave the join's chat notification in scrollback.
+2. Close the popup (Close or **ESC**).
+3. Click `[Click here to view details]` in **that** notification, the real join's, not a `/wg test` one.
+4. Close the popup, then **shift-click** the same link. Do it once with the chat edit box closed and once with it open (press **Enter** first).
+
+**Expected:**
+- Step 3: the popup re-opens with the real group's data. No ItemRef tooltip opens and no Lua error appears.
+- Step 4: the popup re-opens the same way. Nothing is inserted into the chat edit box, and no tooltip or error appears.
+- The console logs `[ChatLink] clicked hasPending=true` for each click.
+- If the popup does not open, record whether the console shows a `[ChatLink]` line at all. No line means the click never reached the addon.
+
 ### 5.2 Multiple concurrent applications
 
 Tests the `capturesByResult[searchResultID]` + `pendingApplications[appID]` pairing. This is the step that
@@ -505,23 +521,23 @@ Run after bumping the `## Interface:` line in `WhatGroup.toc` for a major patch.
 
 If any Blizzard API broke (e.g. fields renamed on `C_LFGList.GetActivityInfoTable`), the most likely failure point is `CaptureGroupInfo` returning incomplete data — see [data-flow.md → Captured info](./data-flow.md#captured-info) for the field list and remediation steps.
 
-### 7a · `Compat.IsSpellKnown` — is the modern rung there yet? (`WHATGROUP-R-06`)
+### 7a · `Compat.IsSpellKnown` — do the two readers agree? (`WHATGROUP-R-06`)
 
-`core/Compat.lua:62-67` is the one shim of six with no modern rung. Its five siblings at `:24`, `:40`, `:52`, `:83` and `:105` try `C_Spell.*` first and keep the legacy global as the fallback; this one calls the bare `IsSpellKnown` and returns `false` when it is absent. Nothing throws, so the degrade is safe — but it is not quiet. Every teleport in the popup would draw desaturated with `Teleport spell not learned` beside it (section 4.1b) on a character who has learned all of them, and the chat summary would tag every row `(not learned)`. That is what patch day looks like if Blizzard retires the global, and no headless case can see it coming. `tests/test_compat.lua:143` already nils the global and asserts the shim answers `false`, which is the shim behaving as designed; what it cannot assert is whether `false` is the *right* answer on a client where a modern API knows better.
+`Compat.IsSpellKnown` asks `C_SpellBook.IsSpellKnown` first, falls back to the `IsSpellKnown` global, and answers `false` when neither exists. The first rung was added on 2026-09-12 from Blizzard's generated API documentation, not from a client: `Interface/AddOns/Blizzard_APIDocumentationGenerated/SpellBookDocumentation.lua` on the `live` branch of Gethe/wow-ui-source, commit `8ea15b61` (12.1.0, build 69587), documents `C_SpellBook.IsSpellKnown(spellID, spellBank = "Player") -> isKnown`. This step is the in-client check the rung shipped without. It confirms the two readers agree, so the fallback really is a fallback and not a different answer. [compat-layer.md](./compat-layer.md) has the reasoning.
 
-The fix — a `C_SpellBook.IsSpellKnown` rung above the global, in the shape the siblings use — **is conditional on this observation**. Until someone makes it, the shim stays exactly as written.
+Why it matters: the shim answers with whichever reader it reaches first, and on today's client that is `C_SpellBook.IsSpellKnown`. If it says `false` for a teleport the global calls learned, that teleport draws desaturated in the popup with `Teleport spell not learned` beside it (section 4.1b), and the chat summary tags the row `(not learned)`. No headless case can catch this, because the mock answers whatever the test tells it to.
 
 1. Pick a teleport you have learned and one you have not, and note both spell IDs.
 2. `/dump C_SpellBook.IsSpellKnown(<the learned one>)` then `/dump IsSpellKnown(<the same>)`.
 3. Repeat both for the one you have not learned.
 
-**Pass** — both APIs resolve and both agree, on the learned spell and the unlearned one. Write down the client build and the two spell IDs; that is the evidence the rung waits on, and a bare "it worked" is not.
+**Pass** — both calls resolve and agree: `true` for the learned spell and `false` for the unlearned one. Write down the client build (`/dump GetBuildInfo()`) and the two spell IDs on issue #15. A bare "it worked" is not evidence.
 
-**Fail** — either call errors, meaning `C_SpellBook.IsSpellKnown` is not there on this client, or the two answers disagree. Record what you saw and **do not add the rung**. A disagreement means the two are not interchangeable, and the shim then needs a decision rather than a fallback ladder.
+**Fail** — `C_SpellBook.IsSpellKnown` errors, which means it is not on this client and the shim is running on the global alone. Or the two answers disagree. A disagreement means the rung the shim asks first gives a different answer from its fallback, and that needs a decision about which reader is right, not a fallback ladder. Record both readings on issue #15, and treat the popup's learned and not-learned states as suspect until the decision is made.
 
 Re-run on patch day, and on any day the popup starts calling learned teleports unlearned.
 
-The finding and its blocked state are on the books as issue #15; record the reading there.
+**Status: not yet run.** The owner accepted shipping the rung unconfirmed on 2026-09-12. Session 6 (section 12b, step 5) is the login scheduled to run it.
 
 ---
 
@@ -642,7 +658,7 @@ nothing about one out of game.
 |---|------|--------|
 | 12a.1 | `/wg config`, then cycle every tab of the strip three times, ending back on the first | Each tab shows **its own** label on all three passes. A label carried over from the previously-dressed tab is the pool handing back a frame it did not finish dressing. |
 | 12a.2 | Watch the selection highlight as you go | The highlighted tab is the one you pressed, every time. A highlight on the wrong button means `OnClick` was not re-set on the dress. |
-| 12a.3 | Watch the strip's band height across all three passes | It does not move. A band that grows or shrinks between passes is the geometry case kit 16 will be able to assert and kit 15 cannot. |
+| 12a.3 | Watch the strip's band height across all three passes | It does not move. A band that grows or shrinks between passes is the geometry case the kit's geometry flip (revision 18 at the earliest) will be able to assert and revision 17 cannot. |
 | 12a.4 | Watch the body under the strip | It is always the selected tab's rows. A body drawn under the wrong tab means the pooled content panel came back still parented to the previous selection. |
 | 12a.5 | `Esc`, then `/wg config` again, and walk the strip once more | The same three things hold on a fresh build. The pools are per-`ctx`, so a second build is where a released frame can come back dressed for a different tab. |
 
@@ -658,24 +674,25 @@ available when it landed. Nothing in this section has been performed and no step
 as passed.** Run on a client set to **deDE or frFR**, the two the collection's other locale steps
 use (`ConsumableMaster/docs/smoke-tests.md` § 3c, `KickCD/docs/smoke-tests.md` § 9b).
 
-**This section and § 7a are one login.** Session 6 schedules both, and § 7a — the
-`C_SpellBook.IsSpellKnown` observation `WHATGROUP-R-06` is gated on — has waited through five
-milestones for want of somebody being in a client at the time. Step 5 below is where it gets run.
+**This section and § 7a are one login.** Session 6 schedules both, and § 7a — the in-client check
+that `C_SpellBook.IsSpellKnown` and the `IsSpellKnown` global agree, which the rung built from the
+API documentation has never had — has waited through five milestones for want of somebody being in
+a client at the time. Step 5 below is where it gets run.
 
 **What this addon reads in the player's language.** Nearly everything it puts on screen about a
 group:
 
 - **`info.fullName`** and **`info.shortName`** from `C_LFGList.GetActivityInfoTable`
-  (`core/Compat.lua:125-130`, stored at `core/WhatGroup.lua:309`, drawn at `modules/Frame.lua:680`
-  and in the chat summary at `core/WhatGroup.lua:514`). German activity names are materially longer
+  (`core/Compat.lua:136-141`, stored at `core/WhatGroup.lua:343`, drawn at `modules/Frame.lua:768`
+  and in the chat summary at `core/WhatGroup.lua:548`). German activity names are materially longer
   than English ones.
 - **`info.playstyleString`**, which the server renders in the player's language, preferred over the
-  enum lookup by `Labels.GetPlaystyleLabel` (`core/WhatGroup.lua:462-467`).
+  enum lookup by `Labels.GetPlaystyleLabel` (`core/WhatGroup.lua:496-501`).
 - **`GROUP_FINDER_GENERAL_PLAYSTYLE1` … `4`**, read into `Labels.PLAYSTYLE` at **file load time**
-  (`core/WhatGroup.lua:435-440`). A global that is nil at load leaves that label nil for the whole
+  (`core/WhatGroup.lua:469-474`). A global that is nil at load leaves that label nil for the whole
   session — there is no second read.
-- **`Compat.GetSpellName`** (`core/Compat.lua:24-34`), whose return goes straight into the teleport
-  button's `/cast` macrotext (`modules/Frame.lua:274`, built at `:386`). Casting by name only works
+- **`Compat.GetSpellName`** (`core/Compat.lua:27-38`), whose return goes straight into the teleport
+  button's `/cast` macrotext (`modules/Frame.lua:351`, built at `:463`). Casting by name only works
   when the name is the client's own, which is what makes this locale-independent by construction —
   and is therefore worth confirming rather than assuming.
 
@@ -684,7 +701,7 @@ English on every client. That is the addon's scope and not a defect. § 10 (the 
 that they render as prose rather than as keys, and it is unrelated to this section.
 
 **`/wg test` will not do for most of this.** Its fixture spells the activity name out in English
-(`core/WhatGroup.lua:873`), so on a German client it is *expected* to show English. Use a real group
+(`core/WhatGroup.lua:909`), so on a German client it is *expected* to show English. Use a real group
 for steps 1 to 3.
 
 1. **A real application, with a real German activity name.** Apply to a group through the LFG UI
@@ -693,7 +710,7 @@ for steps 1 to 3.
    field shows a short name or the group-type label, and the **Playstyle** row shows the server's
    own wording. No field shows `Unknown` where the client plainly has a name.
    **Fail:** `Unknown` in the Instance row — `fullName` came back empty on this locale and the
-   `activityName` fallback at `core/WhatGroup.lua:309` did not cover it. Also fail: a name that
+   `activityName` fallback at `core/WhatGroup.lua:343` did not cover it. Also fail: a name that
    renders as mojibake or `?` glyphs, which is the text not surviving the trip to the font.
 2. **Field width.** Read the popup with that longer name in it, and check the chat summary line too.
    **Expected:** the name fits its row or is truncated cleanly at the field's edge.
@@ -731,13 +748,13 @@ for steps 1 to 3.
    did C_SpellBook.IsSpellKnown exist at all? (yes / no, it errored)
    ```
 
-   **Pass** — both APIs resolve and agree on both spells. That is the evidence `WHATGROUP-R-06`'s
-   fix text conditions the rung on, and `M5-10` can then add a `C_SpellBook.IsSpellKnown` rung above
-   the global in the shape the five siblings use.
-   **Fail** — either call errors, or the two disagree. **Do not add the rung.** A disagreement means
-   the two are not interchangeable and the shim needs a decision rather than a fallback ladder;
-   record what you saw on issue #15 and leave `core/Compat.lua:62-67` exactly as written. Both
-   outcomes close session 6's obligation — one ships a rung, the other files a finding — and a
+   **Pass** — both APIs resolve and agree on both spells. That confirms the `C_SpellBook.IsSpellKnown`
+   rung `core/Compat.lua` already carries, which was built from Blizzard's API documentation and
+   shipped without this reading (`WHATGROUP-R-06`).
+   **Fail** — either call errors, or the two disagree. A disagreement means the rung the shim asks
+   first and its fallback are not interchangeable, and the shim needs a decision about which one is
+   right rather than a fallback ladder; record what you saw on issue #15. Both outcomes close
+   session 6's obligation — one confirms the rung, the other files a finding against it — and a
    blank is the only result that does not.
 
    The locale is not incidental to this step. `GetLocale()` is recorded because "both APIs present"
@@ -754,7 +771,7 @@ for steps 1 to 3.
 enUS for every string the capture path reads, `tests/test_capture.lua` and `tests/test_labels.lua`
 assert against those English values, and the `/wg test` fixture is English by construction — so the
 suite is green on all of it whether it is right or wrong. Step 5 in particular can only be answered
-in a client, which is the whole reason `WHATGROUP-R-06` is still open. Until the pass runs, the
+in a client, which is why the rung `WHATGROUP-R-06` added is still unconfirmed. Until the pass runs, the
 honest state of this section is unrun, and it is recorded that way rather than as coverage.
 
 ---
@@ -773,6 +790,7 @@ For a fast pre-release pass, run at minimum:
 - [ ] section 4.1a — Teleport on cooldown: swipe, ticking note, and a click that casts nothing
 - [ ] section 4.1b — Teleport not learned: the note says so, and never says cooldown
 - [ ] section 5.1 — One real LFG apply → join
+- [ ] section 5.1a — that join's details link opens the popup, by click and by shift-click
 - [ ] section 10 — no `SCREAMING_SNAKE` string on any page, in the console, or in chat
 - [ ] sections 11.5 / 11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
 - [ ] sections 12.1 / 12.4 — marks on the console title bar, and a mark **beside** the footer Close word
@@ -781,6 +799,6 @@ For a fast pre-release pass, run at minimum:
 
 Run section 9 (degraded install), section 12 (shared art), section 12a (the pooled tab strip) and the rest of section 11 after a LibKa0s re-vendor or any change to the six seam files.
 
-Section 7a is a one-off that has **never been run**. Session 6 (section 12b, step 5) is where it is scheduled, and section 12b carries the block to record its six readings in. It is the observation `WHATGROUP-R-06` is gated on, and until someone runs it on a live client `core/Compat.lua`'s `IsSpellKnown` shim keeps the shape the finding questions — deliberately, because adding the rung without the observation would be inventing the evidence the finding asks for.
+Section 7a has **never been run**. Session 6 (section 12b, step 5) is where it is scheduled, and section 12b carries the block to record its six readings in. `core/Compat.lua`'s `IsSpellKnown` shim already asks `C_SpellBook.IsSpellKnown` first. That rung was built from Blizzard's API documentation, and until someone runs § 7a on a live client, nobody has seen the two readers agree.
 
 If all of those pass, the addon is in shippable shape for the 80% case. Run the full suite for releases tagged with feature work.

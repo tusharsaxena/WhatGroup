@@ -22,10 +22,11 @@
 -- referenced as NS.L[...] at runtime, never captured at file scope here.
 --
 -- No `_G.WhatGroup` — the addon exposes no public global (WG-01). Downstream
--- files pick the object up with `local WhatGroup = NS.addon`. Hooks are
--- direct `hooksecurefunc` post-hooks installed at file-load (below) — not
--- AceHook. AceHook adds a per-invocation closure that taints Blizzard's
--- secure-execute chain at GameMenu Logout time.
+-- files pick the object up with `local WhatGroup = NS.addon`. The apply hook
+-- is a direct `hooksecurefunc` post-hook and the chat-link click an
+-- EventRegistry callback, both installed at file-load (below) — not AceHook.
+-- AceHook adds a per-invocation closure that taints Blizzard's secure-execute
+-- chain at GameMenu Logout time.
 
 local addonName, NS = ...
 local WhatGroup = LibStub("AceAddon-3.0"):NewAddon(
@@ -43,20 +44,19 @@ NS.State.debug = false
 -- truth; the secret-safe printer (core/Util.lua) prepends it to every line.
 NS.PREFIX = "|cff00FFFF[WG]|r"
 
--- Direct `hooksecurefunc` post-hooks installed at file-load (NOT in
--- OnEnable). Hooks live at the top of the file; the addon table is
--- the only persistent reference; no closures captured from event
--- handlers. Installing these in OnEnable (PLAYER_LOGIN) was tainting
--- Blizzard's GameMenu callbacks — the closures Blizzard builds for
--- Logout/Settings/Macros buttons were inheriting our addon's
--- load-time taint and rejecting their secure-execute calls with
--- ADDON_ACTION_FORBIDDEN. File-load hook registration runs before
--- GameMenu's InitButtons builds those closures, so they remain
--- taint-free.
+-- Both subscriptions below are installed at file-load (NOT in OnEnable):
+-- the apply post-hook and the chat-link callback. They live at the top of the
+-- file; the addon table is the only persistent reference; no closures
+-- captured from event handlers. Installing hooks in OnEnable (PLAYER_LOGIN)
+-- was tainting Blizzard's GameMenu callbacks — the closures Blizzard builds
+-- for Logout/Settings/Macros buttons were inheriting our addon's load-time
+-- taint and rejecting their secure-execute calls with ADDON_ACTION_FORBIDDEN.
+-- File-load registration runs before GameMenu's InitButtons builds those
+-- closures, so they remain taint-free.
 -- Both closures take ONLY what they read. The client passes more -- ApplyToGroup also carries the
--- role flags and the applicant note, SetItemRef the link text, the mouse button and the chat frame
--- -- and a post-hook closure that declares fewer parameters simply drops the rest, which is what
--- happens to them here anyway. Until `M4c-04` these two mirrored the client's full signatures and
+-- role flags and the applicant note, the link click the link text, the mouse button and the chat
+-- frame -- and a closure that declares fewer parameters simply drops the rest, which is what
+-- happens to them here anyway. Until `M4c-04` these mirrored the client's full signatures and
 -- forwarded them on, so `text`, `button` and two varargs traveled into handler bodies that read
 -- none of them, on every apply and every link click. The client's signatures are recorded in
 -- docs/data-flow.md, which is where a signature nothing reads belongs.
@@ -66,13 +66,47 @@ hooksecurefunc(C_LFGList, "ApplyToGroup", function(searchResultID)
     end
 end)
 
-hooksecurefunc("SetItemRef", function(linkArg)
+-- THE DETAILS CHAT LINK, AND HOW A CLICK ON IT REACHES US.
+--
+-- It is Blizzard's addon link type, `|Haddon:WhatGroup:show|h…|h`, heard as EventRegistry's
+-- "SetItemRef" event. Blizzard registers a handler for that type
+-- (Blizzard_UIPanels_Game/Shared/ItemRefHandlersShared.lua:278-281 at 12.1.0) that triggers the
+-- event and counts as Handled, so SetItemRef (Mainline/ItemRef.lua:6-27) returns before its
+-- fallthrough. Until 2026-09-12 the link was `|HWhatGroup:show|h`, an UNREGISTERED type, heard by
+-- a SetItemRef post-hook. For that type Blizzard's body runs first and falls through, to
+-- ShowUIPanel(ItemRefTooltip) plus ItemRefSetHyperlink on a bogus link, or to
+-- HandleModifiedItemClick on a modified click, and a post-hook runs only if that body returns.
+-- On a real group join the click did nothing at all: no popup and no stale-link hint.
+--
+-- The callback's owner is the addon object. The registry keeps one callback per (event, owner),
+-- so the owner is also what makes a second registration replace the first rather than stack.
+-- The registry calls it through securecallfunction as `func(owner, link, text, button, frame)`.
+--
+-- A client without that path (NS.Compat.AddOnLinkType answers nil) keeps the old link and the old
+-- post-hook, which is the only click route such a client has.
+local ADDON_LINK_TYPE    = NS.Compat.AddOnLinkType()
+local DETAILS_LINK_KEY   = "WhatGroup:show"
+local DETAILS_LINK       = ADDON_LINK_TYPE and (ADDON_LINK_TYPE .. ":" .. DETAILS_LINK_KEY)
+                           or DETAILS_LINK_KEY
+-- Matched as a plain prefix, not a pattern, and the trailing ":" is part of it: another addon's
+-- `addon:WhatGroupSomething:` link must not be ours.
+local DETAILS_LINK_PREFIX = (ADDON_LINK_TYPE and (ADDON_LINK_TYPE .. ":") or "") .. "WhatGroup:"
+
+local function onDetailsLinkClick(linkArg)
     if type(linkArg) ~= "string" then return end
-    if not linkArg:match("^WhatGroup:") then return end
+    if linkArg:sub(1, #DETAILS_LINK_PREFIX) ~= DETAILS_LINK_PREFIX then return end
     if WhatGroup.OnSetItemRef then
         WhatGroup:OnSetItemRef()
     end
-end)
+end
+
+if ADDON_LINK_TYPE then
+    EventRegistry:RegisterCallback("SetItemRef", function(_, linkArg)
+        onDetailsLinkClick(linkArg)
+    end, WhatGroup)
+else
+    hooksecurefunc("SetItemRef", onDetailsLinkClick)
+end
 
 -- Session-only state. Cleared on group leave; never persisted.
 -- Keyed by SEARCH-RESULT id, not by arrival order (WG-R-07). The apply hook knows the
@@ -147,6 +181,28 @@ end
 -- Lifecycle
 -- ---------------------------------------------------------------------------
 
+-- The three profile events' shared reaction: switching, copying or resetting a profile replaces
+-- every stored value at once. At file scope, so the OnProfileCopied method below and the closures
+-- OnInitialize registers share one copy.
+local function reloadProfile(self)
+    -- The incoming profile may predate the current schema version.
+    self:RunMigrations()
+    -- And every open panel is showing the outgoing profile's values.
+    local H = NS.Settings and NS.Settings.Helpers
+    if H and H.RefreshAll then H.RefreshAll() end
+end
+
+-- A profile copy is logged HERE, once (debug-logging-§10): AceDB copying one profile over another is
+-- wholesale replacement, not a write through the helper, so its line comes from the profile-event
+-- handler, worded by the event. AceDB fires OnProfileCopied(event, db, sourceProfileKey), and the
+-- copy has landed in the ACTIVE profile. A method rather than a closure, so a test can call it with
+-- those real arguments: the kit's AceDB mock passes the current key where AceDB passes the source.
+function WhatGroup:OnProfileCopied(_, _, source)
+    NS.Debug("Set", "copied profile '%s' \226\134\146 '%s'", tostring(source),
+             tostring(self.db:GetCurrentProfile()))
+    reloadProfile(self)
+end
+
 function WhatGroup:OnInitialize()
     -- settings/Schema.lua loads after this file but BEFORE OnInitialize
     -- fires (OnInitialize runs on ADDON_LOADED, after every TOC line has
@@ -172,19 +228,35 @@ function WhatGroup:OnInitialize()
     -- reset, which fires the same event and needs the same reaction.
     --
     -- The function form rather than the string-method one: CallbackHandler takes
-    -- both, and a closure keeps this readable without adding a method to the
-    -- addon object whose only caller is AceDB.
+    -- both, and a closure keeps this readable. The reaction itself is the
+    -- file-scope reloadProfile above. OnProfileCopied is the one method, because
+    -- its line needs AceDB's source-key argument and a test has to be able to
+    -- pass it the real one.
     if self.db.RegisterCallback then
-        local function reload()
-            -- The incoming profile may predate the current schema version.
-            self:RunMigrations()
-            -- And every open panel is showing the outgoing profile's values.
-            local H = NS.Settings and NS.Settings.Helpers
-            if H and H.RefreshAll then H.RefreshAll() end
+        local function reload() reloadProfile(self) end
+        -- A reset is logged HERE, once (debug-logging-§10): AceDB replacing the whole profile is
+        -- not a write through the helper, so it gets no per-row line and no bulk-bracket line, just
+        -- this one from the profile-event handler. Here rather than in Helpers.RestoreAllDefaults,
+        -- because a reset driven straight at the db (AceDBOptions, a /run) is the same act. N is the
+        -- rows whose stored value the reset changed. Helpers.RestoreAllDefaults counts them just
+        -- before it resets and hands the count over; a reset from anywhere else has no such count,
+        -- and §10 lets the line omit it.
+        local function logReset()
+            local S = NS.Settings
+            local name = self.db:GetCurrentProfile()
+            local n = S and S.ConsumeResetCount and S.ConsumeResetCount()
+            if n then
+                NS.Debug("Set", "reset profile '%s' to defaults (%d rows)", name, n)
+            else
+                NS.Debug("Set", "reset profile '%s' to defaults", name)
+            end
         end
         self.db.RegisterCallback(self, "OnProfileChanged", reload)
-        self.db.RegisterCallback(self, "OnProfileCopied",  reload)
-        self.db.RegisterCallback(self, "OnProfileReset",   reload)
+        self.db.RegisterCallback(self, "OnProfileCopied",  function(...) self:OnProfileCopied(...) end)
+        self.db.RegisterCallback(self, "OnProfileReset",   function()
+            logReset()
+            reload()
+        end)
     end
 
     -- Debug is session-only (NS.State.debug), off on every login. It is
@@ -557,7 +629,7 @@ function WhatGroup:ShowNotification()
     -- The click link stays inline: it is the one row with no label and its own green, so a table
     -- entry for it would cost more indirection than it saves.
     if n.showClickLink then
-        p("   - " .. colorize(link("WhatGroup:show", NS.L["[Click here to view details]"]), "00FF7F"))
+        p("   - " .. colorize(link(DETAILS_LINK, NS.L["[Click here to view details]"]), "00FF7F"))
     end
 end
 
@@ -583,16 +655,18 @@ function WhatGroup:OnApplyToGroup(searchResultID)
     end
 end
 
--- Called from the file-load `hooksecurefunc("SetItemRef", ...)` post-hook
--- whenever the link prefix matches "WhatGroup:". Blizzard's default
--- SetItemRef has already run by this point and no-op'd on our prefix;
--- this just opens the popup (or prints a hint if pendingInfo is gone).
+-- Called from the file-load click subscription (top of this file) whenever the link starts with
+-- the details link's prefix: `addon:WhatGroup:` through EventRegistry's "SetItemRef" event, or
+-- `WhatGroup:` through the SetItemRef post-hook on a client without Blizzard's addon link path.
+-- On the first route Blizzard's SetItemRef has already counted the link Handled and returns before
+-- its ItemRef fallthrough. This just opens the popup, or prints a hint if pendingInfo is gone.
+-- The name is the event's.
 --
--- TAKES NOTHING. The hook has already decided the click is ours -- that is the whole content of
--- the link argument by the time control gets here -- and there is exactly one "WhatGroup:" link,
--- the one built in ShowNotification, so there is no sub-prefix left to branch on. The link text,
--- the mouse button and the chat frame the client also passes were carried into this signature and
--- never read.
+-- TAKES NOTHING. The subscription has already decided the click is ours -- that is the whole
+-- content of the link argument by the time control gets here -- and there is exactly one details
+-- link, the one built in ShowNotification, so there is no sub-prefix left to branch on. The link
+-- text, the mouse button and the chat frame the client also passes were carried into this
+-- signature and never read.
 function WhatGroup:OnSetItemRef()
     NS.Debug("ChatLink", "clicked hasPending=" .. tostring(self.pendingInfo ~= nil))
     -- pendingInfo is session-only (cleared on group-leave or /reload).

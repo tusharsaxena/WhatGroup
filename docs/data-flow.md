@@ -146,35 +146,82 @@ But the transition alone isn't enough as the trigger gate. In retail, the order 
 
 The function gates on three conditions: `pendingInfo` set, `IsInGroup()` true, and `notifiedFor ~= pendingInfo`. The `notifiedFor` flag — assigned to the current `pendingInfo` reference once we schedule notify — prevents double-firing when both paths catch the same join. It's cleared in two places: when `inviteaccepted` assigns a new `pendingInfo` (so the next join can fire), and on group-leave when state is wiped.
 
-## Why `hooksecurefunc` on `SetItemRef`
+## The details link: Blizzard's `addon` link type, heard through `EventRegistry`
 
 The notification's last line is a clickable green hyperlink:
 
 ```
-|cff00FF7F|HWhatGroup:show|h[Click here to view details]|h|r
+|cff00FF7F|Haddon:WhatGroup:show|h[Click here to view details]|h|r
 ```
 
-`SetItemRef` is the global handler for chat link clicks. We need to:
-
-1. Detect clicks on links whose `linkData` starts with `WhatGroup:`.
-2. Open the popup (`WhatGroup:ShowFrame()`).
-
-We *don't* need to suppress the original — Blizzard's `SetItemRef` walks an `if/elseif` chain on `linkType` and silently returns for unknown prefixes, so when our `WhatGroup:show` link is clicked the default already does nothing useful. A secure post-hook is enough:
+`addon` is Blizzard's own link type for addon chat links (`LinkTypes.AddOn`,
+`Blizzard_SharedXML/LinkUtil.lua:4`). A chat-link click calls the global
+`SetItemRef(link, text, button, frame)` (`Blizzard_UIPanels_Game/Mainline/ItemRef.lua:6-27`),
+and the first thing it does is `LinkUtil.ProcessLink(link, text, { button, frame })`, which looks up
+the handler registered for the link's type. For `addon` that handler is Blizzard's
+(`Blizzard_UIPanels_Game/Shared/ItemRefHandlersShared.lua:278-281` at tag 12.1.0, `:265-268` at
+12.0.7):
 
 ```lua
-hooksecurefunc("SetItemRef", function(linkArg)
-    if not (linkArg and linkArg:match("^WhatGroup:")) then return end
-    WhatGroup:OnSetItemRef()
-end)
+LinkUtil.RegisterLinkHandler(LinkTypes.AddOn, function(link, text, linkData, contextData)
+	-- local links only
+	EventRegistry:TriggerEvent("SetItemRef", link, text, contextData.button, contextData.frame);
+end);
 ```
 
-The closure takes **only `linkArg`**, and the handler takes nothing. The client
-also passes the link text, the mouse button and the chat frame; a post-hook
-closure that declares fewer parameters simply drops them, and none of the three
-was ever read here. By the time control reaches `OnSetItemRef` the prefix test
-has already answered the only question the arguments could — is this click ours
-— and there is exactly one `WhatGroup:` link to answer it about, so there is no
-sub-prefix left to branch on. Both signatures carried those names unread until
+It returns nil, which `ProcessLink` counts as `Handled` (`LinkUtil.lua:175-192`), so `SetItemRef`
+returns before its fallthrough. The addon subscribes to that event at file load
+(`core/WhatGroup.lua`):
+
+```lua
+EventRegistry:RegisterCallback("SetItemRef", function(_, linkArg)
+    onDetailsLinkClick(linkArg)   -- plain prefix test for "addon:WhatGroup:", then OnSetItemRef()
+end, WhatGroup)
+```
+
+The registry calls a function callback as `func(owner, link, text, button, frame)` through
+`securecallfunction` (`Blizzard_SharedXMLBase/CallbackRegistry.lua:209-213`). The event carries
+every `addon:` link click from every addon, so the prefix test is what makes a click ours. It is
+`addon:WhatGroup:`, trailing colon included, compared as a plain prefix, so another addon's
+`addon:WhatGroupSomething:` link does not match. The owner is the addon object. The registry keeps
+one callback per (event, owner) (`CallbackRegistry.lua:128-130`), so a second registration would
+replace the first, not stack.
+
+### Why the old unregistered link and `SetItemRef` post-hook went
+
+Until 2026-09-12 the link was `|HWhatGroup:show|h`, an **unregistered** type, and the click was
+caught by `hooksecurefunc("SetItemRef", …)`. For an unregistered type `ProcessLink` answers
+`Unhandled`, and `SetItemRef` falls through. A plain click goes to
+`ShowUIPanel(ItemRefTooltip); ItemRefTooltip:ItemRefSetHyperlink(link)` with a link the tooltip has
+no use for. A modified click goes to `HandleModifiedItemClick(GetFixedLink(text))`. A post-hook runs
+only once that body returns. On a real group join (open world, idle, 12.1.0) the link did nothing
+when clicked: no popup and no stale-link hint, so `OnSetItemRef` never ran. A later `/wg test` link
+worked. The UI state that stopped the fallthrough that time was not reproduced. What is certain is
+that the old route put Blizzard's fallthrough between the click and the addon, and the `addon`
+type takes it out. This page used to say Blizzard's `SetItemRef` "silently returns for unknown
+prefixes". The 12.x body does not do that.
+
+The headless harness now clicks through a transcription of Blizzard's `SetItemRef`
+(`tests/wow_mock.lua`, fidelity note 7), using the link the notification printed. The old cases
+fired the recorded post-hook by hand, which skipped Blizzard's body, and the body is the part of the
+click that failed.
+
+### The degraded client
+
+`NS.Compat.AddOnLinkType()` answers `LinkTypes.AddOn` only when `LinkTypes.AddOn` and
+`EventRegistry.RegisterCallback` both exist ([compat-layer.md](./compat-layer.md)). When it answers
+nil, the addon keeps the old `WhatGroup:show` link and the `hooksecurefunc("SetItemRef", …)`
+post-hook. That is the only click route such a client has, and it carries the fallthrough above.
+
+### What the click hands us
+
+Both closures take **only the link**, and the handler takes nothing. The client
+also passes the link text, the mouse button and the chat frame; a closure that
+declares fewer parameters simply drops them, and none of the three was ever
+read here. By the time control reaches `OnSetItemRef` the prefix test has
+already answered the only question the arguments could — is this click ours —
+and there is exactly one details link to answer it about, so there is no
+sub-prefix left to branch on. The signatures carried those names unread until
 `M4c-04`, where removing the top-level `ignore` from `.luacheckrc` finally
 reported them.
 

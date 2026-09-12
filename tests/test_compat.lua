@@ -25,6 +25,16 @@ test("compat: IsSpellKnown true when learned", function()
     assertTrue(NS.Compat.IsSpellKnown(99))
 end)
 
+test("compat: the harness answers a learned spell through C_SpellBook, not the global", function()
+    -- The mock models both readers (#15). With the global gone the answer can only have come
+    -- from the rung the ladder asks first, so the learned/unlearned cases measure that rung.
+    local NS, env, mock = T.newAddon()
+    mock.knownSpells[99] = true
+    env.IsSpellKnown = nil
+    assertEqual(NS.Compat.IsSpellKnown(99), true)
+    assertEqual(NS.Compat.IsSpellKnown(12345), false)
+end)
+
 test("compat: IsSpellKnown false when not learned", function()
     local NS = T.newAddon()
     assertFalse(NS.Compat.IsSpellKnown(12345))
@@ -136,14 +146,61 @@ end)
 
 test("compat: IsSpellKnown normalizes to a plain boolean", function()
     local NS, env = T.newAddon()
+    env.C_SpellBook = nil                        -- so the global rung is the one asked
     env.IsSpellKnown = function() return 1 end   -- a truthy non-boolean
     assertEqual(NS.Compat.IsSpellKnown(1), true)
 end)
 
 test("compat: IsSpellKnown returns false when the API is missing", function()
     local NS, env = T.newAddon()
+    env.C_SpellBook = nil   -- both readers, or the modern rung answers and the case tests nothing
     env.IsSpellKnown = nil
     assertEqual(NS.Compat.IsSpellKnown(1), false)
+end)
+
+-- The IsSpellKnown ladder: C_SpellBook.IsSpellKnown, then the bare global, then false. The rung
+-- was built from Blizzard's generated API documentation on live (SpellBookDocumentation.lua,
+-- `IsSpellKnown(spellID, spellBank = "Player") -> isKnown`), not from an in-client observation;
+-- docs/smoke-tests.md § 7a is where the two APIs are checked to agree.
+test("compat: IsSpellKnown asks C_SpellBook first when both APIs exist", function()
+    local NS, env = T.newAddon()
+    local calls, argc, firstArg = {}, nil, nil
+    env.C_SpellBook = { IsSpellKnown = function(...)
+        calls[#calls + 1] = "C_SpellBook"
+        argc, firstArg = select("#", ...), ...
+        return true
+    end }
+    env.IsSpellKnown = function() calls[#calls + 1] = "global" return false end
+    assertEqual(NS.Compat.IsSpellKnown(42), true)
+    assertEqual(table.concat(calls, ","), "C_SpellBook",
+        "the global is the fallback, not a second opinion")
+    assertEqual(firstArg, 42)
+    assertEqual(argc, 1, "spellBank is left to its documented default (Player)")
+end)
+
+test("compat: IsSpellKnown takes a false from C_SpellBook as the answer", function()
+    local NS, env = T.newAddon()
+    env.C_SpellBook = { IsSpellKnown = function() return false end }
+    env.IsSpellKnown = function() return true end
+    assertEqual(NS.Compat.IsSpellKnown(42), false,
+        "falling through on false would make the ladder 'either says yes' and hide a disagreement")
+end)
+
+test("compat: IsSpellKnown uses the global when C_SpellBook or its member is absent", function()
+    local NS, env = T.newAddon()
+    env.IsSpellKnown = function(id) return id == 7 end
+    env.C_SpellBook = nil
+    assertEqual(NS.Compat.IsSpellKnown(7), true)
+    assertEqual(NS.Compat.IsSpellKnown(8), false)
+    env.C_SpellBook = {}   -- the namespace without the member: a mid-migration client
+    assertEqual(NS.Compat.IsSpellKnown(7), true)
+end)
+
+test("compat: IsSpellKnown returns false when neither API exists", function()
+    local NS, env = T.newAddon()
+    env.C_SpellBook = nil
+    env.IsSpellKnown = nil
+    assertEqual(NS.Compat.IsSpellKnown(7), false)
 end)
 
 test("compat: GetActivityInfoTable returns nil for an unknown activity", function()
@@ -157,10 +214,34 @@ test("compat: GetActivityInfoTable returns nil when C_LFGList is absent", functi
     assertNil(NS.Compat.GetActivityInfoTable(500))
 end)
 
+-- The chat-link path: Blizzard's `addon` link type, whose registered handler re-raises the click
+-- as EventRegistry's "SetItemRef" event (ItemRefHandlersShared.lua:278-281 at 12.1.0). Both halves
+-- have to be there, because a link of that type with nothing to hear the event is a dead link.
+test("compat: AddOnLinkType answers Blizzard's addon link type", function()
+    local NS = T.newAddon()
+    assertEqual(NS.Compat.AddOnLinkType(), "addon")
+end)
+
+test("compat: AddOnLinkType is nil without LinkTypes.AddOn", function()
+    local NS, env = T.newAddon()
+    env.LinkTypes = {}
+    assertNil(NS.Compat.AddOnLinkType())
+    env.LinkTypes = nil
+    assertNil(NS.Compat.AddOnLinkType())
+end)
+
+test("compat: AddOnLinkType is nil without EventRegistry:RegisterCallback", function()
+    local NS, env = T.newAddon()
+    env.EventRegistry = {}
+    assertNil(NS.Compat.AddOnLinkType(), "the registry without the member")
+    env.EventRegistry = nil
+    assertNil(NS.Compat.AddOnLinkType())
+end)
+
 test("compat: Compat is the sole namespace the addon reads variant APIs through", function()
     local NS = T.newAddon()
-    for _, fn in ipairs({ "GetSpellName", "GetSpellTexture",
-                          "GetSpellLink", "IsSpellKnown", "GetActivityInfoTable" }) do
+    for _, fn in ipairs({ "GetSpellName", "GetSpellTexture", "GetSpellLink", "IsSpellKnown",
+                          "GetActivityInfoTable", "AddOnLinkType" }) do
         assertEqual(type(NS.Compat[fn]), "function", "NS.Compat." .. fn .. " is missing")
     end
 end)
