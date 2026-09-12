@@ -41,7 +41,8 @@ The addon was previously tainting `GameMenuFrame`'s button callbacks; clicking L
 **Expected:** The character logs out cleanly, no Lua error, no `ADDON_ACTION_FORBIDDEN` line.
 
 Repeat after each of these to make sure no surface re-introduces the leak:
-- After `/wg test` (exercises `WhatGroupFrame` + secure teleport button)
+- After `/wg test` (exercises `WhatGroupFrame` + secure teleport button + the `WhatGroupFrameEscape` proxy's `UISpecialFrames` entry)
+- After closing the popup with **ESC** in combat (§ 4.3a)
 - After a fresh login / `/reload`, before running anything (`Settings.Register` now runs at `OnEnable`, so the AddOns entry is registered at boot — this is the key case for the login-register change)
 - After `/wg config` (re-opens the already-registered panel)
 - After `/wg reset` confirm (exercises lazy `StaticPopupDialogs["WHATGROUP_RESET_ALL"]`)
@@ -337,9 +338,30 @@ A `/wg test` link does **not** stand in for a real join's link. § 5.1a clicks t
 
 ### 4.3 ESC closes popup
 
-1. Press **ESC** with the popup focused.
+1. Out of combat, press **ESC** with the popup on screen.
+2. Press **ESC** again.
 
-**Expected:** Popup hides. ESC menu does **not** open (because `WhatGroupFrame` is in `UISpecialFrames`).
+**Expected:** Step 1 hides the popup, and the game menu does **not** open on that press. `UISpecialFrames` holds the `WhatGroupFrameEscape` proxy, which is shown while the popup is on screen, and Escape closing it counts as a closed window. Step 2 opens the game menu, because the proxy went down with the popup.
+
+### 4.3a ESC in combat — no ADDON_ACTION_BLOCKED (CRITICAL)
+
+**Reported from the client on 2026-09-12:** `[ADDON_ACTION_BLOCKED] AddOn 'WhatGroup' tried to call the protected function 'WhatGroupFrame:Hide()'`, from `CloseWindows` ← `ToggleGameMenu`. At that time the popup itself was in `UISpecialFrames`, and Escape's bare `Hide()` on it is protected in combat. Now Escape reaches the popup only through the proxy's `OnHide` → `hidePopup()`.
+
+**Run with BugGrabber (or `/console scriptErrors 1`) enabled, or this check cannot fail visibly.**
+
+1. `/wg test` to show the popup, out of combat. Pull a target dummy.
+2. In combat, press **ESC**.
+   - **Expected:** the popup closes at once, and **no `ADDON_ACTION_BLOCKED` error** appears (nothing in BugGrabber naming WhatGroup). The game menu does not open on this press.
+3. Press **ESC** again, still in combat.
+   - **Expected:** the game menu opens normally. Close it.
+4. Drop combat.
+   - **Expected:** the popup is really gone, not just invisible. Its title bar can't be dragged and its area doesn't catch clicks. It does **not** spring back.
+5. Pull again and drop combat once more.
+   - **Expected:** still closed. An Escape is a player dismissal and outlives every combat edge.
+6. Run § 1.3 (ESC → **Logout**, then cancel) in this session.
+   - **Expected:** no `ADDON_ACTION_FORBIDDEN`. The proxy's entry is registered lazily, exactly as the old one was.
+
+**Failure means:** any red error at step 2; a popup still visible after step 2; a game menu that does not open at step 3 (a proxy left shown); or a popup that reappears at steps 4-5.
 
 ### 4.4 Drag-to-reposition
 
@@ -363,7 +385,7 @@ The popup parents a `SecureActionButtonTemplate` teleport button, so the client 
 3. Drop combat.
    - **Expected:** it is still gone, and stays gone.
 4. `/wg test` again, pull, and this time press **ESC** in combat.
-   - **Expected:** identical to step 2.
+   - **Expected:** identical to step 2, with no `ADDON_ACTION_BLOCKED` on `WhatGroupFrame:Hide()`. § 4.3a is the full check.
 5. Set `General visibility` = **Out of combat**, `/wg test` out of combat, then pull.
    - **Expected:** the popup goes off screen **on the pull**, not a fight later. No error.
 6. Drop combat.
@@ -389,7 +411,7 @@ The popup parents a `SecureActionButtonTemplate` teleport button, so the client 
 3. Drop combat.
    - **Expected:** still closed. The dismissal outlives the whole fight.
 4. `/wg test` again, then press **ESC** instead of Close. Pull, drop combat.
-   - **Expected:** identical. ESC routes through `UISpecialFrames` to a bare `Hide()`, so it must be exactly as durable as the button.
+   - **Expected:** identical. ESC reaches the popup through the `WhatGroupFrameEscape` proxy's `OnHide`, not through the Close button's handler, so it must be exactly as durable as the button.
 5. Now the direction that *must* still work: `General visibility` = **In combat**, out of combat, holding a capture. The popup is hidden. Pull.
    - **Expected:** the popup **opens**. This is the gate withholding and then releasing, and it is the one case the re-show arm exists for.
 6. Drop combat.
@@ -658,7 +680,7 @@ nothing about one out of game.
 |---|------|--------|
 | 12a.1 | `/wg config`, then cycle every tab of the strip three times, ending back on the first | Each tab shows **its own** label on all three passes. A label carried over from the previously-dressed tab is the pool handing back a frame it did not finish dressing. |
 | 12a.2 | Watch the selection highlight as you go | The highlighted tab is the one you pressed, every time. A highlight on the wrong button means `OnClick` was not re-set on the dress. |
-| 12a.3 | Watch the strip's band height across all three passes | It does not move. A band that grows or shrinks between passes is the geometry case the kit's geometry flip (revision 18 at the earliest) will be able to assert and revision 17 cannot. |
+| 12a.3 | Watch the strip's band height across all three passes | It does not move. A band that grows or shrinks between passes is the geometry case the kit's geometry flip (revision 20 at the earliest) will be able to assert and revision 19 cannot. |
 | 12a.4 | Watch the body under the strip | It is always the selected tab's rows. A body drawn under the wrong tab means the pooled content panel came back still parented to the previous selection. |
 | 12a.5 | `Esc`, then `/wg config` again, and walk the strip once more | The same three things hold on a fresh build. The pools are per-`ctx`, so a second build is where a released frame can come back dressed for a different tab. |
 
@@ -683,16 +705,16 @@ a client at the time. Step 5 below is where it gets run.
 group:
 
 - **`info.fullName`** and **`info.shortName`** from `C_LFGList.GetActivityInfoTable`
-  (`core/Compat.lua:136-141`, stored at `core/WhatGroup.lua:343`, drawn at `modules/Frame.lua:768`
-  and in the chat summary at `core/WhatGroup.lua:548`). German activity names are materially longer
+  (`core/Compat.lua:136-141`, stored at `core/WhatGroup.lua:381`, drawn at `modules/Frame.lua:822`
+  and in the chat summary at `core/WhatGroup.lua:586`). German activity names are materially longer
   than English ones.
 - **`info.playstyleString`**, which the server renders in the player's language, preferred over the
-  enum lookup by `Labels.GetPlaystyleLabel` (`core/WhatGroup.lua:496-501`).
+  enum lookup by `Labels.GetPlaystyleLabel` (`core/WhatGroup.lua:534-539`).
 - **`GROUP_FINDER_GENERAL_PLAYSTYLE1` … `4`**, read into `Labels.PLAYSTYLE` at **file load time**
-  (`core/WhatGroup.lua:469-474`). A global that is nil at load leaves that label nil for the whole
+  (`core/WhatGroup.lua:507-512`). A global that is nil at load leaves that label nil for the whole
   session — there is no second read.
 - **`Compat.GetSpellName`** (`core/Compat.lua:27-38`), whose return goes straight into the teleport
-  button's `/cast` macrotext (`modules/Frame.lua:351`, built at `:463`). Casting by name only works
+  button's `/cast` macrotext (`modules/Frame.lua:364`, built at `:476`). Casting by name only works
   when the name is the client's own, which is what makes this locale-independent by construction —
   and is therefore worth confirming rather than assuming.
 
@@ -701,7 +723,7 @@ English on every client. That is the addon's scope and not a defect. § 10 (the 
 that they render as prose rather than as keys, and it is unrelated to this section.
 
 **`/wg test` will not do for most of this.** Its fixture spells the activity name out in English
-(`core/WhatGroup.lua:909`), so on a German client it is *expected* to show English. Use a real group
+(`core/WhatGroup.lua:947`), so on a German client it is *expected* to show English. Use a real group
 for steps 1 to 3.
 
 1. **A real application, with a real German activity name.** Apply to a group through the LFG UI
@@ -710,7 +732,7 @@ for steps 1 to 3.
    field shows a short name or the group-type label, and the **Playstyle** row shows the server's
    own wording. No field shows `Unknown` where the client plainly has a name.
    **Fail:** `Unknown` in the Instance row — `fullName` came back empty on this locale and the
-   `activityName` fallback at `core/WhatGroup.lua:343` did not cover it. Also fail: a name that
+   `activityName` fallback at `core/WhatGroup.lua:381` did not cover it. Also fail: a name that
    renders as mojibake or `?` glyphs, which is the text not surviving the trip to the font.
 2. **Field width.** Read the popup with that longer name in it, and check the chat summary line too.
    **Expected:** the name fits its row or is truncated cleanly at the field's edge.
@@ -786,6 +808,7 @@ For a fast pre-release pass, run at minimum:
 - [ ] sections 2.1, 2.10, 2.12, 2.13 — `/wg help`, `/wg test`, `/wg config`, `/wg reset`
 - [ ] section 3.4 — Defaults button confirm flow
 - [ ] section 3.8 — the visibility gate follows a combat transition, in both directions, with no taint line
+- [ ] section 4.3a — ESC in combat closes the popup with no `ADDON_ACTION_BLOCKED`, and it stays closed
 - [ ] section 4.1 — Click teleport button (no taint)
 - [ ] section 4.1a — Teleport on cooldown: swipe, ticking note, and a click that casts nothing
 - [ ] section 4.1b — Teleport not learned: the note says so, and never says cooldown

@@ -3,7 +3,8 @@
 --
 -- Everything in this file is **lazy** — no frames are created at file
 -- load. The popup, the Close button, the SecureActionButtonTemplate
--- teleport button, and the UISpecialFrames registration all happen
+-- teleport button, and the UISpecialFrames registration (of the ESC
+-- proxy `WhatGroupFrameEscape`, never of the popup itself) all happen
 -- inside `buildFrame()`, which fires on the first `WhatGroup:ShowFrame()`
 -- call.
 --
@@ -201,11 +202,19 @@ end
 local softHidden  = false   -- alpha-0 stand-in for a Hide the client refused
 local pendingHide = false   -- a real Hide owed once the lockdown lifts
 
+-- The ESC proxy: the name in UISpecialFrames, standing in for the popup's own (buildEscapeProxy
+-- below). Unprotected, so its Show and Hide are legal in combat, and kept SHOWN exactly while the
+-- popup is on screen (`onScreen()`), because CloseWindows only closes a shown entry.
+local escProxy
+
 local function hidePopup()
     if not f then return true end
     if InCombatLockdown() then
         softHidden, pendingHide = true, true
         f:SetAlpha(0)
+        -- The soft route fires no OnHide on f, so the proxy is taken down here. After softHidden is
+        -- set, never before: the proxy's own OnHide re-enters only while the popup is on screen.
+        if escProxy then escProxy:Hide() end
         return true
     end
     softHidden, pendingHide = false, false
@@ -229,6 +238,7 @@ local function showPopup()
         softHidden, pendingHide = false, false
         WhatGroup:ApplyFrameAlpha()
         if not InCombatLockdown() then f:Raise() end
+        if escProxy then escProxy:Show() end
         return true
     end
     if InCombatLockdown() then return false end
@@ -236,6 +246,7 @@ local function showPopup()
     WhatGroup:ApplyFrameAlpha()
     f:Show()
     f:Raise()
+    if escProxy then escProxy:Show() end
     return true
 end
 
@@ -261,9 +272,11 @@ end
 -- client through 559 green cases.
 --
 -- The bookkeeping is inverted on purpose, so the next hide path cannot forget it: `OnHide` clears
--- this for EVERY hide, and only the gate's own two sites set it back, immediately after. ESC goes
--- through `UISpecialFrames` to a bare `f:Hide()` and leaves no other trace, so anything keyed off
--- one button's handler is wrong by construction rather than by oversight.
+-- this for EVERY hide, and only the gate's own two sites set it back, immediately after. The two
+-- player hides that can take the soft route in combat, where OnHide never fires, clear it
+-- themselves: the Close button's OnClick, and the ESC proxy's OnHide (buildEscapeProxy). ESC never
+-- reaches f directly -- UISpecialFrames holds the proxy, not "WhatGroupFrame" -- so anything keyed
+-- off one button's handler is wrong by construction rather than by oversight.
 local gateWithheld = false
 
 function WhatGroup:ApplyFrameVisibility(inCombat)
@@ -482,6 +495,43 @@ local function deferTeleportUntilCombatEnds(info)
     return true
 end
 
+-- ESC-to-close, through a PROXY rather than the popup (the standalone-windows row in
+-- docs/ARCHITECTURE.md's `## Documented deviations`). Blizzard's CloseWindows calls a bare `:Hide()`
+-- on every shown UISpecialFrames entry. On WhatGroupFrame that call is protected in combat -- f
+-- parents the SecureActionButtonTemplate teleport button -- and the tainted entry blamed this
+-- addon: `ADDON_ACTION_BLOCKED ... 'WhatGroupFrame:Hide()'` from ToggleGameMenu, 2026-09-12.
+--
+-- So the entry is a small frame that owns nothing: no textures, no mouse, no secure children,
+-- parented to UIParent. Its Show and Hide are unprotected and legal in combat. It is shown exactly
+-- while the popup is on screen (showPopup brings it up; hidePopup and f's OnHide take it down), so
+-- Escape with the popup up hides the proxy, counts as a closed window, and the game menu stays shut
+-- on that press. Escape with the popup soft-hidden or gone finds nothing and the menu opens.
+--
+-- Its OnHide routes the press through hidePopup(): a real Hide out of combat, the alpha-0 soft hide
+-- with pendingHide in combat, settled at PLAYER_REGEN_ENABLED by ApplyFrameVisibility. The
+-- onScreen() check is the recursion guard -- every other hide of the proxy comes from hidePopup or
+-- f's OnHide, after the popup has already left the screen, so it does nothing there.
+--
+-- Built from buildFrame, i.e. on the first ShowFrame, and never at load: the UISpecialFrames insert
+-- is one of the two boot-taint sources behind the GameMenu Logout failure (docs/midnight-quirks.md).
+local ESC_PROXY_NAME = "WhatGroupFrameEscape"
+
+local function buildEscapeProxy()
+    local p = CreateFrame("Frame", ESC_PROXY_NAME, UIParent)
+    -- Hidden BEFORE the OnHide is set: frames are born shown, a shown proxy with no popup would eat
+    -- the player's next Escape, and this Hide must not reach hidePopup.
+    p:Hide()
+    p:SetScript("OnHide", function()
+        if not onScreen() then return end
+        hidePopup()
+        -- A player dismissal, so the gate must not reopen it. Set here as the Close button sets it:
+        -- in combat hidePopup takes the alpha route and never fires f's OnHide.
+        gateWithheld = false
+    end)
+    tinsert(UISpecialFrames, ESC_PROXY_NAME)
+    return p
+end
+
 local function buildFrame()
     if f then return end   -- one-shot
 
@@ -499,17 +549,22 @@ local function buildFrame()
     NS.Windows.Restore("popup", f)
     f:Hide()
 
-    -- The ticker's hard stop, and the same reasoning now carries a second passenger. OnHide covers
-    -- every way the popup can close — the Close button, ESC through UISpecialFrames, a `f:Hide()`
-    -- from anywhere — so no exit path has to remember either of them.
+    -- The ticker's hard stop, and the same reasoning now carries two more passengers. OnHide covers
+    -- every REAL hide — the Close button, ESC through the proxy, the gate, a `f:Hide()` from
+    -- anywhere — so no exit path has to remember any of them. (The combat soft hide fires no
+    -- OnHide; hidePopup and its two player callers cover that route themselves.)
     --
     -- Clearing `gateWithheld` here is what makes a player's dismissal stick: this runs for the
     -- gate's own hide too, and the gate sets the flag back immediately afterwards. Every OTHER hide
     -- therefore leaves it false, which is exactly the answer the re-show arm needs and the one it
     -- could not previously get.
+    --
+    -- The ESC proxy comes down with the popup, so a later Escape finds no window and opens the game
+    -- menu. By now f:IsShown() is false, so the proxy's OnHide sees the popup off screen and stops.
     f:SetScript("OnHide", function(self)
         gateWithheld = false
         stopCooldownTicker(self)
+        if escProxy then escProxy:Hide() end
     end)
 
     -- And OnShow is where it arms, the exact mirror, for the same reason: the ticker is armed only
@@ -685,13 +740,12 @@ local function buildFrame()
         gateWithheld = false
     end)
 
-    -- ESC to close — register with UISpecialFrames *now*, lazily.
-    -- Earlier versions did this at file-load and that addition was
-    -- leaving taint that surfaced on Logout. Deferring it to here
-    -- means the entry only exists once the player has actually opened
-    -- the popup, by which point Blizzard's GameMenu has already
-    -- initialized its button callbacks in a clean context.
-    tinsert(UISpecialFrames, "WhatGroupFrame")
+    -- ESC to close — register the PROXY with UISpecialFrames *now*, lazily (buildEscapeProxy says
+    -- why it is a proxy and not "WhatGroupFrame"). Earlier versions registered at file-load and that
+    -- addition was leaving taint that surfaced on Logout. Deferring it to here means the entry only
+    -- exists once the player has actually opened the popup, by which point Blizzard's GameMenu has
+    -- already initialized its button callbacks in a clean context.
+    escProxy = buildEscapeProxy()
 
     fields = {
         group        = valGroup,

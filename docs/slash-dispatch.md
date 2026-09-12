@@ -4,7 +4,7 @@
 
 ## Registration
 
-Both names are registered through `AceConsole-3.0:RegisterChatCommand` in `OnInitialize` (`core/WhatGroup.lua:227`):
+Both names are registered through `AceConsole-3.0:RegisterChatCommand` in `OnInitialize` (`core/WhatGroup.lua:265`):
 
 ```lua
 self:RegisterChatCommand("wg",        "OnSlashCommand")
@@ -15,7 +15,7 @@ self:RegisterChatCommand("whatgroup", "OnSlashCommand")
 
 ## Case-preserving parse
 
-The dispatcher (`libs/LibKa0s/Slash.lua:586`) lowercases only the command name — the rest of the input is passed through untouched:
+The dispatcher (`libs/LibKa0s/Slash.lua:657`) lowercases only the command name — the rest of the input is passed through untouched:
 
 ```lua
 local cmd, rest = raw:match("^(%S+)%s*(.*)$")
@@ -94,7 +94,7 @@ Library verbs delegate to the instance; host verbs are the file-local functions 
 | `/wg resetall` | `runResetAll` (host) → `StaticPopup_Show("WHATGROUP_RESET_ALL")` → `Helpers.RestoreAllDefaults()` | Show a confirm popup; on accept, `db:ResetProfile()` (which empties the profile in place, merges the defaults back and fires `OnProfileReset`), then restore the `sessionOnly` rows by hand, because a profile reset cannot reach storage that is not the db (options-ui-§12). The *Reset all settings* button on the **Master controls** tab is a third entry point onto the same body. With no `StaticPopup_Show` or `Settings.EnsureResetPopup` (headless) it calls `Helpers.RestoreAllDefaults()` directly, unconfirmed. Per-row `onChange` is skipped — the default baseline is already the reconciled state. The Defaults button in the General sub-page header (and Blizzard's own footer control, which the library forwards to it) shows the same popup, so all paths share one OnAccept body. |
 | `/wg debug` / `/wg debug on\|off` | `runDebug` (host) | Bare `/wg debug` **toggles the on-screen debug console window** (`NS.DebugLog:Toggle()`), state untouched; `/wg debug on\|off` sets the session-only `NS.State.debug` flag through the single `NS.DebugLog:SetEnabled` seam (color-coded chat ack + `[Debug] logging enabled/disabled` console line). The FLAG is off on every login, never persisted, and **not** a schema row (WG-12), so there's no `/wg set debug`. The **Debug console** checkbox on the Master controls tab is *not* a second toggle for it — it is a `sessionOnly` schema row on the path `state.debugConsole` that shows/hides the console **window** only, routed to `NS.DebugLog`'s own get/set by `settings/Schema.lua`'s `SESSION` table so it never reaches `db.profile`. Debug output (`NS.Debug(tag, …)`) renders in the console, not chat — see [debug.md](./debug.md). |
 
-`Helpers.RestoreAllDefaults` deliberately **overrides** the library member of the same name (`settings/OptionsSetup.lua:270`, [LIBKA0S-08](https://github.com/tusharsaxena/WhatGroup/issues/10)): the library's is row-by-row over every row, with no profile reset and no confirmation. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched.
+`Helpers.RestoreAllDefaults` deliberately **overrides** the library member of the same name (`settings/OptionsSetup.lua:272-285`, [LIBKA0S-08](https://github.com/tusharsaxena/WhatGroup/issues/10)): the library's is row-by-row over every row, with no profile reset and no confirmation. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched.
 
 ## `reset` takes a path; `resetall` is the wipe
 

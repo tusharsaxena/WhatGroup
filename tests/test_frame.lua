@@ -122,16 +122,58 @@ test("frame: buildFrame is one-shot — a second show reuses the same frame", fu
     assertEqual(#mock.frames, frameCount, "no additional frames created")
 end)
 
-test("frame: ESC-to-close is registered lazily, on the first show only", function()
-    local NS, env = T.bootAddon()
+-- The ESC proxy (the standalone-windows row in docs/ARCHITECTURE.md's register). UISpecialFrames
+-- holds the name of a small unprotected frame that mirrors "the popup is on screen", never the
+-- popup's own name: Escape's CloseWindows calls a bare `:Hide()` on every shown entry, and on
+-- WhatGroupFrame -- which parents a SecureActionButtonTemplate -- that call is refused in combat.
+local PROXY = "WhatGroupFrameEscape"
+local function proxy(mock) return mock.frames[PROXY] end
+
+-- Blizzard's CloseWindows, as far as it concerns us: every name in UISpecialFrames whose frame is
+-- SHOWN gets a bare `:Hide()`, and a hit means the press was spent closing a window -- so the game
+-- menu does not open on it. `mock.frames[name]` stands in for `_G[name]`: the mock's CreateFrame
+-- records named frames there rather than in the sandbox's globals. The mock's Hide already refuses
+-- (and records in mock.blocked) a Hide on a frame holding a protected descendant during combat,
+-- which is the client's ADDON_ACTION_BLOCKED.
+local function pressEscape(mock)
+    local found = false
+    for _, name in ipairs(mock.UISpecialFrames) do
+        local fr = mock.frames[name]
+        if fr and fr:IsShown() then
+            fr:Hide()
+            found = true
+        end
+    end
+    return found
+end
+
+test("frame: ESC-to-close registers the proxy lazily, once, and never the popup itself", function()
+    -- red under: `tinsert(UISpecialFrames, "WhatGroupFrame")`, the entry that let Escape call the
+    -- popup's protected Hide straight from Blizzard's CloseWindows.
+    local NS, env, mock = T.bootAddon()
     assertEqual(#env.UISpecialFrames, 0, "no UISpecialFrames entry at load (taint)")
     NS.addon:ShowFrame()
     NS.addon:ShowFrame()
-    local hits = 0
+    local hits, popupHits = 0, 0
     for _, name in ipairs(env.UISpecialFrames) do
-        if name == "WhatGroupFrame" then hits = hits + 1 end
+        if name == PROXY then hits = hits + 1 end
+        if name == "WhatGroupFrame" then popupHits = popupHits + 1 end
     end
-    assertEqual(hits, 1, "registered exactly once")
+    assertEqual(hits, 1, "the proxy is registered exactly once")
+    assertEqual(popupHits, 0, "the popup's own name must never be in UISpecialFrames")
+    local p = proxy(mock)
+    assertTrue(p ~= nil, "the proxy frame exists once the popup is built")
+    assertFalse(p.__holdsProtected(), "the proxy must be unprotected, or Escape is blocked on it too")
+    assertEqual(p.__parent, mock.UIParent, "parented to UIParent, not to the protected popup")
+end)
+
+test("frame: nothing reaches UISpecialFrames at load, not even after OnEnable (Logout taint)", function()
+    -- The GameMenu → Logout contract (docs/midnight-quirks.md): the entry stays deferred to the
+    -- first ShowFrame, proxy or not.
+    -- red under: building the proxy (or inserting any name) at file load or in OnEnable.
+    local _, env, mock = T.enableAddon()
+    assertEqual(#env.UISpecialFrames, 0, "a load-time UISpecialFrames entry taints GameMenu's Logout")
+    assertNil(proxy(mock), "the proxy must not exist before the first ShowFrame")
 end)
 
 test("frame: the Close button hides the popup", function()
@@ -1096,8 +1138,8 @@ test("frame: Close in combat takes the popup off screen at once", function()
 end)
 
 test("frame: the real Hide lands when the lockdown lifts, and the alpha comes back with it", function()
-    -- Alpha 0 is a stand-in, not a resting state: the frame is still shown, still in
-    -- UISpecialFrames, and still taking mouse input. The owed Hide has to be settled on the first
+    -- Alpha 0 is a stand-in, not a resting state: the frame is still shown and still taking
+    -- mouse input. The owed Hide has to be settled on the first
     -- edge where it is legal, or the popup is invisible-but-present for the rest of the session.
     local NS, _, mock = T.enableAddon()
     NS.addon.pendingInfo = pending()
@@ -1185,18 +1227,134 @@ test("frame: a popup the PLAYER closed does not come back when combat starts", f
 end)
 
 test("frame: a popup closed with ESC does not come back either", function()
-    -- ESC routes through UISpecialFrames to a plain f:Hide(), so it leaves no trace the Close
-    -- button's own handler could record. Whatever distinguishes a gate hide from a player hide has
-    -- to sit on the frame, not on one button.
+    -- ESC reaches the popup through the proxy's OnHide, not through the Close button's handler, so
+    -- whatever distinguishes a gate hide from a player hide cannot live on one button.
     -- red under: the same arm.
     local NS, _, mock = T.enableAddon()
     NS.addon.pendingInfo = pending()
     NS.addon:ShowFrame()
-    popup(mock):Hide()          -- exactly what CloseSpecialWindows does
+    assertTrue(pressEscape(mock), "Escape closed a window")
+    assertFalse(popup(mock):IsShown(), "the Escape press itself")
 
     mock.combat = true
     mock.__fireEvent("PLAYER_REGEN_DISABLED")
     assertFalse(popup(mock):IsShown(), "ESC must be as durable as the Close button")
+end)
+
+-- ---------------------------------------------------------------------------
+-- Escape in combat, through the proxy (the 2026-09-12 ADDON_ACTION_BLOCKED on WhatGroupFrame:Hide()
+-- from Blizzard_UIParentPanelManager's CloseWindows)
+-- ---------------------------------------------------------------------------
+
+test("frame: Escape in combat never calls the popup's protected Hide, and soft-hides it", function()
+    -- The owner's report, verbatim: `[ADDON_ACTION_BLOCKED] AddOn 'WhatGroup' tried to call the
+    -- protected function 'WhatGroupFrame:Hide()'` from CloseWindows ← ToggleGameMenu.
+    -- red under: `tinsert(UISpecialFrames, "WhatGroupFrame")`.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    assertTrue(onScreen(mock))
+
+    mock.combat = true
+    local found = pressEscape(mock)
+    assertEqual(#mock.blocked, 0, "Escape fired a protected Hide: " .. table.concat(mock.blocked, ", "))
+    assertTrue(found, "the press closed a window, so the game menu must not open on it")
+    assertTrue(popup(mock):IsShown(), "the real Hide is owed to the end of the lockdown")
+    assertEqual(popup(mock):GetAlpha(), 0, "but the player sees it go now")
+    assertFalse(proxy(mock):IsShown(), "and the proxy is down with it")
+end)
+
+test("frame: Escape out of combat really hides the popup, and the next Escape opens the menu", function()
+    -- red under: a proxy OnHide that only soft-hides, or a proxy left shown after the popup closed.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+
+    assertTrue(pressEscape(mock), "the first Escape closes the popup")
+    assertFalse(popup(mock):IsShown(), "out of combat Escape is a real Hide")
+    assertEqual(popup(mock):GetAlpha(), 1, "at the player's own opacity")
+    assertEqual(#mock.blocked, 0)
+    assertFalse(pressEscape(mock), "the second Escape finds no window, so the game menu opens")
+end)
+
+test("frame: Escape in combat is a player dismissal -- regen lands the real Hide, and nothing reopens it", function()
+    -- red under: a proxy OnHide that leaves pendingHide unset (the popup stays at alpha 0 forever).
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    mock.combat = true
+    pressEscape(mock)
+
+    mock.combat = false
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    assertFalse(popup(mock):IsShown(), "the owed Hide landed when the lockdown lifted")
+    assertEqual(popup(mock):GetAlpha(), 1, "and the alpha came back for the next open")
+
+    mock.combat = true
+    mock.__fireEvent("PLAYER_REGEN_DISABLED")
+    mock.combat = false
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    assertFalse(popup(mock):IsShown(), "a player's Escape must outlive every later combat edge")
+    assertEqual(#mock.blocked, 0)
+end)
+
+test("frame: Escape in combat clears a gate flag left over from a re-show", function()
+    -- A popup the gate withheld and then released comes back through showPopup, which fires OnShow
+    -- and never OnHide, so it is on screen with gateWithheld still true. An Escape in combat takes
+    -- the soft route and fires no OnHide on the popup either -- so unless the proxy clears the flag
+    -- itself, regen settles the Hide and the gate reopens the popup the player just dismissed.
+    -- red under: a proxy OnHide that calls hidePopup() without `gateWithheld = false`.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.db.profile.visibility = "inCombat"
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()                       -- built, withheld by the gate
+    assertFalse(popup(mock):IsShown())
+    NS.addon.db.profile.visibility = "always"
+    NS.addon:ApplyFrameVisibility()            -- the dropdown's onChange: the gate releases it
+    assertTrue(onScreen(mock), "the released popup is on screen")
+
+    mock.combat = true
+    pressEscape(mock)
+    mock.combat = false
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    assertFalse(popup(mock):IsShown(), "the gate reopened a popup the player closed with Escape")
+end)
+
+test("frame: the proxy is shown exactly while the popup is on screen", function()
+    -- CloseWindows counts a SHOWN proxy as a closed window, which suppresses the game menu. A proxy
+    -- left up with the popup gone would eat the player's next Escape for nothing.
+    -- red under: any off-screen path that forgets the proxy (a real Hide, a soft hide, the gate).
+    local NS, _, mock = T.enableAddon()
+    NS.addon.db.profile.visibility = "inCombat"
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()                       -- built, off screen
+    assertFalse(proxy(mock):IsShown(), "hidden at creation: the popup was never on screen")
+    assertFalse(pressEscape(mock), "no popup, so the game menu opens")
+
+    NS.addon.db.profile.visibility = "always"
+    NS.addon:ShowFrame()
+    assertTrue(proxy(mock):IsShown(), "a full Show brings the proxy up")
+
+    local btn = closeButton(mock)
+    btn.__scripts.OnClick(btn)                 -- real Hide, out of combat
+    assertFalse(proxy(mock):IsShown(), "a real Hide takes the proxy down")
+    assertFalse(pressEscape(mock))
+
+    NS.addon:ShowFrame()
+    mock.combat = true
+    btn.__scripts.OnClick(btn)                 -- soft hide
+    assertFalse(proxy(mock):IsShown(), "a soft hide takes the proxy down")
+    assertFalse(pressEscape(mock), "a soft-hidden popup is not a window to close")
+
+    NS.addon:ShowFrame()                       -- alpha restore, legal in combat
+    assertTrue(onScreen(mock), "the soft-hidden popup comes back on its alpha")
+    assertTrue(proxy(mock):IsShown(), "and the proxy with it")
+
+    NS.addon.db.profile.visibility = "outOfCombat"
+    NS.addon:ApplyFrameVisibility()            -- the gate soft-hides it in combat
+    assertFalse(proxy(mock):IsShown(), "a gate hide takes the proxy down")
+    assertFalse(pressEscape(mock))
+    assertEqual(#mock.blocked, 0)
 end)
 
 test("frame: leaving combat does not reopen a popup the player closed mid-fight either", function()
