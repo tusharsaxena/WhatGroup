@@ -658,7 +658,7 @@ nothing about one out of game.
 |---|------|--------|
 | 12a.1 | `/wg config`, then cycle every tab of the strip three times, ending back on the first | Each tab shows **its own** label on all three passes. A label carried over from the previously-dressed tab is the pool handing back a frame it did not finish dressing. |
 | 12a.2 | Watch the selection highlight as you go | The highlighted tab is the one you pressed, every time. A highlight on the wrong button means `OnClick` was not re-set on the dress. |
-| 12a.3 | Watch the strip's band height across all three passes | It does not move. A band that grows or shrinks between passes is the geometry case the kit's geometry flip (revision 18 at the earliest) will be able to assert and revision 17 cannot. |
+| 12a.3 | Watch the strip's band height across all three passes | It does not move. A band that grows or shrinks between passes is the geometry case the kit's geometry flip (revision 19 at the earliest) will be able to assert and revision 18 cannot. |
 | 12a.4 | Watch the body under the strip | It is always the selected tab's rows. A body drawn under the wrong tab means the pooled content panel came back still parented to the previous selection. |
 | 12a.5 | `Esc`, then `/wg config` again, and walk the strip once more | The same three things hold on a fresh build. The pools are per-`ctx`, so a second build is where a released frame can come back dressed for a different tab. |
 

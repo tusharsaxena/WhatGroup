@@ -196,7 +196,7 @@ end
 -- wholesale replacement, not a write through the helper, so its line comes from the profile-event
 -- handler, worded by the event. AceDB fires OnProfileCopied(event, db, sourceProfileKey), and the
 -- copy has landed in the ACTIVE profile. A method rather than a closure, so a test can call it with
--- those real arguments: the kit's AceDB mock passes the current key where AceDB passes the source.
+-- those real arguments directly (since kit revision 18 the AceDB mock passes the source as well).
 function WhatGroup:OnProfileCopied(_, _, source)
     NS.Debug("Set", "copied profile '%s' \226\134\146 '%s'", tostring(source),
              tostring(self.db:GetCurrentProfile()))

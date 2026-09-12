@@ -433,8 +433,8 @@ end)
 
 test("debuglog: a profile copy logs one [Set] copied line naming the source (debug-logging-§10)", function()
     -- Real AceDB fires OnProfileCopied(event, db, sourceProfileKey), so the handler is called with
-    -- exactly that. db:CopyProfile is not used here: the kit's AceDB mock passes the CURRENT profile
-    -- key as the third argument, which is the destination, not the source (a known LibKa0s issue).
+    -- exactly that. Through kit revision 17 the AceDB mock passed the CURRENT profile key there,
+    -- the destination; since revision 18 it passes the source, as AceDB does.
     local NS = T.bootAddon()
     NS.State.debug = true
     local before = countLines(NS, "[Set]")
