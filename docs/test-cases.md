@@ -414,12 +414,13 @@ badge and any count quoted in the docs must agree with it.
 - notify: the Leader row still prints when leaderName is nil
 - notify: Playstyle and Teleport drop their rows while Leader keeps its own
 
-### test_frame.lua (84)
+### test_frame.lua (90)
 
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
 - frame: buildFrame is one-shot — a second show reuses the same frame
-- frame: ESC-to-close is registered lazily, on the first show only
+- frame: ESC-to-close registers the proxy lazily, once, and never the popup itself
+- frame: nothing reaches UISpecialFrames at load, not even after OnEnable (Logout taint)
 - frame: the Close button hides the popup
 - frame: fields render the pending capture
 - frame: with no pendingInfo every field reads 'No data'
@@ -496,6 +497,11 @@ badge and any count quoted in the docs must agree with it.
 - frame: and it opens again by itself when combat ends
 - frame: a popup the PLAYER closed does not come back when combat starts
 - frame: a popup closed with ESC does not come back either
+- frame: Escape in combat never calls the popup's protected Hide, and soft-hides it
+- frame: Escape out of combat really hides the popup, and the next Escape opens the menu
+- frame: Escape in combat is a player dismissal -- regen lands the real Hide, and nothing reopens it
+- frame: Escape in combat clears a gate flag left over from a re-show
+- frame: the proxy is shown exactly while the popup is on screen
 - frame: leaving combat does not reopen a popup the player closed mid-fight either
 - frame: a combat transition never opens a popup with nothing to show
 - frame: PLAYER_REGEN_DISABLED is answered from the event, not from a lockdown flag that has not flipped
@@ -694,7 +700,7 @@ badge and any count quoted in the docs must agree with it.
 | test_labels.lua | 34 |
 | test_capture.lua | 32 |
 | test_notify.lua | 48 |
-| test_frame.lua | 84 |
+| test_frame.lua | 90 |
 | test_panel.lua | 53 |
 | test_lifecycle.lua | 44 |
 | test_debuglog.lua | 34 |
@@ -704,4 +710,4 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **602** |
+| **Total** | **608** |

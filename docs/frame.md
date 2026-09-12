@@ -4,7 +4,7 @@ The popup dialog that displays captured group info. Lives in `modules/Frame.lua`
 
 ## Lazy creation
 
-**Nothing in `modules/Frame.lua` runs at file-load.** All frame creation — the popup, the Close button, the SecureActionButtonTemplate teleport button, the `UISpecialFrames` entry — is wrapped in a `buildFrame()` function that fires on the first `WhatGroup:ShowFrame()` call only. The reason is taint: creating these things at PLAYER_LOGIN was leaving a residue that surfaced as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked the GameMenu's Logout button. Specifically, adding `"WhatGroupFrame"` to `UISpecialFrames` and creating a `SecureActionButtonTemplate` button before Blizzard's `GameMenuFrame:InitButtons()` first ran caused GameMenu's button-callback closures to inherit the addon's load-time taint — by the time the player clicked Logout, those closures' invocation of `Logout()` was rejected by the secure system and attributed to WhatGroup. Deferring all frame creation to first show fixes this: GameMenu's `InitButtons` runs in a clean context during the boot sequence, the closures it builds for Logout / Settings / Macros / etc. are taint-free, and any taint we generate later is contained to a session where the player has actually used the addon.
+**Nothing in `modules/Frame.lua` runs at file-load.** All frame creation — the popup, the Close button, the SecureActionButtonTemplate teleport button, the `UISpecialFrames` entry — is wrapped in a `buildFrame()` function that fires on the first `WhatGroup:ShowFrame()` call only. The reason is taint: creating these things at PLAYER_LOGIN was leaving a residue that surfaced as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked the GameMenu's Logout button. Specifically, adding `"WhatGroupFrame"` to `UISpecialFrames` (today the entry is the `WhatGroupFrameEscape` proxy's, and it is deferred just the same) and creating a `SecureActionButtonTemplate` button before Blizzard's `GameMenuFrame:InitButtons()` first ran caused GameMenu's button-callback closures to inherit the addon's load-time taint — by the time the player clicked Logout, those closures' invocation of `Logout()` was rejected by the secure system and attributed to WhatGroup. Deferring all frame creation to first show fixes this: GameMenu's `InitButtons` runs in a clean context during the boot sequence, the closures it builds for Logout / Settings / Macros / etc. are taint-free, and any taint we generate later is contained to a session where the player has actually used the addon.
 
 The pattern is borrowed from a similar reference addon that demonstrates the same lazy approach for its group-reminder popup; see [midnight-quirks.md → Lazy popup + secure button creation](./midnight-quirks.md#lazy-popup--secure-button-creation) for the full background.
 
@@ -24,7 +24,7 @@ The pattern is borrowed from a similar reference addon that demonstrates the sam
 | Drag handle | top-30px title bar; `StartMoving` / `StopMovingOrSizing` (position persisted on drag-stop via `NS.Windows.Save("popup", …)`, WG-26). Suppressed while `locked` is true — read at drag time in `OnMouseDown`, so the setting needs no `onChange`. |
 | Shown at all | `visibility` — `always` / `inCombat` / `outOfCombat` / `never` (`options-ui-§15`). See § Visibility below. |
 | Clamping | `SetClampedToScreen(true)` |
-| ESC-to-close | `tinsert(UISpecialFrames, "WhatGroupFrame")` |
+| ESC-to-close | `tinsert(UISpecialFrames, "WhatGroupFrameEscape")` — an unprotected **proxy**, never `"WhatGroupFrame"` itself. See § ESC-to-close below. |
 
 ## Layout
 
@@ -155,7 +155,20 @@ What alpha does not buy is the frame leaving hit-testing. Alpha 0 is invisible, 
 
 **`inCombat` cannot be delivered from a hidden frame, and that is a limitation rather than a bug to fix quietly.** The value asks for a popup that appears *during* a lockdown, which is the one thing Show cannot do. Honouring it would mean keeping the frame shown at alpha 0 for the whole time the player is out of combat, so the combat edge needs only an alpha change — at the cost of an invisible 420x260 click-target at rest. That is a trade for the addon's owner to make; until it is made, `inCombat` builds the popup, keeps it off screen, and does not open it.
 
-**Every path off screen goes through `hidePopup()`**, and `gateWithheld` records *who* put it there — the gate, or the player. `OnHide` clears that flag on every hide and the gate's two sites re-assert it immediately afterwards, so ESC, which routes through `UISpecialFrames` to a bare `Hide()`, is exactly as durable as the button without having to know anything about either.
+**Every path off screen goes through `hidePopup()`**, and `gateWithheld` records *who* put it there — the gate, or the player. `OnHide` clears that flag on every real hide and the gate's two sites re-assert it immediately afterwards. The two player hides that can take the soft route in combat, where `OnHide` never fires, clear it themselves: the Close button's `OnClick` and the ESC proxy's `OnHide`. So ESC is exactly as durable as the button, in combat and out.
+
+### ESC-to-close
+
+`UISpecialFrames` holds **`WhatGroupFrameEscape`**, a small unprotected proxy frame, and never `"WhatGroupFrame"`. This is a ratified deviation from `standalone-windows` ("register the window in `UISpecialFrames`"); the row is in [ARCHITECTURE.md → Documented deviations](./ARCHITECTURE.md#documented-deviations).
+
+**Why a proxy.** Blizzard's `CloseWindows` (Escape → `ToggleGameMenu`) calls a bare `:Hide()` on every shown `UISpecialFrames` entry. The popup parents the secure teleport button, so that `Hide` is protected during a lockdown, and the tainted entry blamed WhatGroup. The player saw `[ADDON_ACTION_BLOCKED] AddOn 'WhatGroup' tried to call the protected function 'WhatGroupFrame:Hide()'` on 2026-09-12 after pressing Escape in combat. Escape went around the `hidePopup()` seam that the Close button and the gate had already been routed through.
+
+**How it behaves.**
+
+- **The proxy.** Built in `buildFrame()`, exactly where the insert always was, so nothing is registered at load (§ Lazy creation). It is parented to `UIParent`, with no textures, no mouse and no secure children, and it is hidden at creation before its `OnHide` is set.
+- **It mirrors `onScreen()`.** `showPopup()` shows it, both on a full `f:Show()` and on an alpha restore from soft-hidden. `hidePopup()`'s soft route and `f`'s `OnHide` hide it. Its `Show` and `Hide` are unprotected, so both are legal in combat.
+- **Its `OnHide` closes the popup** when the popup is still on screen: `hidePopup()`, then `gateWithheld = false`. Out of combat that is a real `Hide`. In combat it is the alpha-0 soft hide with `pendingHide`, and the real `Hide` lands at `PLAYER_REGEN_ENABLED`. The `onScreen()` check is the recursion guard, because every other hide of the proxy happens after the popup has already left the screen.
+- **The game menu.** `CloseWindows` reports a closed window, so Escape with the popup up closes the popup and does not open the game menu on that press. Escape with the popup soft-hidden or gone finds the proxy hidden, and the menu opens.
 
 This section has been wrong twice, both times found by a player rather than by the suite, and both corrections are worth keeping. It claimed `f:Hide()` was unprotected — it never was, and `ApplyFrameSize` and `ResetFramePosition` sit two functions away already combat-guarded for exactly that reason. It then claimed the popup simply had to stay up for the fight, which was true only of `Hide` and not of the requirement: alpha closes it, and the addon's own rule about opacity was on the page the whole time.
 
@@ -174,14 +187,14 @@ The `inCombat` argument overrides the live `InCombatLockdown()` read and exists 
 `SecureActionButtonTemplate` attribute writes (`type`, `macrotext`) and `Show`/`Hide` are protected during `InCombatLockdown()` — silently dropped, not erroring. Two call sites are guarded:
 
 - **`ConfigureTeleportButton`** (called every `PopulateFields`, i.e. every `ShowFrame`). When in combat: stash `info` on `f._pendingTeleportInfo`, register `PLAYER_REGEN_ENABLED` on the popup frame, and return. When the event fires, unregister and rerun `ConfigureTeleportButton` with the most recently-stashed info. Repeated calls during the same combat window safely overwrite the stash; `RegisterEvent` is idempotent. The button retains its prior visual state until the rerun.
-- **`WhatGroup:ShowFrame` first-build** (the `not f and InCombatLockdown()` branch above). Creating the popup itself is fine in combat, but `buildFrame()` creates a `SecureActionButtonTemplate` and inserts `"WhatGroupFrame"` into `UISpecialFrames` — both protected. So the very first show is queued via a one-shot `CreateFrame("Frame")` waiting on `PLAYER_REGEN_ENABLED`, with a `[WG] Popup deferred until combat ends.` chat hint. The captured `pendingInfo` is restored on combat-end only if it was cleared mid-wait (group-leave during the window). Subsequent in-combat shows route through `ConfigureTeleportButton`'s guard, since `f` already exists.
+- **`WhatGroup:ShowFrame` first-build** (the `not f and InCombatLockdown()` branch above). Creating the popup itself is fine in combat, but `buildFrame()` creates a `SecureActionButtonTemplate` and inserts the ESC proxy's name into `UISpecialFrames` — both protected. So the very first show is queued via a one-shot `CreateFrame("Frame")` waiting on `PLAYER_REGEN_ENABLED`, with a `[WG] Popup deferred until combat ends.` chat hint. The captured `pendingInfo` is restored on combat-end only if it was cleared mid-wait (group-leave during the window). Subsequent in-combat shows route through `ConfigureTeleportButton`'s guard, since `f` already exists.
 
 `Settings.Register()` in `settings/Panel.lua` is deliberately **not** a third site. Registering a canvas Settings category is not a secure write and never taints, and `options-ui-§9` makes eager registration at load a MUST; a guard there only meant a `/reload` taken in combat left the addon out of the Settings → AddOns list. Panel *open* is still refused under lockdown, inside the library's `OpenOptionsPanel`.
 
 There is intentionally no programmatic Hide method. The frame is closed by:
 
-- The Close button at the bottom (`UIPanelButtonTemplate`, 90×24) — calls `f:Hide()` directly.
-- The ESC key (`UISpecialFrames` registration).
+- The Close button at the bottom (`UIPanelButtonTemplate`, 90×24) — goes through `hidePopup()`, never a bare `f:Hide()`, so a press in combat soft-hides instead of raising `ADDON_ACTION_BLOCKED`.
+- The ESC key — through the `WhatGroupFrameEscape` proxy's `OnHide`, which calls the same `hidePopup()` (§ ESC-to-close).
 - The `addon:WhatGroup:show` chat link → `WhatGroup:ShowFrame()` (re-opens, doesn't close).
 
 ## Shared label helpers

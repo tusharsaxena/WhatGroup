@@ -152,7 +152,7 @@ secureBtn:SetAllPoints()
 In WhatGroup's case, two boot-time operations taint:
 
 1. **Creating a `SecureActionButtonTemplate` Button** (the popup's teleport icon).
-2. **`tinsert(UISpecialFrames, "WhatGroupFrame")`** — adding a frame name to UISpecialFrames so ESC closes it.
+2. **`tinsert(UISpecialFrames, "WhatGroupFrame")`** — adding a frame name to UISpecialFrames so ESC closes it. (The entry is now the unprotected `WhatGroupFrameEscape` proxy's, because Escape's bare `Hide()` on the popup itself is protected in combat — [frame.md → ESC-to-close](./frame.md#esc-to-close). Deferred exactly the same way.)
 
 The fix for both: **defer them to actual user demand.** `modules/Frame.lua`'s entire setup (popup creation, secure button creation, `UISpecialFrames` registration) is wrapped in a `buildFrame()` function called only on the first `WhatGroup:ShowFrame()`.
 
