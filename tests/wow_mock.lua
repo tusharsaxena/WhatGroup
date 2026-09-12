@@ -23,6 +23,9 @@
 -- the AceTimer queue (3) and the event dispatch (6), have been the KIT'S own since WhatGroup#19
 -- (kit revision 17); they stay listed because the reason they must stay faithful is this addon's.
 --
+-- A seventh, added 2026-09-12, is this file's too: THE CHAT-LINK CLICK PATH (note 7, below the
+-- six).
+--
 --  1. FRAME VISIBILITY. A blanket self-returning no-op makes IsShown() return the frame —
 --     permanently truthy — so "the console closed" is untestable and a window that never hides
 --     looks identical to one that does. Real frames track a shown flag; Show / Hide / SetShown flip
@@ -66,6 +69,16 @@
 --     the event NAME is then the only thing telling the handler which edge it is on, and a suite
 --     that calls the method directly is free to pass the name the code wants rather than the one
 --     the client would send.
+--
+--  7. THE CHAT-LINK CLICK PATH. `SetItemRef` here is Blizzard's, not a recorder: it asks
+--     `LinkUtil.ProcessLink` first and returns on Handled, and only an UNHANDLED link falls through
+--     to the ItemRef tooltip (or to HandleModifiedItemClick on a modified click), which this mock
+--     records in `mock.itemRefFallthrough`. `hooksecurefunc("SetItemRef", …)` post-hooks run after
+--     that body returns, as they do in the client. The `addon` link type's registered handler
+--     re-raises the click as `EventRegistry`'s "SetItemRef" event. Firing the post-hook by hand
+--     is exactly what let a details link that Blizzard fell through on pass every case while doing
+--     nothing in a real client (2026-09-12): the fallthrough ran first, and the hook ran only if the
+--     fallthrough survived.
 
 local base = dofile("tests/_kit/mock_base.lua")
 
@@ -602,6 +615,120 @@ local function build()
         GetAddOnMetadata = function(_addon, field) return mock.metadata[field] end,
     }
     mock.GameTooltip = stubFrame("GameTooltip", "GameTooltip")
+
+    -- ---- The chat-link click path (fidelity note 7) ------------------------
+    --
+    -- Transcribed from Gethe/wow-ui-source at tag 12.1.0; 12.0.7 carries the same code. Only what a
+    -- chat-link click reaches is modeled. Everything below reads `mock.<global>` at call time, so a
+    -- suite that removes EventRegistry or LinkTypes through the loader's `mock` option gets the
+    -- degraded client it asked for.
+
+    -- Blizzard_SharedXML/LinkUtil.lua:4. The other link types are not modeled: none has a handler
+    -- here, so each one is Unhandled, and that is the answer they reach the tooltip with.
+    mock.LinkTypes = { AddOn = "addon" }
+    mock.LinkProcessorResponse = { Unhandled = 1, Handled = 2 }   -- LinkUtil.lua:170-173
+
+    local linkHandlers = {}
+    mock.LinkUtil = {
+        -- LinkUtil.lua:79-83: `string.split(":", linkData, 2)`, with a missing remainder read as "".
+        SplitLinkData = function(linkData)
+            local at = linkData:find(":", 1, true)
+            if not at then return linkData, "" end
+            return linkData:sub(1, at - 1), linkData:sub(at + 1)
+        end,
+        -- LinkUtil.lua:175-192. A handler that returns nil counts as Handled.
+        ProcessLink = function(link, text, contextData)
+            local linkType, linkOptions = mock.LinkUtil.SplitLinkData(link)
+            local handler = linkHandlers[linkType]
+            if not handler then return mock.LinkProcessorResponse.Unhandled end
+            local response = handler(link, text, { type = linkType, options = linkOptions }, contextData)
+            if response == nil then response = mock.LinkProcessorResponse.Handled end
+            return response
+        end,
+        -- LinkUtil.lua:198-208. The client's `assertsafe` on a duplicate does not raise in a
+        -- release build; it declines the second registration, and so does this.
+        RegisterLinkHandler = function(linkType, fn)
+            if linkHandlers[linkType] ~= nil or type(linkType) ~= "string" then return end
+            linkHandlers[linkType] = fn
+        end,
+    }
+
+    -- Blizzard_SharedXMLBase/CallbackRegistry.lua, which GlobalCallbackRegistry.lua:1 mixes into
+    -- EventRegistry. One callback per (event, owner): RegisterCallback unregisters the owner's
+    -- previous one first (:128-130), so a second registration REPLACES rather than adds. That is
+    -- why every call is also logged in `mock.eventRegistryLog`: the live table alone cannot show
+    -- "registered twice". Function callbacks are invoked as `func(owner, ...)` (:209-213). The
+    -- closure form (extra args after `owner`) is not modeled and raises, so a first use of it
+    -- fails loudly here instead of silently dropping the extra args. The client runs each callback
+    -- through securecallfunction, which reports an error instead of raising it. This mock lets the
+    -- error propagate, so the suite sees it.
+    local registry = {}          -- [event] -> { [owner] = func }
+    local nextOwnerID = 0
+    mock.eventRegistryLog = {}   -- { event, owner } per RegisterCallback call, in order
+    mock.EventRegistry = {
+        RegisterCallback = function(_, event, func, owner, ...)   -- :112-142
+            if type(event) ~= "string" then error("RegisterCallback 'event' requires string type.") end
+            if type(func) ~= "function" then error("RegisterCallback 'func' requires function type.") end
+            if select("#", ...) > 0 then error("wow_mock: the closure form of RegisterCallback is not modeled") end
+            if owner == nil then
+                nextOwnerID = nextOwnerID + 1
+                owner = nextOwnerID
+            elseif type(owner) == "number" then
+                error("RegisterCallback 'owner' as number is reserved internally.")
+            end
+            registry[event] = registry[event] or {}
+            registry[event][owner] = func
+            mock.eventRegistryLog[#mock.eventRegistryLog + 1] = { event = event, owner = owner }
+            return owner
+        end,
+        UnregisterCallback = function(_, event, owner)            -- :225-250
+            if owner == nil then error("UnregisterCallback 'owner' is required.") end
+            if registry[event] then registry[event][owner] = nil end
+        end,
+        TriggerEvent = function(_, event, ...)                    -- :184-223
+            local list = {}
+            for owner, fn in pairs(registry[event] or {}) do list[#list + 1] = { owner, fn } end
+            for _, pair in ipairs(list) do pair[2](pair[1], ...) end
+        end,
+        -- Test-only: the live callbacks for an event, owner -> func.
+        __callbacks = function(event) return registry[event] or {} end,
+    }
+
+    -- Blizzard_UIPanels_Game/Shared/ItemRefHandlersShared.lua:278-281 (12.0.7: :265-268). Read
+    -- through `mock.EventRegistry` at click time, as the client reads its global.
+    mock.LinkUtil.RegisterLinkHandler(mock.LinkTypes.AddOn, function(link, text, _linkData, contextData)
+        mock.EventRegistry:TriggerEvent("SetItemRef", link, text, contextData.button, contextData.frame)
+    end)
+
+    -- The fallthrough's two sinks, recorded into one list so a case can assert "never reached".
+    mock.itemRefFallthrough = {}   -- { kind = "tooltip" | "modified", link, text } per fallthrough
+    mock.modifiedClick = false     -- what IsModifiedClick() answers (a shift-click sets it)
+    mock.IsModifiedClick = function() return mock.modifiedClick and true or false end
+    mock.ItemRefTooltip = stubFrame("GameTooltip", "ItemRefTooltip")
+    mock.ItemRefTooltip.ItemRefSetHyperlink = function(_, link)
+        mock.itemRefFallthrough[#mock.itemRefFallthrough + 1] = { kind = "tooltip", link = link }
+    end
+    mock.HandleModifiedItemClick = function(text)
+        mock.itemRefFallthrough[#mock.itemRefFallthrough + 1] = { kind = "modified", text = text }
+    end
+
+    -- Blizzard_UIPanels_Game/Mainline/ItemRef.lua:6-27, then the post-hooks. A global that
+    -- hooksecurefunc has hooked runs its original and then each hook, in order, so a hook runs only
+    -- once the original returns without raising.
+    local function blizzardSetItemRef(link, text, button, frame)
+        local contextData = { button = button, frame = frame }
+        local response = mock.LinkUtil.ProcessLink(link, text, contextData)
+        if response == mock.LinkProcessorResponse.Handled then return end
+        if mock.IsModifiedClick() then
+            mock.HandleModifiedItemClick(text)             -- HandleModifiedItemClick(GetFixedLink(text))
+        else
+            mock.ItemRefTooltip:ItemRefSetHyperlink(link)  -- ShowUIPanel(ItemRefTooltip); … :ItemRefSetHyperlink(link)
+        end
+    end
+    mock.SetItemRef = function(link, text, button, frame)
+        blizzardSetItemRef(link, text, button, frame)
+        mock.fireHook("SetItemRef", link, text, button, frame)
+    end
 
     -- Capture every addon print so suites can assert chat output. WhatGroup's printer sinks to the
     -- Lua global `print` rather than DEFAULT_CHAT_FRAME (core/CoreSetup.lua passes an explicit

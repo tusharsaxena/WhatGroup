@@ -332,7 +332,8 @@ Then, once the cooldown has expired, `/wg test` again: full alpha, no swipe, no 
 
 1. Click `[Click here to view details]` in the chat output from step 4.
 
-**Expected:** Popup re-opens with the same data.
+**Expected:** Popup re-opens with the same data. No ItemRef tooltip opens and no Lua error appears.
+A `/wg test` link does **not** stand in for a real join's link. § 5.1a clicks that one.
 
 ### 4.3 ESC closes popup
 
@@ -427,6 +428,21 @@ The end-to-end test. Requires an active LFG and at least one group leader willin
 ```
 
 **Expected user-visible output (after `notify.delay` seconds):** Full chat notification + popup, with the **real** group name, leader, mapID-resolved teleport spell.
+
+### 5.1a The real join's details link: click and shift-click
+
+The 2026-09-12 report: after a real join (open world, idle, 12.1.0 client), clicking this link did nothing. No popup opened and no hint printed. A later `/wg test` link worked, so § 4.2 cannot stand in for this step. Since then the link is Blizzard's `addon` link type (`addon:WhatGroup:show`), heard through `EventRegistry` rather than through a `SetItemRef` post-hook ([data-flow.md](./data-flow.md)).
+
+1. Join a real group through the Group Finder, as in § 5.1, with `/wg debug on`. Leave the join's chat notification in scrollback.
+2. Close the popup (Close or **ESC**).
+3. Click `[Click here to view details]` in **that** notification, the real join's, not a `/wg test` one.
+4. Close the popup, then **shift-click** the same link. Do it once with the chat edit box closed and once with it open (press **Enter** first).
+
+**Expected:**
+- Step 3: the popup re-opens with the real group's data. No ItemRef tooltip opens and no Lua error appears.
+- Step 4: the popup re-opens the same way. Nothing is inserted into the chat edit box, and no tooltip or error appears.
+- The console logs `[ChatLink] clicked hasPending=true` for each click.
+- If the popup does not open, record whether the console shows a `[ChatLink]` line at all. No line means the click never reached the addon.
 
 ### 5.2 Multiple concurrent applications
 
@@ -774,6 +790,7 @@ For a fast pre-release pass, run at minimum:
 - [ ] section 4.1a — Teleport on cooldown: swipe, ticking note, and a click that casts nothing
 - [ ] section 4.1b — Teleport not learned: the note says so, and never says cooldown
 - [ ] section 5.1 — One real LFG apply → join
+- [ ] section 5.1a — that join's details link opens the popup, by click and by shift-click
 - [ ] section 10 — no `SCREAMING_SNAKE` string on any page, in the console, or in chat
 - [ ] sections 11.5 / 11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
 - [ ] sections 12.1 / 12.4 — marks on the console title bar, and a mark **beside** the footer Close word

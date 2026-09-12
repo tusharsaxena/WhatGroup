@@ -6,7 +6,9 @@
 --
 -- Compat is the SOLE caller of the variant APIs (C_Spell.*, the global
 -- GetSpell* fallbacks, C_SpellBook.IsSpellKnown and the IsSpellKnown
--- global, C_LFGList.GetActivityInfoTable).
+-- global, C_LFGList.GetActivityInfoTable), and the one place that asks
+-- whether the client has Blizzard's addon chat-link path (LinkTypes.AddOn
+-- plus EventRegistry).
 -- When a patch renames or moves one of these, this file is the only
 -- place that changes. Every shim degrades to a safe default (nil / false)
 -- rather than throwing when the underlying API is absent.
@@ -134,6 +136,26 @@ end
 function Compat.GetActivityInfoTable(activityID)
     if C_LFGList and C_LFGList.GetActivityInfoTable then
         return C_LFGList.GetActivityInfoTable(activityID)
+    end
+    return nil
+end
+
+-- ---------------------------------------------------------------------------
+-- Chat links
+-- ---------------------------------------------------------------------------
+
+--- Blizzard's link type for addon chat links ("addon"), or nil when this client
+--- cannot deliver a click on one. A `|Haddon:…|h` link is handled by a handler
+--- Blizzard registers (Blizzard_UIPanels_Game/Shared/ItemRefHandlersShared.lua:278-281
+--- at 12.1.0), which re-raises the click as EventRegistry's "SetItemRef" event
+--- and counts as Handled, so SetItemRef returns before its ItemRef-tooltip
+--- fallthrough. Both halves are required: the link type with no EventRegistry
+--- to subscribe to is a link nothing can hear. nil sends the caller back to an
+--- unregistered link type and a SetItemRef post-hook.
+function Compat.AddOnLinkType()
+    if LinkTypes and LinkTypes.AddOn
+       and EventRegistry and EventRegistry.RegisterCallback then
+        return LinkTypes.AddOn
     end
     return nil
 end

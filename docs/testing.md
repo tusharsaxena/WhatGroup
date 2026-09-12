@@ -146,6 +146,19 @@ handler by hand, which passes just as happily when the two are not wired to
 each other. That gap is widest where two events share one handler and the event
 *name* is what tells the handler which edge it is on.
 
+A seventh is this file's own, added 2026-09-12: the **chat-link click path**.
+`mock.SetItemRef` is Blizzard's `SetItemRef` body, transcribed from tag 12.1.0.
+It runs `LinkUtil.ProcessLink` first and returns on Handled. Only an unhandled
+link falls through to the ItemRef tooltip, or to `HandleModifiedItemClick` when
+`mock.modifiedClick` is set, and each fallthrough is recorded in
+`mock.itemRefFallthrough`. `hooksecurefunc` post-hooks run after the body
+returns. The `addon` link type's handler re-raises the click through an
+`EventRegistry` that keeps the client's one-callback-per-owner rule and logs every
+registration in `mock.eventRegistryLog`. Suites click with the link the
+notification actually printed. Firing a recorded post-hook by hand skips the
+body that stood between the click and the addon in the 2026-09-12 report, and
+every case passed while the link did nothing in the client.
+
 `_G` points back at the mock table itself, because `settings/Panel.lua` and the
 library both read several APIs through an explicit `_G.` — without it
 `Settings.Register` silently early-returns and the whole panel merely *looks*

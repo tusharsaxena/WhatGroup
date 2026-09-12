@@ -214,10 +214,34 @@ test("compat: GetActivityInfoTable returns nil when C_LFGList is absent", functi
     assertNil(NS.Compat.GetActivityInfoTable(500))
 end)
 
+-- The chat-link path: Blizzard's `addon` link type, whose registered handler re-raises the click
+-- as EventRegistry's "SetItemRef" event (ItemRefHandlersShared.lua:278-281 at 12.1.0). Both halves
+-- have to be there, because a link of that type with nothing to hear the event is a dead link.
+test("compat: AddOnLinkType answers Blizzard's addon link type", function()
+    local NS = T.newAddon()
+    assertEqual(NS.Compat.AddOnLinkType(), "addon")
+end)
+
+test("compat: AddOnLinkType is nil without LinkTypes.AddOn", function()
+    local NS, env = T.newAddon()
+    env.LinkTypes = {}
+    assertNil(NS.Compat.AddOnLinkType())
+    env.LinkTypes = nil
+    assertNil(NS.Compat.AddOnLinkType())
+end)
+
+test("compat: AddOnLinkType is nil without EventRegistry:RegisterCallback", function()
+    local NS, env = T.newAddon()
+    env.EventRegistry = {}
+    assertNil(NS.Compat.AddOnLinkType(), "the registry without the member")
+    env.EventRegistry = nil
+    assertNil(NS.Compat.AddOnLinkType())
+end)
+
 test("compat: Compat is the sole namespace the addon reads variant APIs through", function()
     local NS = T.newAddon()
-    for _, fn in ipairs({ "GetSpellName", "GetSpellTexture",
-                          "GetSpellLink", "IsSpellKnown", "GetActivityInfoTable" }) do
+    for _, fn in ipairs({ "GetSpellName", "GetSpellTexture", "GetSpellLink", "IsSpellKnown",
+                          "GetActivityInfoTable", "AddOnLinkType" }) do
         assertEqual(type(NS.Compat[fn]), "function", "NS.Compat." .. fn .. " is missing")
     end
 end)

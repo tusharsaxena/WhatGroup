@@ -182,7 +182,7 @@ There is intentionally no programmatic Hide method. The frame is closed by:
 
 - The Close button at the bottom (`UIPanelButtonTemplate`, 90×24) — calls `f:Hide()` directly.
 - The ESC key (`UISpecialFrames` registration).
-- The `WhatGroup:show` chat link → `WhatGroup:ShowFrame()` (re-opens, doesn't close).
+- The `addon:WhatGroup:show` chat link → `WhatGroup:ShowFrame()` (re-opens, doesn't close).
 
 ## Shared label helpers
 

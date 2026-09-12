@@ -111,10 +111,9 @@ end)
 -- File-load post-hooks (installed at load, NOT in OnEnable — taint)
 -- ---------------------------------------------------------------------------
 
-test("lifecycle: the ApplyToGroup and SetItemRef hooks install at file load", function()
+test("lifecycle: the ApplyToGroup hook installs at file load", function()
     local _, _, mock = T.newAddon()
     assertEqual(#(mock.hooks["ApplyToGroup"] or {}), 1)
-    assertEqual(#(mock.hooks["SetItemRef"] or {}), 1)
 end)
 
 test("lifecycle: the ApplyToGroup hook routes into the capture pipeline", function()
@@ -128,35 +127,144 @@ test("lifecycle: the ApplyToGroup hook routes into the capture pipeline", functi
     assertEqual(NS.addon.pendingInfo.title, "Hooked Group")
 end)
 
-test("lifecycle: the SetItemRef hook ignores links that aren't ours", function()
+-- ---------------------------------------------------------------------------
+-- The details chat link, clicked through Blizzard's own SetItemRef
+-- ---------------------------------------------------------------------------
+--
+-- Every click below goes through `mock.SetItemRef`, the transcription of Blizzard's (wow_mock.lua,
+-- fidelity note 7), with the link the notification actually printed. Firing a recorded post-hook
+-- by hand, which these cases did until 2026-09-12, skips the part of the click that failed in the
+-- client: Blizzard's own body, which ran first and fell through to the ItemRef tooltip for an
+-- unregistered link type before any hook of ours could run.
+
+-- The details link, taken out of the chat line ShowNotification printed and returned as the chat
+-- frame hands it to SetItemRef: the link data, then the whole hyperlink as the text.
+local function detailsLink(NS, mock)
+    local mark = #mock.prints
+    NS.addon:ShowNotification()
+    for i = mark + 1, #mock.prints do
+        local data, display = mock.prints[i]:match("|H(.-)|h(.-)|h")
+        if data and display:find("Click here", 1, true) then
+            return data, "|H" .. data .. "|h" .. display .. "|h"
+        end
+    end
+    error("ShowNotification printed no details link")
+end
+
+local function popupShown(mock)
+    return mock.frames["WhatGroupFrame"] ~= nil and mock.frames["WhatGroupFrame"]:IsShown()
+end
+
+local function registrations(mock, event)
+    local n = 0
+    for _, r in ipairs(mock.eventRegistryLog) do
+        if r.event == event then n = n + 1 end
+    end
+    return n
+end
+
+test("chat link: the details link is Blizzard's addon link type, addon:WhatGroup:show", function()
     local NS, _, mock = T.bootAddon()
     NS.addon.pendingInfo = pending()
-    mock.fireHook("SetItemRef", "item:12345", "[Some Item]", "LeftButton")
-    assertNil(mock.frames["WhatGroupFrame"], "another addon's link must not open our popup")
+    assertEqual((detailsLink(NS, mock)), "addon:WhatGroup:show")
 end)
 
-test("lifecycle: the SetItemRef hook ignores a non-string link argument", function()
+test("chat link: a click through SetItemRef opens the popup and never reaches the ItemRef fallthrough", function()
     local NS, _, mock = T.bootAddon()
+    NS.addon.pendingInfo = pending()
+    local data, text = detailsLink(NS, mock)
+    mock.SetItemRef(data, text, "LeftButton", mock.frames[1])
+    assertTrue(popupShown(mock), "the popup opened")
+    assertEqual(#mock.itemRefFallthrough, 0, "Blizzard handled the link; nothing reached the tooltip")
+end)
+
+test("chat link: a shift-click opens the popup and never reaches HandleModifiedItemClick", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.pendingInfo = pending()
+    local data, text = detailsLink(NS, mock)
+    mock.modifiedClick = true
+    mock.SetItemRef(data, text, "LeftButton", mock.frames[1])
+    assertTrue(popupShown(mock))
+    assertEqual(#mock.itemRefFallthrough, 0, "the modified-click fallthrough never ran")
+end)
+
+test("chat link: a stale link prints the hint, opens nothing and never reaches the fallthrough", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.pendingInfo = pending()
+    local data, text = detailsLink(NS, mock)
+    NS.addon.pendingInfo = nil   -- the group was left, or /reload ran; the line is still in chat
+    mock.SetItemRef(data, text, "LeftButton", mock.frames[1])
+    assertNil(mock.frames["WhatGroupFrame"], "no 'No data' popup for a dead link")
+    assertTrue(mock.prints[#mock.prints]:find("no longer available", 1, true) ~= nil)
+    assertEqual(#mock.itemRefFallthrough, 0)
+end)
+
+test("chat link: another addon's addon: link is not ours", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.pendingInfo = pending()
+    local mark = #mock.prints
+    for _, data in ipairs({ "addon:OtherAddon:show", "addon:WhatGroupExtra:show" }) do
+        mock.SetItemRef(data, "|H" .. data .. "|h[x]|h", "LeftButton", mock.frames[1])
+    end
+    assertNil(mock.frames["WhatGroupFrame"], "another addon's link must not open our popup")
+    assertEqual(#mock.prints, mark, "nor print our stale-link hint")
+    local ok = pcall(function() mock.EventRegistry:TriggerEvent("SetItemRef", nil, "", "LeftButton") end)
+    assertTrue(ok, "a non-string link must not raise inside the callback")
+end)
+
+test("chat link: an item link goes to the ItemRef tooltip, not to us", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.pendingInfo = pending()
+    mock.SetItemRef("item:12345", "|Hitem:12345|h[Some Item]|h", "LeftButton", mock.frames[1])
+    assertNil(mock.frames["WhatGroupFrame"])
+    assertEqual(#mock.itemRefFallthrough, 1, "the item link took Blizzard's normal path")
+    assertEqual(mock.itemRefFallthrough[1].link, "item:12345")
+end)
+
+test("chat link: the SetItemRef callback registers at file load, exactly once", function()
+    local NS, _, mock = T.newAddon()   -- file load only: no OnInitialize, no OnEnable
+    assertEqual(registrations(mock, "SetItemRef"), 1, "one RegisterCallback, at file load")
+    assertTrue(mock.EventRegistry.__callbacks("SetItemRef")[NS.addon] ~= nil,
+        "owned by the addon object")
+    assertNil(mock.hooks["SetItemRef"], "no SetItemRef post-hook on a client with the addon link path")
+    NS.addon:OnInitialize()
+    NS.addon:OnEnable()
+    assertEqual(registrations(mock, "SetItemRef"), 1, "and the lifecycle adds none")
+end)
+
+-- A client without Blizzard's addon-link path: the old unregistered link and the post-hook come
+-- back. Its click still falls through to the ItemRef tooltip before the hook runs, which is the
+-- cost that fallback carries, so the case asserts it rather than hiding it.
+for _, shape in ipairs({
+    { name = "no EventRegistry",   strip = function(m) m.EventRegistry = nil end },
+    { name = "no LinkTypes.AddOn", strip = function(m) m.LinkTypes = {} end },
+}) do
+    test("chat link: degraded (" .. shape.name .. ") falls back to the WhatGroup: link and the post-hook", function()
+        local NS, _, mock = T.bootAddon({ mock = shape.strip })
+        assertEqual(#(mock.hooks["SetItemRef"] or {}), 1, "the post-hook installs at file load")
+        assertEqual(registrations(mock, "SetItemRef"), 0, "and nothing is registered")
+        NS.addon.pendingInfo = pending()
+        local data, text = detailsLink(NS, mock)
+        assertEqual(data, "WhatGroup:show")
+        mock.SetItemRef(data, text, "LeftButton", mock.frames[1])
+        assertTrue(popupShown(mock), "the post-hook opened the popup")
+        assertEqual(#mock.itemRefFallthrough, 1, "after Blizzard fell through, as it does for this link")
+    end)
+end
+
+test("chat link: the degraded post-hook ignores links that aren't ours", function()
+    local NS, _, mock = T.bootAddon({ mock = function(m) m.EventRegistry = nil end })
+    NS.addon.pendingInfo = pending()
+    mock.SetItemRef("item:12345", "|Hitem:12345|h[Some Item]|h", "LeftButton", mock.frames[1])
+    assertNil(mock.frames["WhatGroupFrame"], "another link must not open our popup")
+end)
+
+test("chat link: the degraded post-hook ignores a non-string link argument", function()
+    local NS, _, mock = T.bootAddon({ mock = function(m) m.EventRegistry = nil end })
     NS.addon.pendingInfo = pending()
     local ok = pcall(function() mock.fireHook("SetItemRef", nil, "", "LeftButton") end)
     assertTrue(ok, "a nil link must not raise inside the hook")
     assertNil(mock.frames["WhatGroupFrame"])
-end)
-
-test("lifecycle: clicking the chat link opens the popup", function()
-    local NS, _, mock = T.bootAddon()
-    NS.addon.pendingInfo = pending()
-    mock.fireHook("SetItemRef", "WhatGroup:show", "[Click here]", "LeftButton")
-    assertTrue(mock.frames["WhatGroupFrame"] ~= nil)
-    assertTrue(mock.frames["WhatGroupFrame"]:IsShown())
-end)
-
-test("lifecycle: a stale chat link prints a hint instead of an empty popup", function()
-    local NS, _, mock = T.bootAddon()
-    NS.addon.pendingInfo = nil
-    mock.fireHook("SetItemRef", "WhatGroup:show", "[Click here]", "LeftButton")
-    assertNil(mock.frames["WhatGroupFrame"], "no 'No data' popup for a dead link")
-    assertTrue(mock.prints[#mock.prints]:find("no longer available", 1, true) ~= nil)
 end)
 
 -- ---------------------------------------------------------------------------

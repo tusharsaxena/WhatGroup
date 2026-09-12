@@ -35,10 +35,11 @@ globals = {
 }
 
 -- The WoW API surface the addon reads. Compat.lua owns the version-variant
--- spell / LFG calls; the rest are frame, settings, timer, and combat APIs.
+-- spell / LFG calls and the addon chat-link detection (LinkTypes, EventRegistry);
+-- the rest are frame, settings, timer, and combat APIs.
 read_globals = {
   "_G",
-  "LibStub", "hooksecurefunc",
+  "LibStub", "hooksecurefunc", "EventRegistry", "LinkTypes",
   "CreateFrame", "UIParent", "UISpecialFrames",
   "InCombatLockdown", "IsInGroup",
   "C_Timer", "C_AddOns", "GetAddOnMetadata",
