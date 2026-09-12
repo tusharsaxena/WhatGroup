@@ -5,7 +5,8 @@
 -- C_Spell-vs-legacy detection inline.
 --
 -- Compat is the SOLE caller of the variant APIs (C_Spell.*, the global
--- GetSpell* fallbacks, IsSpellKnown, C_LFGList.GetActivityInfoTable).
+-- GetSpell* fallbacks, C_SpellBook.IsSpellKnown and the IsSpellKnown
+-- global, C_LFGList.GetActivityInfoTable).
 -- When a patch renames or moves one of these, this file is the only
 -- place that changes. Every shim degrades to a safe default (nil / false)
 -- rather than throwing when the underlying API is absent.
@@ -59,7 +60,15 @@ end
 --- Whether the player has learned the spell. Normalized to a plain
 --- boolean so callers can use it directly in the teleport known/unknown
 --- branch. Returns false when the API is unavailable.
+---
+--- Only the spellID is passed: C_SpellBook.IsSpellKnown's spellBank argument
+--- defaults to Player, the bank teleports live in. Its answer is final. A
+--- false does not fall through to the global, which would turn the ladder
+--- into "either says yes" and hide a disagreement between the two.
 function Compat.IsSpellKnown(spellID)
+    if C_SpellBook and C_SpellBook.IsSpellKnown then
+        return C_SpellBook.IsSpellKnown(spellID) and true or false
+    end
     if IsSpellKnown then
         return IsSpellKnown(spellID) and true or false
     end

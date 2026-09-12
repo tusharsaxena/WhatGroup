@@ -132,7 +132,7 @@ badge and any count quoted in the docs must agree with it.
 - util: FormatDuration rounds fractional seconds up
 - util: FormatDuration renders a non-positive duration as 0s
 
-### test_compat.lua (23)
+### test_compat.lua (27)
 
 - compat: GetSpellName returns the C_Spell name
 - compat: GetSpellTexture is non-nil (caller supplies default)
@@ -154,6 +154,10 @@ badge and any count quoted in the docs must agree with it.
 - compat: GetSpellLink returns nil with no API (the caller renders plain text)
 - compat: IsSpellKnown normalizes to a plain boolean
 - compat: IsSpellKnown returns false when the API is missing
+- compat: IsSpellKnown asks C_SpellBook first when both APIs exist
+- compat: IsSpellKnown takes a false from C_SpellBook as the answer
+- compat: IsSpellKnown uses the global when C_SpellBook or its member is absent
+- compat: IsSpellKnown returns false when neither API exists
 - compat: GetActivityInfoTable returns nil for an unknown activity
 - compat: GetActivityInfoTable returns nil when C_LFGList is absent
 - compat: Compat is the sole namespace the addon reads variant APIs through
@@ -654,7 +658,7 @@ badge and any count quoted in the docs must agree with it.
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
 | test_util.lua | 31 |
-| test_compat.lua | 23 |
+| test_compat.lua | 27 |
 | test_database.lua | 9 |
 | test_settings.lua | 56 |
 | test_slash.lua | 46 |
@@ -671,4 +675,4 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **569** |
+| **Total** | **573** |

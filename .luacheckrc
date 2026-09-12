@@ -42,7 +42,7 @@ read_globals = {
   "CreateFrame", "UIParent", "UISpecialFrames",
   "InCombatLockdown", "IsInGroup",
   "C_Timer", "C_AddOns", "GetAddOnMetadata",
-  "C_Spell", "C_LFGList",
+  "C_Spell", "C_SpellBook", "C_LFGList",
   "IsSpellKnown", "GetSpellInfo", "GetSpellTexture", "GetSpellCooldown", "CastSpellByID",
   "GetTime",
   "Enum",

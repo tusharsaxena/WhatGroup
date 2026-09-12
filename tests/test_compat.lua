@@ -146,6 +146,51 @@ test("compat: IsSpellKnown returns false when the API is missing", function()
     assertEqual(NS.Compat.IsSpellKnown(1), false)
 end)
 
+-- The IsSpellKnown ladder: C_SpellBook.IsSpellKnown, then the bare global, then false. The rung
+-- was built from Blizzard's generated API documentation on live (SpellBookDocumentation.lua,
+-- `IsSpellKnown(spellID, spellBank = "Player") -> isKnown`), not from an in-client observation;
+-- docs/smoke-tests.md § 7a is where the two APIs are checked to agree.
+test("compat: IsSpellKnown asks C_SpellBook first when both APIs exist", function()
+    local NS, env = T.newAddon()
+    local calls, argc, firstArg = {}, nil, nil
+    env.C_SpellBook = { IsSpellKnown = function(...)
+        calls[#calls + 1] = "C_SpellBook"
+        argc, firstArg = select("#", ...), ...
+        return true
+    end }
+    env.IsSpellKnown = function() calls[#calls + 1] = "global" return false end
+    assertEqual(NS.Compat.IsSpellKnown(42), true)
+    assertEqual(table.concat(calls, ","), "C_SpellBook",
+        "the global is the fallback, not a second opinion")
+    assertEqual(firstArg, 42)
+    assertEqual(argc, 1, "spellBank is left to its documented default (Player)")
+end)
+
+test("compat: IsSpellKnown takes a false from C_SpellBook as the answer", function()
+    local NS, env = T.newAddon()
+    env.C_SpellBook = { IsSpellKnown = function() return false end }
+    env.IsSpellKnown = function() return true end
+    assertEqual(NS.Compat.IsSpellKnown(42), false,
+        "falling through on false would make the ladder 'either says yes' and hide a disagreement")
+end)
+
+test("compat: IsSpellKnown uses the global when C_SpellBook or its member is absent", function()
+    local NS, env = T.newAddon()
+    env.IsSpellKnown = function(id) return id == 7 end
+    env.C_SpellBook = nil
+    assertEqual(NS.Compat.IsSpellKnown(7), true)
+    assertEqual(NS.Compat.IsSpellKnown(8), false)
+    env.C_SpellBook = {}   -- the namespace without the member: a mid-migration client
+    assertEqual(NS.Compat.IsSpellKnown(7), true)
+end)
+
+test("compat: IsSpellKnown returns false when neither API exists", function()
+    local NS, env = T.newAddon()
+    env.C_SpellBook = nil
+    env.IsSpellKnown = nil
+    assertEqual(NS.Compat.IsSpellKnown(7), false)
+end)
+
 test("compat: GetActivityInfoTable returns nil for an unknown activity", function()
     local NS = T.newAddon()
     assertNil(NS.Compat.GetActivityInfoTable(999999))
