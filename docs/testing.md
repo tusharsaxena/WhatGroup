@@ -230,7 +230,7 @@ than the tag this addon has taken.
 
 Between a library release and the re-vendor that carries it they disagree, and that disagreement is
 the normal state rather than a defect. It is not the state as this is written: `../LibKa0s` sits on
-**v1.30.0**, [`CLAUDE.md`](../CLAUDE.md) names **v1.30.0**, and all four commands above report zero
+**v1.31.0**, [`CLAUDE.md`](../CLAUDE.md) names **v1.31.0**, and all four commands above report zero
 differing lines. Read a non-empty pair here as *the library has tagged a release this addon has not
 taken yet* — not as a fault. Re-vendoring to quiet them would be the actual mistake: it would pull
 an untested library release for the sake of a clean diff.
