@@ -127,6 +127,18 @@ if not lib then
     -- for a hook to key to, and the correct number of hooks is zero. Carrying the string here to
     -- spare the caller an `if` would trade a real omission for a host copy, which is the trade this
     -- whole block exists to refuse.
+    --
+    -- The choice grid and the id input / id list (Options minor 16, LibKa0s v1.35.0). Render-time
+    -- makers with no call site here, carried INERT for the shape reason the chrome members above
+    -- are: tests/test_surface_parity.lua walks the whole live surface. ID_NAME_HINT is an EMPTY
+    -- table, not a copy of the library's per-kind hint wording -- the live widgets read their own
+    -- defaults, never this table, so an empty one answers an index without carrying a string.
+    H.ChoiceGrid           = function() end
+    H.IdInput              = function() end
+    H.IdList               = function() end
+    H.ResolveId            = function() return nil end
+    H.UnnamedCandidates    = function() return nil end
+    H.ID_NAME_HINT         = {}
     H.SetRenderer          = function() end
     H.RegisterOptionsPage  = function() end
     H.RefreshAllPanels     = function() end

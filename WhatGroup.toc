@@ -63,7 +63,7 @@ modules\Frame.lua
 # into at file scope (settings/Panel.lua:268). Load-bearing.
 settings\Schema.lua
 # Before settings\Panel.lua: this file publishes the LibKa0s-Options instance as Settings.Helpers
-# (settings/OptionsSetup.lua:285), and Panel calls Helpers.MasterControls at file scope
+# (settings/OptionsSetup.lua:297), and Panel calls Helpers.MasterControls at file scope
 # (settings/Panel.lua:204). Above it that member does not exist yet. Load-bearing.
 settings\OptionsSetup.lua
 settings\Panel.lua

@@ -108,7 +108,7 @@ end)
 -- ---------------------------------------------------------------------------
 
 test("parity: the Options helpers stub carries the whole live surface", function()
-    -- The live half is the LibKa0s-Options-1.0 instance settings/OptionsSetup.lua:153 builds and
+    -- The live half is the LibKa0s-Options-1.0 instance settings/OptionsSetup.lua:165 builds and
     -- publishes as Settings.Helpers with the host's data seams copied onto it, registered under
     -- that name by tests/run.lua.
     --   grep -n "Helpers\.[A-Za-z_]" core modules settings   names the addon's call sites.
