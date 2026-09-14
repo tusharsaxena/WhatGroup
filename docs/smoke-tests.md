@@ -670,8 +670,8 @@ v1.27.0 re-vendor. `TabStrip` (`libs/LibKa0s/OptionsWidgets.lua`) no longer buil
 content panel per click: it acquires both from per-`ctx` `LibKa0s-Pool-1.0` pools and re-dresses
 them, re-setting `OnClick` on every dress. Its only headless proof counts `CreateFrame` calls on a
 second selection pass, and the case that would pin band geometry as invariant under selection cannot
-be written yet — the shared mock answers `GetHeight` with 0 for every frame, and that flips at kit
-16, not here. **So a stale label, a mis-anchored button or a band that changed height on a
+be written yet — the shared mock answers `GetHeight` with 0 for every frame nobody armed, and that
+flips only at the kit's own geometry revision, which kit 20 (the one vendored here) is not. **So a stale label, a mis-anchored button or a band that changed height on a
 re-dressed tab is invisible to every automated check in this repo.** This addon hands its whole
 strip to `RenderTabbedSchema` and measures no band of its own, which is exactly why it can say
 nothing about one out of game.
@@ -680,7 +680,7 @@ nothing about one out of game.
 |---|------|--------|
 | 12a.1 | `/wg config`, then cycle every tab of the strip three times, ending back on the first | Each tab shows **its own** label on all three passes. A label carried over from the previously-dressed tab is the pool handing back a frame it did not finish dressing. |
 | 12a.2 | Watch the selection highlight as you go | The highlighted tab is the one you pressed, every time. A highlight on the wrong button means `OnClick` was not re-set on the dress. |
-| 12a.3 | Watch the strip's band height across all three passes | It does not move. A band that grows or shrinks between passes is the geometry case the kit's geometry flip (revision 20 at the earliest) will be able to assert and revision 19 cannot. |
+| 12a.3 | Watch the strip's band height across all three passes | It does not move. A band that grows or shrinks between passes is the geometry case the kit's geometry flip (revision 21 at the earliest) will be able to assert and revision 20 cannot. |
 | 12a.4 | Watch the body under the strip | It is always the selected tab's rows. A body drawn under the wrong tab means the pooled content panel came back still parented to the previous selection. |
 | 12a.5 | `Esc`, then `/wg config` again, and walk the strip once more | The same three things hold on a fresh build. The pools are per-`ctx`, so a second build is where a released frame can come back dressed for a different tab. |
 
