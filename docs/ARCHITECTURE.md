@@ -54,7 +54,7 @@ LFG events ─▶ capture pipeline ─▶ pendingInfo
 | WoW API gotchas (hook discipline, Settings API, lazy panel build) | — | [docs/midnight-quirks.md](./midnight-quirks.md) |
 | Routine recipes (add a setting, add a command, refresh libs) | — | [docs/common-tasks.md](./common-tasks.md) |
 | Verification model (headless harness, mock fidelity, `--list` inventory + badge sync) | `tests/` | [docs/testing.md](./testing.md) |
-| Manual smoke tests (boot health, slash, settings panel, `/wg test`, real LFG, regression checks) | — | [docs/smoke-tests.md](./smoke-tests.md) |
+| Manual smoke tests (boot health, slash, settings panel, `/wg test notify`, test mode, real LFG, regression checks) | — | [docs/smoke-tests.md](./smoke-tests.md) |
 
 ## Settings Schema
 
@@ -134,10 +134,10 @@ landing page renders exactly what the dispatcher runs.
 |---|---|---|
 | `help` | library | Lists every row |
 | `show` | host | Re-opens the popup for the current group |
-| `test` | host | Injects synthetic group info and runs the full notify + frame flow once; ends test mode if it is on |
+| `test` | host | Toggles test mode (`on\|off` sets it) through the Test mode checkbox's own setter; `test notify` injects synthetic group info and runs the full notify + frame flow once, ending test mode if it is on |
 | `config` | host | Opens the settings panel (refused in combat, inside `OpenOptionsPanel`) |
 | `version` | library | Prints the addon version |
-| `list` / `get` / `set` | library | The schema CLI, over the eighteen rows above (`/wg set state.testMode on\|off\|toggle` is test mode's chat route; it has no verb of its own) |
+| `list` / `get` / `set` | library | The schema CLI, over the eighteen rows above (`/wg set state.testMode` reaches test mode too; `/wg test` is its verb) |
 | `reset` | host | Resets **one** path — `/wg reset <path>`, no confirmation ([`LIBKA0S-13`](https://github.com/tusharsaxena/WhatGroup/issues/8)) |
 | `resetall` | host | Resets the **active profile** to the shipped defaults — a profile reset, the same act as AceDBOptions' Reset Profile (`options-ui-§12`) — behind the shared `WHATGROUP_RESET_ALL` popup |
 | `debug` | host | Opens/closes the debug console; `on|off` toggles logging |
@@ -313,7 +313,7 @@ lives in the table below this one, not here.
   and the join that follows prints nothing. Deliberate: the data describes a group you are in right
   now, and persisting it would resurface a stale group after a relog.
 - **Only groups joined through the Premade Group Finder are captured.** A guild or party invite
-  carries no LFG search result, so there is nothing to observe. `/wg test` exists precisely because
+  carries no LFG search result, so there is nothing to observe. `/wg test notify` exists precisely because
   the real path cannot be exercised on demand.
 - **Teleport is limited to dungeon Path-of spells the player has learned.** The button renders
   grayed until `IsSpellKnown` says otherwise, and only for map IDs present in

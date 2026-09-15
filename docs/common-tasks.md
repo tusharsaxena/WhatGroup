@@ -245,14 +245,14 @@ If `C_LFGList.GetSearchResultInfo` or `C_LFGList.GetActivityInfoTable` exposes a
 ## Test the full pipeline without joining a group
 
 ```
-/wg test
+/wg test notify
 ```
 
 Injects synthetic `pendingInfo` (a Mythic+ Windrunner Spire group) and runs `ShowNotification` + `ShowFrame` directly. Bypasses `OnApplyToGroup`, the queue, the LFG event sequence, and the `wasInGroup` join gate.
 
-The Settings panel's Test button runs the same code path — both invoke `WhatGroup:RunTest()`. See [slash-dispatch.md](./slash-dispatch.md#why-runtest-is-split-between-wg-test-and-whatgroupruntest).
+The Settings panel's Test button runs the same code path — both invoke `WhatGroup:RunTest()`. See [slash-dispatch.md](./slash-dispatch.md#why-wg-test-notify-and-the-test-button-share-whatgroupruntest).
 
-To place the popup rather than run the flow, tick **Test mode** (General → Master controls), or `/wg set state.testMode on`. The popup stays up on the sample group until you untick it, close it, or combat starts, and `pendingInfo` is never touched. See [frame.md → Test mode](./frame.md#test-mode).
+To place the popup rather than run the flow, tick **Test mode** (General → Master controls), or type `/wg test`. The popup stays up on the sample group until you untick it, close it, or combat starts, and `pendingInfo` is never touched. See [frame.md → Test mode](./frame.md#test-mode).
 
 ## Toggle debug logging
 
@@ -300,7 +300,7 @@ autoShow=…, inGroup=…, hasPending=…)` — so a pasted log is self-identify
   `teleport spellID=… known=…` — for "popup or chat link came up empty". A
   `teleport spellID=nil` with a non-nil `map=` means the dungeon needs a row in
   `NS.TeleportSpells`. **`[ChatLink]`** / **`[Test]`** mark the chat-link
-  click and `/wg test` entry points.
+  click and `/wg test notify` entry points.
 - **`[Set]`** → one line per settings change (`<path> = <value>`) at the
   `Helpers.Set` seam, and **one** `[Set] reset profile '<name>' to defaults (N rows)` line for
   `/wg resetall`, from the `OnProfileReset` handler, N being the rows the reset changed

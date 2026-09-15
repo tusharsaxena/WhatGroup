@@ -41,7 +41,7 @@ The addon was previously tainting `GameMenuFrame`'s button callbacks; clicking L
 **Expected:** The character logs out cleanly, no Lua error, no `ADDON_ACTION_FORBIDDEN` line.
 
 Repeat after each of these to make sure no surface re-introduces the leak:
-- After `/wg test` (exercises `WhatGroupFrame` + secure teleport button + the `WhatGroupFrameEscape` proxy's `UISpecialFrames` entry)
+- After `/wg test notify` (exercises `WhatGroupFrame` + secure teleport button + the `WhatGroupFrameEscape` proxy's `UISpecialFrames` entry)
 - After closing the popup with **ESC** in combat (§ 4.3a)
 - After a fresh login / `/reload`, before running anything (`Settings.Register` now runs at `OnEnable`, so the AddOns entry is registered at boot — this is the key case for the login-register change)
 - After `/wg config` (re-opens the already-registered panel)
@@ -90,7 +90,8 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.8c | With debug on: `/wg set notify.delay 3.0` | Console shows **one** `[Set] notify.delay = 3` line. Restore with `/wg set notify.delay 0` (another single `[Set]`). |
 | 2.8d | With debug on: `/wg set notify.delay 3`, then `/wg resetall` → **Yes**, then reopen the console with `/wg debug` | The reset closes the console, because reset-all restores the session-only console row, so reopen it to read the log. After the `[Set] notify.delay = 3` line, the console shows **one** `[Set] reset profile '<name>' to defaults (1 rows)` line (debug-logging-§10). There is **no** `[Set]` per row and **no** `[Reset]` line. The count is the rows the reset changed, so a second `/wg resetall` straight after reads `(0 rows)`. |
 | 2.9 | `/wg show` (no group, no pendingInfo) | Prints "No group info available. Use `/wg test` to preview." |
-| 2.10 | `/wg test` | Synthetic chat notification + popup fire (full coverage in section 4). |
+| 2.10 | `/wg test notify` | Synthetic chat notification + popup fire (full coverage in section 4). |
+| 2.10a | `/wg test`, then `/wg test` again | The first turns test mode on: the popup opens on the sample group, with no join summary. The second turns it off. `/wg test on` and `/wg test off` set it, and `/wg test sideways` prints a three-line usage (full coverage in § 3.9). |
 | 2.11 | `/wg show` (right after 2.10) | Re-opens the same popup. |
 | 2.12 | `/wg config` | Settings panel opens on the **Ka0s WhatGroup** landing page; the **General** subcategory is visible/expanded in the sidebar. |
 | 2.13 | `/wg reset` | StaticPopup confirm appears. **Yes** resets all settings; **No** cancels. |
@@ -98,7 +99,7 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.15 | `/wg config` while in combat | Prints the gray notice `[WG] cannot open settings during combat — Blizzard's category-switch is protected` and does **not** open the panel (WG-25). (Pull a target dummy first to enter combat.) |
 | 2.16 | `/wg version` | Prints `[WG] v<version>` on its own line, matching the TOC `## Version` (WG-29). |
 | 2.17 | `/wg help` | The header line ends with `…/wg)` — **no** trailing colon (WG-19) — and lists a `/wg version` row. |
-| 2.18 | Move the popup (`/wg test`, drag it) and the debug console (`/wg debug`, drag it), then `/reload` and reopen each | Each window reopens at the spot you left it, not re-centered (WG-26). |
+| 2.18 | Move the popup (`/wg test notify`, drag it) and the debug console (`/wg debug`, drag it), then `/reload` and reopen each | Each window reopens at the spot you left it, not re-centered (WG-26). |
 
 ---
 
@@ -153,14 +154,14 @@ Clicking the tab you are already on does nothing (the active tab is disabled). T
 
 1. Settings panel → **General** → **Test** button.
 
-**Expected:** Same flow as `/wg test` — chat notification + popup. Confirms the Test button shares the `WhatGroup:RunTest()` code path with the slash command.
+**Expected:** Same flow as `/wg test notify` — chat notification + popup. Confirms the Test button shares the `WhatGroup:RunTest()` code path with the slash command.
 
 ### 3.5a Popup size — the two promoted literals
 
 1. `/wg config` → **Popup** tab. Confirm **Width** reads `420 px` and **Height** reads `260 px` on a
    profile that has never touched them. *These are the numbers the old `FRAME_WIDTH` / `FRAME_HEIGHT`
    file-locals held; a different default here means every existing install's popup just resized.*
-2. `/wg test` to open the popup, leave it open, and drag **Width** to `600`. Release.
+2. `/wg test notify` to open the popup, leave it open, and drag **Width** to `600`. Release.
    **Expected:** the open popup widens as you release, and nothing inside it moves relative to the
    title bar — the rows and the teleport button are anchored to the frame's corners.
 3. Drag **Height** to `340`. Release. Same again, vertically. The Close button stays 12px off the
@@ -202,7 +203,7 @@ i.e. **Debug console** pairs on the right of **Lock frame**, in options-ui-§15'
 ### 3.7 Master controls — the four frame rows and the visibility gate (options-ui-§15)
 
 Every row here is new in this build, and each is only real if the popup obeys it. Open the popup
-first with `/wg test` so there is something to watch, and keep the Settings panel open beside it.
+first with `/wg test notify` so there is something to watch, and keep the Settings panel open beside it.
 
 | # | Do | Expect |
 |---|---|---|
@@ -212,7 +213,7 @@ first with `/wg test` so there is something to watch, and keep the Settings pane
 | 3.7d | **Master alpha** → 40% | The popup fades **immediately**, and it also fades while you are **in combat** — unlike scale. Restore to 100%. |
 | 3.7e | Drag the popup by its title bar, tick **Lock frame**, drag again | The first drag moves it, the second does nothing. Untick and confirm dragging works again. |
 | 3.7f | Drag the popup somewhere odd, then click **Reset position** | It jumps back to the shipped anchor (centered, raised a quarter of the screen). `/reload`, `/wg show` — it is **still** there, because the stored point was dropped too. |
-| 3.7g | **General visibility** → *Never*, then `/wg show` | Nothing opens, and nothing errors. `/wg test` prints the chat summary but shows no popup. |
+| 3.7g | **General visibility** → *Never*, then `/wg show` | Nothing opens, and nothing errors. `/wg test notify` prints the chat summary but shows no popup. |
 | 3.7h | **General visibility** → *Only in combat*, `/wg show` out of combat, then pull a dummy and `/wg show` | Out of combat: nothing on screen. In combat: the popup opens. (The frame is built the first time either way — it is just not shown.) |
 | 3.7i | With the popup open, set **General visibility** → *Never* | The open popup **closes** on the spot. Set it back to *Always*. |
 | 3.7j | `/wg set visibility nonsense` | Refused by the enum parser, naming the four legal values. |
@@ -231,11 +232,11 @@ bought for. `core/WhatGroup.lua`'s `OnEnable` now registers `PLAYER_REGEN_DISABL
 `PLAYER_REGEN_ENABLED` and both re-ask the gate. **Headless cases pin the logic; only the client
 can prove the events actually arrive and that hiding a live popup mid-pull raises nothing.**
 
-1. **General visibility** → *Only out of combat*. `/wg test` so the popup is on screen with a
+1. **General visibility** → *Only out of combat*. `/wg test notify` so the popup is on screen with a
    capture in it.
 2. Pull a training dummy **without closing the popup**.
 3. Drop combat and wait for the lockdown to end.
-4. Repeat with **General visibility** → *Only in combat*: `/wg test` out of combat (nothing shows),
+4. Repeat with **General visibility** → *Only in combat*: `/wg test notify` out of combat (nothing shows),
    then pull, then drop combat.
 5. Close the popup, `/wg reset pendingInfo` is not a thing — instead `/reload` to clear the capture,
    then pull a dummy with *Only out of combat* still set and drop combat again.
@@ -277,7 +278,10 @@ taint line. Keep the Settings panel open beside the popup throughout.
 2. Tick it. **Expected:** the popup opens on the sample group (*Test Group — Windrunner Spire +12*)
    and one chat line says test mode is on. No join summary prints.
 3. Drag the popup somewhere new, then untick. **Expected:** the popup closes and `Test mode off`
-   prints. `/wg test` opens it where you left it.
+   prints. `/wg test notify` opens it where you left it.
+3a. With the panel still open, type `/wg test`. **Expected:** the box ticks itself and the popup
+   opens on the sample. `/wg test` again unticks it and closes the popup. `/wg test on` twice leaves
+   it on; `/wg test off` turns it off.
 4. Tick **Lock frame**, tick **Test mode**, try to drag: it does not move. Untick both.
 5. **General visibility** → *Never* and **Popup → Open Automatically** off, then tick **Test mode**.
    **Expected:** the popup opens anyway. Untick, and restore both.
@@ -286,9 +290,9 @@ taint line. Keep the Settings panel open beside the popup throughout.
 7. Tick it and pull a training dummy. **Expected:** the popup goes as combat starts, one line reads
    `Test mode off — combat started`, the box is unticked, and there is no `ADDON_ACTION_BLOCKED`.
    Drop combat: the popup does **not** come back.
-8. In combat, `/wg set state.testMode on` (or tick the box on a panel you opened before the pull).
+8. In combat, `/wg test` (or tick the box on a panel you opened before the pull).
    **Expected:** one gray line, `cannot start test mode during combat`, no popup, box unticked.
-9. Tick it, then `/wg test`. **Expected:** the box unticks and the one-shot flow runs as § 4 describes:
+9. Tick it, then `/wg test notify`. **Expected:** the box unticks and the one-shot flow runs as § 4 describes:
    the chat summary, then the popup showing that capture.
 10. Tick it, `/wg resetall` → **Yes**. **Expected:** test mode ends with the rest of the reset.
 11. Tick it and `/reload`. **Expected:** unchecked afterwards, and `WhatGroupDB` has no `state` table.
@@ -301,11 +305,11 @@ popup; a sample that survives into a fight or attempts a protected `Show` there;
 the popup out of test mode; and a mode that persists.
 ---
 
-## 4. Synthetic flow smoke — `/wg test` (~1 min)
+## 4. Synthetic flow smoke — `/wg test notify` (~1 min)
 
 Exercises the notify + popup pipeline end-to-end without needing a real LFG application.
 
-1. `/wg test`
+1. `/wg test notify`
 
 **Expected chat output (with default toggles):**
 
@@ -336,10 +340,10 @@ Exercises the notify + popup pipeline end-to-end without needing a real LFG appl
 
 ### 4.1a Teleport on cooldown
 
-Needs a teleport you have learned **and recently used** — the eight-hour Keystone Hero cooldown makes this easy to arrange and slow to undo, so do it on a dungeon you were going to port to anyway. `/wg test` uses Windrunner Spire (`Path of the Windrunners`).
+Needs a teleport you have learned **and recently used** — the eight-hour Keystone Hero cooldown makes this easy to arrange and slow to undo, so do it on a dungeon you were going to port to anyway. `/wg test notify` uses Windrunner Spire (`Path of the Windrunners`).
 
 1. Cast the teleport.
-2. Run `/wg test` and look at the Teleport row.
+2. Run `/wg test notify` and look at the Teleport row.
 
 **Expected:**
 - Icon desaturated at 50% alpha, with a **cooldown swipe** over it that visibly sweeps.
@@ -352,11 +356,11 @@ Needs a teleport you have learned **and recently used** — the eight-hour Keyst
 - With `/wg debug on`: one `[Frame] teleport on cooldown, <time> remaining (spellID=<N>)` line.
 - The chat summary's Teleport row is tagged `(on cooldown)` — a bare tag with no figure, since that line cannot refresh itself.
 
-Then, once the cooldown has expired, `/wg test` again: full alpha, no swipe, no note, and the click casts. Better still, catch it live — leave the popup open across the expiry and the button must rearm itself: swipe gone, note gone, full alpha, and a click that casts, with no close-and-reopen.
+Then, once the cooldown has expired, `/wg test notify` again: full alpha, no swipe, no note, and the click casts. Better still, catch it live — leave the popup open across the expiry and the button must rearm itself: swipe gone, note gone, full alpha, and a click that casts, with no close-and-reopen.
 
 ### 4.1b Teleport not learned
 
-1. Join or `/wg test` for a dungeon whose teleport you have **not** learned.
+1. Join or `/wg test notify` for a dungeon whose teleport you have **not** learned.
 
 **Expected:**
 - Icon desaturated at 50% alpha, no cooldown swipe.
@@ -369,7 +373,7 @@ Then, once the cooldown has expired, `/wg test` again: full alpha, no swipe, no 
 1. Click `[Click here to view details]` in the chat output from step 4.
 
 **Expected:** Popup re-opens with the same data. No ItemRef tooltip opens and no Lua error appears.
-A `/wg test` link does **not** stand in for a real join's link. § 5.1a clicks that one.
+A `/wg test notify` link does **not** stand in for a real join's link. § 5.1a clicks that one.
 
 ### 4.3 ESC closes popup
 
@@ -384,7 +388,7 @@ A `/wg test` link does **not** stand in for a real join's link. § 5.1a clicks t
 
 **Run with BugGrabber (or `/console scriptErrors 1`) enabled, or this check cannot fail visibly.**
 
-1. `/wg test` to show the popup, out of combat. Pull a target dummy.
+1. `/wg test notify` to show the popup, out of combat. Pull a target dummy.
 2. In combat, press **ESC**.
    - **Expected:** the popup closes at once, and **no `ADDON_ACTION_BLOCKED` error** appears (nothing in BugGrabber naming WhatGroup). The game menu does not open on this press.
 3. Press **ESC** again, still in combat.
@@ -413,19 +417,19 @@ The popup parents a `SecureActionButtonTemplate` teleport button, so the client 
 
 **Run with BugGrabber (or `/console scriptErrors 1`) enabled, or this check cannot fail visibly.**
 
-1. `/wg test` to raise the popup, out of combat. Pull a training dummy.
+1. `/wg test notify` to raise the popup, out of combat. Pull a training dummy.
    - **Expected:** no red error, nothing in BugGrabber naming WhatGroup.
 2. Press **Close** while still in combat.
    - **Expected:** **the popup goes away immediately.** No error, no chat line. This is the behaviour the 2026-09-08 ruling asked for; before it, Close in combat did nothing visible.
 3. Drop combat.
    - **Expected:** it is still gone, and stays gone.
-4. `/wg test` again, pull, and this time press **ESC** in combat.
+4. `/wg test notify` again, pull, and this time press **ESC** in combat.
    - **Expected:** identical to step 2, with no `ADDON_ACTION_BLOCKED` on `WhatGroupFrame:Hide()`. § 4.3a is the full check.
-5. Set `General visibility` = **Out of combat**, `/wg test` out of combat, then pull.
+5. Set `General visibility` = **Out of combat**, `/wg test notify` out of combat, then pull.
    - **Expected:** the popup goes off screen **on the pull**, not a fight later. No error.
 6. Drop combat.
    - **Expected:** **it comes back by itself.** This is the gate releasing what it withheld, and it is the half that must not be lost to the fix for step 2.
-7. `/wg test` **while in combat**, with the popup closed.
+7. `/wg test notify` **while in combat**, with the popup closed.
    - **Expected:** no red error, and the popup does **not** appear. One chat line: *"Popup deferred until combat ends."*
 8. Drop combat.
    - **Expected:** the popup opens now, carrying the capture from step 7.
@@ -438,14 +442,14 @@ The popup parents a `SecureActionButtonTemplate` teleport button, so the client 
 
 ### 4.6 A popup you closed stays closed
 
-**Reported from the client on 2026-09-08**, on the shipped default (`General visibility` = **Always**): `/wg test`, close the popup, pull something, and it springs open again. No Lua error — nothing about the call was wrong. The re-show arm could not tell "the gate is withholding this" from "the player put it away", and under `Always` the gate never withholds, so every firing of it was the second case.
+**Reported from the client on 2026-09-08**, on the shipped default (`General visibility` = **Always**): `/wg test notify`, close the popup, pull something, and it springs open again. No Lua error — nothing about the call was wrong. The re-show arm could not tell "the gate is withholding this" from "the player put it away", and under `Always` the gate never withholds, so every firing of it was the second case.
 
-1. `General visibility` = **Always** (the default). `/wg test`, then press **Close**.
+1. `General visibility` = **Always** (the default). `/wg test notify`, then press **Close**.
 2. Pull a training dummy.
    - **Expected:** the popup stays closed.
 3. Drop combat.
    - **Expected:** still closed. The dismissal outlives the whole fight.
-4. `/wg test` again, then press **ESC** instead of Close. Pull, drop combat.
+4. `/wg test notify` again, then press **ESC** instead of Close. Pull, drop combat.
    - **Expected:** identical. ESC reaches the popup through the `WhatGroupFrameEscape` proxy's `OnHide`, not through the Close button's handler, so it must be exactly as durable as the button.
 5. Now the direction that *must* still work: `General visibility` = **In combat**, out of combat, holding a capture. The popup is hidden. Pull.
    - **Expected:** the popup **opens**. This is the gate withholding and then releasing, and it is the one case the re-show arm exists for.
@@ -488,11 +492,11 @@ The end-to-end test. Requires an active LFG and at least one group leader willin
 
 ### 5.1a The real join's details link: click and shift-click
 
-The 2026-09-12 report: after a real join (open world, idle, 12.1.0 client), clicking this link did nothing. No popup opened and no hint printed. A later `/wg test` link worked, so § 4.2 cannot stand in for this step. Since then the link is Blizzard's `addon` link type (`addon:WhatGroup:show`), heard through `EventRegistry` rather than through a `SetItemRef` post-hook ([data-flow.md](./data-flow.md)).
+The 2026-09-12 report: after a real join (open world, idle, 12.1.0 client), clicking this link did nothing. No popup opened and no hint printed. A later `/wg test notify` link worked, so § 4.2 cannot stand in for this step. Since then the link is Blizzard's `addon` link type (`addon:WhatGroup:show`), heard through `EventRegistry` rather than through a `SetItemRef` post-hook ([data-flow.md](./data-flow.md)).
 
 1. Join a real group through the Group Finder, as in § 5.1, with `/wg debug on`. Leave the join's chat notification in scrollback.
 2. Close the popup (Close or **ESC**).
-3. Click `[Click here to view details]` in **that** notification, the real join's, not a `/wg test` one.
+3. Click `[Click here to view details]` in **that** notification, the real join's, not a `/wg test notify` one.
 4. Close the popup, then **shift-click** the same link. Do it once with the chat edit box closed and once with it open (press **Enter** first).
 
 **Expected:**
@@ -573,7 +577,7 @@ Run after bumping the `## Interface:` line in `WhatGroup.toc` for a major patch.
 **Expected:** No "out of date" warning in the AddOns dialog.
 
 2. Run section 1 (Boot smoke).
-3. Run section 4 (Synthetic flow — `/wg test`).
+3. Run section 4 (Synthetic flow — `/wg test notify`).
 4. Run section 5.1 (Real LFG flow, single application).
 
 If any Blizzard API broke (e.g. fields renamed on `C_LFGList.GetActivityInfoTable`), the most likely failure point is `CaptureGroupInfo` returning incomplete data — see [data-flow.md → Captured info](./data-flow.md#captured-info) for the field list and remediation steps.
@@ -604,7 +608,7 @@ Run after re-copying `libs/` (see [common-tasks.md → Refresh embedded libs](./
 
 1. `/reload` — confirm no boot errors.
 2. `/wg config` — confirm AceGUI widgets render normally.
-3. `/wg test` — confirm the pipeline still works end-to-end.
+3. `/wg test notify` — confirm the pipeline still works end-to-end.
 
 If a new Ace3 module was added or removed in KickCD, also update `WhatGroup.toc`'s lib block to match the directory layout. AceGUI's `.xml` always loads last because it pulls in `widgets/`; `LibKa0s.xml` loads after it.
 
@@ -666,7 +670,7 @@ Framed as *"nothing moved"*: anything that looks different from the previous bui
    **Expected:** a deprecation notice naming `/wg reset <path>` and `/wg resetall`. **Nothing is reset.**
 7. `/wg reset notify.delay`.
    **Expected:** that one row goes back to its default, no confirmation, and nothing else moves.
-8. `/wg test` to open the popup, and `/wg debug` to open the console. Put them side by side.
+8. `/wg test notify` to open the popup, and `/wg debug` to open the console. Put them side by side.
    **Expected:** both wear the **same** window edge — a hard 1px **black** outer border with a lighter gray line just inside it. The popup's border was gray and had no inner line before; that change is deliberate (both windows now read from the shared Ka0s skin). The console's border was a 12px tooltip frame; it is now the same 1px double edge.
 9. Drag the **popup** somewhere, `/reload`, `/wg show`.
    **Expected:** it is where you left it.
@@ -689,7 +693,7 @@ section exists.
 | 12.1 | `/wg debug` | The console title bar's three right-hand controls are **small square marks, not words**: copy, clear and close, drawn in the same gray as every other Ka0s window's and turning red under the pointer. **A regression looks like the words `Copy` and `Clear` beside a multiplication sign `×`** — that is the library falling back, and it means `addonName` stopped being passed in the descriptor at `core/DebugLogSetup.lua`. |
 | 12.2 | With the console open, click the copy control | The copy window opens, and **its** close control is the same square mark. A `×` here alone means the copy window is being built without the folder name while the console is not — the two come from the same descriptor key, so they should never disagree. |
 | 12.3 | Read the log text | Monospace, with the `HH:MM:SS \| [tag] …` columns aligned. It is the **library's** JetBrains Mono now, at `libs/LibKa0s/media/fonts/`, not a copy under this addon's `media/`. A proportional face here means `NS.MediaFont` answered nil and the `STANDARD_TEXT_FONT` fallback caught it — readable, and wrong. |
-| 12.4 | `/wg test`, then look at the popup's footer | The **Close** button keeps its word and gains a small close mark to its left, the pair centered together. The word must not disappear: this is a wide action button, not a title-bar target. If the mark is missing and the word is centered on its own, `NS.Icon("close")` answered nil and the button correctly fell back to what it always drew. |
+| 12.4 | `/wg test notify`, then look at the popup's footer | The **Close** button keeps its word and gains a small close mark to its left, the pair centered together. The word must not disappear: this is a wide action button, not a title-bar target. If the mark is missing and the word is centered on its own, `NS.Icon("close")` answered nil and the button correctly fell back to what it always drew. |
 | 12.5 | Settings → any Ka0s addon's font dropdown | `JetBrains Mono` appears in the list. It is registered by `Media.RegisterLSM(addonName)` at file load, once, pointing at one set of bytes — so **every** Ka0s addon offering the dropdown shows the same entry rather than several that merely share a name. |
 | 12.6 | Open a second Ka0s addon's debug console beside this one | The two title bars are indistinguishable: same marks, same size, same pitch, same gray. Any difference between them is the defect this whole section is for. |
 
@@ -757,7 +761,7 @@ What the addon **prints itself** — every `NS.L` label, the group-type words, t
 English on every client. That is the addon's scope and not a defect. § 10 (the `L` trap) is the check
 that they render as prose rather than as keys, and it is unrelated to this section.
 
-**`/wg test` will not do for most of this.** Its fixture spells the activity name out in English
+**`/wg test notify` will not do for most of this.** Its fixture spells the activity name out in English
 (`core/WhatGroup.lua:960`), so on a German client it is *expected* to show English. Use a real group
 for steps 1 to 3.
 
@@ -818,7 +822,7 @@ for steps 1 to 3.
    is a claim about a client build, and the one this observation is finally made on should be
    written down rather than assumed to be the English one somebody imagined.
 
-6. **Nothing else moved.** Run section 1 (boot), section 4 (`/wg test`) and section 5.1 once on this
+6. **Nothing else moved.** Run section 1 (boot), section 4 (`/wg test notify`) and section 5.1 once on this
    client.
    **Expected:** identical behavior to English throughout.
    **Fail:** any Lua error, which here means a localized string reached something that assumed an
@@ -826,7 +830,7 @@ for steps 1 to 3.
 
 **Sign-off without a non-English client.** There is none, for any step. `tests/wow_mock.lua` answers
 enUS for every string the capture path reads, `tests/test_capture.lua` and `tests/test_labels.lua`
-assert against those English values, and the `/wg test` fixture is English by construction — so the
+assert against those English values, and the `/wg test notify` fixture is English by construction — so the
 suite is green on all of it whether it is right or wrong. Step 5 in particular can only be answered
 in a client, which is why the rung `WHATGROUP-R-06` added is still unconfirmed. Until the pass runs, the
 honest state of this section is unrun, and it is recorded that way rather than as coverage.
@@ -838,9 +842,9 @@ honest state of this section is unrun, and it is recorded that way rather than a
 For a fast pre-release pass, run at minimum:
 
 - [ ] section 1.3 — ESC → Logout after `/reload`
-- [ ] section 1.3 — ESC → Logout after `/wg test`
+- [ ] section 1.3 — ESC → Logout after `/wg test notify`
 - [ ] section 1.3 — ESC → Logout after `/wg config`
-- [ ] sections 2.1, 2.10, 2.12, 2.13 — `/wg help`, `/wg test`, `/wg config`, `/wg reset`
+- [ ] sections 2.1, 2.10, 2.12, 2.13 — `/wg help`, `/wg test notify`, `/wg config`, `/wg reset`
 - [ ] section 3.4 — Defaults button confirm flow
 - [ ] section 3.8 — the visibility gate follows a combat transition, in both directions, with no taint line
 - [ ] section 3.9 — Test mode shows the sample, unticks on Close / ESC, and ends on the pull with one line

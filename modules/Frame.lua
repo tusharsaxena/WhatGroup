@@ -898,10 +898,10 @@ end
 -- the screen in a fight.
 --
 -- It also ends when the player closes the popup (Close or ESC), and when the player asks for the real
--- popup -- the chat link, `/wg show`, `/wg test` -- so the box never reads ticked over a popup that
--- is showing something else. The JOIN popup does not end it: the mode stays on until the player turns
--- it off, so that capture waits in pendingInfo (core/WhatGroup.lua's _TryFireJoinNotify). `/wg test`
--- stays the one-shot notify + popup check.
+-- popup -- the chat link, `/wg show`, `/wg test notify` -- so the box never reads ticked over a popup
+-- that is showing something else. The JOIN popup does not end it: the mode stays on until the player
+-- turns it off, so that capture waits in pendingInfo (core/WhatGroup.lua's _TryFireJoinNotify).
+-- `/wg test` toggles this mode (settings/Slash.lua); `/wg test notify` is the one-shot check.
 
 local GRAY = "|cff808080%s|r"
 
@@ -969,7 +969,7 @@ function WhatGroup:ShowFrame()
     if endTestMode("a real show") then refreshPanel() end
     -- THE VISIBILITY GATE (options-ui-§15), and it is TWO checks rather than one because the
     -- question is time-varying. Every way the popup reaches the screen -- the join notify,
-    -- `/wg show`, the chat link, `/wg test` -- comes through here, so gating here covers them all.
+    -- `/wg show`, the chat link, `/wg test notify` -- comes through here, so gating covers them all.
     --
     -- `never` is a standing no, so it refuses before anything is built: adding the secure button
     -- and the UISpecialFrames entry to a session for a window the player has said they never want

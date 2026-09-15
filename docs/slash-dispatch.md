@@ -84,7 +84,7 @@ Library verbs delegate to the instance; host verbs are the file-local functions 
 | `/wg` (no args) | `Sl:PrintHelp` (library) | Print the header + every command row. |
 | `/wg help` | `Sl:PrintHelp` (library) | Same. |
 | `/wg show` | `runShow` (host) | Open the popup if `pendingInfo` is set, ending test mode first if it is on. Otherwise print a hint pointing at `/wg test`. |
-| `/wg test` | `runTest` → `WhatGroup:RunTest()` (host) | Inject synthetic `pendingInfo` (Mythic+ Windrunner Spire) and run `ShowNotification()` + `ShowFrame()`, once. If test mode is on, that `ShowFrame()` ends it, so the two never overlap. Mirrors the panel's Test button via the same `RunTest()` method, so the two affordances stay in lockstep. |
+| `/wg test` / `/wg test on\|off` / `/wg test notify` | `runTest(rest)` (host) | **Test mode.** Bare `/wg test` toggles the popup's test mode and `/wg test on\|off` sets it, by writing the `state.testMode` session row through `Helpers.Set`, the setter the Master controls **Test mode** checkbox uses. So the box follows, and a start in combat is refused with the checkbox's one gray line (options-ui-§15). `/wg test notify` is the one-shot check: `WhatGroup:RunTest()` injects synthetic `pendingInfo` (Mythic+ Windrunner Spire) and runs `ShowNotification()` + `ShowFrame()` once, ending test mode if it is on. The panel's Test button runs the same method. Any other word prints a three-line usage. |
 | `/wg config` | `runConfig` (host) → `Helpers.OpenOptionsPanel` (library) | Calls the idempotent `Settings.Register()` fallback, then hands off. The combat refusal and the sidebar unfold both live inside `OpenOptionsPanel`, not in this dispatcher, so *every* caller is refused — the verb, a `/run` script, a future internal caller (options-ui-§2 / WG-25). Under `InCombatLockdown()` it prints the canonical gray notice *"cannot open settings during combat — Blizzard's category-switch is protected"* and returns; no defer-replay. Otherwise it opens the addon category and expands the subcategory tree so General — whose first tab is **Master controls** — is one click away. |
 | `/wg version` | `Sl:CliVersion` (library) | Print `[WG] v<version>` on its own line (slash-commands-§3 / WG-29), through the host's `version` seam. |
 | `/wg list` | `Sl:CliList` (library) | Green `Available settings` header, then rows grouped in **declaration order** under azure `[section]` headings — the descriptor's `groupKey` returns `row.section`, because these rows carry no `page` field the library's default would have read. Each row is `lib.FormatKV`: gold path, white value. |
@@ -124,9 +124,9 @@ Plain, never `NS.L`: the library resolves overrides with `rawget`, but a metatab
 
 `/wg` is registered unconditionally, so something has to answer it. If `LibKa0s-Slash-1.0` is missing, `settings/Slash.lua` installs a small stand-in `Sl`: the host verbs never went to the library and keep working, dispatch and a plain help index still render, and every schema verb (`list`, `get`, `set`, and `/wg reset <path>`) prints one honest line naming the missing library — `NS.LIBKA0S_MISSING` plus *"so the settings CLI is unavailable."* `/wg resetall` is host-owned and never delegated to `CliResetAll`, so it still confirms and wipes; it prints that line only when `Helpers.RestoreAllDefaults` itself is missing. Nothing in that branch re-implements a row formatter, the `key = value` shape or the parser (slash-commands-§1).
 
-## Why `runTest` is split between `/wg test` and `WhatGroup:RunTest()`
+## Why `/wg test notify` and the Test button share `WhatGroup:RunTest()`
 
-`WhatGroup:RunTest()` is a public method on the addon table — anything with a handle on `WhatGroup` can invoke it. The local `runTest()` in the COMMANDS table just delegates: `function runTest() WhatGroup:RunTest() end`.
+`WhatGroup:RunTest()` is a public method on the addon table — anything with a handle on `WhatGroup` can invoke it. The local `runTest(rest)` behind the COMMANDS row calls it for the `notify` sub-word.
 
 This split exists because the Settings panel's Test button (rendered via `Helpers.InlineButton` from the `AFTER_GROUP` table in `settings/Panel.lua`) needs to invoke the same code path without going through slash dispatch:
 
@@ -138,11 +138,11 @@ Helpers.InlineButton(ctx, {
 })
 ```
 
-So `/wg test` and the panel button stay in lockstep with zero risk of drift.
+So `/wg test notify` and the panel button stay in lockstep with zero risk of drift.
 
-## Test mode has no verb of its own
+## `/wg test` is the test mode
 
-The popup's test mode (options-ui-§15) is switched by the **Test mode** checkbox in General > Master controls, a `sessionOnly` schema row on `state.testMode`. Being a schema row, it is already reachable from chat through the schema CLI: `/wg set state.testMode on`, `off` or `toggle`, and `/wg get state.testMode`. A `/wg testmode` verb would be a second spelling of that one write, so there is none. `/wg test` stays the one-shot check the panel's Test button mirrors; run while test mode is on, it ends test mode and then runs its flow.
+Every Ka0s addon's `/<slash> test` is its test mode, switched by the same state as the Master controls **Test mode** checkbox (options-ui-§15). Here that state is the `sessionOnly` schema row `state.testMode`, and `runTest` writes it through `Helpers.Set` — bare toggles, `on|off` sets — so the verb and the checkbox cannot disagree: the box follows the verb, the verb gets the checkbox's combat refusal, and the `[Set]` trace logs either way. The schema CLI reaches the same row (`/wg set state.testMode on`, `/wg get state.testMode`) along the same path, not a second one. The one-shot flow the verb used to run lives on as `/wg test notify`.
 
 ## Adding a command
 

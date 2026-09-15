@@ -537,7 +537,7 @@ badge and any count quoted in the docs must agree with it.
 - panel: the Master controls tab closes with the reset button PAIR
 - panel: Reset all settings raises the confirmation, it does not reset on the click
 - panel: Reset position drops the stored point and re-anchors
-- panel: the Test button runs the same path as /wg test
+- panel: the Test button runs the same path as /wg test notify
 - panel: a throwing button onClick is caught, not propagated
 - panel: the Debug console renders as an ordinary Master controls checkbox
 - panel: ticking Debug console shows the window without touching db.profile
@@ -563,8 +563,13 @@ badge and any count quoted in the docs must agree with it.
 - panel: the landing page adds logo, notes, heading and command rows in that order
 - panel: a dirty landing page re-renders in place instead of stacking a second copy
 
-### test_testmode.lua (18)
+### test_testmode.lua (23)
 
+- testmode: bare /wg test toggles test mode, and the checkbox follows
+- testmode: /wg test on|off sets it, and repeating either changes nothing
+- testmode: /wg test in combat is refused with one line and leaves it off
+- testmode: /wg test with an unknown word prints usage and changes nothing
+- testmode: the COMMANDS row describes the mode and the notify sub-word
 - testmode: the Test mode row is composed right after the Debug console, on its own line
 - testmode: the row's tooltip is this addon's, not the composer's generic one
 - testmode: it is session-only and never reaches db.profile
@@ -579,7 +584,7 @@ badge and any count quoted in the docs must agree with it.
 - testmode: combat starting ends it, says so once, and unticks the box
 - testmode: combat with test mode off prints nothing about it
 - testmode: Reset all settings ends it
-- testmode: /wg test is still the one-shot notify + popup flow, and ends test mode
+- testmode: /wg test notify is the one-shot notify + popup flow, and ends test mode
 - testmode: /wg show ends it and shows the real capture
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
@@ -621,9 +626,9 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: /wg config opens the parent settings category
 - lifecycle: /wg config is refused during combat (options-ui-§2)
 - lifecycle: a login taken in combat still registers the panel
-- lifecycle: /wg test injects a synthetic capture and runs the full flow
-- lifecycle: /wg test bypasses the master switch
-- lifecycle: /wg test fires immediately, without the notify delay
+- lifecycle: /wg test notify injects a synthetic capture and runs the full flow
+- lifecycle: /wg test notify bypasses the master switch
+- lifecycle: /wg test notify fires immediately, without the notify delay
 - lifecycle: /wg show opens the popup when a capture exists
 - lifecycle: /wg show with no capture prints a hint and opens nothing
 - lifecycle: /wg reset <path> resets one setting, with no confirmation
@@ -723,7 +728,7 @@ badge and any count quoted in the docs must agree with it.
 | test_notify.lua | 48 |
 | test_frame.lua | 90 |
 | test_panel.lua | 53 |
-| test_testmode.lua | 18 |
+| test_testmode.lua | 23 |
 | test_lifecycle.lua | 44 |
 | test_debuglog.lua | 34 |
 | test_docmap.lua | 1 |
@@ -732,4 +737,4 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **626** |
+| **Total** | **631** |

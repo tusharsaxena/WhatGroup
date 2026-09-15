@@ -59,7 +59,7 @@ Called on every `ShowFrame()`. Reads `shownInfo()` — `WhatGroup.pendingInfo`, 
 
 Edge cases:
 
-- **`pendingInfo == nil`** — every text field shows `|cff888888No data|r` and the teleport button hides. This shouldn't normally happen (`/wg show` and `/wg test` both set `pendingInfo` before calling `ShowFrame`), but the populator defends against it.
+- **`pendingInfo == nil`** — every text field shows `|cff888888No data|r` and the teleport button hides. This shouldn't normally happen (`/wg show` and `/wg test notify` both set `pendingInfo` before calling `ShowFrame`), but the populator defends against it.
 - **`info.fullName == ""`** — Instance row falls back to `"Unknown"`.
 - **`info.shortName == ""`** — Type row falls back to `WhatGroup.Labels.GetGroupTypeLabel(info)`.
 - **`info.playstyleString == ""` AND `WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle] == nil`** — Playstyle row falls back to a dim em-dash. This is also the path taken when `generalPlaystyle == Enum.LFGEntryGeneralPlaystyle.None` (= 0).
@@ -127,7 +127,7 @@ Test mode adds three: `WhatGroup:SampleInfo()` (`core/WhatGroup.lua`, the sample
 
 ## Visibility
 
-`visibility` gates every path the popup takes to the screen — the join notify, `/wg show`, the chat link, `/wg test` — because every one of them comes through `ShowFrame`. It is **two** checks rather than one, and the split is deliberate:
+`visibility` gates every path the popup takes to the screen — the join notify, `/wg show`, the chat link, `/wg test notify` — because every one of them comes through `ShowFrame`. It is **two** checks rather than one, and the split is deliberate:
 
 - **`never` refuses before anything is built.** Adding the secure button and the `UISpecialFrames` entry to a session for a window the player has said they never want is exactly the taint surface this file defers to avoid.
 - **`inCombat` / `outOfCombat` gate the `Show`, not the build.** Refusing the build would deadlock `Only in combat`: the first show is always out of combat, so the frame would never be built, and the in-combat show would then meet the never-built defer instead of a popup. Under `inCombat` the frame is therefore built and populated out of combat and simply left off screen.
@@ -184,12 +184,12 @@ The `inCombat` argument overrides the live `InCombatLockdown()` read and exists 
 
 ## Test mode
 
-The popup is a display the player places, so it ships a **test mode** (options-ui-§15, preview-mode): the popup up with sample group info, left up until it is turned off, so it can be dragged into place without joining a group. The switch is the session-only **Test mode** checkbox in General > Master controls. `settings/Panel.lua` composes it from `testModePath = "state.testMode"`, and `settings/Schema.lua`'s `SESSION` table routes that path to `WhatGroup:TestModeCheckbox()`. The flag is `NS.State.testMode`.
+The popup is a display the player places, so it ships a **test mode** (options-ui-§15, preview-mode): the popup up with sample group info, left up until it is turned off, so it can be dragged into place without joining a group. The switch is the session-only **Test mode** checkbox in General > Master controls. `settings/Panel.lua` composes it from `testModePath = "state.testMode"`, and `settings/Schema.lua`'s `SESSION` table routes that path to `WhatGroup:TestModeCheckbox()`. The flag is `NS.State.testMode`. `/wg test` drives the same row through the same `Helpers.Set` (`settings/Slash.lua`): bare toggles, `on|off` sets.
 
 - **Its own record.** The sample is `WhatGroup:SampleInfo()`, held in the file-local `previewInfo`. Every read of "what does the popup show" (`PopulateFields`, the `OnShow` teleport configure, the debug line) goes through `shownInfo()`, which answers `previewInfo or pendingInfo`. The sample therefore takes the same render path as a real capture, and **`pendingInfo` is never written**: a real capture the player is still holding survives a round of placing.
 - **Start.** Refused under `InCombatLockdown()` with one gray line, `cannot start test mode during combat`, because the start needs a protected `Show`; the flag stays false, so the settings seam's refresh redraws the box unticked. Otherwise `preparePopup()` (the build, size, scale, alpha and fields `ShowFrame` uses) and `showPopup()`. It skips `frame.autoShow` and the `visibility` gate, since it is an explicit request to see the popup, and `ApplyFrameVisibility` returns early while it is on. `locked` is still read at drag time.
 - **Stop.** `endTestMode(why)` clears the flag and `previewInfo`, then takes the popup down through `hidePopup()`. Out of combat that is a real `Hide`; if the lockdown has already begun on the `PLAYER_REGEN_DISABLED` frame, it is the alpha-0 soft hide, settled at `PLAYER_REGEN_ENABLED` like any other. Out of combat it then refills the fields from the real capture. In combat it does not, because with no capture `PopulateFields` hides the secure teleport button, and the next show refills them anyway.
-- **What ends it.** Unticking (`Test mode off`); Close or ESC; an explicit show (`ShowFrame` from `/wg show`, `/wg test` or the chat link, since the player asked for the real popup); *Reset all settings* (the row's `default = false` in the `sessionOnly` sweep); and `PLAYER_REGEN_DISABLED` (`OnCombatStateChanged` → `EndTestModeForCombat`, one line: `Test mode off — combat started`). Every stop that is not a write through the settings seam repaints the panel itself, so the box follows.
+- **What ends it.** Unticking (`Test mode off`); Close or ESC; an explicit show (`ShowFrame` from `/wg show`, `/wg test notify` or the chat link, since the player asked for the real popup); *Reset all settings* (the row's `default = false` in the `sessionOnly` sweep); and `PLAYER_REGEN_DISABLED` (`OnCombatStateChanged` → `EndTestModeForCombat`, one line: `Test mode off — combat started`). Every stop that is not a write through the settings seam repaints the panel itself, so the box follows.
 - **What does not.** The **join popup**. The mode stays on until the player turns it off, so `_TryFireJoinNotify` holds the popup while it is on. The chat summary still prints, and the capture waits in `pendingInfo` for the chat link or `/wg show`.
 
 ## Combat-defer

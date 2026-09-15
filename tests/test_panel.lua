@@ -385,7 +385,7 @@ test("panel: Reset position drops the stored point and re-anchors", function()
     assertNil(NS.addon.db.global.windows.popup, "the persisted point is gone")
 end)
 
-test("panel: the Test button runs the same path as /wg test", function()
+test("panel: the Test button runs the same path as /wg test notify", function()
     local NS, _, mock = openGeneral()
     selectTab(mock, "Chat")
     widget(mock, "Button", "Test"):Fire("OnClick")

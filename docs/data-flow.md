@@ -293,7 +293,7 @@ The lookup is consumed by:
 
 ## Test path
 
-`WhatGroup:RunTest()` injects synthetic `pendingInfo` (a Mythic+ Windrunner Spire group) and runs `ShowNotification()` + `ShowFrame()` directly — bypassing `OnApplyToGroup`, the queue, the LFG event sequence, and the `_TryFireJoinNotify` join gate. Both `/wg test` and the panel's Test button route through this method, so the two affordances stay in lockstep.
+`WhatGroup:RunTest()` injects synthetic `pendingInfo` (a Mythic+ Windrunner Spire group) and runs `ShowNotification()` + `ShowFrame()` directly — bypassing `OnApplyToGroup`, the queue, the LFG event sequence, and the `_TryFireJoinNotify` join gate. Both `/wg test notify` and the panel's Test button route through this method, so the two affordances stay in lockstep.
 
 **Test mode does not use this path.** It shows the same sample (`WhatGroup:SampleInfo()`) from `modules/Frame.lua`'s own `previewInfo`, so `pendingInfo`, a real capture included, is never written. A join that lands while test mode is on still prints its summary, but `_TryFireJoinNotify` holds the popup; the capture waits in `pendingInfo` for the chat link or `/wg show`, and either of those ends test mode. See [frame.md → Test mode](./frame.md#test-mode).
 

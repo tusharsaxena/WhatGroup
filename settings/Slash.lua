@@ -37,8 +37,8 @@ local COMMANDS = {
         function() Sl:PrintHelp() end},
     {"show",     L["Show the last group info dialog"],
         function() runShow() end},
-    {"test",     L["Inject synthetic group info and run the full notify + frame flow"],
-        function() runTest() end},
+    {"test",     L["Toggle test mode (sample group info on the popup) — `/wg test on|off`; `/wg test notify` runs the join notice + popup once"],
+        function(rest) runTest(rest) end},
     {"config",   L["Open the Ka0s WhatGroup Settings panel"],
         function() runConfig() end},
     {"version",  L["Print the addon version"],
@@ -197,7 +197,28 @@ function runShow()
     end
 end
 
-function runTest() WhatGroup:RunTest() end
+-- `/wg test` IS the test mode (options-ui-§15): it writes the same session row the Master controls
+-- checkbox writes, through the same Helpers.Set, so the box follows, a start in combat is refused
+-- with the checkbox's one line, and the [Set] trace logs. Bare toggles it; `on|off` sets it.
+-- `notify` keeps the one-shot join notice + popup flow, WhatGroup:RunTest, which the panel's Test
+-- button also runs.
+local TEST_MODE_PATH = "state.testMode"
+
+function runTest(rest)
+    local sub = (rest or ""):match("^(%S+)")
+    sub = sub and sub:lower() or ""
+    if sub == "notify" then return WhatGroup:RunTest() end
+    local H = helpers()
+    if sub == "" then
+        H.Set(TEST_MODE_PATH, not H.Get(TEST_MODE_PATH))
+    elseif sub == "on" or sub == "off" then
+        H.Set(TEST_MODE_PATH, sub == "on")
+    else
+        NS.Print("Usage: /wg test          (toggle test mode)")
+        NS.Print("       /wg test on|off   (turn it on or off)")
+        NS.Print("       /wg test notify   (run the join notice + popup once)")
+    end
+end
 
 function runConfig()
     -- Settings registration normally happens at login (OnEnable), so the panel is already in the

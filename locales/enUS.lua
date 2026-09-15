@@ -99,8 +99,8 @@ L["all settings reset to defaults"] = "all settings reset to defaults"
 -- decision for a translator to take, not a string this file can hold.
 L["List available commands"]  = "List available commands"
 L["Show the last group info dialog"] = "Show the last group info dialog"
-L["Inject synthetic group info and run the full notify + frame flow"] =
-    "Inject synthetic group info and run the full notify + frame flow"
+L["Toggle test mode (sample group info on the popup) — `/wg test on|off`; `/wg test notify` runs the join notice + popup once"] =
+    "Toggle test mode (sample group info on the popup) — `/wg test on|off`; `/wg test notify` runs the join notice + popup once"
 L["Open the Ka0s WhatGroup Settings panel"] = "Open the Ka0s WhatGroup Settings panel"
 L["Print the addon version"]  = "Print the addon version"
 L["List every setting and its current value"] = "List every setting and its current value"

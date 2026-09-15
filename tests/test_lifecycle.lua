@@ -405,29 +405,29 @@ end)
 -- /wg test and /wg show
 -- ---------------------------------------------------------------------------
 
-test("lifecycle: /wg test injects a synthetic capture and runs the full flow", function()
+test("lifecycle: /wg test notify injects a synthetic capture and runs the full flow", function()
     local NS, _, mock = T.bootAddon()
     local mark = #mock.prints
-    runCmd(NS, "test")
+    runCmd(NS, "test", "notify")
     assertTrue(NS.addon.pendingInfo ~= nil)
     assertEqual(NS.addon.pendingInfo.mapID, 2805, "RunTest's fixture: Windrunner Spire")
     assertTrue(#mock.prints > mark, "the chat summary printed")
     assertTrue(mock.frames["WhatGroupFrame"]:IsShown(), "and the popup opened")
 end)
 
-test("lifecycle: /wg test bypasses the master switch", function()
+test("lifecycle: /wg test notify bypasses the master switch", function()
     local NS = T.bootAddon()
     NS.addon.Settings.Helpers.Set("enabled", false)
-    runCmd(NS, "test")
+    runCmd(NS, "test", "notify")
     assertTrue(NS.addon.pendingInfo ~= nil,
         "a preview must still work with the addon disabled")
 end)
 
-test("lifecycle: /wg test fires immediately, without the notify delay", function()
+test("lifecycle: /wg test notify fires immediately, without the notify delay", function()
     local NS, _, mock = T.bootAddon()
     NS.addon.Settings.Helpers.Set("notify.delay", 8)
     local mark = #mock.prints
-    runCmd(NS, "test")
+    runCmd(NS, "test", "notify")
     assertTrue(#mock.prints > mark, "the preview is synchronous, not scheduled")
     assertEqual(#mock.__timers, 0)
 end)

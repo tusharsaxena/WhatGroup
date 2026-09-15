@@ -94,6 +94,82 @@ end
 local function on(NS)  NS.addon.Settings.Helpers.Set(PATH, true)  end
 local function isOn(NS) return NS.addon.Settings.Helpers.Get(PATH) end
 
+-- `/wg test <rest>`, through the COMMANDS row the dispatcher runs (handler takes `rest` alone).
+local function wgTest(NS, rest)
+    for _, c in ipairs(NS.addon.COMMANDS) do
+        if c[1] == "test" then return c[3](rest or "") end
+    end
+    error("no test verb")
+end
+
+-- ---------------------------------------------------------------------------
+-- The verb: `/wg test` IS the test mode, on the checkbox's own setter
+-- ---------------------------------------------------------------------------
+
+test("testmode: bare /wg test toggles test mode, and the checkbox follows", function()
+    -- red under: /wg test still running the one-shot RunTest flow.
+    local NS, _, mock = openGeneral()
+    NS.addon.pendingInfo = pending()
+    wgTest(NS, "")
+    assertTrue(isOn(NS), "the first /wg test turns it on")
+    assertTrue(onScreen(mock))
+    assertEqual(groupText(mock), NS.addon:SampleInfo().title, "showing the sample")
+    assertEqual(NS.addon.pendingInfo.title, "Stonevault Speedrun", "and no capture was injected")
+    assertEqual(checkbox(mock, "Test mode"):GetValue(), true, "the box follows the verb")
+    wgTest(NS, "")
+    assertFalse(isOn(NS), "the second turns it off")
+    assertFalse(onScreen(mock))
+    assertEqual(checkbox(mock, "Test mode"):GetValue(), false)
+end)
+
+test("testmode: /wg test on|off sets it, and repeating either changes nothing", function()
+    local NS, _, mock = T.enableAddon()
+    wgTest(NS, "on")
+    assertTrue(isOn(NS))
+    wgTest(NS, "ON")
+    assertTrue(isOn(NS), "on is on, whatever it was; case-insensitive")
+    assertTrue(onScreen(mock))
+    wgTest(NS, "off")
+    assertFalse(isOn(NS))
+    wgTest(NS, "off")
+    assertFalse(isOn(NS), "off is off")
+    assertFalse(onScreen(mock))
+end)
+
+test("testmode: /wg test in combat is refused with one line and leaves it off", function()
+    -- options-ui-§15 (v2.48.0): a start during combat is refused, with one line, box unticked.
+    local NS, _, mock = openGeneral()
+    mock.combat = true
+    local mark = #mock.prints
+    wgTest(NS, "")
+    assertFalse(isOn(NS), "refused")
+    assertEqual(#mock.prints - mark, 1, "one line")
+    assertTrue(printedSince(mock, mark, "cannot start test mode during combat"))
+    assertEqual(#mock.blocked, 0, "no protected call was attempted")
+    assertEqual(checkbox(mock, "Test mode"):GetValue(), false, "the box stays unticked")
+    wgTest(NS, "on")
+    assertFalse(isOn(NS), "/wg test on is refused the same way")
+end)
+
+test("testmode: /wg test with an unknown word prints usage and changes nothing", function()
+    local NS, _, mock = T.enableAddon()
+    local mark = #mock.prints
+    wgTest(NS, "sideways")
+    assertFalse(isOn(NS))
+    assertNil(NS.addon.pendingInfo, "and no one-shot flow ran either")
+    assertTrue(printedSince(mock, mark, "/wg test"), "the usage names the verb")
+end)
+
+test("testmode: the COMMANDS row describes the mode and the notify sub-word", function()
+    local NS = T.newAddon()
+    local desc
+    for _, c in ipairs(NS.addon.COMMANDS) do
+        if c[1] == "test" then desc = c[2] end
+    end
+    assertTrue(desc ~= nil and desc:find("test mode", 1, true) ~= nil, tostring(desc))
+    assertTrue(desc:find("notify", 1, true) ~= nil, "it names /wg test notify")
+end)
+
 -- ---------------------------------------------------------------------------
 -- The row (options-ui-§15)
 -- ---------------------------------------------------------------------------
@@ -293,13 +369,11 @@ test("testmode: Reset all settings ends it", function()
     assertFalse(onScreen(mock), "and the popup went with it")
 end)
 
-test("testmode: /wg test is still the one-shot notify + popup flow, and ends test mode", function()
+test("testmode: /wg test notify is the one-shot notify + popup flow, and ends test mode", function()
     local NS, _, mock = T.enableAddon()
     on(NS)
     local mark = #mock.prints
-    for _, c in ipairs(NS.addon.COMMANDS) do
-        if c[1] == "test" then c[3]("") end
-    end
+    wgTest(NS, "notify")
     assertFalse(isOn(NS), "the real flow takes the popup back")
     assertEqual(NS.addon.pendingInfo.mapID, 2805, "RunTest's capture was injected")
     assertTrue(printedSince(mock, mark, "You have joined a group!"), "the chat summary printed")

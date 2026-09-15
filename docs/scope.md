@@ -10,8 +10,8 @@ What's in scope, what's out, and the resolved decisions that shaped the contract
 - **Re-open via clickable chat link.** The notification ends with an `addon:WhatGroup:show` hyperlink, Blizzard's `addon` link type; clicking re-opens the popup. Blizzard's own handler for that type raises `EventRegistry`'s `"SetItemRef"` event and counts the link handled, so `SetItemRef` never falls through to the ItemRef tooltip; the addon subscribes to that event. See [data-flow.md](./data-flow.md).
 - **Schema-driven settings.** A flat `Settings.Schema` array drives the panel widgets, the `/wg list/get/set/reset` slash surface, AceDB defaults, and `/wg reset`. One row = one option, six surfaces.
 - **Account-wide preferences.** Single AceDB profile (`AceDB:New("WhatGroupDB", defaults, true)` — `true` = shared `Default` profile across every character on the account).
-- **Master enable switch.** `db.profile.enabled` gates the capture path entirely. `/wg test` and `/wg show` deliberately bypass the gate.
-- **Test affordance.** Both `/wg test` and the panel's Test button route through `WhatGroup:RunTest()`, which injects synthetic `pendingInfo` and runs the full notify + popup flow without joining a real group. Separately, the **Test mode** checkbox (Master controls, options-ui-§15) puts the popup up on the same sample data, from a record of its own rather than `pendingInfo`, and leaves it up for placing until it is turned off, closed, or combat starts.
+- **Master enable switch.** `db.profile.enabled` gates the capture path entirely. `/wg test notify`, test mode and `/wg show` deliberately bypass the gate.
+- **Test affordance.** Both `/wg test notify` and the panel's Test button route through `WhatGroup:RunTest()`, which injects synthetic `pendingInfo` and runs the full notify + popup flow without joining a real group. Separately, the **Test mode** checkbox (Master controls, options-ui-§15), or bare `/wg test`, puts the popup up on the same sample data, from a record of its own rather than `pendingInfo`, and leaves it up for placing until it is turned off, closed, or combat starts.
 
 ## Out of scope
 

@@ -640,7 +640,7 @@ end
 function WhatGroup:OnApplyToGroup(searchResultID)
     -- Master enable gate: when disabled, the addon ignores the apply
     -- entirely so no capture → no pendingInfo → no notification or
-    -- popup later. /wg test and /wg show still work (they bypass the
+    -- popup later. /wg test notify and /wg show still work (they bypass the
     -- capture pipeline) so the user can preview / re-view at any time.
     if not (self.db and self.db.profile and self.db.profile.enabled) then
         return
@@ -931,13 +931,13 @@ end
 -- The slash surface itself lives in settings/Slash.lua: the COMMANDS table, the
 -- host verbs, and the LibKa0s-Slash-1.0 descriptor that owns the dispatcher, the
 -- help renderer, the value parser and the list/get/set/reset schema verbs. What
--- stays here is the one thing two callers share — `/wg test` and the settings
--- panel's Test button both need this body, and neither should go through the
--- other's entry point.
+-- stays here is the one thing two callers share — `/wg test notify` and the
+-- settings panel's Test button both need this body, and neither should go
+-- through the other's entry point.
 
 -- The sample capture: a fresh table on every call, so no caller hands another one it then mutates.
--- `/wg test` makes it the pending capture; test mode (modules/Frame.lua) shows it WITHOUT touching
--- pendingInfo.
+-- `/wg test notify` makes it the pending capture; test mode (modules/Frame.lua, bare `/wg test`)
+-- shows it WITHOUT touching pendingInfo.
 function WhatGroup:SampleInfo()
     -- mapID 2805 is Windrunner Spire — exercises the mapID-keyed teleport
     -- lookup (1254400, Path of the Windrunners). generalPlaystyle exercises
@@ -972,7 +972,7 @@ function WhatGroup:SampleInfo()
 end
 
 -- Public method so the Settings panel's Test button can invoke the
--- same code path as /wg test without going through the slash dispatch.
+-- same code path as /wg test notify without going through the slash dispatch.
 -- One-shot: the sample becomes the pending capture and the full notify + popup flow runs once. Its
 -- ShowFrame ends test mode if it is on, so the two never overlap.
 function WhatGroup:RunTest()
