@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-631%2F631_passing-green)
+![Tests](https://img.shields.io/badge/Tests-632%2F632_passing-green)
 
 WhatGroup remembers what group you signed up for via the Group Finder tool. Once you get accepted to a group, shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who is leading, and the playstyle.
 
@@ -30,7 +30,7 @@ Three tabs hold the tailoring. Six toggles on the **Chat** tab decide what the j
 
 All of it is reachable from chat as well. `/wg config` opens the panel, `/wg test` flips test mode (`on` and `off` set it), `/wg list` dumps every setting and its value, `/wg get` and `/wg set` read and write one by path (switches take `on`, `off` or `toggle`), `/wg reset <path>` restores one and `/wg resetall` restores the lot behind a confirmation. When something misbehaves, `/wg debug on` starts logging and `/wg debug` opens the window holding it.
 
-Everything else is configuration, and it lives in two places: the **Ka0s WhatGroup** page in the game's Settings → AddOns list, and `/wg` (or `/whatgroup`), which prints the full command list.
+Everything else is configuration, and it lives in two places: the **Ka0s WhatGroup** page in the game's Settings → AddOns list, and `/wg` (or `/whatgroup`), which opens that page. `/wg help` prints the full command list.
 
 ## How it works
 

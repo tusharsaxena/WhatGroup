@@ -79,7 +79,14 @@ if not lib then
     Sl = {
         OnSlash = function(_, msg)
             local raw = trim(msg)
-            if raw == "" then return Sl:PrintHelp() end
+            -- Bare `/wg` runs the `config` row, as the library does (slash-commands-§4); help
+            -- only if no such row exists.
+            if raw == "" then
+                for _, entry in ipairs(COMMANDS) do
+                    if entry[1] == "config" then return entry[3]("") end
+                end
+                return Sl:PrintHelp()
+            end
             local name, rest = raw:match("^(%S+)%s*(.*)$")
             name = (name or ""):lower()
             for _, entry in ipairs(COMMANDS) do

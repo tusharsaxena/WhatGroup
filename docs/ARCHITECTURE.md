@@ -135,7 +135,7 @@ landing page renders exactly what the dispatcher runs.
 | `help` | library | Lists every row |
 | `show` | host | Re-opens the popup for the current group |
 | `test` | host | Toggles test mode (`on\|off` sets it) through the Test mode checkbox's own setter; `test notify` injects synthetic group info and runs the full notify + frame flow once, ending test mode if it is on |
-| `config` | host | Opens the settings panel (refused in combat, inside `OpenOptionsPanel`) |
+| `config` | host | Opens the settings panel on its landing page (refused in combat, inside `OpenOptionsPanel`). A bare `/wg` runs it too |
 | `version` | library | Prints the addon version |
 | `list` / `get` / `set` | library | The schema CLI, over the eighteen rows above (`/wg set state.testMode` reaches test mode too; `/wg test` is its verb) |
 | `reset` | host | Resets **one** path — `/wg reset <path>`, no confirmation ([`LIBKA0S-13`](https://github.com/tusharsaxena/WhatGroup/issues/8)) |

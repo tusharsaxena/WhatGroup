@@ -659,6 +659,22 @@ test("degraded: the settings panel explains itself once at load and once per con
         "once at load, once for the verb the user actually typed — and never again")
 end)
 
+test("degraded: a bare /wg runs `config`, as the library's dispatcher does", function()
+    -- The stub mirrors LibKa0s-Slash-1.0's OnSlash (slash-commands-§4): bare runs the `config`
+    -- row, and only a host with no such row gets the help index.
+    local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
+    NS.addon:OnInitialize()
+    NS.addon:OnEnable()          -- spends the load-time notice
+    NS.addon:OnSlashCommand("   ")
+    local notices, help = 0, false
+    for _, line in ipairs(mock.prints) do
+        if line:find("settings panel is unavailable", 1, true) then notices = notices + 1 end
+        if line:find("slash commands", 1, true) then help = true end
+    end
+    assertEqual(notices, 2, "the bare form reached runConfig, which says why nothing opened")
+    assertFalse(help, "and it did not print the help index")
+end)
+
 test("degraded: `/wg debug on` still moves the flag and explains the missing window ONCE", function()
     -- The flag is ours, so it must keep working; the WINDOW is what is lost, and one announce per
     -- entry point is what keeps `/wg debug` from going silent after `/wg debug on` spent the token.

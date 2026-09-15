@@ -21,7 +21,7 @@ badge and any count quoted in the docs must agree with it.
 - harness: a registration naming a method the addon lacks is refused
 - harness: the addon's AceTimer handles are the kit's, on the kit's queue
 
-### test_libka0s.lua (47)
+### test_libka0s.lua (48)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
@@ -64,6 +64,7 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the STORED profile is the same shape with the library absent
 - degraded: the settings stub carries no widget maker and no layout constant
 - degraded: the settings panel explains itself once at load and once per config
+- degraded: a bare /wg runs `config`, as the library's dispatcher does
 - degraded: `/wg debug on` still moves the flag and explains the missing window ONCE
 - libka0s: the Master controls hook is keyed off the library's constant, not a copy of it
 - libka0s: the L-trap matcher flags the table and the `or` spelling, not the `and` one
@@ -247,7 +248,7 @@ badge and any count quoted in the docs must agree with it.
 - slash: COMMANDS has a standalone version verb (WG-29)
 - slash: /wg version prints [WG] v<version> on its own line (WG-29)
 - slash: help header has no trailing colon (WG-19)
-- slash: a bare /wg prints the help index
+- slash: a bare /wg opens the settings landing page through `config`
 - slash: whitespace-only input is treated as bare /wg
 - slash: nil input is tolerated
 - slash: help lists one row per COMMANDS entry, plus the header
@@ -714,7 +715,7 @@ badge and any count quoted in the docs must agree with it.
 | Suite | Cases |
 |-------|------:|
 | test_harness.lua | 12 |
-| test_libka0s.lua | 47 |
+| test_libka0s.lua | 48 |
 | test_surface_parity.lua | 4 |
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
@@ -737,4 +738,4 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **631** |
+| **Total** | **632** |

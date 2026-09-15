@@ -64,16 +64,24 @@ local function anyLine(lines, fragment)
     return false
 end
 
-test("slash: a bare /wg prints the help index", function()
-    local NS, _, mock = T.bootAddon()
+test("slash: a bare /wg opens the settings landing page through `config`", function()
+    -- slash-commands-§4: bare opens the Settings panel on its home page; `help` is the index.
+    local NS, _, mock = T.enableAddon()
     local lines = capture(mock, function() NS.addon:OnSlashCommand("") end)
-    assertTrue(anyLine(lines, "slash commands"))
+    assertEqual(#mock.openedTo, 1, "the panel opened, once")
+    assertEqual(mock.openedTo[1], mock.categories[1]:GetID(), "on the parent (landing) category")
+    assertFalse(anyLine(lines, "slash commands"), "and no help index printed")
+    lines = capture(mock, function() NS.addon:OnSlashCommand("help") end)
+    assertTrue(anyLine(lines, "slash commands"), "`/wg help` is where the index lives")
+    assertEqual(#mock.openedTo, 1, "and it opens nothing")
 end)
 
 test("slash: whitespace-only input is treated as bare /wg", function()
-    local NS, _, mock = T.bootAddon()
+    local NS, _, mock = T.enableAddon()
     local lines = capture(mock, function() NS.addon:OnSlashCommand("   ") end)
-    assertTrue(anyLine(lines, "slash commands"))
+    assertEqual(#mock.openedTo, 1, "the panel opened, as for a bare /wg")
+    assertEqual(mock.openedTo[1], mock.categories[1]:GetID())
+    assertFalse(anyLine(lines, "slash commands"))
 end)
 
 test("slash: nil input is tolerated", function()
