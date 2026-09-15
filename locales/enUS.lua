@@ -120,3 +120,10 @@ L["No group info available. Use |cffFFFF00/wg test|r to preview."] =
 L["Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."] =
     "Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."
 L["Popup deferred until combat ends."] = "Popup deferred until combat ends."
+
+-- Test mode (modules/Frame.lua)
+L["Test mode on — the popup shows sample group info. Drag its title bar to place it."] =
+    "Test mode on — the popup shows sample group info. Drag its title bar to place it."
+L["Test mode off"] = "Test mode off"
+L["Test mode off — combat started"] = "Test mode off — combat started"
+L["cannot start test mode during combat"] = "cannot start test mode during combat"

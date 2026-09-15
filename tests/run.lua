@@ -115,6 +115,7 @@ Kit.run{
         "test_notify",
         "test_frame",
         "test_panel",
+        "test_testmode",
         "test_lifecycle",
         "test_debuglog",
         "test_docmap",

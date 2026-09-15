@@ -32,6 +32,24 @@ local yGap         = -18
 -- by the time those functions execute.
 local f, fields, ConfigureTeleportButton
 
+-- TEST MODE's placeholder capture (options-ui-§15, preview-mode), and nil exactly while test mode is
+-- off. A record of its own rather than a write to `pendingInfo`, so a real capture the player is
+-- still holding survives a round of placing the popup. Every reader of "what does the popup show"
+-- asks shownInfo(), so the placeholder goes through the same render path as live data.
+local previewInfo
+local function shownInfo() return previewInfo or WhatGroup.pendingInfo end
+
+-- Ends test mode, returning true when it was on. Assigned in the test-mode section below; declared
+-- here because the Close button and the ESC proxy, both built earlier in this file, end it too.
+local endTestMode
+
+-- The Master controls checkbox reads NS.State.testMode, so every stop that is not a write through
+-- the settings seam (which refreshes on its own) repaints the panel here.
+local function refreshPanel()
+    local H = WhatGroup.Settings and WhatGroup.Settings.Helpers
+    if H and H.RefreshAll then H.RefreshAll() end
+end
+
 -- THE POPUP'S SIZE IS A SETTING NOW. `FRAME_WIDTH = 420` and `FRAME_HEIGHT = 260` used to be two
 -- file-locals here; they are `frame.width` and `frame.height` in the schema, and their shipped
 -- defaults ARE those two numbers (defaults/Profile.lua), so a profile that never touches either
@@ -294,6 +312,9 @@ function WhatGroup:ApplyFrameVisibility(inCombat)
         hidePopup()
         gateWithheld = wasGate
     end
+    -- Test mode is an explicit request to see the popup, so the gate leaves it alone. It cannot
+    -- outlive a combat edge: PLAYER_REGEN_DISABLED ends it before this runs.
+    if previewInfo then return end
     if not visibilityAllows(inCombat) then
         local down = hidePopup()
         -- After the hide, never before: the real Hide fires OnHide, which clears the flag for every
@@ -527,6 +548,8 @@ local function buildEscapeProxy()
         -- A player dismissal, so the gate must not reopen it. Set here as the Close button sets it:
         -- in combat hidePopup takes the alpha route and never fires f's OnHide.
         gateWithheld = false
+        -- Closing the placeholder popup is turning test mode off, or the checkbox would go stale.
+        if endTestMode("closed") then refreshPanel() end
     end)
     tinsert(UISpecialFrames, ESC_PROXY_NAME)
     return p
@@ -574,10 +597,11 @@ local function buildFrame()
     -- per-caller arm would be the thing the next path forgets. Re-running the whole configure
     -- rather than starting a timer here keeps ONE owner of the button's state;
     -- ConfigureTeleportButton cancels any live handle first, so it cannot stack. Guarded on
-    -- pendingInfo exactly as PopulateFields is: with no capture there is no teleport to draw.
+    -- the shown capture exactly as PopulateFields is: with none there is no teleport to draw.
     f:SetScript("OnShow", function()
-        if fields and ConfigureTeleportButton and WhatGroup.pendingInfo then
-            ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, WhatGroup.pendingInfo)
+        local info = shownInfo()
+        if fields and ConfigureTeleportButton and info then
+            ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, info)
         end
     end)
 
@@ -738,6 +762,7 @@ local function buildFrame()
         -- explicitly rather than left to OnHide: in combat `hidePopup` takes the alpha route and
         -- never fires it.
         gateWithheld = false
+        if endTestMode("closed") then refreshPanel() end
     end)
 
     -- ESC to close — register the PROXY with UISpecialFrames *now*, lazily (buildEscapeProxy says
@@ -804,7 +829,7 @@ local function buildFrame()
 end
 
 local function PopulateFields()
-    local info = WhatGroup.pendingInfo
+    local info = shownInfo()
     if not info then
         local noData = "|cff888888" .. L["No data"] .. "|r"
         fields.group:SetText(noData)
@@ -840,8 +865,108 @@ local function PopulateFields()
     ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, info)
 end
 
+-- Build (once), apply the size, scale and opacity, and fill the fields: everything a show does
+-- short of putting the popup on screen. ShowFrame and test mode share it, so a change taken while
+-- the popup was closed -- or refused because it was taken in combat -- lands on either path.
+local function preparePopup()
+    buildFrame()    -- lazy: creates the popup + secure button +
+                    -- UISpecialFrames entry on first call only.
+    WhatGroup:ApplyFrameSize()
+    WhatGroup:ApplyFrameScale()
+    WhatGroup:ApplyFrameAlpha()
+    local info = shownInfo()
+    NS.Debug("Frame", info
+        and ('popup shown "' .. tostring(info.title) .. '" map=' .. tostring(info.mapID))
+        or "popup shown (no pendingInfo → 'No data' fallbacks)")
+    PopulateFields()
+end
+
+-- ---------------------------------------------------------------------------
+-- Test mode (options-ui-§15, preview-mode)
+-- ---------------------------------------------------------------------------
+--
+-- The popup is a display the player places, so it ships a test mode: the popup up with placeholder
+-- group info, left up until it is turned off, so it can be dragged into place without joining a
+-- group. Its one switch is the session-only `Test mode` checkbox in General > Master controls
+-- (settings/Panel.lua composes it from `testModePath`; settings/Schema.lua's SESSION table routes
+-- the path here). NS.State.testMode is the flag; `previewInfo` above is what the popup shows.
+--
+-- It shows the popup whatever `frame.autoShow` and `General visibility` say, because it is an
+-- explicit request to see it, and it honors `locked` (read at drag time, as always). It is REFUSED
+-- IN COMBAT and ENDS AT PLAYER_REGEN_DISABLED (core/WhatGroup.lua's OnCombatStateChanged), because
+-- the popup parents a secure button: the start needs a protected Show, and no placeholder may cover
+-- the screen in a fight.
+--
+-- It also ends when the player closes the popup (Close or ESC), and when the player asks for the real
+-- popup -- the chat link, `/wg show`, `/wg test` -- so the box never reads ticked over a popup that
+-- is showing something else. The JOIN popup does not end it: the mode stays on until the player turns
+-- it off, so that capture waits in pendingInfo (core/WhatGroup.lua's _TryFireJoinNotify). `/wg test`
+-- stays the one-shot notify + popup check.
+
+local GRAY = "|cff808080%s|r"
+
+local function startTestMode()
+    if NS.State.testMode then return true end
+    if InCombatLockdown() then
+        NS.Print(GRAY:format(L["cannot start test mode during combat"]))
+        return false
+    end
+    NS.State.testMode = true
+    previewInfo = WhatGroup:SampleInfo()
+    preparePopup()
+    showPopup()
+    NS.Debug("Test", "test mode on")
+    NS.Print(L["Test mode on — the popup shows sample group info. Drag its title bar to place it."])
+    return true
+end
+
+-- Through hidePopup, the one seam allowed to take the popup off screen: a real Hide out of combat,
+-- and the alpha-0 soft hide on the frame PLAYER_REGEN_DISABLED fires, if the lockdown has already
+-- begun. The fields are refilled from the real capture, so it is what the popup holds next.
+function endTestMode(why)
+    if not NS.State.testMode then return false end
+    NS.State.testMode = false
+    previewInfo = nil
+    hidePopup()
+    gateWithheld = false
+    -- Not in combat: with no real capture PopulateFields hides the secure teleport button, which the
+    -- client refuses under lockdown. A popup ended by combat is soft-hidden, and the next show
+    -- refills it anyway.
+    if fields and not InCombatLockdown() then PopulateFields() end
+    NS.Debug("Test", "test mode off (%s)", tostring(why))
+    return true
+end
+
+-- The checkbox's get/set, bound through settings/Schema.lua's SESSION table the way the Debug
+-- console's is. One table, handed out on every read. A refused start leaves the flag false, and the
+-- settings seam's refresh after the write redraws the box unticked.
+local TEST_MODE_CHECKBOX = {
+    get = function() return NS.State.testMode == true end,
+    set = function(v)
+        if v then
+            startTestMode()
+        elseif endTestMode("unticked") then
+            NS.Print(L["Test mode off"])
+        end
+    end,
+}
+
+function WhatGroup:TestModeCheckbox() return TEST_MODE_CHECKBOX end
+
+-- PLAYER_REGEN_DISABLED's half: on that frame secure writes are still allowed, so the popup comes
+-- down with a real Hide wherever the client permits it.
+function WhatGroup:EndTestModeForCombat()
+    if endTestMode("combat") then
+        NS.Print(L["Test mode off — combat started"])
+        refreshPanel()
+    end
+end
+
 -- Public API
 function WhatGroup:ShowFrame()
+    -- A real show takes the popup from test mode: whatever called this wants the real capture on it.
+    -- (The join popup never gets here while test mode is on; _TryFireJoinNotify holds it.)
+    if endTestMode("a real show") then refreshPanel() end
     -- THE VISIBILITY GATE (options-ui-§15), and it is TWO checks rather than one because the
     -- question is time-varying. Every way the popup reaches the screen -- the join notify,
     -- `/wg show`, the chat link, `/wg test` -- comes through here, so gating here covers them all.
@@ -895,21 +1020,8 @@ function WhatGroup:ShowFrame()
         return
     end
 
-    buildFrame()    -- lazy: creates the popup + secure button +
-                    -- UISpecialFrames entry on first call only.
-    -- Every open re-applies the size, the scale and the opacity, so a change taken while the popup
-    -- was closed -- or refused because it was taken in combat -- lands here.
-    WhatGroup:ApplyFrameSize()
-    WhatGroup:ApplyFrameScale()
-    WhatGroup:ApplyFrameAlpha()
-    do
-        local info = WhatGroup.pendingInfo
-        NS.Debug("Frame", info
-            and ('popup shown "' .. tostring(info.title) .. '" map='
-                 .. tostring(info.mapID))
-            or "popup shown (no pendingInfo → 'No data' fallbacks)")
-    end
-    PopulateFields()
+    -- Every open re-applies the size, the scale and the opacity (preparePopup).
+    preparePopup()
     if not visibilityAllows() then
         -- The gate DECLINED a show the player asked for, which is the second of the two states the
         -- re-show arm is allowed to act on. Without this, `Only in combat` would show once on the

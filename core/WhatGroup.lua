@@ -735,8 +735,14 @@ function WhatGroup:_TryFireJoinNotify(reason)
         -- a player who turns the popup off during the delay window means it now. `delay` above
         -- is the opposite case and stays where it is: it is the timer's own argument, and
         -- there is no later moment at which it could be read.
-        if not (self.db and self.db.profile and self.db.profile.frame
-                and self.db.profile.frame.autoShow == false) then
+        local autoShow = not (self.db and self.db.profile and self.db.profile.frame
+                              and self.db.profile.frame.autoShow == false)
+        -- Test mode is left on until the player turns it off (options-ui-§15), so the join popup does
+        -- not take the popup from it: the capture waits in pendingInfo for the chat link or
+        -- `/wg show`, and either of those, an explicit request to see it, ends test mode.
+        if autoShow and NS.State.testMode then
+            NS.Debug("Notify", "popup held: test mode is on")
+        elseif autoShow then
             self:ShowFrame()
         end
     end, delay)
@@ -777,6 +783,11 @@ end
 -- the member is not there yet. It always is by the time an event fires; the guard is the same
 -- belt-and-braces the other cross-file seams carry rather than a live possibility.
 function WhatGroup:OnCombatStateChanged(event)
+    -- Test mode ends as combat STARTS (options-ui-§15), first, so the gate below sees the popup
+    -- already on its way down. A boolean read when it is off.
+    if event == "PLAYER_REGEN_DISABLED" and self.EndTestModeForCombat then
+        self:EndTestModeForCombat()
+    end
     if not self.ApplyFrameVisibility then return end
     self:ApplyFrameVisibility(event == "PLAYER_REGEN_DISABLED")
 end
@@ -924,9 +935,10 @@ end
 -- panel's Test button both need this body, and neither should go through the
 -- other's entry point.
 
--- Public method so the Settings panel's Test button can invoke the
--- same code path as /wg test without going through the slash dispatch.
-function WhatGroup:RunTest()
+-- The sample capture: a fresh table on every call, so no caller hands another one it then mutates.
+-- `/wg test` makes it the pending capture; test mode (modules/Frame.lua) shows it WITHOUT touching
+-- pendingInfo.
+function WhatGroup:SampleInfo()
     -- mapID 2805 is Windrunner Spire — exercises the mapID-keyed teleport
     -- lookup (1254400, Path of the Windrunners). generalPlaystyle exercises
     -- the enum-based label path; leave playstyleString empty so the lookup
@@ -936,7 +948,7 @@ function WhatGroup:RunTest()
     -- activityID is synthetic and deliberately NOT a key in TeleportSpells:
     -- the resolver checks mapID first, so a fixture whose activityID also
     -- named a real row would still pass with the mapID path broken.
-    self.pendingInfo = {
+    return {
         title             = "Test Group — Windrunner Spire +12",
         leaderName        = "Testadin-Silvermoon",
         numMembers        = 3,
@@ -957,6 +969,14 @@ function WhatGroup:RunTest()
         playstyleString   = "",
         shortName         = "Mythic+",
     }
+end
+
+-- Public method so the Settings panel's Test button can invoke the
+-- same code path as /wg test without going through the slash dispatch.
+-- One-shot: the sample becomes the pending capture and the full notify + popup flow runs once. Its
+-- ShowFrame ends test mode if it is on, so the two never overlap.
+function WhatGroup:RunTest()
+    self.pendingInfo = self:SampleInfo()
     NS.Debug("Test", 'synthetic capture injected "' .. tostring(self.pendingInfo.title) .. '"')
     self:ShowNotification()
     self:ShowFrame()

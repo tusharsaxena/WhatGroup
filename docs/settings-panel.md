@@ -2,7 +2,7 @@
 
 A single flat array `WhatGroup.Settings.Schema` declares every option. One row drives six surfaces simultaneously, so adding a setting is a single-row diff.
 
-The **Master controls** block is the exception, and it is the library's: `Helpers.MasterControls` composes options-ui-§15's canonical eight-control tab from one declaration in `settings/Panel.lua`, which splices the rows it returns at the head of the array. Everything else — the schema rows and the data seams that read and write them — lives in `settings/Schema.lua` and that half is genuinely this addon's. The panel *machinery* is not: the canvas factory, the header and breadcrumb, the lazy Defaults button, the AceGUI ScrollFrame, the widget makers, the two-column flow engine, the tab strip and its chrome band, the page registry and the refresh fan-out are `LibKa0s-Options-1.0`'s, wired up in `settings/OptionsSetup.lua`. `settings/Panel.lua` keeps only the landing page's body, the one action button the library's makers cannot express, and the General page's registration.
+The **Master controls** block is the exception, and it is the library's: `Helpers.MasterControls` composes options-ui-§15's canonical nine-control tab from one declaration in `settings/Panel.lua`, which splices the rows it returns at the head of the array. Everything else — the schema rows and the data seams that read and write them — lives in `settings/Schema.lua` and that half is genuinely this addon's. The panel *machinery* is not: the canvas factory, the header and breadcrumb, the lazy Defaults button, the AceGUI ScrollFrame, the widget makers, the two-column flow engine, the tab strip and its chrome band, the page registry and the refresh fan-out are `LibKa0s-Options-1.0`'s, wired up in `settings/OptionsSetup.lua`. `settings/Panel.lua` keeps only the landing page's body, the one action button the library's makers cannot express, and the General page's registration.
 
 ## Six surfaces, one row
 
@@ -40,7 +40,7 @@ The schema is settings-only — the action buttons (Reset position / Reset all s
 }
 ```
 
-**`sessionOnly`** is what keeps the debug console off SavedVariables now that it is a schema row. `settings/Schema.lua` holds a `SESSION` table keyed by path; `Helpers.Get` and `Helpers.RawSet` consult it **in front of** `Resolve`, so a session path never reaches `db.profile` from any caller — the panel checkbox, `/wg set`, `ApplyDefault` and the reset sweep all funnel through those two functions. `BuildDefaults` skips such a row outright, and `RestoreAllDefaults` restores it row by row because `db:ResetProfile()` cannot reach it (options-ui-§12). The pair itself is `NS.DebugLog:ConsoleCheckbox()`'s, unchanged from when the checkbox was drawn by hand.
+**`sessionOnly`** is what keeps the debug console and the popup's test mode off SavedVariables, though both are schema rows. `settings/Schema.lua` holds a `SESSION` table keyed by path; `Helpers.Get` and `Helpers.RawSet` consult it **in front of** `Resolve`, so a session path never reaches `db.profile` from any caller — the panel checkbox, `/wg set`, `ApplyDefault` and the reset sweep all funnel through those two functions. `BuildDefaults` skips such a row outright, and `RestoreAllDefaults` restores it row by row because `db:ResetProfile()` cannot reach it (options-ui-§12). The console's pair is `NS.DebugLog:ConsoleCheckbox()`'s, unchanged from when the checkbox was drawn by hand; test mode's is `WhatGroup:TestModeCheckbox()`, in `modules/Frame.lua`, which owns the popup.
 
 Number rows render as a slider that **commits on release** — the library's maker writes from `OnMouseUp`, snapping to `step` relative to `min`. Its opt-in live-commit path (`row.commitOn = "change"`, throttled through the descriptor's `scheduleTimer`) is not used here: nothing in this addon previews a delay while you drag it, and no `scheduleTimer` is passed.
 
@@ -318,7 +318,7 @@ global = {
 }
 ```
 
-There is **no `debug` key and no `state` table** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). The Master controls tab's "Debug console" checkbox is a schema row on the path `state.debugConsole`, but it is `sessionOnly`: `settings/Schema.lua`'s `SESSION` table intercepts that path in front of `Resolve`, `BuildDefaults` skips it, and the toggle drives the console *window's* visibility only — neither a profile key nor the debug logging flag. Capture / pending state (`capturesByResult`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [data-flow.md](./data-flow.md#state) for why.
+There is **no `debug` key and no `state` table** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). The Master controls tab's "Debug console" checkbox is a schema row on the path `state.debugConsole`, but it is `sessionOnly`: `settings/Schema.lua`'s `SESSION` table intercepts that path in front of `Resolve`, `BuildDefaults` skips it, and the toggle drives the console *window's* visibility only — neither a profile key nor the debug logging flag. The **Test mode** checkbox (`state.testMode`) takes the same route to `modules/Frame.lua`'s session flag, `NS.State.testMode`. Capture / pending state (`capturesByResult`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [data-flow.md](./data-flow.md#state) for why.
 
 ## The tab strip
 
@@ -326,7 +326,7 @@ The page is **tabbed** (`options-ui-§13`). `LibKa0s-Options-1.0`'s `RenderTabbe
 
 | # | Tab | Rows | Subgroups | What it is for |
 |---|---|---|---|---|
-| 1 | **Master controls** | 6 | — | options-ui-§15's canonical block, composed rather than written: enable, general visibility, master scale, master alpha, lock frame, debug console — closed by the **Reset position | Reset all settings** button pair (`afterGroup`). It is the **first** tab, and the name is the literal §15 mandates. |
+| 1 | **Master controls** | 7 | — | options-ui-§15's canonical block, composed rather than written: enable, general visibility, master scale, master alpha, lock frame, debug console, test mode — closed by the **Reset position | Reset all settings** button pair (`afterGroup`). It is the **first** tab, and the name is the literal §15 mandates. |
 | 2 | **Chat** | 8 | `Timing`, `Text` | When the join summary fires (`notify.delay`) and what it says: the **Print to Chat** master and the six lines it can contain. Plus the **Test** button (`afterGroup`). |
 | 3 | **Popup** | 3 | `Behavior`, `Layout` | The group-info window: whether it opens by itself, and how big it is. |
 
@@ -350,7 +350,8 @@ Rows on the **Master controls** tab are emitted by `Helpers.MasterControls` and 
 | Master controls | general | `alpha` | number | 1 | (paired) | *Master alpha* (0–1, step 0.05, rendered as a percentage). `WhatGroup:ApplyFrameAlpha()`, **not** refused in combat: opacity moves nothing. |
 | Master controls | general | `locked` | bool | false | startsLine, (paired) | *Lock frame*. Read at drag time by the title bar's `OnMouseDown`, so it takes effect on the next mouse-down with nothing to apply. |
 | Master controls | general | `state.debugConsole` | bool | false | (paired) | *Debug console*, `sessionOnly`. Shows/hides the console **window**; never `db.profile`, never the logging flag (WG-12). |
-| Chat | notify | `notify.delay` | number | 0 | subgroup `Timing`, solo | Seconds (0–10, step 0.5) between joining and notifying **and** showing the popup. Default 0 = immediately; raise it to let the zone-in settle. Not one of §15's canonical eight, so it moved off the first tab to the one named for the notification it delays. |
+| Master controls | general | `state.testMode` | bool | false | startsLine, alone on its line | *Test mode*, `sessionOnly`, composed from `testModePath`; the tooltip is overridden in `settings/Panel.lua`. Ticked, the popup shows sample group info (`WhatGroup:SampleInfo()`) from a record of its own, never `pendingInfo`, whatever `frame.autoShow` and `visibility` say; `locked` still applies to dragging. Refused in combat with one gray line. Ends on untick, on Close / ESC, on an explicit show (`/wg show`, `/wg test`, the chat link), on *Reset all settings* (the declared `default = false`), and at `PLAYER_REGEN_DISABLED` with `Test mode off — combat started`. The join popup does not end it: that capture waits. Never `db.profile`. |
+| Chat | notify | `notify.delay` | number | 0 | subgroup `Timing`, solo | Seconds (0–10, step 0.5) between joining and notifying **and** showing the popup. Default 0 = immediately; raise it to let the zone-in settle. Not one of §15's canonical nine, so it moved off the first tab to the one named for the notification it delays. |
 | Chat | notify | `notify.enabled` | bool | true | subgroup `Text`, solo | Print the chat summary on group join. The master for the six rows under it. |
 | Chat | notify | `notify.showInstance` | bool | true | subgroup `Text`, (paired) | Include the Instance line in chat. |
 | Chat | notify | `notify.showType` | bool | true | subgroup `Text`, (paired) | Include the Type line in chat. |
@@ -377,6 +378,7 @@ Rendered panel layout:
 [Enable WhatGroup]    | [General visibility]
 [Master scale]        | [Master alpha]
 [Lock frame]          | [Debug console]
+[Test mode]           |                      its own line (startsLine), session-only
   <Reset position | Reset all settings>      afterGroup["Master controls"] = the composer's tail
 
 --- Chat ---

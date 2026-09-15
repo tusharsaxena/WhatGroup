@@ -707,7 +707,7 @@ function()
     for _, row in ipairs(NS.addon.Settings.Schema) do
         if row.group == H.MASTER_GROUP then composed = composed + 1 end
     end
-    assertEqual(composed, 6, "the whole composed block answers to the published constant")
+    assertEqual(composed, 7, "the whole composed block answers to the published constant")
 end)
 
 -- ---------------------------------------------------------------------------

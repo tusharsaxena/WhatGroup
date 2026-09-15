@@ -563,6 +563,27 @@ badge and any count quoted in the docs must agree with it.
 - panel: the landing page adds logo, notes, heading and command rows in that order
 - panel: a dirty landing page re-renders in place instead of stacking a second copy
 
+### test_testmode.lua (18)
+
+- testmode: the Test mode row is composed right after the Debug console, on its own line
+- testmode: the row's tooltip is this addon's, not the composer's generic one
+- testmode: it is session-only and never reaches db.profile
+- testmode: ticking the box shows the popup with placeholder content, pendingInfo untouched
+- testmode: with no capture at all, it still shows the placeholder and leaves pendingInfo nil
+- testmode: it shows the popup whatever General visibility and Open Automatically say
+- testmode: unticking hides the popup and puts the real capture back
+- testmode: the popup's Close button ends test mode and unticks the box
+- testmode: ESC ends test mode and unticks the box
+- testmode: the lock is honored while it is up
+- testmode: a start in combat is refused with one gray line and leaves the box unticked
+- testmode: combat starting ends it, says so once, and unticks the box
+- testmode: combat with test mode off prints nothing about it
+- testmode: Reset all settings ends it
+- testmode: /wg test is still the one-shot notify + popup flow, and ends test mode
+- testmode: /wg show ends it and shows the real capture
+- testmode: the join popup does NOT end it; the capture waits for the chat link
+- testmode: the sample capture is a fresh table each time
+
 ### test_lifecycle.lua (44)
 
 - lifecycle: the addon exposes no public global (WG-01)
@@ -702,6 +723,7 @@ badge and any count quoted in the docs must agree with it.
 | test_notify.lua | 48 |
 | test_frame.lua | 90 |
 | test_panel.lua | 53 |
+| test_testmode.lua | 18 |
 | test_lifecycle.lua | 44 |
 | test_debuglog.lua | 34 |
 | test_docmap.lua | 1 |
@@ -710,4 +732,4 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **608** |
+| **Total** | **626** |

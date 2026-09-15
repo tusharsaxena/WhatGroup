@@ -2,7 +2,7 @@
 -- Schema rows + Helpers (get/set/validate, AceDB defaults, restore/refresh).
 --
 -- Every option is one row in WhatGroup.Settings.Schema -- eleven of them declared here, and the
--- six-row Master controls block composed by LibKa0s and spliced at the head of the array by
+-- seven-row Master controls block composed by LibKa0s and spliced at the head of the array by
 -- settings/Panel.lua (options-ui-§15). The same row drives:
 --   * the AceGUI widget rendered in the General sub-page
 --   * /wg list (groups by `section`, prints path = formattedValue)
@@ -80,6 +80,7 @@ end
 --   [Enable WhatGroup]    | [General visibility]
 --   [Master scale]        | [Master alpha]
 --   [Lock frame]          | [Debug console]
+--   [Test mode]                                session-only, on its own line
 --     <afterGroup: Reset position | Reset all settings>
 --
 --   --- Chat ---               when the summary fires, and what it says
@@ -99,7 +100,7 @@ end
 --   [Width]               | [Height]
 --
 -- THE FIRST TAB IS COMPOSED, NOT WRITTEN (options-ui-§15). `H.MasterControls` emits the canonical
--- eight-control block from one declaration, and settings/Panel.lua splices what it returns at the
+-- nine-control block from one declaration, and settings/Panel.lua splices what it returns at the
 -- HEAD of this array -- so the strip's first tab is the same tab, in the same order, in all nine
 -- addons, and this file cannot drift from them by editing a row. Nothing about the rows it emits
 -- is special once they are here: they carry `path`, `type`, `label`, `default` like every row
@@ -121,7 +122,7 @@ local function add(t) Schema[#Schema + 1] = t end
 -- Master controls -- see settings/Panel.lua
 -- ---------------------------------------------------------------------------
 --
--- `enabled` used to be the first row of this file. It is one of options-ui-§15's canonical eight
+-- `enabled` used to be the first row of this file. It is one of options-ui-§15's canonical nine
 -- now, so it is emitted by the composer and its `onChange` -- the off-flip that wipes an
 -- in-flight capture -- is stamped onto the composed row beside `scale`, `alpha`, `locked` and
 -- `visibility`'s in settings/Panel.lua. The stored path is still `enabled`, unchanged, because
@@ -130,7 +131,8 @@ local function add(t) Schema[#Schema + 1] = t end
 -- The debug console is a canonical row now too, and it is still SESSION-ONLY: its path is
 -- `state.debugConsole`, which SESSION below intercepts before Resolve ever sees it, so the
 -- WG-12 invariant (nothing about debug reaches db.profile) holds exactly as it did when the
--- checkbox was drawn by hand through `pairWith`.
+-- checkbox was drawn by hand through `pairWith`. `state.testMode`, the popup's test mode, is the
+-- block's other session-only row and takes the same route.
 
 -- ---------------------------------------------------------------------------
 -- Chat -- when the join summary fires, and what it says
@@ -138,7 +140,7 @@ local function add(t) Schema[#Schema + 1] = t end
 
 -- EDITED ON CHAT, STORED UNDER `notify`. It headed the Notify section once, then sat on the old
 -- General tab with the master switch. Neither survives options-ui-§15: General is the Master
--- controls tab now, and this row is not one of its canonical eight. It reads as the notification's
+-- controls tab now, and this row is not one of its canonical nine. It reads as the notification's
 -- own delay wherever it is filed -- the same timer does gate the popup, which the tooltip says --
 -- so it lands on the tab named for the notification, under its own heading, above the seven rows
 -- that choose what that notification contains.
@@ -320,10 +322,16 @@ end
 -- drew the checkbox by hand: the module that owns the window is still the one that says what
 -- opening it means. Resolved at CALL time, because core/DebugLogSetup.lua loads before this file
 -- but NS.DebugLog is replaced wholesale on the degraded path.
+--
+-- `state.testMode` is the second: the popup's test mode (options-ui-§15), whose get/set are
+-- modules/Frame.lua's, the module that owns the popup. Same call-time resolution.
 local SESSION = {
     ["state.debugConsole"] = function()
         local DL = NS.DebugLog
         return DL and DL.ConsoleCheckbox and DL:ConsoleCheckbox() or nil
+    end,
+    ["state.testMode"] = function()
+        return WhatGroup.TestModeCheckbox and WhatGroup:TestModeCheckbox() or nil
     end,
 }
 
@@ -521,7 +529,7 @@ end
 -- THE SEED IS NOT REDUNDANT. Every schema row's `default` is still `C.<path>`, so on a full load
 -- the two halves agree key for key and the walk writes back what the seed already put there. What
 -- the seed buys is the DEGRADED load: the Master controls block is composed by the library
--- (options-ui-§15), so with LibKa0s absent those six rows are not in the schema, and a
+-- (options-ui-§15), so with LibKa0s absent those seven rows are not in the schema, and a
 -- schema-only sweep would hand AceDB a profile with no `enabled` key at all -- which reads as
 -- false and silently turns the addon off for exactly the install that is already missing a
 -- library. Seeding first makes the stored shape identical on both paths.

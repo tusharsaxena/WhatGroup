@@ -186,9 +186,9 @@ end
 -- The Master controls tab (options-ui-§15)
 -- ---------------------------------------------------------------------------
 --
--- COMPOSED, NOT WRITTEN. `Helpers.MasterControls` emits the canonical eight-control block — enable,
--- general visibility, master scale, master alpha, lock frame, debug console, and the closing reset
--- pair — from this one declaration, so the tab every player looks at first is the same tab in all
+-- COMPOSED, NOT WRITTEN. `Helpers.MasterControls` emits the canonical nine-control block — enable,
+-- general visibility, master scale, master alpha, lock frame, debug console, test mode, and the
+-- closing reset pair — from this one declaration, so the tab every player looks at first is the same tab in all
 -- nine addons and no addon can drift by editing a row. Composed HERE rather than in
 -- settings/Schema.lua because the composer is a member of the LibKa0s instance, and the instance
 -- does not exist until settings/OptionsSetup.lua has run — which is the file immediately before
@@ -212,6 +212,10 @@ local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{
     -- extracted to end.
     addonName        = addonName,
     debugConsolePath = "state.debugConsole",
+    -- The popup's test mode (options-ui-§15, LibKa0s v1.37.0): a session-only `Test mode` row on its
+    -- own line below Lock frame / Debug console. Verbatim, like the console path, and bound the same
+    -- way -- settings/Schema.lua's SESSION table routes it to modules/Frame.lua.
+    testModePath     = "state.testMode",
     defaults         = {
         enabled      = C.enabled,
         visibility   = C.visibility,
@@ -221,6 +225,9 @@ local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{
         -- The console starts closed at every login, and `/wg resetall` closes it again
         -- (options-ui-§12 sweeps the session-only rows a profile reset cannot reach).
         debugConsole = false,
+        -- The composer emits the test-mode row with no default; this one is what lets Reset all
+        -- settings end test mode in the same sessionOnly sweep that closes the console.
+        testMode     = false,
     },
     onResetPosition  = function() WhatGroup:ResetFramePosition() end,
     -- The SAME body the header Defaults button parks below, and the same one `/wg resetall`
@@ -254,11 +261,16 @@ local MASTER_HOOKS = {
     alpha      = function() WhatGroup:ApplyFrameAlpha() end,
 }
 
+-- The composer's Test mode tooltip is generic; this one says what the mode shows here.
+local TEST_MODE_TOOLTIP = "Show the popup with sample group info, so you can drag it into place "
+    .. "without joining a group. It stays up until you untick this, close the popup, or combat starts."
+
 for _, row in ipairs(MASTER_ROWS) do
-    -- One section for the whole block: `/wg list` groups by section, and these six are one
+    -- One section for the whole block: `/wg list` groups by section, and these seven are one
     -- subject however they are stored.
     row.section  = "general"
     row.onChange = MASTER_HOOKS[row.path]
+    if row.path == "state.testMode" then row.tooltip = TEST_MODE_TOOLTIP end
 end
 
 -- HEAD OF THE ARRAY, because RenderTabbedSchema partitions by `group` in DECLARATION order and
@@ -283,7 +295,7 @@ end
 -- tab's rows.
 --
 -- The Test button follows the tab its group ended up on. It was keyed to "General", and General is
--- the Master controls tab now: `enabled` became one of options-ui-§15's canonical eight and
+-- the Master controls tab now: `enabled` became one of options-ui-§15's canonical nine and
 -- `notify.delay` moved to Chat, which is where this button's own tooltip already said it belonged
 -- -- previewing the chat-output toggles. It is NOT folded into the Master controls button pair: a
 -- 160px left-aligned action is not one of that block's two resets.

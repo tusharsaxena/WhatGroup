@@ -43,9 +43,9 @@ db.global = {
 }
 ```
 
-Sixteen persisted settings, all of them user-facing, all of them schema rows — plus one
-**session-only** row, `state.debugConsole`, which is a schema row and deliberately not persisted (see
-below). There are no storage-only carve-outs in the profile: the popup's dragged POSITION is
+Sixteen persisted settings, all of them user-facing, all of them schema rows — plus two
+**session-only** rows, `state.debugConsole` and `state.testMode`, which are schema rows and
+deliberately not persisted (see below). There are no storage-only carve-outs in the profile: the popup's dragged POSITION is
 account-wide geometry and lives in `db.global.windows` (WG-26), not here. That store is
 `architecture-§5` named non-setting state, and its owner (`NS.Windows`) and writers are named in
 [ARCHITECTURE.md → Settings Schema](./ARCHITECTURE.md#settings-schema).
@@ -86,7 +86,7 @@ row's `default` into the nested AceDB `profile` table, and also seeds `global.sc
 `NS.SCHEMA_VERSION`. The seed is what makes the stored shape independent of whether LibKa0s is
 installed: the composed rows are absent on the degraded path, and without the seed the profile would
 arrive with no `enabled` key — which reads as false. `sessionOnly` rows are skipped, so nothing about
-the debug console reaches the db.
+the debug console or test mode reaches the db.
 
 ## One row, six surfaces
 
@@ -107,12 +107,19 @@ for a path that already has a row:
 **Debug is session-only.** The debug *flag* (`NS.State.debug`) is never a schema row, never reaches
 `BuildDefaults`, and never lands in the saved profile — it resets to off on every reload. The
 **Debug console** checkbox on the Master controls tab *is* a schema row now (`options-ui-§15` makes
-it one of the canonical eight), on the path `state.debugConsole` and marked `sessionOnly`: it toggles
+it one of the canonical nine), on the path `state.debugConsole` and marked `sessionOnly`: it toggles
 only the console *window's* visibility (`NS.DebugLog` Show/Hide), never the logging flag and never
 `db.profile`. `settings/Schema.lua`'s `SESSION` table intercepts the path in front of `Resolve`, so
 no caller can route it to the db; `BuildDefaults` skips it; and `RestoreAllDefaults` restores it row
 by row, because `db:ResetProfile()` cannot reach storage that is not the db (`options-ui-§12`). That
 is what keeps the WG-12 invariant — debug never persists — true.
+
+**Test mode is session-only too.** The **Test mode** checkbox on the same tab is the row
+`state.testMode`, composed from `testModePath` and marked `sessionOnly`; the `SESSION` table routes it
+to `WhatGroup:TestModeCheckbox()` in `modules/Frame.lua`, whose flag is `NS.State.testMode`. It is
+off at every login, never in `db.profile`, and its declared `default = false` is what lets
+`RestoreAllDefaults`' session sweep end it. The sample it shows is a record of its own
+(`WhatGroup:SampleInfo()`), so it never writes `pendingInfo` either.
 
 **`defaults/TeleportSpells.lua` is data, not settings.** The `mapID → teleport spellID` lookup is a
 shipped table read at runtime; it is never copied into the DB and the user never edits it. Adding a

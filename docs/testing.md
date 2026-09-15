@@ -57,7 +57,7 @@ label like **Enable WhatGroup** honest about which addon it is turning off.
 The suites, in run order: `test_harness`, `test_libka0s`,
 `test_surface_parity`, `test_mediasetup`, `test_envsetup`, `test_util`,
 `test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
-`test_capture`, `test_notify`, `test_frame`, `test_panel`, `test_lifecycle`,
+`test_capture`, `test_notify`, `test_frame`, `test_panel`, `test_testmode`, `test_lifecycle`,
 `test_debuglog`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
 `test_register`, `test_vendor_sync`. `test_eol` runs last and arrives with the
 vendored kit rather than living in `tests/`.

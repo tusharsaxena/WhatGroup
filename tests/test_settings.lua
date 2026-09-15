@@ -474,7 +474,7 @@ end)
 --- One page, so one entry. WhatGroup registers a single settings sub-page ("general"); every row
 --- carries `section` for `/wg list` and `group` for the tab, and no row is hidden.
 local PARTITION = {
-    general = { { "Master controls", 6 }, { "Chat", 8 }, { "Popup", 3 } },
+    general = { { "Master controls", 7 }, { "Chat", 8 }, { "Popup", 3 } },
 }
 
 test("settings: the page's tabs are the designed ones, in order, at the designed size",
@@ -561,7 +561,8 @@ end)
 --- The canonical block, in canonical order, as it applies to THIS addon. WhatGroup is not
 --- frameless — modules/Frame.lua's popup is SetMovable(true) — so it is entitled to every row,
 --- and the two resets are the closing button pair rather than schema rows.
-local MASTER = { "enabled", "visibility", "scale", "alpha", "locked", "state.debugConsole" }
+local MASTER = { "enabled", "visibility", "scale", "alpha", "locked", "state.debugConsole",
+                 "state.testMode" }
 
 test("settings: the Master controls block is the FIRST group, in canonical order", function()
     -- The whole point of the composer is that nine addons cannot drift into nine orders, so the

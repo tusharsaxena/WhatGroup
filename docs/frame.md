@@ -55,7 +55,7 @@ Called once inside `buildFrame()` (i.e. on first `ShowFrame()`) to build the sta
 
 ## `PopulateFields()`
 
-Called on every `ShowFrame()`. Reads `WhatGroup.pendingInfo` and updates each field via the appropriate FontString's `SetText`.
+Called on every `ShowFrame()`. Reads `shownInfo()` — `WhatGroup.pendingInfo`, or test mode's sample while test mode is on (§ Test mode) — and updates each field via the appropriate FontString's `SetText`.
 
 Edge cases:
 
@@ -94,7 +94,7 @@ Retail's secure-frame system rejects any `SetPoint` call on a protected frame th
 
 **One note, three states, and the order is the point.** An unlearned spell can still report a cooldown, so `not known` is tested first: labeling it "on cooldown" would answer a question nobody asked while burying the one that explains the gray icon. A ready teleport needs no explanation and the note hides. The popup never grays a button out and says nothing.
 
-The countdown **ticks**, via a 1-second `ScheduleRepeatingTimer` (`modules/Frame.lua:441`). That timer is the only repeating anything in the addon and it ends `performance-§12`'s no-combat-path exemption — a **ratified deviation**, recorded with its reasoning and re-check trigger in [`ARCHITECTURE.md`](./ARCHITECTURE.md) `## Documented deviations`, with the regenerated sweep in [`performance.md`](./performance.md). What makes it defensible is that it cannot outlive the popup: **one** handle, replaced rather than stacked, canceled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. That last tick re-runs `ConfigureTeleportButton` rather than hand-reversing the four things the cooldown branch changed, so the button becomes castable without the player closing and re-opening the popup.
+The countdown **ticks**, via a 1-second `ScheduleRepeatingTimer` (`modules/Frame.lua:462`). That timer is the only repeating anything in the addon and it ends `performance-§12`'s no-combat-path exemption — a **ratified deviation**, recorded with its reasoning and re-check trigger in [`ARCHITECTURE.md`](./ARCHITECTURE.md) `## Documented deviations`, with the regenerated sweep in [`performance.md`](./performance.md). What makes it defensible is that it cannot outlive the popup: **one** handle, replaced rather than stacked, canceled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. That last tick re-runs `ConfigureTeleportButton` rather than hand-reversing the four things the cooldown branch changed, so the button becomes castable without the player closing and re-opening the popup.
 
 **The arm site is `OnShow`, and the guard is `f:IsShown()`** — which is what makes "cannot outlive the popup" enforced rather than asserted. `applyTeleportNote` runs on paths where the frame is not on screen: `PopulateFields` runs before `ShowFrame` reaches `f:Show()`, and the `inCombat` / `outOfCombat` gate can build the popup and decline to show it at all. `OnHide` fires on a **transition**, so a ticker armed against a frame that was never shown has no cancel site and runs for the rest of the session. Arming from `OnShow` — the exact mirror of the `OnHide` that cancels — means every path to the screen arms it and no path has to remember to. `OnShow` re-runs the whole `ConfigureTeleportButton`, which cancels any live handle first, so it cannot stack. Seven cases in `tests/test_frame.lua` pin all of it, including that three consecutive `ShowFrame()` calls leave exactly one timer, a `Hide()` leaves none, and a popup the gate keeps off screen arms none at all.
 
@@ -108,15 +108,13 @@ The label `Teleport:` is built directly inline (not via `MakeLabel`) because its
 
 ```lua
 function WhatGroup:ShowFrame()
+    if endTestMode("a real show") then refreshPanel() end   -- see § Test mode below
     if visibility == "never" then return end        -- see § Visibility below
     -- First-show-in-combat defer: see § Combat-defer below.
     if not f and InCombatLockdown() then …queue on PLAYER_REGEN_ENABLED… ; return end
 
-    buildFrame()    -- lazy: first call only
-    WhatGroup:ApplyFrameSize()
-    WhatGroup:ApplyFrameScale()
-    WhatGroup:ApplyFrameAlpha()
-    PopulateFields()
+    preparePopup()  -- buildFrame() (lazy: first call only), ApplyFrameSize / Scale / Alpha,
+                    -- PopulateFields(); test mode shares it
     if not visibilityAllows() then return end       -- built, populated, not shown
     f:Show()
     f:Raise()
@@ -124,6 +122,8 @@ end
 ```
 
 The other master-control seams are one function each: `WhatGroup:ApplyFrameVisibility(inCombat)` (re-applies the gate to a popup that already exists — the `visibility` row's `onChange` **and** both combat-transition events) and `WhatGroup:ResetFramePosition()` (the Master controls tab's *Reset position* button: drops `db.global.windows.popup` **and** re-anchors the live frame to the shipped `CENTER` point; the re-anchor is combat-guarded, dropping the stored point is not, because either half alone is a reset the next login undoes).
+
+Test mode adds three: `WhatGroup:SampleInfo()` (`core/WhatGroup.lua`, the sample capture, a fresh table per call), `WhatGroup:TestModeCheckbox()` (the Master controls row's get/set) and `WhatGroup:EndTestModeForCombat()` (the `PLAYER_REGEN_DISABLED` half). See § Test mode.
 
 ## Visibility
 
@@ -182,6 +182,16 @@ The `inCombat` argument overrides the live `InCombatLockdown()` read and exists 
 
 `ShowFrame` re-populates from the current `pendingInfo` every call — so toggling `pendingInfo` and re-calling `ShowFrame` updates the visible rows without recreating widgets. The `Raise()` call ensures the dialog comes to the front of its strata when re-opened over another popup.
 
+## Test mode
+
+The popup is a display the player places, so it ships a **test mode** (options-ui-§15, preview-mode): the popup up with sample group info, left up until it is turned off, so it can be dragged into place without joining a group. The switch is the session-only **Test mode** checkbox in General > Master controls. `settings/Panel.lua` composes it from `testModePath = "state.testMode"`, and `settings/Schema.lua`'s `SESSION` table routes that path to `WhatGroup:TestModeCheckbox()`. The flag is `NS.State.testMode`.
+
+- **Its own record.** The sample is `WhatGroup:SampleInfo()`, held in the file-local `previewInfo`. Every read of "what does the popup show" (`PopulateFields`, the `OnShow` teleport configure, the debug line) goes through `shownInfo()`, which answers `previewInfo or pendingInfo`. The sample therefore takes the same render path as a real capture, and **`pendingInfo` is never written**: a real capture the player is still holding survives a round of placing.
+- **Start.** Refused under `InCombatLockdown()` with one gray line, `cannot start test mode during combat`, because the start needs a protected `Show`; the flag stays false, so the settings seam's refresh redraws the box unticked. Otherwise `preparePopup()` (the build, size, scale, alpha and fields `ShowFrame` uses) and `showPopup()`. It skips `frame.autoShow` and the `visibility` gate, since it is an explicit request to see the popup, and `ApplyFrameVisibility` returns early while it is on. `locked` is still read at drag time.
+- **Stop.** `endTestMode(why)` clears the flag and `previewInfo`, then takes the popup down through `hidePopup()`. Out of combat that is a real `Hide`; if the lockdown has already begun on the `PLAYER_REGEN_DISABLED` frame, it is the alpha-0 soft hide, settled at `PLAYER_REGEN_ENABLED` like any other. Out of combat it then refills the fields from the real capture. In combat it does not, because with no capture `PopulateFields` hides the secure teleport button, and the next show refills them anyway.
+- **What ends it.** Unticking (`Test mode off`); Close or ESC; an explicit show (`ShowFrame` from `/wg show`, `/wg test` or the chat link, since the player asked for the real popup); *Reset all settings* (the row's `default = false` in the `sessionOnly` sweep); and `PLAYER_REGEN_DISABLED` (`OnCombatStateChanged` → `EndTestModeForCombat`, one line: `Test mode off — combat started`). Every stop that is not a write through the settings seam repaints the panel itself, so the box follows.
+- **What does not.** The **join popup**. The mode stays on until the player turns it off, so `_TryFireJoinNotify` holds the popup while it is on. The chat summary still prints, and the capture waits in `pendingInfo` for the chat link or `/wg show`.
+
 ## Combat-defer
 
 `SecureActionButtonTemplate` attribute writes (`type`, `macrotext`) and `Show`/`Hide` are protected during `InCombatLockdown()` — silently dropped, not erroring. Two call sites are guarded:
@@ -196,6 +206,7 @@ There is intentionally no programmatic Hide method. The frame is closed by:
 - The Close button at the bottom (`UIPanelButtonTemplate`, 90×24) — goes through `hidePopup()`, never a bare `f:Hide()`, so a press in combat soft-hides instead of raising `ADDON_ACTION_BLOCKED`.
 - The ESC key — through the `WhatGroupFrameEscape` proxy's `OnHide`, which calls the same `hidePopup()` (§ ESC-to-close).
 - The `addon:WhatGroup:show` chat link → `WhatGroup:ShowFrame()` (re-opens, doesn't close).
+- The end of test mode — an untick, combat, a reset, an explicit show — through the same `hidePopup()` (§ Test mode).
 
 ## Shared label helpers
 

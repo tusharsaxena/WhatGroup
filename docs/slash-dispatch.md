@@ -83,8 +83,8 @@ Library verbs delegate to the instance; host verbs are the file-local functions 
 |---|---|---|
 | `/wg` (no args) | `Sl:PrintHelp` (library) | Print the header + every command row. |
 | `/wg help` | `Sl:PrintHelp` (library) | Same. |
-| `/wg show` | `runShow` (host) | Open the popup if `pendingInfo` is set. Otherwise print a hint pointing at `/wg test`. |
-| `/wg test` | `runTest` → `WhatGroup:RunTest()` (host) | Inject synthetic `pendingInfo` (Mythic+ Windrunner Spire) and run `ShowNotification()` + `ShowFrame()`. Mirrors the panel's Test button via the same `RunTest()` method, so the two affordances stay in lockstep. |
+| `/wg show` | `runShow` (host) | Open the popup if `pendingInfo` is set, ending test mode first if it is on. Otherwise print a hint pointing at `/wg test`. |
+| `/wg test` | `runTest` → `WhatGroup:RunTest()` (host) | Inject synthetic `pendingInfo` (Mythic+ Windrunner Spire) and run `ShowNotification()` + `ShowFrame()`, once. If test mode is on, that `ShowFrame()` ends it, so the two never overlap. Mirrors the panel's Test button via the same `RunTest()` method, so the two affordances stay in lockstep. |
 | `/wg config` | `runConfig` (host) → `Helpers.OpenOptionsPanel` (library) | Calls the idempotent `Settings.Register()` fallback, then hands off. The combat refusal and the sidebar unfold both live inside `OpenOptionsPanel`, not in this dispatcher, so *every* caller is refused — the verb, a `/run` script, a future internal caller (options-ui-§2 / WG-25). Under `InCombatLockdown()` it prints the canonical gray notice *"cannot open settings during combat — Blizzard's category-switch is protected"* and returns; no defer-replay. Otherwise it opens the addon category and expands the subcategory tree so General — whose first tab is **Master controls** — is one click away. |
 | `/wg version` | `Sl:CliVersion` (library) | Print `[WG] v<version>` on its own line (slash-commands-§3 / WG-29), through the host's `version` seam. |
 | `/wg list` | `Sl:CliList` (library) | Green `Available settings` header, then rows grouped in **declaration order** under azure `[section]` headings — the descriptor's `groupKey` returns `row.section`, because these rows carry no `page` field the library's default would have read. Each row is `lib.FormatKV`: gold path, white value. |
@@ -139,6 +139,10 @@ Helpers.InlineButton(ctx, {
 ```
 
 So `/wg test` and the panel button stay in lockstep with zero risk of drift.
+
+## Test mode has no verb of its own
+
+The popup's test mode (options-ui-§15) is switched by the **Test mode** checkbox in General > Master controls, a `sessionOnly` schema row on `state.testMode`. Being a schema row, it is already reachable from chat through the schema CLI: `/wg set state.testMode on`, `off` or `toggle`, and `/wg get state.testMode`. A `/wg testmode` verb would be a second spelling of that one write, so there is none. `/wg test` stays the one-shot check the panel's Test button mirrors; run while test mode is on, it ends test mode and then runs its flow.
 
 ## Adding a command
 

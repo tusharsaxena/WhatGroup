@@ -214,7 +214,7 @@ and it is the addon's, not the library's:
   SavedVariables), reset to off on every `/reload` and fresh login. The FLAG is
   **not** a schema row (WG-12) — there is no `/wg set debug`. The **window's
   visibility** is one, on the Master controls tab: `options-ui-§15` makes "Debug
-  console" one of the canonical eight, so it is a `sessionOnly` schema row on the
+  console" one of the canonical nine, so it is a `sessionOnly` schema row on the
   path `state.debugConsole` rather than the bespoke `SessionCheckbox` it used to
   be. `settings/Schema.lua`'s `SESSION` table routes that path to
   `D:ConsoleCheckbox()`'s own `get`/`set` in front of `Resolve`, so the module

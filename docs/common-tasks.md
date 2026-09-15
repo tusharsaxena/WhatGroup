@@ -252,6 +252,8 @@ Injects synthetic `pendingInfo` (a Mythic+ Windrunner Spire group) and runs `Sho
 
 The Settings panel's Test button runs the same code path — both invoke `WhatGroup:RunTest()`. See [slash-dispatch.md](./slash-dispatch.md#why-runtest-is-split-between-wg-test-and-whatgroupruntest).
 
+To place the popup rather than run the flow, tick **Test mode** (General → Master controls), or `/wg set state.testMode on`. The popup stays up on the sample group until you untick it, close it, or combat starts, and `pendingInfo` is never touched. See [frame.md → Test mode](./frame.md#test-mode).
+
 ## Toggle debug logging
 
 ```

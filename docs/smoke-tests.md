@@ -120,7 +120,7 @@ Verifies AceGUI rendering, schema-driven widget refresh, and the Defaults flow.
 
 Click each tab in turn and confirm the page swaps content rather than scrolling:
 
-- **Master controls** (options-ui-§15's canonical block, in this exact order): *Enable WhatGroup | General visibility*, *Master scale | Master alpha*, *Lock frame | Debug console*, then the **Reset position | Reset all settings** button pair.
+- **Master controls** (options-ui-§15's canonical block, in this exact order): *Enable WhatGroup | General visibility*, *Master scale | Master alpha*, *Lock frame | Debug console*, *Test mode* alone on its own line, then the **Reset position | Reset all settings** button pair.
 - **Chat**: a **Timing** heading over *Notification Delay* alone, then a **Text** heading over *Print to Chat* alone, then *Instance | Type*, *Leader | Playstyle*, *Details link | Teleport spell*, then the *Test* button.
 - **Popup**: a **Behavior** heading over *Open Automatically* alone, then a **Layout** heading over *Width | Height*.
 
@@ -181,6 +181,7 @@ Layout check first: `/wg config` → **Master controls** tab. The grid should re
 [Enable WhatGroup]    [General visibility]
 [Master scale]        [Master alpha]
 [Lock frame]          [Debug console]
+[Test mode]
 [Reset position]      [Reset all settings]
 ```
 
@@ -264,6 +265,40 @@ the invariant the `performance-§12` deviation row in [`ARCHITECTURE.md`](./ARCH
 **Guards against:** a combat-dependent setting that is only ever evaluated at open time; a
 combat-edge `Hide` that taints; a re-show that resurrects an empty popup; and a repeating ticker
 armed against a frame with no cancel site.
+
+### 3.9 Test mode — the popup on sample data, until you turn it off (options-ui-§15)
+
+**Test mode** is how the popup gets placed without a real group. Headless cases pin the logic; only
+the client can show that the popup really comes and goes, and that the pull takes it down with no
+taint line. Keep the Settings panel open beside the popup throughout.
+
+1. `/reload`. `/wg config` → **Master controls**. **Test mode** sits alone on its own line under
+   *Lock frame | Debug console*, unchecked. Hover it: the tooltip talks about the popup.
+2. Tick it. **Expected:** the popup opens on the sample group (*Test Group — Windrunner Spire +12*)
+   and one chat line says test mode is on. No join summary prints.
+3. Drag the popup somewhere new, then untick. **Expected:** the popup closes and `Test mode off`
+   prints. `/wg test` opens it where you left it.
+4. Tick **Lock frame**, tick **Test mode**, try to drag: it does not move. Untick both.
+5. **General visibility** → *Never* and **Popup → Open Automatically** off, then tick **Test mode**.
+   **Expected:** the popup opens anyway. Untick, and restore both.
+6. Tick it, then press **Close** on the popup. **Expected:** the box unticks by itself. Tick it again
+   and press **ESC**: the same.
+7. Tick it and pull a training dummy. **Expected:** the popup goes as combat starts, one line reads
+   `Test mode off — combat started`, the box is unticked, and there is no `ADDON_ACTION_BLOCKED`.
+   Drop combat: the popup does **not** come back.
+8. In combat, `/wg set state.testMode on` (or tick the box on a panel you opened before the pull).
+   **Expected:** one gray line, `cannot start test mode during combat`, no popup, box unticked.
+9. Tick it, then `/wg test`. **Expected:** the box unticks and the one-shot flow runs as § 4 describes:
+   the chat summary, then the popup showing that capture.
+10. Tick it, `/wg resetall` → **Yes**. **Expected:** test mode ends with the rest of the reset.
+11. Tick it and `/reload`. **Expected:** unchecked afterwards, and `WhatGroupDB` has no `state` table.
+12. *Needs a real join.* Tick it, then join a group through the finder. **Expected:** the chat
+    summary prints, the popup keeps showing the sample, and the box stays ticked. Click the
+    summary's details link: the real group's popup replaces the sample and the box unticks.
+
+**Guards against:** a test mode that writes over the real capture; a box left ticked over a closed
+popup; a sample that survives into a fight or attempts a protected `Show` there; a join that yanks
+the popup out of test mode; and a mode that persists.
 ---
 
 ## 4. Synthetic flow smoke — `/wg test` (~1 min)
@@ -705,7 +740,7 @@ a client at the time. Step 5 below is where it gets run.
 group:
 
 - **`info.fullName`** and **`info.shortName`** from `C_LFGList.GetActivityInfoTable`
-  (`core/Compat.lua:136-141`, stored at `core/WhatGroup.lua:381`, drawn at `modules/Frame.lua:822`
+  (`core/Compat.lua:136-141`, stored at `core/WhatGroup.lua:381`, drawn at `modules/Frame.lua:847`
   and in the chat summary at `core/WhatGroup.lua:586`). German activity names are materially longer
   than English ones.
 - **`info.playstyleString`**, which the server renders in the player's language, preferred over the
@@ -714,7 +749,7 @@ group:
   (`core/WhatGroup.lua:507-512`). A global that is nil at load leaves that label nil for the whole
   session — there is no second read.
 - **`Compat.GetSpellName`** (`core/Compat.lua:27-38`), whose return goes straight into the teleport
-  button's `/cast` macrotext (`modules/Frame.lua:364`, built at `:476`). Casting by name only works
+  button's `/cast` macrotext (`modules/Frame.lua:385`, built at `:497`). Casting by name only works
   when the name is the client's own, which is what makes this locale-independent by construction —
   and is therefore worth confirming rather than assuming.
 
@@ -723,7 +758,7 @@ English on every client. That is the addon's scope and not a defect. § 10 (the 
 that they render as prose rather than as keys, and it is unrelated to this section.
 
 **`/wg test` will not do for most of this.** Its fixture spells the activity name out in English
-(`core/WhatGroup.lua:947`), so on a German client it is *expected* to show English. Use a real group
+(`core/WhatGroup.lua:960`), so on a German client it is *expected* to show English. Use a real group
 for steps 1 to 3.
 
 1. **A real application, with a real German activity name.** Apply to a group through the LFG UI
@@ -808,6 +843,7 @@ For a fast pre-release pass, run at minimum:
 - [ ] sections 2.1, 2.10, 2.12, 2.13 — `/wg help`, `/wg test`, `/wg config`, `/wg reset`
 - [ ] section 3.4 — Defaults button confirm flow
 - [ ] section 3.8 — the visibility gate follows a combat transition, in both directions, with no taint line
+- [ ] section 3.9 — Test mode shows the sample, unticks on Close / ESC, and ends on the pull with one line
 - [ ] section 4.3a — ESC in combat closes the popup with no `ADDON_ACTION_BLOCKED`, and it stays closed
 - [ ] section 4.1 — Click teleport button (no taint)
 - [ ] section 4.1a — Teleport on cooldown: swipe, ticking note, and a click that casts nothing
