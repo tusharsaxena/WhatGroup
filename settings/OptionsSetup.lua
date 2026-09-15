@@ -139,6 +139,9 @@ if not lib then
     H.ResolveId            = function() return nil end
     H.UnnamedCandidates    = function() return nil end
     H.ID_NAME_HINT         = {}
+    -- SelectTab, new at LibKa0s v1.36.0: reached only from a tab click on an already-rendered
+    -- page. This addon does not adopt tab-scoped refresh, so the same inert no-op applies.
+    H.SelectTab            = function() end
     H.SetRenderer          = function() end
     H.RegisterOptionsPage  = function() end
     H.RefreshAllPanels     = function() end
