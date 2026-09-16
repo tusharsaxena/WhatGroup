@@ -147,7 +147,7 @@ NS.DebugLog = lib:New({
 
     -- Thin call-time forwarders, never captured references (debug-logging-§1). Freezing either at
     -- load would mean acknowledging through whatever happened to exist at that instant — and
-    -- NS.Print in particular is not final until core/WhatGroup.lua:84 reclaims the name from
+    -- NS.Print in particular is not final until core/WhatGroup.lua:132 reclaims the name from
     -- AceConsole's embed (core/CoreSetup.lua publishes NS.Util.print, deliberately out of its
     -- reach; anti-patterns #36).
     print        = function(line) NS.Print(line) end,

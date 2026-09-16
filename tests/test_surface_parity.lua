@@ -93,7 +93,7 @@ end)
 -- ---------------------------------------------------------------------------
 
 test("parity: the Slash stub carries the whole live surface", function()
-    -- The live half is the LibKa0s-Slash-1.0 instance settings/Slash.lua:147 builds, registered
+    -- The live half is the LibKa0s-Slash-1.0 instance settings/Slash.lua:216 builds, registered
     -- under that name by tests/run.lua.
     --
     -- Nothing is ignored, and the empty list is the assertion: slash-commands-§1 keeps every
@@ -108,7 +108,7 @@ end)
 -- ---------------------------------------------------------------------------
 
 test("parity: the Options helpers stub carries the whole live surface", function()
-    -- The live half is the LibKa0s-Options-1.0 instance settings/OptionsSetup.lua:165 builds and
+    -- The live half is the LibKa0s-Options-1.0 instance settings/OptionsSetup.lua:180 builds and
     -- publishes as Settings.Helpers with the host's data seams copied onto it, registered under
     -- that name by tests/run.lua.
     --   grep -n "Helpers\.[A-Za-z_]" core modules settings   names the addon's call sites.
@@ -124,7 +124,7 @@ test("parity: the Options helpers stub carries the whole live surface", function
         -- or live.
         "PADDING_X", "ROW_VSPACER", "SECTION_HEADING_H", "BUTTON_PAIR_REL",
         "CHROME_GAP", "TAB_H", "BANNER_H",
-        -- The widget factory itself. settings/Panel.lua:40 and :163 read it and return early when
+        -- The widget factory itself. settings/Panel.lua:43 and :165 read it and return early when
         -- it is nil, and both sites only run inside the page builder, which never runs degraded.
         "AceGUI",
         -- Library-internal renderers this addon never calls: it builds its landing page from its
