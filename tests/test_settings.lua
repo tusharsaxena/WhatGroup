@@ -234,6 +234,12 @@ test("settings: BuildDefaults covers every schema row", function()
             -- A session-only row's storage is its own set(), not the db. Threading a default for
             -- it would materialize the very db.profile branch WG-12 exists to keep empty.
             assertNil(dig(def.path), "BuildDefaults must not persist " .. def.path)
+        elseif def.path:match("^global%.") then
+            -- The minimap row is stored GLOBALLY (launcher-§3), so its default is seeded in the
+            -- `global` half and threading it through the profile walk would write a
+            -- `profile.global.…` branch nothing reads. SHOWN by default, which is `hide = false`.
+            assertNil(dig(def.path), "a global row must not reach db.profile: " .. def.path)
+            assertEqual(d.global.minimap.hide, false, "the table LibDBIcon keeps is materialized")
         else
             assertTrue(dig(def.path) ~= nil, "BuildDefaults skipped " .. def.path)
         end
@@ -474,7 +480,7 @@ end)
 --- One page, so one entry. WhatGroup registers a single settings sub-page ("general"); every row
 --- carries `section` for `/wg list` and `group` for the tab, and no row is hidden.
 local PARTITION = {
-    general = { { "Master controls", 7 }, { "Chat", 8 }, { "Popup", 3 } },
+    general = { { "Master controls", 8 }, { "Chat", 8 }, { "Popup", 3 } },
 }
 
 test("settings: the page's tabs are the designed ones, in order, at the designed size",
@@ -561,8 +567,11 @@ end)
 --- The canonical block, in canonical order, as it applies to THIS addon. WhatGroup is not
 --- frameless — modules/Frame.lua's popup is SetMovable(true) — so it is entitled to every row,
 --- and the two resets are the closing button pair rather than schema rows.
+-- The canonical set gained an EIGHTH row at LibKa0s v1.39.0 (compose minor 7): `Minimap button`,
+-- which opens the fourth line with Test mode beside it (options-ui-§15, launcher-§3). It is the
+-- one row of the block stored OUTSIDE db.profile.
 local MASTER = { "enabled", "visibility", "scale", "alpha", "locked", "state.debugConsole",
-                 "state.testMode" }
+                 "global.minimap.hide", "state.testMode" }
 
 test("settings: the Master controls block is the FIRST group, in canonical order", function()
     -- The whole point of the composer is that nine addons cannot drift into nine orders, so the

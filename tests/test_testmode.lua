@@ -184,13 +184,17 @@ function()
         if row.path == PATH then at = i end
     end
     assertTrue(at ~= nil, "the row exists")
-    assertEqual(S[at - 1].path, "state.debugConsole", "directly below Lock frame / Debug console")
+    -- Since LibKa0s v1.39.0 the row PAIRS beside Minimap button on the line below Lock frame /
+    -- Debug console (compose minor 7, options-ui-§15): the always-present row takes column 1 and
+    -- the optional one sits to its right, so an addon with no test mode draws no hole.
+    assertEqual(S[at - 1].path, "global.minimap.hide", "beside the Minimap button row")
+    assertEqual(S[at - 2].path, "state.debugConsole", "on the line below Lock frame / Debug console")
     local row = S[at]
     assertEqual(row.label, "Test mode")
     assertEqual(row.type, "bool")
     assertEqual(row.group, "Master controls")
     assertTrue(row.sessionOnly, "session-only")
-    assertTrue(row.startsLine, "it starts its own line")
+    assertNil(row.startsLine, "it pairs beside Minimap button rather than opening a line")
     assertEqual(row.default, false, "declared default = false, so Reset all settings ends it")
     assertNil(readFile("settings/Schema.lua"):match('path%s*=%s*"state%.testMode"'),
         "composed by the library, never declared by hand")

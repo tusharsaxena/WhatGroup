@@ -741,6 +741,49 @@ local function build()
         mock.prints[#mock.prints + 1] = table.concat(parts, " ")
     end
 
+    -- ---- The launcher's two libraries (launcher-§1) ------------------------
+    --
+    -- BOTH ARE PRESENT BY DEFAULT, because both are vendored under libs/ and listed in the TOC's
+    -- `# Libraries` block: a harness without them would measure the library's degraded arm on every
+    -- case and never once exercise the button the section is about. A case that WANTS the degraded
+    -- install clears one or both through the loader's `mock` option, which is the same shape every
+    -- other absent-client scenario in this file uses.
+    --
+    -- Registered on `mock.__libs` rather than by loading libs/LibDataBroker-1.1: these are the two
+    -- fakes' whole surface as LibKa0s-Launcher-1.0 uses it, and modelling the callbacks and the
+    -- minimap-angle maths of the real ones would be modelling code no case asserts.
+    mock.ldbObjects = {}      -- name -> the ONE data object, as NewDataObject stored it
+    mock.__libs["LibDataBroker-1.1"] = {
+        NewDataObject = function(_, name, tbl)
+            -- The real one answers nil for a name already taken, which is what the library's
+            -- idempotent Register leans on.
+            if mock.ldbObjects[name] then return nil end
+            mock.ldbObjects[name] = tbl
+            return tbl
+        end,
+        GetDataObjectByName = function(_, name) return mock.ldbObjects[name] end,
+    }
+
+    -- `minimapButtons[name]` is `{ object, db, shown }`. `shown` starts from the db's OWN `hide`
+    -- key, because that is what the real Register reads -- a button registered against a table
+    -- saying hidden is never drawn.
+    mock.minimapButtons = {}
+    mock.__libs["LibDBIcon-1.0"] = {
+        Register = function(_, name, object, db)
+            mock.minimapButtons[name] = { object = object, db = db, shown = not (db and db.hide) }
+        end,
+        IsRegistered = function(_, name) return mock.minimapButtons[name] ~= nil end,
+        Show = function(_, name)
+            local b = mock.minimapButtons[name]
+            if b then b.shown = true end
+        end,
+        Hide = function(_, name)
+            local b = mock.minimapButtons[name]
+            if b then b.shown = false end
+        end,
+        GetMinimapButton = function(_, name) return mock.minimapButtons[name] end,
+    }
+
     -- In-game `_G` IS the table the WoW API lives in, and both settings/Panel.lua and the library
     -- read several APIs through it explicitly (`_G.Settings`, `_G.GameFontNormalLarge`,
     -- `_G[scrollbarName .. "ScrollUpButton"]`). Pointing `_G` back at the mock makes it

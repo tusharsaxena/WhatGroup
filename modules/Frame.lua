@@ -297,6 +297,19 @@ end
 -- off one button's handler is wrong by construction rather than by oversight.
 local gateWithheld = false
 
+-- THE PLAYER PUT THE POPUP AWAY. One body, because there are three of them now: the Close button,
+-- the ESC proxy, and the launcher's left click (WhatGroup:ToggleFrame below). All three mean the
+-- same three things -- take it off screen, tell the gate not to bring it back on the next combat
+-- edge, and end test mode so the checkbox does not read ticked over a popup that is gone.
+--
+-- `gateWithheld` is set HERE rather than left to f's OnHide, because in combat hidePopup takes the
+-- alpha route and no OnHide fires. Declared below gateWithheld and above every caller.
+local function dismissPopup()
+    hidePopup()
+    gateWithheld = false
+    if endTestMode("closed") then refreshPanel() end
+end
+
 function WhatGroup:ApplyFrameVisibility(inCombat)
     if not f then return end
     -- Settle what the lockdown deferred, before the gate is asked anything. `hidePopup` performs
@@ -544,12 +557,7 @@ local function buildEscapeProxy()
     p:Hide()
     p:SetScript("OnHide", function()
         if not onScreen() then return end
-        hidePopup()
-        -- A player dismissal, so the gate must not reopen it. Set here as the Close button sets it:
-        -- in combat hidePopup takes the alpha route and never fires f's OnHide.
-        gateWithheld = false
-        -- Closing the placeholder popup is turning test mode off, or the checkbox would go stale.
-        if endTestMode("closed") then refreshPanel() end
+        dismissPopup()
     end)
     tinsert(UISpecialFrames, ESC_PROXY_NAME)
     return p
@@ -756,14 +764,7 @@ local function buildFrame()
     -- SecureActionButtonTemplate button, so f:Hide() is refused in combat and calling it anyway
     -- raised ADDON_ACTION_BLOCKED naming this addon. The press is remembered instead and honored
     -- the moment the lockdown lifts, which is the closest thing to "close" the client permits.
-    closeBtn:SetScript("OnClick", function()
-        hidePopup()
-        -- The player owns this one, so the gate must not undo it on the next combat edge. Set
-        -- explicitly rather than left to OnHide: in combat `hidePopup` takes the alpha route and
-        -- never fires it.
-        gateWithheld = false
-        if endTestMode("closed") then refreshPanel() end
-    end)
+    closeBtn:SetScript("OnClick", dismissPopup)
 
     -- ESC to close — register the PROXY with UISpecialFrames *now*, lazily (buildEscapeProxy says
     -- why it is a proxy and not "WhatGroupFrame"). Earlier versions registered at file-load and that
@@ -1032,4 +1033,31 @@ function WhatGroup:ShowFrame()
         return
     end
     showPopup()
+end
+
+-- THE LAUNCHER'S LEFT CLICK (launcher-§2 rung (a)). The popup IS this addon's primary window, so
+-- the minimap button and the broker row toggle it -- core/LauncherSetup.lua passes this as the
+-- descriptor's `onClick` and nothing else calls it.
+--
+-- It is a TOGGLE over the two seams that already exist, not a third way to move the popup: the
+-- open arm is ShowFrame, with its visibility gate, its combat defer and its test-mode handover
+-- intact, and the close arm is dismissPopup, the same body the Close button and ESC run. A click
+-- while the popup is on screen is therefore a dismissal in the full sense -- the gate will not
+-- bring it back, and test mode ends -- which is what the player just asked for.
+--
+-- `onScreen()` rather than `f:IsShown()`: a popup soft-hidden at alpha 0 in combat is still shown
+-- and the player cannot see it, so a click on it must OPEN rather than hide what is already gone.
+--
+-- With no capture and no test mode the popup opens on its "No data" fallbacks, which is the honest
+-- answer to "show me this addon's window" and is what makes the toggle symmetric. `/wg show` still
+-- refuses that case with its hint, because a verb the player typed can say why; a minimap click
+-- has nowhere to say it but the window itself.
+---@return boolean shown  whether the popup is on screen after the click
+function WhatGroup:ToggleFrame()
+    if onScreen() then
+        dismissPopup()
+        return false
+    end
+    self:ShowFrame()
+    return onScreen()
 end

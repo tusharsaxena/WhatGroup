@@ -227,12 +227,16 @@ function runTest(rest)
     end
 end
 
-function runConfig()
+-- ON THE ADDON, not a file-local, because `/wg config` is no longer the only caller: the launcher's
+-- RIGHT click opens the panel on every addon in the collection, and its LEFT click does on rung
+-- (c) (launcher-§2). core/LauncherSetup.lua reaches this rather than keeping a second copy of the
+-- ladder below, so a change to how the panel opens reaches both surfaces.
+function WhatGroup:OpenSettings()
     -- Settings registration normally happens at login (OnEnable), so the panel is already in the
     -- AddOns list by the time the player runs this. This call is an idempotent fallback that also
     -- covers a login in combat, where OnEnable's registration bailed on its own guard.
-    if WhatGroup.Settings and WhatGroup.Settings.Register then
-        WhatGroup.Settings.Register()
+    if self.Settings and self.Settings.Register then
+        self.Settings.Register()
     end
     local H = helpers()
     if not (H and H.OpenOptionsPanel) then
@@ -240,9 +244,12 @@ function runConfig()
     end
     -- The combat refusal and the sidebar-tree unfold both live inside OpenOptionsPanel
     -- (options-ui-§2). The gate belongs THERE rather than in this dispatcher so every caller is
-    -- refused — this verb, a /run script, a future internal caller.
+    -- refused — this verb, a /run script, the launcher's right click.
     H.OpenOptionsPanel()
 end
+
+-- The verb, now one line over the body above.
+function runConfig() WhatGroup:OpenSettings() end
 
 -- ---------------------------------------------------------------------------
 -- `reset` takes a PATH, not everything (slash-commands-§2, convergence #1)

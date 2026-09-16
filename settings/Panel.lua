@@ -212,6 +212,13 @@ local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{
     -- extracted to end.
     addonName        = addonName,
     debugConsolePath = "state.debugConsole",
+    -- The minimap button (options-ui-§15, launcher-§3, LibKa0s v1.39.0): a STORED bool row on the
+    -- line below Lock frame / Debug console, opening it, with Test mode pairing beside it. Verbatim
+    -- and unprefixed like the two paths above, and for a sharper reason -- the table it names is
+    -- LibDBIcon's own and lives in the GLOBAL store, outside this block's profile prefix entirely.
+    -- settings/Schema.lua's GLOBAL table routes it, and inverts it: the row says SHOWN, the stored
+    -- key says hidden.
+    minimapPath      = "global.minimap.hide",
     -- The popup's test mode (options-ui-§15, LibKa0s v1.37.0): a session-only `Test mode` row on its
     -- own line below Lock frame / Debug console. Verbatim, like the console path, and bound the same
     -- way -- settings/Schema.lua's SESSION table routes it to modules/Frame.lua.

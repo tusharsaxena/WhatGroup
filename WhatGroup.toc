@@ -3,7 +3,7 @@
 ## Notes: Notifies you of group details after joining via Premade Group Finder
 ## Author: add1kted2ka0s
 ## Version: 1.4.0
-## IconTexture: 134149
+## IconTexture: Interface\AddOns\WhatGroup\media\logos\whatgroup.logo.128.tga
 ## SavedVariables: WhatGroupDB
 ## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1, LibDBIcon-1.0
 ## DefaultState: enabled
@@ -50,6 +50,10 @@ core\WhatGroup.lua
 # LibKa0s-DebugLog :New here runs at file scope (core/DebugLogSetup.lua:120) and the library
 # validates `font` as a string, so above that line the console is built from nil. Load-bearing.
 core\DebugLogSetup.lua
+# The launcher (launcher-§1): one LibDataBroker object, the minimap button and the broker row.
+# After core\DebugLogSetup.lua, which publishes NS.Debug. Conventional -- the object is built here
+# but registered from OnEnable, and every seam it holds is read inside a closure.
+core\LauncherSetup.lua
 
 # Defaults (data tables; conventional apart from the annotated line)
 # Before settings\Schema.lua: this file publishes NS.C, which Schema takes as a file-scope upvalue

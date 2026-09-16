@@ -335,12 +335,57 @@ local SESSION = {
     end,
 }
 
+-- ---------------------------------------------------------------------------
+-- The one GLOBAL path (launcher-§3)
+-- ---------------------------------------------------------------------------
+--
+-- Every other row in this schema lives under `db.profile`, which is what Resolve walks. The
+-- minimap button's does not, and the standard fixes it there for two stated reasons: a profile
+-- switch must not move a player's buttons, and options-ui-§12's *Reset all settings* -- a profile
+-- reset by definition -- must not un-hide a button the player hid. So the path is taken VERBATIM
+-- from the composer (`minimapPath`, settings/Panel.lua), it names the global store, and it is
+-- intercepted HERE in front of Resolve exactly as the session paths are.
+--
+-- THE INVERSION IS OURS, NOT THE LIBRARY'S. The row's boolean says SHOWN; LibDBIcon's `hide` key
+-- says hidden. There is ONE boolean, LibDBIcon writes it too from its own right-click menu, and a
+-- second key beside it would be a copy free to disagree (anti-pattern #81) -- so the row inverts
+-- here, at the single write seam, and everything downstream (the checkbox, `/wg get`, `/wg set`,
+-- `/wg reset`) inverts with it because they all come through these two functions.
+local MINIMAP_PATH = "global.minimap.hide"
+
+local function minimapStore()
+    local db = WhatGroup.db
+    return db and db.global and db.global.minimap
+end
+
+local GLOBAL = {
+    [MINIMAP_PATH] = {
+        get = function()
+            local t = minimapStore()
+            -- No table yet (pre-OnInitialize, or a db that predates the default) reads as SHOWN,
+            -- which is the row's own default and what LibDBIcon does with an empty table.
+            return not (t and t.hide)
+        end,
+        set = function(v)
+            local t = minimapStore()
+            if t then t.hide = not v end
+            -- The button follows the checkbox NOW rather than at the next reload (launcher-§3).
+            -- SetShown writes `hide` a second time with the same value, which the library
+            -- documents and which is what keeps a caller that reaches it directly honest; the
+            -- write above is what moves the store on an install with no LibDBIcon at all.
+            if NS.Launcher then NS.Launcher:SetShown(v and true or false) end
+        end,
+    },
+}
+
 function Helpers.Get(path)
     local session = SESSION[path]
     if session then
         local spec = session()
         return spec and spec.get() or false
     end
+    local g = GLOBAL[path]
+    if g then return g.get() end
     local parent, key = Resolve(path)
     if not parent then
         NS.Debug("Schema", "Get: no path -> " .. tostring(path))
@@ -354,6 +399,11 @@ function Helpers.RawSet(path, value)
     if session then
         local spec = session()
         if spec then spec.set(value and true or false) end
+        return
+    end
+    local g = GLOBAL[path]
+    if g then
+        g.set(value and true or false)
         return
     end
     local parent, key = Resolve(path, true)
@@ -542,10 +592,20 @@ function Settings.BuildDefaults()
     -- reads it (WG-08). `global.windows` holds persisted standalone-window
     -- geometry (WG-26); an empty table so NS.Windows.Save/Restore never index
     -- a nil.
+    -- `global.minimap` is LibDBIcon's OWN table (launcher-§3), and this declared default is what
+    -- MATERIALIZES it -- architecture-§5, not a whole-section write over a schema row: the row
+    -- addresses `global.minimap.hide` and nothing else writes the branch. `hide = false` is the
+    -- Minimap button row's default (SHOWN) through the inversion above. LibDBIcon adds
+    -- `minimapPos` to the same table when the player drags the button, which is the library's own
+    -- write into its own key and needs no row.
     local out = { profile = deepcopy(C),
-                  global = { schemaVersion = NS.SCHEMA_VERSION or 1, windows = {} } }
+                  global = { schemaVersion = NS.SCHEMA_VERSION or 1, windows = {},
+                             minimap = { hide = false } } }
     for _, def in ipairs(Schema) do
-        if def.path and not def.sessionOnly then
+        -- A GLOBAL row is not a profile row: threading its default through this walk would write
+        -- `profile.global.minimap.hide` -- a branch nothing reads, in the store the standard
+        -- deliberately keeps it out of. Its default is the literal above.
+        if def.path and not def.sessionOnly and not GLOBAL[def.path] then
             local segs = {}
             for part in string.gmatch(def.path, "[^.]+") do
                 segs[#segs + 1] = part
@@ -611,7 +671,10 @@ end
 local function countChangedProfileRows()
     local n = 0
     for _, def in ipairs(Schema) do
-        if def.path and not def.sessionOnly and not sameValue(Helpers.Get(def.path), def.default) then
+        -- Global rows are excluded for the same reason session rows are: N is the rows the
+        -- PROFILE reset actually changes, and `db:ResetProfile()` cannot reach either store.
+        if def.path and not def.sessionOnly and not GLOBAL[def.path]
+           and not sameValue(Helpers.Get(def.path), def.default) then
             n = n + 1
         end
     end

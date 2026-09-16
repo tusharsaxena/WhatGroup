@@ -294,6 +294,14 @@ function WhatGroup:OnEnable()
     if self.Settings and self.Settings.Register then
         self.Settings.Register()
     end
+
+    -- THE LAUNCHER (launcher-§1), registered at login and not at file load, because the table
+    -- LibDBIcon keeps the button's position in is `db.global.minimap` and the db does not exist
+    -- until OnInitialize has run. Idempotent in the library, so a second call here or from a
+    -- future reload path builds no second button. It answers false on an install missing
+    -- LibDataBroker or LibDBIcon, which are OptionalDeps and vendored -- the library says which
+    -- one is absent, once, and the addon carries on without a button.
+    if NS.Launcher then NS.Launcher:Register() end
     -- No lifecycle line here: the debug flag is session-only and off at login,
     -- so a boot-time summary would always be gated off (debug-logging-§5 / debug-logging-§8). The [Init]
     -- summary is emitted at the DebugLog:SetEnabled seam instead, the only
