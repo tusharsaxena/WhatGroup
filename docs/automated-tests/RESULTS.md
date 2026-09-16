@@ -23,6 +23,7 @@ The **Tests** cell reads `passed/skipped/total`.
 
 | Run | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20260916-094455`](20260916-094455/) | 1.4.0 | 0/0 | 42 | 632/0/632 | skip | 9129 | 1199 | 6.8 | 1.8 | 15 | 0 | **green** |
 | [`20260910-234511`](20260910-234511/) | 1.3.0 → 1.4.0 | 0/0 | 41 | 568/0/568 | skip | 8065 | 1063 | 6.7 | 1.8 | 15 | 0 | **green** |
 | [`20260908-181437`](20260908-181437/) | 1.3.0 | 0/0 | 40 | 554/0/554 | skip | 7702 | 1044 | 6.5 | 1.8 | 15 | 0 | **green** |
 | [`20260825-103505`](20260825-103505/) | 1.3.0 | 0/0 | 16 | 485/485 | skip | 6377 | 906 | 6.4 | 1.7 | 15 | 0 | **green** |
@@ -36,18 +37,18 @@ The **Tests** cell reads `passed/skipped/total`.
 
 ## Test suite
 
-**568 cases** — 568 passed, 0 failed, 0 skipped. The generated inventory
-[`20260910-234511/test-cases.md`](20260910-234511/test-cases.md) is the authority on which cases existed at this run;
+**632 cases** — 632 passed, 0 failed, 0 skipped. The generated inventory
+[`20260916-094455/test-cases.md`](20260916-094455/test-cases.md) is the authority on which cases existed at this run;
 `docs/test-cases.md` is that same list at HEAD.
 
-Moved **554 → 568** since the previous run.
+Moved **568 → 632** since the previous run.
 
 No case reported a `skip`, so passed and total agree and nothing in this row claims coverage
 that was not exercised.
 
 ## Lint
 
-**0 warnings / 0 errors over 41 files** (`luacheck .`).
+**0 warnings / 0 errors over 42 files** (`luacheck .`).
 
 Read that figure with its scope attached: `.luacheckrc` sets `exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "_dev/", "tests/_kit/" }`, so those paths
 are not in it. A `0/0` that never moves is partly a statement about what was never looked at, which
@@ -63,8 +64,8 @@ never asked.
 
 ## Complexity watch list
 
-Current as of [`20260910-234511`](20260910-234511/) — **this run's measurement, not its diff.** Max CCN **15** across 1063
-functions, **0** of them warned on; 1 file(s) in the 1000–1500 band and 0 over the 1500 cap
+Current as of [`20260916-094455`](20260916-094455/) — **this run's measurement, not its diff.** Max CCN **15** across 1199
+functions, **0** of them warned on; 2 file(s) in the 1000–1500 band and 0 over the 1500 cap
 (`layout-§1`).
 
 Every row below is generated from this run's own `lizard` output. **The `Disposition` column is
@@ -80,7 +81,8 @@ None.
 
 | Band | File | LOC | Disposition |
 |---|---|---|---|
-| 1000–1500 (on notice) | `tests/test_frame.lua` | 1263 | **Accepted.** The first file this repository has ever had in the band, and the first entry this table has ever carried. 627 lines at the previous run's commit; it crossed at 987 with `M2-21`'s combat-start re-ask and reached 1063 with `M2-28`. It is the suite for `modules/Frame.lua`, which is 770 lines, so it is now 293 lines longer than the module it covers — that ratio, rather than the absolute count, is the thing to watch. A flat list of independent cases; length here is case count, not tangle. Re-check at 1250, or when `modules/Frame.lua` itself is peeled, whichever comes first. |
+| 1000–1500 (on notice) | `modules/Frame.lua` | 1035 | **Accepted.** Newly crossed this run — 869 lines at the previous run's commit, 1035 here, pushed over by the Test mode checkbox and the `/wg test` split. Flat sequence of ~30 small local functions plus one long builder (`buildFrame`, lines 558–830); worst function is CCN 13, so this is length, not tangle. No cheap internal seam to split along today. Re-check at 1250, or when `buildFrame` is peeled out, whichever comes first. |
+| 1000–1500 (on notice) | `tests/test_frame.lua` | 1421 | **Accepted, re-argued — its own re-check trigger fired.** The previous disposition said re-check at 1250; it is 1421 now (1063 at the previous run), and 386 lines longer than the 1035-line `modules/Frame.lua` it covers. Still a flat list of independent cases, so the length is case count rather than tangle, and that ratio remains the thing to watch. This is the last acceptance: the next band boundary is the 1500 cap, and at that point the answer is a split along module seams (visibility, teleport, test mode), not another carry-forward. |
 
 `lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
 `t.k = rec.k or D.k` defaulting lines scores high with no visible branching at all: a large CCN

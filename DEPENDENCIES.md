@@ -129,7 +129,7 @@ lizard --version
 ### 2.4 git and diff — **required for the vendor gate**
 
 - Evidence: `docs/testing.md:235-238` runs four `diff -r` comparisons of `libs/LibKa0s` and
-  `tests/_kit` against a **sibling checkout at `../LibKa0s`**; `docs/testing.md:278` uses
+  `tests/_kit` against a **sibling checkout at `../LibKa0s`**; `docs/testing.md:281` uses
   `git add --renormalize .` to fix a line-ending divergence.
 - Both ship with Ubuntu (`git` may need installing on a minimal image):
 
@@ -159,7 +159,7 @@ Stated explicitly, because each of these is a reasonable guess that happens to b
 - **No Python scripts, no `Makefile`, no `scripts/` directory.** The repo contains no `.py` file of
   its own, no `Makefile` and no `scripts/`. There is **one** shell script:
   `tests/_kit/run-automated-tests.sh`, the vendored automated-test runner that ships whole with the
-  LibKa0s test kit (`docs/testing.md:355-357`, [`docs/automated-tests/README.md`](docs/automated-tests/README.md)).
+  LibKa0s test kit (`docs/testing.md:358-360`, [`docs/automated-tests/README.md`](docs/automated-tests/README.md)).
   It needs **bash**, which Ubuntu already has, and it is a convenience wrapper — it shells out to
   the same `luacheck` / `lua tests/run.lua` / `lizard` above and treats a missing tool as a `skip`,
   never a failure. Every other documented command is typed directly.
