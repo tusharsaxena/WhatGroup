@@ -23,6 +23,7 @@ The **Tests** cell reads `passed/skipped/total`.
 
 | Run | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20260916-184548`](20260916-184548/) | 1.4.0 | 0/0 | 45 | 667/0/667 | pass | 9903 | 1298 | 6.7 | 1.8 | 15 | 0 | **green** |
 | [`20260916-094455`](20260916-094455/) | 1.4.0 | 0/0 | 42 | 632/0/632 | skip | 9129 | 1199 | 6.8 | 1.8 | 15 | 0 | **green** |
 | [`20260910-234511`](20260910-234511/) | 1.3.0 → 1.4.0 | 0/0 | 41 | 568/0/568 | skip | 8065 | 1063 | 6.7 | 1.8 | 15 | 0 | **green** |
 | [`20260908-181437`](20260908-181437/) | 1.3.0 | 0/0 | 40 | 554/0/554 | skip | 7702 | 1044 | 6.5 | 1.8 | 15 | 0 | **green** |
@@ -37,18 +38,18 @@ The **Tests** cell reads `passed/skipped/total`.
 
 ## Test suite
 
-**632 cases** — 632 passed, 0 failed, 0 skipped. The generated inventory
-[`20260916-094455/test-cases.md`](20260916-094455/test-cases.md) is the authority on which cases existed at this run;
+**667 cases** — 667 passed, 0 failed, 0 skipped. The generated inventory
+[`20260916-184548/test-cases.md`](20260916-184548/test-cases.md) is the authority on which cases existed at this run;
 `docs/test-cases.md` is that same list at HEAD.
 
-Moved **568 → 632** since the previous run.
+Moved **632 → 667** since the previous run.
 
 No case reported a `skip`, so passed and total agree and nothing in this row claims coverage
 that was not exercised.
 
 ## Lint
 
-**0 warnings / 0 errors over 42 files** (`luacheck .`).
+**0 warnings / 0 errors over 45 files** (`luacheck .`).
 
 Read that figure with its scope attached: `.luacheckrc` sets `exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "_dev/", "tests/_kit/" }`, so those paths
 are not in it. A `0/0` that never moves is partly a statement about what was never looked at, which
@@ -56,15 +57,15 @@ is why the exclusion is restated on every run.
 
 ## Perf
 
-**This repo ships no `tests/perf.lua`, so `perf` is a permanent `skip`** — the first of
-`automated-tests-§3`'s two sanctioned reasons, *nothing to run*, rather than a ratified
-`performance-§12` no-combat-path exemption. The record is therefore **silent about runtime
-cost**: nothing in this file says this addon is fast or cheap, only that the question was
-never asked.
+**8 scenarios** from `tests/perf.lua`; the measurements are in
+[`20260916-184548/perf.json`](20260916-184548/perf.json).
+
+`perf` never fails a run and never blocks a commit — it is recorded, read and compared, not
+thresholded (`performance-§9`). It does gate the **tag** (`automated-tests-§3`).
 
 ## Complexity watch list
 
-Current as of [`20260916-094455`](20260916-094455/) — **this run's measurement, not its diff.** Max CCN **15** across 1199
+Current as of [`20260916-184548`](20260916-184548/) — **this run's measurement, not its diff.** Max CCN **15** across 1298
 functions, **0** of them warned on; 2 file(s) in the 1000–1500 band and 0 over the 1500 cap
 (`layout-§1`).
 
@@ -81,8 +82,8 @@ None.
 
 | Band | File | LOC | Disposition |
 |---|---|---|---|
-| 1000–1500 (on notice) | `modules/Frame.lua` | 1035 | **Accepted.** Newly crossed this run — 869 lines at the previous run's commit, 1035 here, pushed over by the Test mode checkbox and the `/wg test` split. Flat sequence of ~30 small local functions plus one long builder (`buildFrame`, lines 558–830); worst function is CCN 13, so this is length, not tangle. No cheap internal seam to split along today. Re-check at 1250, or when `buildFrame` is peeled out, whichever comes first. |
-| 1000–1500 (on notice) | `tests/test_frame.lua` | 1421 | **Accepted, re-argued — its own re-check trigger fired.** The previous disposition said re-check at 1250; it is 1421 now (1063 at the previous run), and 386 lines longer than the 1035-line `modules/Frame.lua` it covers. Still a flat list of independent cases, so the length is case count rather than tangle, and that ratio remains the thing to watch. This is the last acceptance: the next band boundary is the 1500 cap, and at that point the answer is a split along module seams (visibility, teleport, test mode), not another carry-forward. |
+| 1000–1500 (on notice) | `modules/Frame.lua` | 1063 | **Accepted, carried and re-stated.** It crossed into the band at the previous run (1035, from 869 the run before); 1063 here, +28, and still well inside the 1250 re-check trigger set when it crossed. Shape unchanged: a flat sequence of ~30 small local functions plus one long builder (`buildFrame`, now lines 566–830 — CCN 2 over 265 lines), and the file's worst function is CCN 13, so this remains length rather than tangle. No cheap internal seam to split along today. Re-check at 1250, or when `buildFrame` is peeled out, whichever comes first. Second consecutive carry, and no release run has carried it yet, so `automated-tests-§4`'s three-release shelf life has not begun to run. |
+| 1000–1500 (on notice) | `tests/test_frame.lua` | 1421 | **Accepted, carried forward — the ruling stands and the file did not move.** 1421 at the previous run and 1421 here; the +35 cases this run landed in `test_slash.lua`, `test_launcher.lua` and `test_lifecycle.lua`, not in this file. The earlier re-check trigger (1250) has already fired and was re-argued then: still a flat list of independent cases, so the length is case count rather than tangle, and it is 358 lines longer than the 1063-line `modules/Frame.lua` it covers — that ratio remains the thing to watch. This stays the last acceptance: the next band boundary is the 1500 cap, and at that point the answer is a split along module seams (visibility, teleport, test mode), not another carry-forward. One release run (`bed07dd`, Release 1.4.0) has carried it, so it is one of three against `automated-tests-§4`'s shelf life. |
 
 `lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
 `t.k = rec.k or D.k` defaulting lines scores high with no visible branching at all: a large CCN
