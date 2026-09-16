@@ -243,7 +243,7 @@ badge and any count quoted in the docs must agree with it.
 - settings: every row on every page carries a `group`
 - settings: every color row is followed by its class-color companion, and none is disabled
 
-### test_slash.lua (52)
+### test_slash.lua (59)
 
 - slash: COMMANDS has a standalone version verb (WG-29)
 - slash: /wg version prints [WG] v<version> on its own line (WG-29)
@@ -297,6 +297,13 @@ badge and any count quoted in the docs must agree with it.
 - slash: each verb acknowledges on one `key = value` line
 - slash: the dispatcher answers while the addon is disabled
 - slash: the reserved pair is in COMMANDS, so help and the landing page carry it
+- slash: `/wg show` refuses while disabled, and does not show the popup
+- slash: `/wg test on` refuses while disabled, and does not enter test mode
+- slash: every verb is either on the live list or refuses — there is no third kind
+- slash: the gate lifts the moment the addon is enabled again
+- slash: the refusal REPLACES the handler — not even its own empty-state hint prints
+- slash: the refusal does not touch the help index or the landing page
+- slash: `perf` is reserved here but not registered (LIBKA0S-15)
 
 ### test_labels.lua (34)
 
@@ -620,7 +627,7 @@ badge and any count quoted in the docs must agree with it.
 - launcher: the row still stores with no broker library at all
 - launcher: with LibKa0s absent the seam still answers every member
 
-### test_lifecycle.lua (44)
+### test_lifecycle.lua (45)
 
 - lifecycle: the addon exposes no public global (WG-01)
 - lifecycle: NS IS the addon object (AceAddon mixes into the namespace)
@@ -658,7 +665,8 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: /wg config is refused during combat (options-ui-§2)
 - lifecycle: a login taken in combat still registers the panel
 - lifecycle: /wg test notify injects a synthetic capture and runs the full flow
-- lifecycle: /wg test notify bypasses the master switch
+- lifecycle: /wg test notify refuses while the master switch is off
+- lifecycle: the panel Test button previews while the addon is disabled
 - lifecycle: /wg test notify fires immediately, without the notify delay
 - lifecycle: /wg show opens the popup when a capture exists
 - lifecycle: /wg show with no capture prints a hint and opens nothing
@@ -753,7 +761,7 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 31 |
 | test_database.lua | 9 |
 | test_settings.lua | 56 |
-| test_slash.lua | 52 |
+| test_slash.lua | 59 |
 | test_labels.lua | 34 |
 | test_capture.lua | 32 |
 | test_notify.lua | 48 |
@@ -761,7 +769,7 @@ badge and any count quoted in the docs must agree with it.
 | test_panel.lua | 53 |
 | test_testmode.lua | 23 |
 | test_launcher.lua | 21 |
-| test_lifecycle.lua | 44 |
+| test_lifecycle.lua | 45 |
 | test_debuglog.lua | 34 |
 | test_docmap.lua | 1 |
 | test_lintconfig.lua | 4 |
@@ -769,4 +777,4 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **659** |
+| **Total** | **667** |

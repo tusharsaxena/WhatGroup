@@ -549,6 +549,30 @@ so a capture that never got an invite sat in the tables until group-leave.
 
 3. `/wg set enabled true` to restore.
 
+### 5.5 A disabled addon refuses its feature verbs (slash-commands-§2)
+
+1. `/wg disable`.
+2. `/wg show`, then `/wg test on`, then `/wg test notify`.
+
+**Expected:** each answers with **exactly one** `[WG]` line naming `/wg enable`, and **does nothing
+else** — no popup, no chat summary, no second line, and the *Test mode* checkbox on Master controls
+stays unticked. A popup appearing behind the refusal is the failure this step is for.
+
+3. While still disabled: `/wg help`, `/wg version`, `/wg list`, `/wg get enabled`,
+   `/wg set notify.delay 2`, `/wg reset notify.delay`, `/wg debug`, a bare `/wg`.
+
+**Expected:** every one of them answers normally — a player has to be able to read and repair
+settings and reach the panel while the addon is off. None of them prints the refusal.
+
+4. The settings panel's **Test** button on the Chat tab, still disabled.
+
+**Expected:** it previews as usual. It is a panel control rather than a slash verb, and it is the
+route that replaces `/wg test notify`'s old master-switch bypass.
+
+5. `/wg enable` — it must work, or the pair is one-way — then `/wg show` again.
+
+**Expected:** the verb acts immediately, with no reload in between.
+
 ---
 
 ## 6. Persistence smoke (~30 sec)

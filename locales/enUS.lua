@@ -17,8 +17,8 @@
 -- Blizzard's strings, not the addon's, so they stay on the Blizzard side.
 --
 -- SCOPE: the player-facing surfaces route through L — the join notification,
--- the popup dialog, the help header + command descriptions, and the reset
--- confirmation. Slash-CLI diagnostics ("unknown command", "Usage: …",
+-- the popup dialog, the help header + command descriptions, the disabled-addon
+-- refusal (slash-commands-§2), and the reset confirmation. Slash-CLI diagnostics ("unknown command", "Usage: …",
 -- "Settings layer not ready yet", "debug logging ON/OFF") are deliberately
 -- NOT routed: they are developer/power-user feedback for the `/wg`
 -- command line, not chrome a translator would localize. Keeping them out
@@ -115,6 +115,12 @@ L["Reset one setting to its default — `/wg reset <path>`"] =
 L["Reset every setting to defaults"] = "Reset every setting to defaults"
 L["Open/close the debug window — `/wg debug on|off` toggles logging"] =
     "Open/close the debug window — `/wg debug on|off` toggles logging"
+
+-- The disabled gate (slash-commands-§2). One tagged line, naming the verb that undoes the
+-- state. It routes through L where the CLI diagnostics beside it deliberately do not, because
+-- this one is chrome a PLAYER reads rather than feedback for the command line.
+L["WhatGroup is disabled — |cffFFFF00/wg enable|r turns it back on"] =
+    "WhatGroup is disabled — |cffFFFF00/wg enable|r turns it back on"
 
 -- Slash / hint messages
 L["No group info available. Use |cffFFFF00/wg test|r to preview."] =

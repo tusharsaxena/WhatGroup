@@ -64,6 +64,61 @@ local COMMANDS = {
         function(rest) runDebug(rest) end},
 }
 
+-- ---------------------------------------------------------------------------
+-- The disabled gate (slash-commands-§2)
+-- ---------------------------------------------------------------------------
+--
+-- A DISABLED ADDON REFUSES A FEATURE VERB RATHER THAN ACTING ON IT. Acting is wrong twice over:
+-- the player asked for something the addon is currently standing down from doing, and a silent
+-- no-op leaves them with no clue why nothing happened. One tagged line naming `/wg enable`, and
+-- NOTHING ELSE -- no partial work, no side effect, no second line. It is a SHOULD in the standard
+-- and this addon takes it; two of its thirteen verbs drive features, which is enough for a silent
+-- `/wg show` to read as a bug.
+--
+-- ONE PLACE, AND IT IS HERE. A guard pasted into runShow and runTest would be two places to forget
+-- and a third the next verb forgets by default -- the gate belongs where every verb already passes
+-- through. Wrapping entry[3] is that seam: both dispatchers, the library's and the no-LibKa0s stub
+-- above, call the handler out of this table and neither has any other way in. It also survives the
+-- table crossing to settings/Panel.lua's landing page, which reads entry[1] and entry[2] and never
+-- the handler, so the help index and the panel list the refused verbs exactly as before.
+--
+-- THE LIVE SET IS NAMED ONCE, AS DATA, and it is the standard's list verbatim rather than "the ones
+-- that felt safe". A player must be able to READ AND REPAIR SETTINGS and REACH THE PANEL while the
+-- addon is off -- which is precisely when they are most likely to need to -- and `enable` above
+-- all, or the pair is one-way again. `debug` is a diagnostic rather than a feature: the usual
+-- reason to reach for it is that the addon is misbehaving. `perf` is on the list because the
+-- standard reserves it collection-wide; this addon does not register it (LIBKA0S-15), so the entry
+-- is what keeps the set readable as the rule rather than as this addon's subset of it.
+--
+-- What is left refusing is `show` and `test`: the two that draw the popup.
+local ENABLED_PATH = "enabled"
+
+local ALWAYS_LIVE = {
+    help = true, config = true, version = true, enable = true, disable = true,
+    debug = true, perf = true,
+    get = true, set = true, list = true, reset = true, resetall = true,
+}
+
+-- FAIL OPEN. Only a stored `false` refuses: a nil -- no db yet, no Helpers yet, a path the profile
+-- has never held -- is not the player having turned the addon off, and reading it as one would
+-- refuse every feature verb on an install that is merely early or degraded.
+local function standingDown()
+    local H = helpers()
+    return H ~= nil and H.Get ~= nil and H.Get(ENABLED_PATH) == false
+end
+
+for _, entry in ipairs(COMMANDS) do
+    if not ALWAYS_LIVE[entry[1]] then
+        local handler = entry[3]
+        entry[3] = function(rest)
+            if standingDown() then
+                return NS.Print(L["WhatGroup is disabled — |cffFFFF00/wg enable|r turns it back on"])
+            end
+            return handler(rest)
+        end
+    end
+end
+
 -- Published so settings/Panel.lua's landing page renders the same table the help index does. It
 -- crosses as plain data; neither library resolves the other.
 WhatGroup.COMMANDS = COMMANDS
@@ -278,7 +333,9 @@ function runConfig() WhatGroup:OpenSettings() end
 -- respelled here, and it RE-READS the stored value rather than echoing the argument. The plain
 -- fallback is for the install with no LibKa0s at all, where there is no formatter to call and the
 -- rest of this file already renders plainly.
-local ENABLED_PATH = "enabled"
+--
+-- `ENABLED_PATH` is declared beside the disabled gate above, which is the other reader of it: the
+-- gate asks the same row these two verbs write, so the switch and what it gates cannot disagree.
 
 function runEnabled(on)
     local H = helpers()

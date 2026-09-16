@@ -83,8 +83,8 @@ Library verbs delegate to the instance; host verbs are the file-local functions 
 |---|---|---|
 | `/wg` (no args) | the `config` row → `runConfig` (host) | The library's dispatcher runs the host's `config` verb, so a bare `/wg` opens the Settings panel on its landing page, exactly as `/wg config` does (slash-commands-§4). Whitespace-only input counts as bare. A host with no `config` row would get the help index instead. |
 | `/wg help` | `Sl:PrintHelp` (library) | Print the header + every command row. |
-| `/wg show` | `runShow` (host) | Open the popup if `pendingInfo` is set, ending test mode first if it is on. Otherwise print a hint pointing at `/wg test`. |
-| `/wg test` / `/wg test on\|off` / `/wg test notify` | `runTest(rest)` (host) | **Test mode.** Bare `/wg test` toggles the popup's test mode and `/wg test on\|off` sets it, by writing the `state.testMode` session row through `Helpers.Set`, the setter the Master controls **Test mode** checkbox uses. So the box follows, and a start in combat is refused with the checkbox's one gray line (options-ui-§15). `/wg test notify` is the one-shot check: `WhatGroup:RunTest()` injects synthetic `pendingInfo` (Mythic+ Windrunner Spire) and runs `ShowNotification()` + `ShowFrame()` once, ending test mode if it is on. The panel's Test button runs the same method. Any other word prints a three-line usage. |
+| `/wg show` | `runShow` (host), behind the disabled gate | **Refused while `enabled` is false**, on one line naming `/wg enable`. Otherwise: open the popup if `pendingInfo` is set, ending test mode first if it is on. Otherwise print a hint pointing at `/wg test`. |
+| `/wg test` / `/wg test on\|off` / `/wg test notify` | `runTest(rest)` (host), behind the disabled gate | **Refused while `enabled` is false**, in all three forms; the panel's Test button is the surviving preview route. Otherwise: **Test mode.** Bare `/wg test` toggles the popup's test mode and `/wg test on\|off` sets it, by writing the `state.testMode` session row through `Helpers.Set`, the setter the Master controls **Test mode** checkbox uses. So the box follows, and a start in combat is refused with the checkbox's one gray line (options-ui-§15). `/wg test notify` is the one-shot check: `WhatGroup:RunTest()` injects synthetic `pendingInfo` (Mythic+ Windrunner Spire) and runs `ShowNotification()` + `ShowFrame()` once, ending test mode if it is on. The panel's Test button runs the same method. Any other word prints a three-line usage. |
 | `/wg config` | `runConfig` → `WhatGroup:OpenSettings` (host) → `Helpers.OpenOptionsPanel` (library) | Calls the idempotent `Settings.Register()` fallback, then hands off. The body sits on the addon rather than in a file-local because the launcher's **right click** opens the panel through the same one (launcher-§2). The combat refusal and the sidebar unfold both live inside `OpenOptionsPanel`, not in this dispatcher, so *every* caller is refused — the verb, a `/run` script, a future internal caller (options-ui-§2 / WG-25). Under `InCombatLockdown()` it prints the canonical gray notice *"cannot open settings during combat — Blizzard's category-switch is protected"* and returns; no defer-replay. Otherwise it opens the addon category and expands the subcategory tree so General — whose first tab is **Master controls** — is one click away. |
 | `/wg enable` / `/wg disable` | `runEnabled(on)` (host) | The reserved pair (slash-commands-§2). **Aliases**, not a second switch: both write the `enabled` row — the Master controls *Enable WhatGroup* checkbox's own stored path — through the same `Helpers.Set`, so the row's `onChange` (the off-flip capture wipe) runs whichever surface the player used and the `[Set]` trace logs once. They hold no state of their own. The ack is the CLI's own `key = value` line, re-read from the store rather than echoed. `/wg set enabled true` is the same write by its long name. |
 | `/wg version` | `Sl:CliVersion` (library) | Print `[WG] v<version>` on its own line (slash-commands-§3 / WG-29), through the host's `version` seam. |
@@ -110,6 +110,46 @@ off-flip: the chat commands are registered in `OnInitialize` and the settings ca
 `OnEnable`, both of which are **setup**, not features. So `/wg`, `help`, `config`, `version` and
 `enable` all answer exactly as before while the addon is off. `tests/test_slash.lua` pins that
 rather than leaving it to inspection.
+
+### ...and a feature verb refuses instead of acting
+
+`slash-commands-§2`'s trailing SHOULD, made precise in standard **v2.54.0**, and this addon takes
+it. A verb that **drives the addon's features** — anything that draws, shows, tracks, tests or
+clears the thing the addon exists to do — answers on **one tagged line naming `/wg enable`** and
+does **nothing else**: no partial work, no side effect, no second line. Here that is **`show`** and
+**`test`**, in all of `test`'s forms.
+
+**The live set never refuses**, and it is the standard's list rather than this addon's judgement of
+what felt safe: `help`, `config`, `version`, `enable`, `disable`, `debug` and the schema CLI (`get`,
+`set`, `list`, `reset`, `resetall`). `perf` is on the list too, and is reserved-but-unregistered
+here ([LIBKA0S-15](https://github.com/tusharsaxena/WhatGroup/issues/7)); keeping the entry is what
+makes the set read as the rule rather than as a subset of it. The reasoning is that a player has to
+be able to **read and repair settings** and **reach the panel** while the addon is off — which is
+exactly when they are likeliest to need to — and **`enable` above all**, or the pair above is
+one-way again. `debug` is a diagnostic, not a feature: the usual reason to reach for it is that the
+addon is misbehaving.
+
+**It is implemented in ONE place — the dispatcher — and never as a guard inside each verb.**
+`settings/Slash.lua` names the live set once, as data (`ALWAYS_LIVE`), and wraps `entry[3]` for
+every row that is not on it, immediately after the `COMMANDS` literal. That is the seam every verb
+already passes through: the library's dispatcher and the no-LibKa0s stub both call the handler out
+of this table and neither has another way in, so both paths are gated by one wrapper and **a verb
+added tomorrow is gated by default**. A guard pasted into `runShow` and `runTest` would be two
+places to forget and a third the next verb forgets silently. The wrap touches handlers only, so the
+help index and the panel's landing page — which read `entry[1]` and `entry[2]` — still list the
+refused verbs, which is how the player finds out the addon has them.
+
+The check **fails open**: only a stored `enabled == false` refuses. A nil — no db yet, no `Helpers`
+yet, a path the profile has never held — is not the player having turned the addon off, and reading
+it as one would refuse every feature verb on an install that is merely early or degraded.
+
+**`/wg test notify` changed behavior with this.** It used to bypass the master switch deliberately,
+so a preview still ran with the addon disabled, and `tests/test_lifecycle.lua` pinned that. `test`
+is a feature verb by the amended rule, so the verb now refuses. The preview itself is not lost: the
+**Test** button on the settings panel's Chat tab runs the same `WhatGroup:RunTest()` body, and it is
+a panel control rather than a slash verb, so `slash-commands-§2` does not reach it — and a player
+standing in the panel with the addon off is looking at the *Enable WhatGroup* checkbox from where
+they clicked.
 
 ## `reset` takes a path; `resetall` is the wipe
 

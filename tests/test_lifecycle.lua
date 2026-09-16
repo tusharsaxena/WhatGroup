@@ -415,12 +415,35 @@ test("lifecycle: /wg test notify injects a synthetic capture and runs the full f
     assertTrue(mock.frames["WhatGroupFrame"]:IsShown(), "and the popup opened")
 end)
 
-test("lifecycle: /wg test notify bypasses the master switch", function()
+-- THIS CASE REVERSED. It used to read "/wg test notify bypasses the master switch", and pinned
+-- that a preview still worked with the addon disabled. slash-commands-§2, made precise in
+-- standard v2.54.0, names a verb that "tests" as one that DRIVES THE ADDON'S FEATURES, so the
+-- refusal covers `/wg test` in all three of its forms. The addon takes that SHOULD
+-- (settings/Slash.lua's gate), which is a deliberate change to shipped behavior rather than a
+-- consequence of one.
+--
+-- The preview is not lost, and that is why the trade is worth taking: the panel's own **Test**
+-- button runs the same WhatGroup:RunTest body, and a player standing in the settings panel with
+-- the addon switched off is looking at the Enable checkbox while they click it.
+test("lifecycle: /wg test notify refuses while the master switch is off", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.Settings.Helpers.Set("enabled", false)
+    local mark = #mock.prints
+    runCmd(NS, "test", "notify")
+    assertNil(NS.addon.pendingInfo, "no synthetic capture was injected")
+    assertEqual(#mock.prints - mark, 1, "one line, and no chat summary behind it")
+    assertTrue(mock.prints[#mock.prints]:find("/wg enable", 1, true) ~= nil,
+        "naming the verb that turns the addon back on")
+end)
+
+test("lifecycle: the panel Test button previews while the addon is disabled", function()
+    -- The surviving preview route, and the reason the verb can afford to refuse. The button is a
+    -- panel control rather than a slash verb, so slash-commands-§2 does not reach it, and a
+    -- player who is in the panel can see the Enable checkbox from where they clicked.
     local NS = T.bootAddon()
     NS.addon.Settings.Helpers.Set("enabled", false)
-    runCmd(NS, "test", "notify")
-    assertTrue(NS.addon.pendingInfo ~= nil,
-        "a preview must still work with the addon disabled")
+    NS.addon:RunTest()
+    assertTrue(NS.addon.pendingInfo ~= nil, "the preview still runs from the panel")
 end)
 
 test("lifecycle: /wg test notify fires immediately, without the notify delay", function()

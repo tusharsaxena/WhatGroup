@@ -449,3 +449,155 @@ test("slash: the reserved pair is in COMMANDS, so help and the landing page carr
     assertEqual(type(seen.enable[3]), "function")
     assertEqual(type(seen.disable[2]), "string")
 end)
+
+-- ---------------------------------------------------------------------------
+-- The disabled gate — a feature verb refuses rather than acting (slash-commands-§2)
+-- ---------------------------------------------------------------------------
+--
+-- The standard's trailing SHOULD, made precise in v2.54.0 and taken here. A verb that DRIVES THE
+-- ADDON'S FEATURES answers on one tagged line naming `/wg enable` and does nothing else; the
+-- reserved surface and the schema CLI stay live, because a player has to be able to read and repair
+-- settings and reach the panel while the addon is off — and `enable` above all, or the pair the
+-- block above pins is one-way again.
+--
+-- WhatGroup's feature verbs are `show` and `test`. What is pinned below is BOTH halves of each
+-- refusal: that it said so, AND that it did not act. A case that only checked the message would
+-- pass over a verb that printed and then went ahead anyway, which is the exact failure this rule
+-- exists to prevent.
+
+local FEATURE_VERBS = { "show", "test" }
+
+-- The verbs that keep answering, named here the way settings/Slash.lua names them: the standard's
+-- list, not this addon's subset. `perf` is absent from COMMANDS (LIBKA0S-15) and is checked as a
+-- non-row rather than run.
+local LIVE_VERBS = {
+    "help", "config", "version", "enable", "disable", "debug",
+    "get", "set", "list", "reset", "resetall",
+}
+
+local function disabled()
+    local NS, env, mock = T.enableAddon()
+    NS.addon:OnSlashCommand("disable")
+    return NS, env, mock
+end
+
+-- The refusal is recognized by its OWN words, not by the `/wg enable` it names: `help` prints a
+-- `/wg enable — Enable the addon` row of its own, so a fragment match on the verb would call the
+-- help index a refusal and this whole block would pass for the wrong reason.
+local REFUSAL = "WhatGroup is disabled"
+
+local function popupShown(mock)
+    local f = mock.frames["WhatGroupFrame"]
+    return f ~= nil and f:IsShown() and f:GetAlpha() > 0
+end
+
+test("slash: `/wg show` refuses while disabled, and does not show the popup", function()
+    -- BOTH halves. A capture is waiting, so a verb that ignored the gate would put a window on
+    -- screen — which is what "did nothing else" has to mean to be worth writing down.
+    -- red under: the gate printing and falling through, or guarding only `test`.
+    local NS, _, mock = disabled()
+    NS.addon.pendingInfo = { title = "Stonevault", leaderName = "Testadin",
+                             fullName = "The Stonevault", shortName = "", playstyleString = "",
+                             generalPlaystyle = 0, activityID = 2516, mapID = 2652 }
+    local lines = capture(mock, function() NS.addon:OnSlashCommand("show") end)
+    assertEqual(#lines, 1, "one line, not a paragraph")
+    assertTrue(anyLine(lines, REFUSAL), "it says the addon is standing down")
+    assertTrue(anyLine(lines, "/wg enable"), "and names the verb that undoes the state")
+    assertTrue(lines[1]:find(NS.PREFIX, 1, true) ~= nil, "carrying the [WG] tag")
+    assertFalse(popupShown(mock), "the popup stayed shut")
+end)
+
+test("slash: `/wg test on` refuses while disabled, and does not enter test mode", function()
+    -- The other feature verb, and the one whose act is a STORED row rather than a frame: test mode
+    -- must still read false afterwards, or the checkbox and the refusal disagree.
+    -- red under: the wrapper returning the handler's result instead of replacing the call.
+    local NS, _, mock = disabled()
+    local H = NS.addon.Settings.Helpers
+    local lines = capture(mock, function() NS.addon:OnSlashCommand("test on") end)
+    assertEqual(#lines, 1)
+    assertTrue(anyLine(lines, REFUSAL))
+    assertTrue(anyLine(lines, "/wg enable"))
+    assertFalse(H.Get("state.testMode"), "test mode did not start")
+    assertFalse(popupShown(mock))
+end)
+
+test("slash: every verb is either on the live list or refuses — there is no third kind", function()
+    -- THE COVERAGE CASE, and the reason the gate is one wrapper over COMMANDS rather than a guard
+    -- pasted into each handler. It derives the feature half from the table instead of listing it,
+    -- so a verb added tomorrow is checked the day it lands: if it drives a feature and the gate
+    -- missed it, it acts here and reddens; if it belongs on the live list, it has to be put there
+    -- deliberately, which is the decision the standard wants taken once per verb.
+    -- red under: a per-verb guard that the next verb forgets, or widening ALWAYS_LIVE past the
+    -- standard's list — dropping `debug` or a schema-CLI verb from it reddens the other half.
+    local NS, _, mock = disabled()
+    local live = {}
+    for _, verb in ipairs(LIVE_VERBS) do live[verb] = true end
+
+    local refused, allowed = 0, 0
+    for _, entry in ipairs(NS.addon.COMMANDS) do
+        local verb  = entry[1]
+        -- A bare verb for each: `test` and `debug` print usage for an unknown argument and
+        -- `get`/`set`/`reset` print their own Usage line, none of which is the refusal.
+        local lines = capture(mock, function() NS.addon:OnSlashCommand(verb) end)
+        if live[verb] then
+            allowed = allowed + 1
+            assertFalse(anyLine(lines, REFUSAL), verb .. " is on the live list and never refuses")
+        else
+            refused = refused + 1
+            assertTrue(anyLine(lines, REFUSAL), verb .. " drives a feature, so it refuses")
+        end
+    end
+    assertEqual(refused, #FEATURE_VERBS, "show and test, and nothing else, refuse today")
+    assertEqual(allowed, #LIVE_VERBS, "and every live verb is a row — `perf` aside")
+
+    -- The one that matters most: the way back is on the live list, so the pair is never one-way.
+    NS.addon:OnSlashCommand("enable")
+    assertTrue(NS.addon.Settings.Helpers.Get("enabled"))
+end)
+
+test("slash: the gate lifts the moment the addon is enabled again", function()
+    -- It reads the stored row at CALL time rather than latching anything at load, so `/wg enable`
+    -- followed by `/wg show` works in one breath.
+    -- red under: caching the enabled state in the wrapper.
+    local NS, _, mock = disabled()
+    NS.addon.pendingInfo = { title = "Stonevault", leaderName = "Testadin",
+                             fullName = "The Stonevault", shortName = "", playstyleString = "",
+                             generalPlaystyle = 0, activityID = 2516, mapID = 2652 }
+    NS.addon:OnSlashCommand("enable")
+    NS.addon:OnSlashCommand("show")
+    assertTrue(popupShown(mock), "the verb acts again")
+end)
+
+test("slash: the refusal REPLACES the handler — not even its own empty-state hint prints", function()
+    -- "Does nothing else" from a third angle. `/wg show` with no capture normally prints its own
+    -- "No group info available" hint, so a gate that ran before the handler but let it through, or
+    -- one placed a line too low inside runShow, would still emit that second line.
+    -- red under: printing the refusal and falling through.
+    local NS, _, mock = disabled()
+    assertNil(NS.addon.pendingInfo, "there is no capture, so the verb has a hint of its own to print")
+    local lines = capture(mock, function() NS.addon:OnSlashCommand("show") end)
+    assertEqual(#lines, 1, "the handler never ran at all")
+    assertFalse(anyLine(lines, "No group info available"), "not even its own empty-state hint")
+end)
+
+test("slash: the refusal does not touch the help index or the landing page", function()
+    -- The gate wraps handlers; settings/Panel.lua and the help renderer read entry[1] and entry[2].
+    -- A disabled addon still LISTS `show` and `test`, which is what lets the player find out the
+    -- addon has them.
+    -- red under: removing the rows from COMMANDS while disabled instead of refusing them.
+    local NS, _, mock = disabled()
+    local lines = capture(mock, function() NS.addon:OnSlashCommand("help") end)
+    assertTrue(anyLine(lines, "/wg show"), "show is still in the index")
+    assertTrue(anyLine(lines, "/wg test"), "and so is test")
+end)
+
+test("slash: `perf` is reserved here but not registered (LIBKA0S-15)", function()
+    -- It is on the never-refused list in settings/Slash.lua because the standard reserves it
+    -- collection-wide, and the entry is what keeps that list readable as the rule rather than as
+    -- this addon's subset of it. There is no instance to dispatch into, so there is no row.
+    -- red under: registering `perf` without the harness behind it.
+    local NS = T.newAddon()
+    for _, c in ipairs(NS.addon.COMMANDS) do
+        assertFalse(c[1] == "perf", "no perf row while the Perf major is declined")
+    end
+end)
