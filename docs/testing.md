@@ -377,6 +377,13 @@ the gate protects nothing and the habit remains. They contribute `amber`, which 
 than a stop. **A missing tool is a skip recorded with its reason**, never a pass — and at the tag a
 `skip` is **not evaluated** rather than passed.
 
+**`perf` runs here as of 2026-09-16, and used to be a skip.** `tests/perf.lua` measures eight
+offline scenarios — the teleport cooldown ticker's own body, the combat gate on both its steady and
+its flipping edge, a group capture arriving, and the two slider paths — asserting API calls and bytes
+per iteration, never timings. It is deliberately **outside** the green gate: `lua tests/run.lua` does
+not run it. The numbers and what they mean are in [`performance.md`](./performance.md); the **in-game**
+capture half stays declined as a ratified deviation, so no bundle here carries a dungeon run.
+
 The runner is **vendored** from `LibKa0s`'s `testkit/`; never edit `tests/_kit/`. A kit fix goes
 upstream and is re-vendored.
 

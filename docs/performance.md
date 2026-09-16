@@ -8,7 +8,9 @@ as a ratified deviation in its own right, on criteria (b) and (c), which the tic
 Either way the outcome on disk is the same: it vendors `libs/LibKa0s/` whole — Perf.lua included,
 because the folder is copied whole or not at all (library-stack-§7, anti-patterns #48) — and does
 **not** wire it: there is no `core/PerfSetup.lua`, no `WhatGroupPerfDB`, no `perf` verb
-registration, no suspend/resume contract, no `tests/perf.lua` and no `docs/perf-analysis/`. The `perf`
+registration, no suspend/resume contract and no `docs/perf-analysis/`. **`tests/perf.lua` is the one
+piece that is now built** — see [Offline scenarios](#offline-scenarios-what-the-addon-actually-costs)
+below; none of the argument against the in-game wiring touches it. The `perf`
 verb stays **reserved** (slash-commands-§2) so it can never come to mean anything else here; it is
 simply not registered.
 
@@ -105,11 +107,66 @@ invariant. Adding an `OnUpdate` handler, a second ticker,
 or an event handler doing more than occasional work in combat means regenerating the sweep above
 first.
 
+
+## Offline scenarios: what the addon actually costs
+
+`tests/perf.lua` (`performance-§9`) measures the paths this page makes claims about. It is
+**outside the green gate** — `lua tests/run.lua` never runs it and no commit depends on it — and it
+asserts only deterministic quantities: API calls on the addon's own frames, and bytes allocated per
+iteration, each isolated by a full collect either side. Timings are printed for orientation and
+asserted on nothing.
+
+```sh
+lua tests/perf.lua
+```
+
+**Measured 2026-09-16, at v1.4.0.** Three consecutive runs produced identical figures in every
+column but `ms/iter`.
+
+| Scenario | iters | api/iter | bytes/iter | What it is |
+|---|---|---|---|---|
+| `cooldownTick` | 2000 | 2.0 | 240.4 | The repeating ticker's own body, armed through the addon and called as the client would call it |
+| `formatDurationLong` | 2000 | 0.0 | 34.5 | `NS.FormatDuration` on the `h > 0` branch — what a real teleport cooldown takes |
+| `formatDurationShort` | 2000 | 0.0 | 0.8 | The same on the seconds-only branch |
+| `combatGateSteady` | 2000 | **0.0** | **0.0** | A combat transition that changes nothing. Asserted at zero |
+| `combatGateFlipping` | 2000 | 7.0 | 1064.1 | A transition that genuinely flips the popup, on `visibility = inCombat` |
+| `showFrameRepeat` | 500 | 18.0 | 1872.5 | A group capture arriving: repopulate and show |
+| `applyScale` | 500 | 1.0 | 0.0 | Dragging the scale slider |
+| `applyAlpha` | 500 | 1.0 | 0.0 | Dragging the alpha slider |
+
+**What the numbers say.**
+
+- **The ticker is as cheap as this page has been claiming.** Two API calls — one `SetText`, one
+  `Show` — and 240 bytes, once per second, only while a popup the player opened is on screen with a
+  live cooldown. That was an argument until now; it is a measurement from here on, and a regression
+  on it reddens `tests/perf.lua` instead of reaching a player.
+- **The combat path costs nothing when nothing changes**, which is the case a player is in for every
+  pull where `visibility` is `always`. Zero calls and zero bytes, and that one is **asserted**, not
+  merely recorded — the run fails if it ever allocates.
+- **A flipping transition is seven calls and does not grow.** The first draft of the harness asserted
+  "at most one Show or Hide" and was wrong about the design: a hide edge is `Hide, Hide, SetAlpha`
+  (the popup, its secure child, and the alpha restore that settles a lockdown-deferred hide), and a
+  show edge re-anchors and repopulates. Seven is the real figure; what is asserted is that it stays
+  constant, because a player crosses two edges per pull and a constant cost does not accumulate.
+- **The slider paths allocate nothing**, which is what makes a drag cheap: they call one setter and
+  build no strings.
+
+**Ceilings.** Each scenario's byte ceiling is its measured figure plus 24 — deliberately smaller
+than the cheapest regression it exists to catch, since one extra table per iteration costs 64 bytes
+under this interpreter. Raise one only by re-measuring and saying why. **A rise is the finding.**
+
+**A note on measurement honesty.** Bytes are measured with the API-counting shim **switched off**.
+The shim's wrapper takes varargs, and a vararg call allocates under Lua 5.1, so a byte figure taken
+with it installed is partly the shim's — it inflated one scenario from 492 to 1080 bytes/iter before
+this was fixed. Each scenario therefore runs twice: once counting calls, once measuring allocation.
+
 ## What this page does not excuse
 
-- The `perf` suite in a run bundle reads **`skip`**, and a skip is **never a pass**. At the release
-  gate it is **not evaluated** rather than passed (`automated-tests-§3`), and the release notes say
-  so — see [`testing.md`](./testing.md) and
+- **The `perf` suite no longer reads `skip`.** It did until 2026-09-16, and the wording here used to
+  explain why that skip was not a pass. It now runs eight offline scenarios and reads **`pass`**, so
+  the release gate evaluates it like any other suite (`automated-tests-§3`). What is still absent is
+  the **in-game** capture: there is no `perf` verb and no `docs/perf-analysis/`, so no bundle here
+  will ever carry a dungeon run. See [`testing.md`](./testing.md) and
   [`automated-tests/README.md`](./automated-tests/README.md).
 - `docs/complexity.md` is retired; complexity is measured by the runner's `complexity` suite and
   its trend line is [`automated-tests/RESULTS.md`](./automated-tests/RESULTS.md) (`performance-§10`).
