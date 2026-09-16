@@ -52,8 +52,9 @@ Sixteen persisted profile settings, all of them user-facing, all of them schema 
 inverted at the write seam: the row says *shown*), and two **session-only** rows,
 `state.debugConsole` and `state.testMode`, which are schema rows and deliberately not persisted (see
 below). The minimap row is global rather than profile-scoped on purpose: a profile switch must not
-move the player's buttons, and `Reset all settings` is a profile reset, so it must not un-hide a
-button they hid (launcher-§3, detailed in
+move the player's buttons. That it also **survives every reset** is a separate rule rather than a
+consequence of that one — the row is a per-installation display preference, like the angle LibDBIcon
+keeps beside it (launcher-§3, detailed in
 [settings-panel.md](./settings-panel.md#the-minimap-button-row)). There are no storage-only carve-outs in the profile: the popup's dragged POSITION is
 account-wide geometry and lives in `db.global.windows` (WG-26), not here. That store is
 `architecture-§5` named non-setting state, and its owner (`NS.Windows`) and writers are named in

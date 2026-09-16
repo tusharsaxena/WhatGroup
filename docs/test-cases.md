@@ -596,7 +596,7 @@ badge and any count quoted in the docs must agree with it.
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
 
-### test_launcher.lua (17)
+### test_launcher.lua (19)
 
 - launcher: it registers at login, and the broker object IS the minimap button's
 - launcher: the object is a launcher, named for the FOLDER, wearing this addon's logo
@@ -610,6 +610,8 @@ badge and any count quoted in the docs must agree with it.
 - launcher: the Minimap button row is stored, global, and LibDBIcon's OWN hide key
 - launcher: the row's get/set invert, and the button follows immediately
 - launcher: a button the player hid survives Reset all settings (options-ui-§12)
+- launcher: a button the player hid survives the General page's Defaults button
+- launcher: a button the player hid survives the Master controls reset button
 - launcher: LibDBIcon's own writes into the table are not disturbed
 - launcher: an install with neither broker library loads, and says so once
 - launcher: with no LibDBIcon the broker plugin still registers
@@ -756,7 +758,7 @@ badge and any count quoted in the docs must agree with it.
 | test_frame.lua | 90 |
 | test_panel.lua | 53 |
 | test_testmode.lua | 23 |
-| test_launcher.lua | 17 |
+| test_launcher.lua | 19 |
 | test_lifecycle.lua | 44 |
 | test_debuglog.lua | 34 |
 | test_docmap.lua | 1 |
@@ -765,4 +767,4 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **655** |
+| **Total** | **657** |

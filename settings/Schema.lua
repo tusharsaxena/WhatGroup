@@ -340,11 +340,18 @@ local SESSION = {
 -- ---------------------------------------------------------------------------
 --
 -- Every other row in this schema lives under `db.profile`, which is what Resolve walks. The
--- minimap button's does not, and the standard fixes it there for two stated reasons: a profile
--- switch must not move a player's buttons, and options-ui-§12's *Reset all settings* -- a profile
--- reset by definition -- must not un-hide a button the player hid. So the path is taken VERBATIM
--- from the composer (`minimapPath`, settings/Panel.lua), it names the global store, and it is
--- intercepted HERE in front of Resolve exactly as the session paths are.
+-- minimap button's does not: the standard fixes it in the global store because a profile switch
+-- must not move a player's buttons -- the ring around the minimap is furniture the INSTALLATION
+-- arranged, not something a profile copy carries. So the path is taken VERBATIM from the composer
+-- (`minimapPath`, settings/Panel.lua), it names the global store, and it is intercepted HERE in
+-- front of Resolve exactly as the session paths are.
+--
+-- SURVIVING A RESET IS ITS OWN RULE and is no longer derived from the store (launcher-§3, standard
+-- v2.54.0): the row is a per-installation display preference and must survive both *Reset all
+-- settings* and a page-scoped Defaults button. It does here without an exemption, because
+-- RestoreAllDefaults below is `db:ResetProfile()` plus a sweep narrowed to `sessionOnly` rows --
+-- and this row is neither a profile row nor sessionOnly -- and because this addon's Defaults button
+-- is that same reset rather than the library's row walk (settings/Panel.lua).
 --
 -- THE INVERSION IS OURS, NOT THE LIBRARY'S. The row's boolean says SHOWN; LibDBIcon's `hide` key
 -- says hidden. There is ONE boolean, LibDBIcon writes it too from its own right-click menu, and a

@@ -57,9 +57,16 @@ local ICON = ("Interface\\AddOns\\%s\\media\\logos\\%s.logo.128.tga")
 --- LibDBIcon's own table, resolved at Register time. Nil until OnInitialize has run.
 ---
 --- launcher-§3 puts it in the GLOBAL store and that is the decision rather than an accident: a
---- profile switch must not move a player's buttons, and options-ui-§12's *Reset all settings* — a
---- profile reset by definition — must not un-hide a button the player hid. settings/Schema.lua
---- declares the default and routes the Master-controls row's get/set to it.
+--- profile switch must not move a player's buttons, so the ring of buttons around the minimap is
+--- furniture the INSTALLATION owns and not something a profile copies.
+---
+--- SURVIVING A RESET IS A SEPARATE RULE and no longer derived from that one (launcher-§3, standard
+--- v2.54.0): a player's minimap-button choice is a per-installation display preference, like the
+--- ANGLE LibDBIcon keeps in this same table, so it survives both options-ui-§12's *Reset all
+--- settings* and a page-scoped Defaults button — whatever store it happens to sit in. Nothing here
+--- has to exempt it, because nothing in this addon reaches it; tests/test_launcher.lua runs all
+--- three reset surfaces and says so. settings/Schema.lua declares the default and routes the
+--- Master-controls row's get/set to it.
 local function minimapStore()
     local db = NS.addon and NS.addon.db
     return db and db.global and db.global.minimap

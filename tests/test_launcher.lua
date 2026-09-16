@@ -41,6 +41,24 @@ local function onScreen(mock)
     return f ~= nil and f:IsShown() and f:GetAlpha() > 0
 end
 
+-- The General settings page, built the way the client builds it: Show the panel (which fires
+-- OnShow), then let the next frame run -- settings/OptionsSetup.lua defers the render one C_Timer
+-- hop, out of Blizzard's secure-execute chain. Spelled out here rather than reached across from
+-- tests/test_panel.lua, which keeps its own copy: a suite importing another suite's locals would
+-- couple two files that have no other relationship.
+local function openGeneral()
+    local NS, env, mock = T.enableAddon()
+    mock.frames["WhatGroupGeneralPanel"]:Show()
+    mock.fireCTimers()
+    return NS, env, mock
+end
+
+local function widget(mock, widgetType, labelText)
+    return mock.findWidget(function(w)
+        return w.type == widgetType and (w.labelText == labelText or w.text == labelText)
+    end)
+end
+
 -- ---------------------------------------------------------------------------
 -- One object, registered twice (launcher-§1)
 -- ---------------------------------------------------------------------------
@@ -207,17 +225,89 @@ test("launcher: the row's get/set invert, and the button follows immediately", f
     assertTrue(mock.minimapButtons[NAME].shown, "and came back")
 end)
 
-test("launcher: a button the player hid survives Reset all settings (options-ui-§12)", function()
-    -- The reason the table is global rather than profile-scoped: `Reset all settings` is a PROFILE
-    -- reset by definition, and a profile-scoped `hide` would come back false -- a reset reaching
-    -- past the settings it warned about into the player's frame furniture.
-    -- red under: moving the table under db.profile.
-    local NS, mock = T.enableAddon()
-    local H = NS.addon.Settings.Helpers
+-- ---------------------------------------------------------------------------
+-- Surviving a reset (launcher-§3, as amended in standard v2.54.0)
+-- ---------------------------------------------------------------------------
+--
+-- THE PROPERTY, NOT THE DERIVATION. The section used to argue the row could not be reached: `Reset
+-- all settings` is a profile reset, the table is global, therefore it is safe. That premise is not
+-- universal -- an addon with no `profile` section at all resets its global store wholesale -- and
+-- the argument was only ever about that one control, so a page-scoped **Defaults** button walking
+-- every Master-controls row that carries a `default` walked straight past it. Two adoptions found
+-- this independently.
+--
+-- The rule is stated now instead: whether the button is shown is a per-installation display
+-- preference, the same class of thing as the ANGLE the player dragged it to, which LibDBIcon keeps
+-- in the very same table and which no reset touches. It survives BOTH resets.
+--
+-- NEITHER OF THE TWO REACHED SHAPES IS THIS ADDON'S, and the three cases below run the real resets
+-- rather than asserting that. WhatGroup has a genuine `db.profile`, and `Helpers.RestoreAllDefaults`
+-- (settings/Schema.lua) is `db:ResetProfile()` -- which AceDB confines to the active profile --
+-- plus a sweep narrowed to `sessionOnly` rows. The minimap row is neither a profile row nor
+-- `sessionOnly`, so neither half addresses it. And General's **Defaults** button is not the
+-- library's row-walking `RestoreDefaults`: settings/Panel.lua parks `ctx.panel.defaultsOnClick` on
+-- the WHATGROUP_RESET_ALL popup, which both the library's header button and Blizzard's own footer
+-- control resolve through, so that button IS *Reset all settings*. No row is exempted anywhere,
+-- because nothing reaches the row to exempt it from.
+--
+-- Every case moves a PROFILE row off its default in the same act and asserts it came back, so a
+-- reset that quietly did nothing cannot pass for one the minimap row survived.
+
+local DELAY = "notify.delay"
+
+-- A hidden button and a dirty profile row, ready for a reset to be run at them.
+local function hiddenAndDirty(NS, H)
     H.Set("global.minimap.hide", false)
-    H.RestoreAllDefaults()
-    assertEqual(NS.addon.db.global.minimap.hide, true, "still hidden after the profile reset")
-    assertFalse(mock.minimapButtons[NAME].shown)
+    H.Set(DELAY, 6)
+    assertEqual(NS.addon.db.global.minimap.hide, true, "the player hid it")
+end
+
+local function assertSurvived(NS, mock, H)
+    assertEqual(H.Get(DELAY), 0, "the profile row really was reset")
+    assertEqual(NS.addon.db.global.minimap.hide, true, "the STORED key still says hidden")
+    assertFalse(H.Get("global.minimap.hide"), "the row still reads not-shown")
+    assertFalse(mock.minimapButtons[NAME].shown, "and the button did not come back")
+end
+
+test("launcher: a button the player hid survives Reset all settings (options-ui-§12)", function()
+    -- The verb form, the shortest route to the one body all three surfaces share.
+    -- red under: moving the table under db.profile, or the sessionOnly sweep widening to the
+    -- global rows.
+    local NS, env, mock = T.enableAddon()
+    local H = NS.addon.Settings.Helpers
+    hiddenAndDirty(NS, H)
+    NS.addon:OnSlashCommand("resetall")
+    env.StaticPopupDialogs["WHATGROUP_RESET_ALL"].OnAccept()
+    assertSurvived(NS, mock, H)
+end)
+
+test("launcher: a button the player hid survives the General page's Defaults button", function()
+    -- The shape that surprised Ka0s Consumable Master: a page Defaults button that walks every
+    -- Master-controls row with a `default` rewrites `minimap.hide` back to shown, profile boundary
+    -- or no profile boundary. This addon's button is not that walk, and the only way to say so is
+    -- to click it.
+    -- red under: dropping `ctx.panel.defaultsOnClick`, which leaves the library's own
+    -- `RestoreDefaults("general")` -- it walks `rowsForPage`, which here is the WHOLE schema, and it
+    -- has no veto seam at all.
+    local NS, env, mock = openGeneral()
+    local H = NS.addon.Settings.Helpers
+    hiddenAndDirty(NS, H)
+    widget(mock, "Button", "Defaults"):Fire("OnClick")
+    env.StaticPopupDialogs["WHATGROUP_RESET_ALL"].OnAccept()
+    assertSurvived(NS, mock, H)
+end)
+
+test("launcher: a button the player hid survives the Master controls reset button", function()
+    -- The third surface, and the one a player is likeliest to reach: the composed button pair at
+    -- the foot of the first tab (options-ui-§15). Same body -- and this case exists because "same
+    -- body" is a claim about code, not about behavior.
+    -- red under: settings/Panel.lua's `onResetAll` reaching a row walk instead of the popup.
+    local NS, env, mock = openGeneral()
+    local H = NS.addon.Settings.Helpers
+    hiddenAndDirty(NS, H)
+    widget(mock, "Button", "Reset all settings"):Fire("OnClick")
+    env.StaticPopupDialogs["WHATGROUP_RESET_ALL"].OnAccept()
+    assertSurvived(NS, mock, H)
 end)
 
 test("launcher: LibDBIcon's own writes into the table are not disturbed", function()

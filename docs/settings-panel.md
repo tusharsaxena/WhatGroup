@@ -408,7 +408,7 @@ The `Show ` prefix the six chat rows carried is gone: under a tab called **Chat*
 ## The minimap button row
 
 The launcher's visibility (`launcher-§3`) is a Master controls row like the other seven, and is the
-only row in this addon whose storage is neither `db.profile` nor a session flag. Three things about
+only row in this addon whose storage is neither `db.profile` nor a session flag. Four things about
 it are deliberate and none is local taste:
 
 **It is stored at `db.global.minimap.hide` — LibDBIcon's OWN table, in the GLOBAL store.** The
@@ -417,9 +417,36 @@ when the player uses the button's right-click menu, and `minimapPos` when they d
 beside it — `minimap.show`, `showMinimapIcon` — would be a copy of one state that a library also
 writes, and the day the two disagree the button and the checkbox disagree (anti-pattern #81). The
 scope is global because a minimap button belongs to the **installation**, not to a profile: a
-profile switch must not move the player's buttons, and `Reset all settings` (`options-ui-§12`) is a
-**profile reset** by definition, so a profile-scoped `hide` would come back `false` and a button the
-player deliberately hid would reappear.
+profile switch must not move the player's buttons, and profile-scoped the row would ride every
+profile copy besides.
+
+**A button the player hid survives every reset, and that is a property of the row rather than of
+where it is stored.** `launcher-§3` used to derive it — *Reset all settings* is a profile reset, the
+table is global, therefore it is safe — and the standard dropped that argument in **v2.54.0**. The
+premise is not universal (an addon with no `profile` section resets its global store wholesale), and
+it only ever spoke about that one control, leaving a page-scoped **Defaults** button that walks every
+Master-controls row carrying a `default` free to un-hide the button. The rule now says what kind of
+setting this is: a per-installation display preference, the same class of thing as the **angle**
+LibDBIcon keeps beside it in this very table, which must survive both resets.
+
+**This addon needs no exemption, and that is a claim about this code rather than a restatement of the
+rule.** Neither reached shape is WhatGroup's:
+
+- *Reset all settings* is `Helpers.RestoreAllDefaults` (`settings/Schema.lua`) — `db:ResetProfile()`,
+  which AceDB confines to the active profile, plus a sweep **narrowed to `sessionOnly` rows**. This
+  row is neither a profile row nor `sessionOnly`, so neither half addresses it, and WhatGroup has a
+  real profile, so the no-profile shape does not arise.
+- General's **Defaults** button is *not* the library's row-walking `RestoreDefaults`:
+  `settings/Panel.lua` parks `ctx.panel.defaultsOnClick` on the `WHATGROUP_RESET_ALL` popup, and both
+  the library's header button and Blizzard's own footer control resolve through that one field. The
+  button therefore **is** *Reset all settings*. So are the composed *Reset all settings* button and
+  `/wg resetall`: one body, three surfaces.
+
+`tests/test_launcher.lua` runs all three surfaces for real and asserts both that a profile row came
+back **and** that the stored `hide` did not move. The latent hazard worth naming rather than
+discovering: the library's `O.RestoreDefaults(pageKey, ctx)` walks `rowsForPage`, which here returns
+the **whole** schema, and it has **no veto seam** at all — wiring the page button to it would un-hide
+the button, and one of those cases is what would say so.
 
 **The row's sense is SHOWN and the stored key says HIDDEN, so its get/set invert.** That inversion is
 the host's, not the library's, and it lives at the single write seam (`options-ui-§1`) rather than at

@@ -855,9 +855,12 @@ honest state of this section is unrun, and it is recorded that way rather than a
    (that is LibDBIcon's `minimapPos`, in `db.global.minimap`).
 6. **Untick Minimap button** on the **Master controls** tab. **Expected:** the button disappears
    immediately — not at the next reload. Tick it again: it comes back at the same angle.
-7. **Switch profiles** (or copy one) and **run `/wg resetall`** with the button hidden. **Expected:**
-   the button stays hidden through both. The row is account-wide by design (`launcher-§3`): a
-   profile switch must not move your buttons, and a profile reset must not un-hide one you hid.
+7. With the button **hidden**, exercise all three resets in turn: **switch profiles** (or copy one),
+   run **`/wg resetall`**, and click the page's own **Defaults** button and the **Reset all settings**
+   button on Master controls. **Expected:** the button stays hidden through every one of them, and
+   comes back at the same angle when you tick the row. Surviving a reset is a property of the row
+   (`launcher-§3`), not of the store it sits in: it is a per-installation display preference, like
+   the angle itself.
 8. **A broker display** (Titan Panel, ElvUI data texts, Bazooka), if you run one: **Expected:** one
    *WhatGroup* entry wearing the same logo, whose left and right clicks do exactly what the minimap
    button's do — it is the same object. Its own show/hide is the display's business, not ours; there
