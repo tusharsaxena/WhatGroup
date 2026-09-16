@@ -112,10 +112,22 @@ NS.Launcher = lib:New({
     -- and labels the broker plugin with the other name.
     name  = addonName,
     icon  = ICON,
-    -- What a broker display prints beside the icon. The `## Title`, read through the one seam that
-    -- knows the TOC (core/EnvSetup.lua), so the display and the AddOns list say the same words; the
-    -- folder name is the fallback the library would have used anyway.
-    label = NS.Meta and NS.Meta("Title") or addonName,
+    -- What a broker display prints beside the icon, and it is the addon's BRAND NAME IN PLAIN TEXT
+    -- (launcher-§1, standard v2.54.0). A display prints this row beside the other ten Ka0s addons,
+    -- so `label` is the one field that decides whether the collection reads as one collection or as
+    -- eleven unrelated addons: across eleven adoptions it came out three ways, and a display sorting
+    -- its plugins alphabetically then filed one of them under A while the rest sat under K.
+    --
+    -- DELIBERATELY NOT THE TOC `## Title`, which is what this line used to read through NS.Meta. The
+    -- two agree today, letter for letter, which is exactly why the wiring lasted — but a Title MAY
+    -- carry colour escapes and one in the collection does (Ka0s Pretty Chat's is
+    -- `Ka0s |cffff0000P|cffff9900r|…`), and a display that draws the string raw splatters that row
+    -- across a list in which every other row is plain text. So no escape sequence of any kind, and
+    -- the two fields are not wired to each other.
+    --
+    -- Not the folder name either: `addonName` is the registration NAME above, the identifier
+    -- LibDBIcon keys the saved position by. Two fields, two jobs.
+    label = "Ka0s WhatGroup",
 
     -- A FUNCTION, not the table: see the header. The library calls it once, at Register.
     minimap = minimapStore,

@@ -89,6 +89,30 @@ function()
     assertNil(object.icon:match("^Interface\\Icons"), "never a borrowed Blizzard icon")
 end)
 
+test("launcher: the label is the BRAND NAME in plain text (launcher-§1)", function()
+    -- What a broker display prints beside the icon, and it prints it beside the other ten Ka0s
+    -- addons: `Ka0s <Name>` is what makes the collection read as one collection in Titan Panel
+    -- rather than as eleven addons that happen to be installed together (standard v2.54.0).
+    -- red under: an ad-hoc spelling (`WhatGroup`, `What Group`), or the folder name.
+    local _, _, object = launched()
+    assertEqual(object.label, "Ka0s WhatGroup")
+    assertNil(object.label:match("|"), "no escape sequence of any kind")
+    assertTrue(object.label ~= NAME, "the folder name is the registration NAME, not the label")
+end)
+
+test("launcher: the label is NOT wired to the TOC Title", function()
+    -- The two agree letter for letter today, which is why reading the Title lasted -- and is
+    -- exactly why a behavioral case is the only way to tell them apart. A `## Title` MAY carry
+    -- colour escapes and one in the collection does, so a label sourced from it splatters that
+    -- addon's row across a broker list in which every other row is plain text.
+    -- red under: `label = NS.Meta("Title")`.
+    local _, mock = T.enableAddon{ mock = function(m)
+        m.metadata.Title = "Ka0s |cffff0000W|cffff9900h|cffffff00at|rGroup"
+    end }
+    assertEqual(mock.ldbObjects[NAME].label, "Ka0s WhatGroup",
+        "the label ignored a Title carrying colour escapes")
+end)
+
 test("launcher: the name is the FOLDER this copy loaded from, not a hand-typed literal", function()
     -- The same distinction core/MediaSetup.lua's addonName argument makes, and the only way it is
     -- observable: load the addon as another folder and both the registration and the texture path

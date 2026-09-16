@@ -596,10 +596,12 @@ badge and any count quoted in the docs must agree with it.
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
 
-### test_launcher.lua (19)
+### test_launcher.lua (21)
 
 - launcher: it registers at login, and the broker object IS the minimap button's
 - launcher: the object is a launcher, named for the FOLDER, wearing this addon's logo
+- launcher: the label is the BRAND NAME in plain text (launcher-§1)
+- launcher: the label is NOT wired to the TOC Title
 - launcher: the name is the FOLDER this copy loaded from, not a hand-typed literal
 - launcher: Register is idempotent -- a second call builds no second button
 - launcher: the icon file exists and is an uncompressed 32-bit TGA
@@ -758,7 +760,7 @@ badge and any count quoted in the docs must agree with it.
 | test_frame.lua | 90 |
 | test_panel.lua | 53 |
 | test_testmode.lua | 23 |
-| test_launcher.lua | 19 |
+| test_launcher.lua | 21 |
 | test_lifecycle.lua | 44 |
 | test_debuglog.lua | 34 |
 | test_docmap.lua | 1 |
@@ -767,4 +769,4 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **657** |
+| **Total** | **659** |

@@ -862,9 +862,11 @@ honest state of this section is unrun, and it is recorded that way rather than a
    (`launcher-§3`), not of the store it sits in: it is a per-installation display preference, like
    the angle itself.
 8. **A broker display** (Titan Panel, ElvUI data texts, Bazooka), if you run one: **Expected:** one
-   *WhatGroup* entry wearing the same logo, whose left and right clicks do exactly what the minimap
-   button's do — it is the same object. Its own show/hide is the display's business, not ours; there
-   is deliberately no addon setting for it.
+   entry labelled exactly **`Ka0s WhatGroup`** — the brand name in plain text (`launcher-§1`), so it
+   files beside the rest of the collection rather than under `W`; no colour escapes anywhere in the
+   row — wearing the same logo, whose left and right clicks do exactly what the minimap button's do,
+   because it is the same object. Its own show/hide is the display's business, not ours; there is
+   deliberately no addon setting for it.
 
 ## 13. Quick reference checklist
 
