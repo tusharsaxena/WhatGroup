@@ -155,7 +155,7 @@ What alpha does not buy is the frame leaving hit-testing. Alpha 0 is invisible, 
 
 **`inCombat` cannot be delivered from a hidden frame, and that is a limitation rather than a bug to fix quietly.** The value asks for a popup that appears *during* a lockdown, which is the one thing Show cannot do. Honouring it would mean keeping the frame shown at alpha 0 for the whole time the player is out of combat, so the combat edge needs only an alpha change — at the cost of an invisible 420x260 click-target at rest. That is a trade for the addon's owner to make; until it is made, `inCombat` builds the popup, keeps it off screen, and does not open it.
 
-**Every path off screen goes through `hidePopup()`**, and `gateWithheld` records *who* put it there — the gate, or the player. `OnHide` clears that flag on every real hide and the gate's two sites re-assert it immediately afterwards. The two player hides that can take the soft route in combat, where `OnHide` never fires, clear it themselves: the Close button's `OnClick` and the ESC proxy's `OnHide`. So ESC is exactly as durable as the button, in combat and out.
+**Every path off screen goes through `hidePopup()`**, and `gateWithheld` records *who* put it there — the gate, or the player. `OnHide` clears that flag on every real hide and the gate's two sites re-assert it immediately afterwards. The three **player** hides — the Close button's `OnClick`, the ESC proxy's `OnHide` and the launcher's left click — share one body, `dismissPopup()`, which takes the popup off screen, clears `gateWithheld` itself (in combat `hidePopup` takes the alpha route and no `OnHide` fires) and ends test mode. So ESC, the button and the minimap button are exactly as durable as each other, in combat and out.
 
 ### ESC-to-close
 
@@ -205,6 +205,7 @@ There is intentionally no programmatic Hide method. The frame is closed by:
 
 - The Close button at the bottom (`UIPanelButtonTemplate`, 90×24) — goes through `hidePopup()`, never a bare `f:Hide()`, so a press in combat soft-hides instead of raising `ADDON_ACTION_BLOCKED`.
 - The ESC key — through the `WhatGroupFrameEscape` proxy's `OnHide`, which calls the same `hidePopup()` (§ ESC-to-close).
+- The **launcher's left click** — `WhatGroup:ToggleFrame`, rung (a) of `launcher-§2`: `onScreen()` decides, the open arm is `ShowFrame` (gate, combat defer and test-mode handover intact) and the close arm is the shared `dismissPopup()`. A popup soft-hidden at alpha 0 counts as off screen, so a click on one OPENS rather than hiding what the player cannot see.
 - The `addon:WhatGroup:show` chat link → `WhatGroup:ShowFrame()` (re-opens, doesn't close).
 - The end of test mode — an untick, combat, a reset, an explicit show — through the same `hidePopup()` (§ Test mode).
 

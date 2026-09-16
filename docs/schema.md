@@ -40,12 +40,21 @@ db.global = {
   windows = {                     -- persisted standalone-window geometry (WG-26), seeded empty
     -- [name] = { point, relPoint, x, y }   written on drag-stop, restored on show
   },
+  minimap = {                     -- LibDBIcon-1.0's OWN table (launcher-§3), handed to it whole
+    hide = false,                 -- the ONE schema row outside db.profile: `global.minimap.hide`
+    -- minimapPos = 0             -- LibDBIcon writes this when the player drags the button
+  },
 }
 ```
 
-Sixteen persisted settings, all of them user-facing, all of them schema rows — plus two
-**session-only** rows, `state.debugConsole` and `state.testMode`, which are schema rows and
-deliberately not persisted (see below). There are no storage-only carve-outs in the profile: the popup's dragged POSITION is
+Sixteen persisted profile settings, all of them user-facing, all of them schema rows — plus one
+**global** row, `global.minimap.hide` (the launcher's visibility, stored in LibDBIcon's own table and
+inverted at the write seam: the row says *shown*), and two **session-only** rows,
+`state.debugConsole` and `state.testMode`, which are schema rows and deliberately not persisted (see
+below). The minimap row is global rather than profile-scoped on purpose: a profile switch must not
+move the player's buttons, and `Reset all settings` is a profile reset, so it must not un-hide a
+button they hid (launcher-§3, detailed in
+[settings-panel.md](./settings-panel.md#the-minimap-button-row)). There are no storage-only carve-outs in the profile: the popup's dragged POSITION is
 account-wide geometry and lives in `db.global.windows` (WG-26), not here. That store is
 `architecture-§5` named non-setting state, and its owner (`NS.Windows`) and writers are named in
 [ARCHITECTURE.md → Settings Schema](./ARCHITECTURE.md#settings-schema).
@@ -83,10 +92,13 @@ reference always resolves. Adding a setting is still **one schema row** — with
 
 `Settings.BuildDefaults` **seeds the profile from `NS.C`**, then walks the schema and threads each
 row's `default` into the nested AceDB `profile` table, and also seeds `global.schemaVersion` from
-`NS.SCHEMA_VERSION`. The seed is what makes the stored shape independent of whether LibKa0s is
-installed: the composed rows are absent on the degraded path, and without the seed the profile would
-arrive with no `enabled` key — which reads as false. `sessionOnly` rows are skipped, so nothing about
-the debug console or test mode reaches the db.
+`NS.SCHEMA_VERSION` and `global.minimap = { hide = false }`. The seed is what makes the stored shape
+independent of whether LibKa0s is installed: the composed rows are absent on the degraded path, and
+without the seed the profile would arrive with no `enabled` key — which reads as false. `sessionOnly`
+rows are skipped, so nothing about the debug console or test mode reaches the db; **global rows are
+skipped too**, because threading `global.minimap.hide` through the profile walk would write a
+`profile.global.minimap.hide` branch nothing reads. Its default is the `global` literal above, which
+is what materializes the table LibDBIcon is handed (`architecture-§5`).
 
 ## One row, six surfaces
 
@@ -143,3 +155,10 @@ a migration actually moved the version, so a fresh or already-current DB stays s
 
 **Adding a migration:** bump `NS.SCHEMA_VERSION`, add a step inside the loop keyed on the *current*
 version, and make it idempotent. Do not stamp the new version until the step has run.
+
+**The launcher needed none.** `launcher-§3` fixes the minimap table at `db.global.minimap`, and an
+addon that already stored it under `profile` owes a migration carrying `hide` and `minimapPos`
+across (in the collection that is Multi Meters alone). WhatGroup has never stored a minimap table
+anywhere — `grep -rin minimap` over the source before the launcher landed returned one line, in
+`docs/scope.md`, saying the addon did not provide one — so adopting it created a new global branch
+rather than moving an existing one, and `NS.SCHEMA_VERSION` stays at **1**.

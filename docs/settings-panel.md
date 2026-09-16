@@ -315,6 +315,10 @@ global = {
   windows = {          -- persisted standalone-window geometry (WG-26); each entry
     -- [name] = { point, relPoint, x, y }   written on drag-stop, restored on show
   },
+  minimap = {          -- LibDBIcon's OWN table (launcher-§3), handed to it at Register
+    hide = false,      -- the Minimap button row, INVERTED: the row says shown
+    -- minimapPos = 0  -- written by LibDBIcon when the player drags the button
+  },
 }
 ```
 
@@ -326,7 +330,7 @@ The page is **tabbed** (`options-ui-§13`). `LibKa0s-Options-1.0`'s `RenderTabbe
 
 | # | Tab | Rows | Subgroups | What it is for |
 |---|---|---|---|---|
-| 1 | **Master controls** | 7 | — | options-ui-§15's canonical block, composed rather than written: enable, general visibility, master scale, master alpha, lock frame, debug console, test mode — closed by the **Reset position | Reset all settings** button pair (`afterGroup`). It is the **first** tab, and the name is the literal §15 mandates. |
+| 1 | **Master controls** | 8 | — | options-ui-§15's canonical block, composed rather than written: enable, general visibility, master scale, master alpha, lock frame, debug console, minimap button, test mode — closed by the **Reset position | Reset all settings** button pair (`afterGroup`). It is the **first** tab, and the name is the literal §15 mandates. |
 | 2 | **Chat** | 8 | `Timing`, `Text` | When the join summary fires (`notify.delay`) and what it says: the **Print to Chat** master and the six lines it can contain. Plus the **Test** button (`afterGroup`). |
 | 3 | **Popup** | 3 | `Behavior`, `Layout` | The group-info window: whether it opens by itself, and how big it is. |
 
@@ -350,7 +354,8 @@ Rows on the **Master controls** tab are emitted by `Helpers.MasterControls` and 
 | Master controls | general | `alpha` | number | 1 | (paired) | *Master alpha* (0–1, step 0.05, rendered as a percentage). `WhatGroup:ApplyFrameAlpha()`, **not** refused in combat: opacity moves nothing. |
 | Master controls | general | `locked` | bool | false | startsLine, (paired) | *Lock frame*. Read at drag time by the title bar's `OnMouseDown`, so it takes effect on the next mouse-down with nothing to apply. |
 | Master controls | general | `state.debugConsole` | bool | false | (paired) | *Debug console*, `sessionOnly`. Shows/hides the console **window**; never `db.profile`, never the logging flag (WG-12). |
-| Master controls | general | `state.testMode` | bool | false | startsLine, alone on its line | *Test mode*, `sessionOnly`, composed from `testModePath`; the tooltip is overridden in `settings/Panel.lua`. `/wg test` drives the same row (bare toggles, `on\|off` sets). Ticked, the popup shows sample group info (`WhatGroup:SampleInfo()`) from a record of its own, never `pendingInfo`, whatever `frame.autoShow` and `visibility` say; `locked` still applies to dragging. Refused in combat with one gray line. Ends on untick, on Close / ESC, on an explicit show (`/wg show`, `/wg test notify`, the chat link), on *Reset all settings* (the declared `default = false`), and at `PLAYER_REGEN_DISABLED` with `Test mode off — combat started`. The join popup does not end it: that capture waits. Never `db.profile`. |
+| Master controls | general | `global.minimap.hide` | bool | true (the ROW's sense: *shown*) | startsLine, (paired) | *Minimap button*, composed from `minimapPath` (compose minor 7). The one **global** row — see [The minimap button row](#the-minimap-button-row) below. |
+| Master controls | general | `state.testMode` | bool | false | (paired) | *Test mode*, `sessionOnly`, composed from `testModePath`; the tooltip is overridden in `settings/Panel.lua`. `/wg test` drives the same row (bare toggles, `on\|off` sets). Ticked, the popup shows sample group info (`WhatGroup:SampleInfo()`) from a record of its own, never `pendingInfo`, whatever `frame.autoShow` and `visibility` say; `locked` still applies to dragging. Refused in combat with one gray line. Ends on untick, on Close / ESC, on an explicit show (`/wg show`, `/wg test notify`, the chat link), on *Reset all settings* (the declared `default = false`), and at `PLAYER_REGEN_DISABLED` with `Test mode off — combat started`. The join popup does not end it: that capture waits. Never `db.profile`. |
 | Chat | notify | `notify.delay` | number | 0 | subgroup `Timing`, solo | Seconds (0–10, step 0.5) between joining and notifying **and** showing the popup. Default 0 = immediately; raise it to let the zone-in settle. Not one of §15's canonical nine, so it moved off the first tab to the one named for the notification it delays. |
 | Chat | notify | `notify.enabled` | bool | true | subgroup `Text`, solo | Print the chat summary on group join. The master for the six rows under it. |
 | Chat | notify | `notify.showInstance` | bool | true | subgroup `Text`, (paired) | Include the Instance line in chat. |
@@ -378,7 +383,7 @@ Rendered panel layout:
 [Enable WhatGroup]    | [General visibility]
 [Master scale]        | [Master alpha]
 [Lock frame]          | [Debug console]
-[Test mode]           |                      its own line (startsLine), session-only
+[Minimap button]      | [Test mode]          the minimap row opens the line; test mode pairs beside it
   <Reset position | Reset all settings>      afterGroup["Master controls"] = the composer's tail
 
 --- Chat ---
@@ -399,6 +404,45 @@ Rendered panel layout:
 ```
 
 The `Show ` prefix the six chat rows carried is gone: under a tab called **Chat**, seven labels beginning "Show" spend their first word saying what the tab already said. The **paths** are untouched — `notify.showInstance` is still `notify.showInstance` for `/wg set` and for every saved profile.
+
+## The minimap button row
+
+The launcher's visibility (`launcher-§3`) is a Master controls row like the other seven, and is the
+only row in this addon whose storage is neither `db.profile` nor a session flag. Three things about
+it are deliberate and none is local taste:
+
+**It is stored at `db.global.minimap.hide` — LibDBIcon's OWN table, in the GLOBAL store.** The
+library is handed that same table at `Register` (`core/LauncherSetup.lua`) and writes `hide` itself
+when the player uses the button's right-click menu, and `minimapPos` when they drag it. A second key
+beside it — `minimap.show`, `showMinimapIcon` — would be a copy of one state that a library also
+writes, and the day the two disagree the button and the checkbox disagree (anti-pattern #81). The
+scope is global because a minimap button belongs to the **installation**, not to a profile: a
+profile switch must not move the player's buttons, and `Reset all settings` (`options-ui-§12`) is a
+**profile reset** by definition, so a profile-scoped `hide` would come back `false` and a button the
+player deliberately hid would reappear.
+
+**The row's sense is SHOWN and the stored key says HIDDEN, so its get/set invert.** That inversion is
+the host's, not the library's, and it lives at the single write seam (`options-ui-§1`) rather than at
+a call site: `settings/Schema.lua`'s `GLOBAL` table intercepts the path in front of `Resolve`, the
+way `SESSION` intercepts `state.debugConsole` and `state.testMode`. Because every surface — the
+checkbox, `/wg get`, `/wg set`, `/wg reset`, `Reset all settings` — funnels through `Helpers.Get` /
+`Helpers.Set`, a routing decision made once there is one the other surfaces cannot get wrong.
+
+**The `set` also calls `NS.Launcher:SetShown`**, so the button follows the checkbox immediately
+rather than at the next reload. The seam writes `hide` itself first and only then asks the launcher
+to act, which is what keeps the player's choice stored on an install with no LibDBIcon at all.
+
+The default — `minimap = { hide = false }` — is declared in `Settings.BuildDefaults` beside
+`schemaVersion` and `windows`, not in `defaults/Profile.lua` (`NS.C` is the *profile* defaults table)
+and not through the row's own `default`, which `BuildDefaults` deliberately skips for a global row:
+threading it through the profile walk would write a `profile.global.minimap.hide` branch nothing
+reads. That declared default is what materializes the table `architecture-§5` requires to exist
+before LibDBIcon writes into it.
+
+The **broker object has no row of its own**, deliberately (`launcher-§1`): a broker display shows
+what it chooses to show and already offers the player a per-plugin toggle, so an addon hiding itself
+from a display would be solving the display's problem in a second settings row the player has to
+find first.
 
 ## Adding a setting
 

@@ -243,7 +243,7 @@ badge and any count quoted in the docs must agree with it.
 - settings: every row on every page carries a `group`
 - settings: every color row is followed by its class-color companion, and none is disabled
 
-### test_slash.lua (46)
+### test_slash.lua (52)
 
 - slash: COMMANDS has a standalone version verb (WG-29)
 - slash: /wg version prints [WG] v<version> on its own line (WG-29)
@@ -291,6 +291,12 @@ badge and any count quoted in the docs must agree with it.
 - slash: /wg set writes an enum value from the row's own value set
 - slash: /wg set rejects a value the enum does not offer
 - slash: /wg list carries the Master controls rows under their section
+- slash: /wg enable and /wg disable write the checkbox's own stored path
+- slash: the verbs and the checkbox are the same row, so they cannot disagree
+- slash: `disable` runs the row's onChange, exactly as the checkbox does
+- slash: each verb acknowledges on one `key = value` line
+- slash: the dispatcher answers while the addon is disabled
+- slash: the reserved pair is in COMMANDS, so help and the landing page carry it
 
 ### test_labels.lua (34)
 
@@ -590,6 +596,26 @@ badge and any count quoted in the docs must agree with it.
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
 
+### test_launcher.lua (17)
+
+- launcher: it registers at login, and the broker object IS the minimap button's
+- launcher: the object is a launcher, named for the FOLDER, wearing this addon's logo
+- launcher: the name is the FOLDER this copy loaded from, not a hand-typed literal
+- launcher: Register is idempotent -- a second call builds no second button
+- launcher: the icon file exists and is an uncompressed 32-bit TGA
+- launcher: the TOC's IconTexture is the same file the object wears
+- launcher: LEFT-click toggles the group popup, through the addon's own seam
+- launcher: a LEFT-click dismissal ends test mode, as the Close button does
+- launcher: RIGHT-click opens the settings panel
+- launcher: the Minimap button row is stored, global, and LibDBIcon's OWN hide key
+- launcher: the row's get/set invert, and the button follows immediately
+- launcher: a button the player hid survives Reset all settings (options-ui-§12)
+- launcher: LibDBIcon's own writes into the table are not disturbed
+- launcher: an install with neither broker library loads, and says so once
+- launcher: with no LibDBIcon the broker plugin still registers
+- launcher: the row still stores with no broker library at all
+- launcher: with LibKa0s absent the seam still answers every member
+
 ### test_lifecycle.lua (44)
 
 - lifecycle: the addon exposes no public global (WG-01)
@@ -723,13 +749,14 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 31 |
 | test_database.lua | 9 |
 | test_settings.lua | 56 |
-| test_slash.lua | 46 |
+| test_slash.lua | 52 |
 | test_labels.lua | 34 |
 | test_capture.lua | 32 |
 | test_notify.lua | 48 |
 | test_frame.lua | 90 |
 | test_panel.lua | 53 |
 | test_testmode.lua | 23 |
+| test_launcher.lua | 17 |
 | test_lifecycle.lua | 44 |
 | test_debuglog.lua | 34 |
 | test_docmap.lua | 1 |
@@ -738,4 +765,4 @@ badge and any count quoted in the docs must agree with it.
 | test_register.lua | 1 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **632** |
+| **Total** | **655** |

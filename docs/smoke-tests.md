@@ -121,7 +121,7 @@ Verifies AceGUI rendering, schema-driven widget refresh, and the Defaults flow.
 
 Click each tab in turn and confirm the page swaps content rather than scrolling:
 
-- **Master controls** (options-ui-§15's canonical block, in this exact order): *Enable WhatGroup | General visibility*, *Master scale | Master alpha*, *Lock frame | Debug console*, *Test mode* alone on its own line, then the **Reset position | Reset all settings** button pair.
+- **Master controls** (options-ui-§15's canonical block, in this exact order): *Enable WhatGroup | General visibility*, *Master scale | Master alpha*, *Lock frame | Debug console*, *Minimap button | Test mode*, then the **Reset position | Reset all settings** button pair.
 - **Chat**: a **Timing** heading over *Notification Delay* alone, then a **Text** heading over *Print to Chat* alone, then *Instance | Type*, *Leader | Playstyle*, *Details link | Teleport spell*, then the *Test* button.
 - **Popup**: a **Behavior** heading over *Open Automatically* alone, then a **Layout** heading over *Width | Height*.
 
@@ -182,7 +182,7 @@ Layout check first: `/wg config` → **Master controls** tab. The grid should re
 [Enable WhatGroup]    [General visibility]
 [Master scale]        [Master alpha]
 [Lock frame]          [Debug console]
-[Test mode]
+[Minimap button]      [Test mode]
 [Reset position]      [Reset all settings]
 ```
 
@@ -837,6 +837,32 @@ honest state of this section is unrun, and it is recorded that way rather than a
 
 ---
 
+## 12c. The launcher — one button, two surfaces (~4 min)
+
+`launcher-§1`/`§2`/`§3`. Headless cases pin the wiring; what needs a client is that the icon actually
+**draws** (a wrong TGA format draws nothing and raises nothing) and that the clicks land.
+
+1. **The AddOns list.** Esc → AddOns (or the addon list in Settings). **Expected:** the WhatGroup row
+   carries the addon's own logo, not a Blizzard bag icon and not a blank square.
+2. **The button.** Look at the minimap. **Expected:** a round button wearing the same logo. If it
+   draws as a blank/green square, the `.tga` is the wrong format — regenerate it with layout-§4's
+   recipe; the format is asserted headlessly, so this should never be the failure.
+3. **Left-click it.** **Expected:** the group popup opens (on "No data" if you have no capture yet).
+   **Left-click again:** it closes. No error, no taint line.
+4. **Right-click it.** **Expected:** the Settings panel opens on the landing page — the same place
+   `/wg config` lands. Right-click while the popup is open: the panel opens and the popup stays.
+5. **Drag it** around the minimap, then `/reload`. **Expected:** it comes back where you left it
+   (that is LibDBIcon's `minimapPos`, in `db.global.minimap`).
+6. **Untick Minimap button** on the **Master controls** tab. **Expected:** the button disappears
+   immediately — not at the next reload. Tick it again: it comes back at the same angle.
+7. **Switch profiles** (or copy one) and **run `/wg resetall`** with the button hidden. **Expected:**
+   the button stays hidden through both. The row is account-wide by design (`launcher-§3`): a
+   profile switch must not move your buttons, and a profile reset must not un-hide one you hid.
+8. **A broker display** (Titan Panel, ElvUI data texts, Bazooka), if you run one: **Expected:** one
+   *WhatGroup* entry wearing the same logo, whose left and right clicks do exactly what the minimap
+   button's do — it is the same object. Its own show/hide is the display's business, not ours; there
+   is deliberately no addon setting for it.
+
 ## 13. Quick reference checklist
 
 For a fast pre-release pass, run at minimum:
@@ -858,6 +884,7 @@ For a fast pre-release pass, run at minimum:
 - [ ] sections 11.5 / 11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
 - [ ] sections 12.1 / 12.4 — marks on the console title bar, and a mark **beside** the footer Close word
 - [ ] section 12a — the tab strip's labels, selection and band height survive three passes
+- [ ] section 12c — the minimap button draws the logo, toggles the popup, right-clicks to Settings, and survives a profile switch hidden
 - [ ] section 12b — the non-English-client pass, which is also the only login § 7a will get
 
 Run section 9 (degraded install), section 12 (shared art), section 12a (the pooled tab strip) and the rest of section 11 after a LibKa0s re-vendor or any change to the six seam files.

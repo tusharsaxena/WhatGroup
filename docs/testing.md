@@ -57,7 +57,8 @@ label like **Enable WhatGroup** honest about which addon it is turning off.
 The suites, in run order: `test_harness`, `test_libka0s`,
 `test_surface_parity`, `test_mediasetup`, `test_envsetup`, `test_util`,
 `test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
-`test_capture`, `test_notify`, `test_frame`, `test_panel`, `test_testmode`, `test_lifecycle`,
+`test_capture`, `test_notify`, `test_frame`, `test_panel`, `test_testmode`,
+`test_launcher`, `test_lifecycle`,
 `test_debuglog`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
 `test_register`, `test_vendor_sync`. `test_eol` runs last and arrives with the
 vendored kit rather than living in `tests/`.
@@ -97,6 +98,18 @@ earns it is the catalog cross-check: every icon this addon draws is a plain
 string resolved against a catalog in **another repo**, and a rename on either
 side answers nil, which draws nothing and raises nothing. The library's own behavior is tested where it lives — this addon keeps
 no duplicate of those cases (testing-§8).
+
+`test_launcher` is the launcher's suite (`launcher-§1`..`§4`). Three of its cases
+cannot be replaced by anything else: that the two registrations really are ONE
+object (two objects with two `OnClick`s would pass a behavioral assertion and
+still be anti-pattern #81), that the LEFT click drives the addon's real popup
+seam rather than a copy of it, and that the icon file on disk is an
+**uncompressed 32-bit TGA at 128×128** — read out of the header bytes, because a
+wrong format there draws nothing and raises nothing, in the client and in every
+other gate alike. `tests/wow_mock.lua` carries LibDataBroker and LibDBIcon fakes,
+present by default because both are vendored and listed in the TOC; the
+degradation cases clear them through the loader's `mock` option, which is how a
+host with neither is shown not to raise.
 
 Coverage extends past pure logic into the UI and event layers — the popup's
 field rendering and secure-teleport-button states (`test_frame`), the settings

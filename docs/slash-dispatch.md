@@ -57,7 +57,7 @@ Forward declarations at the top of the file let the table reference the host han
 
 ```lua
 local Sl                      -- forward-declared: the handlers below reach it at call time
-local runShow, runTest, runConfig, runDebug, runReset, runResetAll
+local runShow, runTest, runConfig, runDebug, runReset, runResetAll, runEnabled
 ```
 
 ## Help output convention
@@ -85,7 +85,8 @@ Library verbs delegate to the instance; host verbs are the file-local functions 
 | `/wg help` | `Sl:PrintHelp` (library) | Print the header + every command row. |
 | `/wg show` | `runShow` (host) | Open the popup if `pendingInfo` is set, ending test mode first if it is on. Otherwise print a hint pointing at `/wg test`. |
 | `/wg test` / `/wg test on\|off` / `/wg test notify` | `runTest(rest)` (host) | **Test mode.** Bare `/wg test` toggles the popup's test mode and `/wg test on\|off` sets it, by writing the `state.testMode` session row through `Helpers.Set`, the setter the Master controls **Test mode** checkbox uses. So the box follows, and a start in combat is refused with the checkbox's one gray line (options-ui-§15). `/wg test notify` is the one-shot check: `WhatGroup:RunTest()` injects synthetic `pendingInfo` (Mythic+ Windrunner Spire) and runs `ShowNotification()` + `ShowFrame()` once, ending test mode if it is on. The panel's Test button runs the same method. Any other word prints a three-line usage. |
-| `/wg config` | `runConfig` (host) → `Helpers.OpenOptionsPanel` (library) | Calls the idempotent `Settings.Register()` fallback, then hands off. The combat refusal and the sidebar unfold both live inside `OpenOptionsPanel`, not in this dispatcher, so *every* caller is refused — the verb, a `/run` script, a future internal caller (options-ui-§2 / WG-25). Under `InCombatLockdown()` it prints the canonical gray notice *"cannot open settings during combat — Blizzard's category-switch is protected"* and returns; no defer-replay. Otherwise it opens the addon category and expands the subcategory tree so General — whose first tab is **Master controls** — is one click away. |
+| `/wg config` | `runConfig` → `WhatGroup:OpenSettings` (host) → `Helpers.OpenOptionsPanel` (library) | Calls the idempotent `Settings.Register()` fallback, then hands off. The body sits on the addon rather than in a file-local because the launcher's **right click** opens the panel through the same one (launcher-§2). The combat refusal and the sidebar unfold both live inside `OpenOptionsPanel`, not in this dispatcher, so *every* caller is refused — the verb, a `/run` script, a future internal caller (options-ui-§2 / WG-25). Under `InCombatLockdown()` it prints the canonical gray notice *"cannot open settings during combat — Blizzard's category-switch is protected"* and returns; no defer-replay. Otherwise it opens the addon category and expands the subcategory tree so General — whose first tab is **Master controls** — is one click away. |
+| `/wg enable` / `/wg disable` | `runEnabled(on)` (host) | The reserved pair (slash-commands-§2). **Aliases**, not a second switch: both write the `enabled` row — the Master controls *Enable WhatGroup* checkbox's own stored path — through the same `Helpers.Set`, so the row's `onChange` (the off-flip capture wipe) runs whichever surface the player used and the `[Set]` trace logs once. They hold no state of their own. The ack is the CLI's own `key = value` line, re-read from the store rather than echoed. `/wg set enabled true` is the same write by its long name. |
 | `/wg version` | `Sl:CliVersion` (library) | Print `[WG] v<version>` on its own line (slash-commands-§3 / WG-29), through the host's `version` seam. |
 | `/wg list` | `Sl:CliList` (library) | Green `Available settings` header, then rows grouped in **declaration order** under azure `[section]` headings — the descriptor's `groupKey` returns `row.section`, because these rows carry no `page` field the library's default would have read. Each row is `lib.FormatKV`: gold path, white value. |
 | `/wg get <path>` | `Sl:CliGet` (library) | `findRow` (→ `Helpers.FindSchema`) then the same `FormatKV` echo, so `key = value` reads identically to `/wg list` and the `/wg set` echo. Number rows render through the row's `fmt` (e.g. `"%.1fs"` → `1.5s`). Prints `Setting not found: <path>` for unknown paths, and `Usage: /wg get <path>` for none. |
@@ -95,6 +96,20 @@ Library verbs delegate to the instance; host verbs are the file-local functions 
 | `/wg debug` / `/wg debug on\|off` | `runDebug` (host) | Bare `/wg debug` **toggles the on-screen debug console window** (`NS.DebugLog:Toggle()`), state untouched; `/wg debug on\|off` sets the session-only `NS.State.debug` flag through the single `NS.DebugLog:SetEnabled` seam (color-coded chat ack + `[Debug] logging enabled/disabled` console line). The FLAG is off on every login, never persisted, and **not** a schema row (WG-12), so there's no `/wg set debug`. The **Debug console** checkbox on the Master controls tab is *not* a second toggle for it — it is a `sessionOnly` schema row on the path `state.debugConsole` that shows/hides the console **window** only, routed to `NS.DebugLog`'s own get/set by `settings/Schema.lua`'s `SESSION` table so it never reaches `db.profile`. Debug output (`NS.Debug(tag, …)`) renders in the console, not chat — see [debug.md](./debug.md). |
 
 `Helpers.RestoreAllDefaults` deliberately **overrides** the library member of the same name (`settings/OptionsSetup.lua:284-297`, [LIBKA0S-08](https://github.com/tusharsaxena/WhatGroup/issues/10)): the library's is row-by-row over every row, with no profile reset and no confirmation. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched.
+
+## The dispatcher survives the disabled state
+
+`slash-commands-§2` requires it, and it is what stops `enable` / `disable` being a one-way switch:
+a player who turned the addon off with a verb has to be able to turn it back on with one, or the
+only route left is the settings panel they were trying not to open.
+
+It holds here **because the master switch is read in exactly two places** —
+`core/WhatGroup.lua`'s `OnApplyToGroup` and the `inviteaccepted` arm of the status handler — and
+nowhere else. Nothing unregisters `/wg`, empties `COMMANDS` or tears the dispatcher down on the
+off-flip: the chat commands are registered in `OnInitialize` and the settings category in
+`OnEnable`, both of which are **setup**, not features. So `/wg`, `help`, `config`, `version` and
+`enable` all answer exactly as before while the addon is off. `tests/test_slash.lua` pins that
+rather than leaving it to inspection.
 
 ## `reset` takes a path; `resetall` is the wipe
 

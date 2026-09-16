@@ -22,7 +22,6 @@ These have been considered and explicitly declined. A change of heart needs an i
 - **Classic / Wrath / Cataclysm.** Retail only. Interface line in `WhatGroup.toc` is `120100`. The Premade Group Finder API surface and the `Settings.RegisterCanvasLayoutCategory` shape are retail-specific.
 - **Per-character profiles.** Single account-wide profile by design. No profile switcher, no per-character overrides.
 - **Profile import / export.** No serialization layer.
-- **LDB / minimap icon.** Not provided.
 - **History / log of past groups.** `pendingInfo` holds a single capture and is cleared on group leave. The notification is the only persistent record (in chat scrollback).
 - **Group quality scoring / filtering.** WhatGroup observes; it doesn't recommend, rank, or block groups.
 - **Voice-chat URL extraction or auto-join.** The voice-chat string is captured and shown verbatim — no parsing, no auto-join.
@@ -31,6 +30,8 @@ These have been considered and explicitly declined. A change of heart needs an i
 ## Resolved decisions
 
 Decisions that were made during requirements review and the v1.0 / v1.1 launches — these are settled, not open.
+
+- **LDB object and minimap button: shipped, and no longer optional.** This list's out-of-scope half used to read *"LDB / minimap icon. Not provided."* `launcher-§1` makes a launcher mandatory for every Ka0s addon, so the entry moved here. It is ONE LibDataBroker-1.1 object registered twice — with LibDBIcon-1.0 for the minimap button, and with whatever broker display the player runs — never two features (`core/LauncherSetup.lua`). Left-click toggles the group popup (rung (a) of `launcher-§2`), right-click opens the settings panel, and the button's visibility is the *Minimap button* row in Master controls. The **broker object has no toggle of its own**, deliberately: a display already offers a per-plugin one.
 
 - **Capture queue is FIFO, not single-slot.** A player can have multiple applications in flight before any of them resolve. The `applied` LFG event is the first place the API tells us which `appID` corresponds to which apply, so captures wait FIFO until they're paired up.
 - **Group-leave wipes capture state.** `GROUP_ROSTER_UPDATE` with `inGroup == false` calls `WhatGroup:WipeCapture()`, which clears `pendingInfo`, `notifiedFor`, both `capturesByResult` and `pendingApplications`, and `CancelTimer`s any in-flight AceTimer notify callback (`self.notifyTimer`, WG-17). The same method is reused on master-switch off-flip (`enabled.onChange` with `v=false`) so a pre-toggle apply can't surface a popup after the user has explicitly disabled the addon. No "remember last group" mode.
