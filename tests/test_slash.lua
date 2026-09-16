@@ -357,3 +357,95 @@ test("slash: /wg list carries the Master controls rows under their section", fun
         assertTrue(anyLine(lines, path), path .. " is missing from /wg list")
     end
 end)
+
+-- ---------------------------------------------------------------------------
+-- The reserved pair — `enable` / `disable` (slash-commands-§2)
+-- ---------------------------------------------------------------------------
+--
+-- They are ALIASES for the Master-controls `Enable WhatGroup` checkbox, not a second switch. What
+-- is pinned here is that they hold no state of their own, that they take the one write seam, and
+-- that the dispatcher outlives the state they set — a pair that could turn the addon off but not
+-- back on would be one-way, and the only route left would be the settings panel the player was
+-- trying not to open.
+
+test("slash: /wg enable and /wg disable write the checkbox's own stored path", function()
+    -- red under: a second key, an NS.enabled local, or a session flag beside the stored row.
+    local NS = T.bootAddon()
+    local H = NS.addon.Settings.Helpers
+    NS.addon:OnSlashCommand("disable")
+    assertEqual(H.Get("enabled"), false)
+    assertEqual(NS.addon.db.profile.enabled, false, "the STORED row, not a copy of it")
+    NS.addon:OnSlashCommand("enable")
+    assertEqual(H.Get("enabled"), true)
+    assertEqual(NS.addon.db.profile.enabled, true)
+end)
+
+test("slash: the verbs and the checkbox are the same row, so they cannot disagree", function()
+    -- The checkbox reads through the same Helpers.Get the verb writes through, which is the whole
+    -- content of "aliases, never a second switch".
+    -- red under: the verb writing anything but `enabled`.
+    local NS = T.bootAddon()
+    local H = NS.addon.Settings.Helpers
+    H.Set("enabled", false)
+    NS.addon:OnSlashCommand("enable")
+    assertEqual(H.FindSchema("enabled").path, "enabled")
+    assertTrue(H.Get("enabled"), "the box follows the verb")
+    NS.addon:OnSlashCommand("disable")
+    assertFalse(H.Get("enabled"), "and the verb follows the box's path back")
+end)
+
+test("slash: `disable` runs the row's onChange, exactly as the checkbox does", function()
+    -- The off-flip capture wipe is stamped onto the composed row in settings/Panel.lua, and it must
+    -- run whichever surface the player used — or a pre-toggle apply could still surface a popup
+    -- after the addon has been switched off.
+    -- red under: the verb writing through RawSet, or setting db.profile.enabled directly.
+    local NS = T.bootAddon()
+    NS.addon.pendingInfo = { title = "Stonevault" }
+    NS.addon:OnSlashCommand("disable")
+    assertNil(NS.addon.pendingInfo, "WipeCapture ran")
+end)
+
+test("slash: each verb acknowledges on one `key = value` line", function()
+    -- slash-commands-§5's `set` shape, re-READ from the store rather than echoing the argument.
+    -- red under: a silent verb, or one that answers in its own words.
+    local NS, _, mock = T.bootAddon()
+    local lines = capture(mock, function() NS.addon:OnSlashCommand("disable") end)
+    assertEqual(#lines, 1, "one line")
+    assertTrue(anyLine(lines, "enabled"), "names the path")
+    assertTrue(anyLine(lines, "false"), "and the value that was stored")
+end)
+
+test("slash: the dispatcher answers while the addon is disabled", function()
+    -- slash-commands-§2: `/wg` and every verb reachable from it — `enable` above all, and with it
+    -- `help`, `config` and `version` — keep working while the addon is off. The master switch is
+    -- read at the capture entry points and nowhere else, so nothing here unregisters the chat
+    -- command, drops COMMANDS or tears down the dispatcher.
+    -- red under: gating OnSlashCommand, or unregistering `/wg` on the off-flip.
+    local NS, _, mock = T.enableAddon()
+    NS.addon:OnSlashCommand("disable")
+
+    local help = capture(mock, function() NS.addon:OnSlashCommand("help") end)
+    assertTrue(#help > 1, "help still answers")
+    local version = capture(mock, function() NS.addon:OnSlashCommand("version") end)
+    assertTrue(anyLine(version, "v" .. NS.addon.VERSION), "version still answers")
+    local opened = #mock.openedTo
+    NS.addon:OnSlashCommand("")
+    assertTrue(#mock.openedTo > opened, "a bare /wg still opens the panel")
+
+    -- And the one that matters: the way back.
+    NS.addon:OnSlashCommand("enable")
+    assertTrue(NS.addon.Settings.Helpers.Get("enabled"), "the switch is not one-way")
+end)
+
+test("slash: the reserved pair is in COMMANDS, so help and the landing page carry it", function()
+    -- A verb that works but is not in the table is a verb nobody finds: the help index and the
+    -- panel's landing page both render this table (slash-commands-§4).
+    -- red under: wiring the pair straight into the dispatcher.
+    local NS = T.newAddon()
+    local seen = {}
+    for _, c in ipairs(NS.addon.COMMANDS) do seen[c[1]] = c end
+    assertTrue(seen.enable ~= nil, "enable is a COMMANDS row")
+    assertTrue(seen.disable ~= nil, "disable is a COMMANDS row")
+    assertEqual(type(seen.enable[3]), "function")
+    assertEqual(type(seen.disable[2]), "string")
+end)

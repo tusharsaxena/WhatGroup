@@ -102,6 +102,8 @@ L["Show the last group info dialog"] = "Show the last group info dialog"
 L["Toggle test mode (sample group info on the popup) — `/wg test on|off`; `/wg test notify` runs the join notice + popup once"] =
     "Toggle test mode (sample group info on the popup) — `/wg test on|off`; `/wg test notify` runs the join notice + popup once"
 L["Open the Ka0s WhatGroup Settings panel"] = "Open the Ka0s WhatGroup Settings panel"
+L["Enable the addon"]         = "Enable the addon"
+L["Disable the addon"]        = "Disable the addon"
 L["Print the addon version"]  = "Print the addon version"
 L["List every setting and its current value"] = "List every setting and its current value"
 L["Print a setting's current value — `/wg get <path>`"] =

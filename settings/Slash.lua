@@ -23,7 +23,7 @@ local function trim(s)
 end
 
 local Sl                      -- forward-declared: the handlers below reach it at call time
-local runShow, runTest, runConfig, runDebug, runReset, runResetAll
+local runShow, runTest, runConfig, runDebug, runReset, runResetAll, runEnabled
 
 -- Positional triples, the shape the library reads (entry[1] / [2] / [3]); a table of named fields
 -- is silently invisible to it. The handler takes `rest` alone — everything after the verb, case and
@@ -41,6 +41,13 @@ local COMMANDS = {
         function(rest) runTest(rest) end},
     {"config",   L["Open the Ka0s WhatGroup Settings panel"],
         function() runConfig() end},
+    -- The reserved pair (slash-commands-§2), and they are ALIASES rather than a switch: both write
+    -- the `enabled` row the Master controls checkbox writes, through the same Helpers.Set. No second
+    -- key, no session flag -- the box and the verbs cannot show the player two different answers.
+    {"enable",   L["Enable the addon"],
+        function() runEnabled(true) end},
+    {"disable",  L["Disable the addon"],
+        function() runEnabled(false) end},
     {"version",  L["Print the addon version"],
         function() Sl:CliVersion() end},
     {"list",     L["List every setting and its current value"],
@@ -250,6 +257,40 @@ end
 
 -- The verb, now one line over the body above.
 function runConfig() WhatGroup:OpenSettings() end
+
+-- ---------------------------------------------------------------------------
+-- `enable` / `disable` (slash-commands-§2)
+-- ---------------------------------------------------------------------------
+--
+-- ONE stored path, `enabled`, written through the ONE seam -- the same Helpers.Set the Master
+-- controls checkbox and `/wg set enabled true` take, so the row's onChange (the off-flip capture
+-- wipe, settings/Panel.lua) runs whichever surface the player used and the [Set] trace logs once.
+-- These verbs hold NO state: there is no NS.enabled, no session flag and no second key to keep in
+-- step, which is the whole content of the rule.
+--
+-- THE DISPATCHER SURVIVES THE DISABLED STATE, which is what stops the pair being one-way. Nothing
+-- in this addon unregisters `/wg`, drops COMMANDS or tears down the dispatcher when `enabled` goes
+-- false: the master switch is read at the capture entry points (core/WhatGroup.lua's OnApplyToGroup
+-- and the inviteaccepted arm) and nowhere else, so `/wg`, `/wg enable`, `/wg help`, `/wg config` and
+-- `/wg version` all answer exactly as before. tests/test_slash.lua pins it.
+--
+-- The ack is the CLI's own `key = value` line, built from the library's formatters rather than
+-- respelled here, and it RE-READS the stored value rather than echoing the argument. The plain
+-- fallback is for the install with no LibKa0s at all, where there is no formatter to call and the
+-- rest of this file already renders plainly.
+local ENABLED_PATH = "enabled"
+
+function runEnabled(on)
+    local H = helpers()
+    if not (H and H.Set) then return NS.Print(CLI_MISSING) end
+    H.Set(ENABLED_PATH, on)
+    local value = H.Get(ENABLED_PATH)
+    local row   = H.FindSchema and H.FindSchema(ENABLED_PATH)
+    if lib and row then
+        return NS.Print(lib.FormatKV(row.path, lib.FormatValue(row, value)))
+    end
+    NS.Print(ENABLED_PATH .. " = " .. tostring(value))
+end
 
 -- ---------------------------------------------------------------------------
 -- `reset` takes a PATH, not everything (slash-commands-§2, convergence #1)
