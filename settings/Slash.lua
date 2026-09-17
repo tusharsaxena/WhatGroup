@@ -22,6 +22,11 @@ local function trim(s)
     return (s or ""):gsub("^%s+", ""):gsub("%s+$", "")
 end
 
+-- The `enabled` row's path, in one place. `/wg enable`, `/wg disable` and the Master controls
+-- checkbox all write it, through the same Helpers.Set, and core/LifecycleSetup.lua's `disabled`
+-- hold is taken from it — so the switch and what it gates cannot disagree.
+local ENABLED_PATH = "enabled"
+
 local Sl                      -- forward-declared: the handlers below reach it at call time
 local runShow, runTest, runConfig, runDebug, runReset, runResetAll, runEnabled
 
@@ -65,59 +70,41 @@ local COMMANDS = {
 }
 
 -- ---------------------------------------------------------------------------
--- The disabled gate (slash-commands-§2)
+-- The disabled gate (slash-commands-§2, §7) — THE LIBRARY'S, NOT THIS FILE'S
 -- ---------------------------------------------------------------------------
 --
--- A DISABLED ADDON REFUSES A FEATURE VERB RATHER THAN ACTING ON IT. Acting is wrong twice over:
--- the player asked for something the addon is currently standing down from doing, and a silent
--- no-op leaves them with no clue why nothing happened. One tagged line naming `/wg enable`, and
--- NOTHING ELSE -- no partial work, no side effect, no second line. It is a SHOULD in the standard
--- and this addon takes it; two of its thirteen verbs drive features, which is enough for a silent
--- `/wg show` to read as a bug.
+-- A DISABLED ADDON REFUSES A FEATURE VERB RATHER THAN ACTING ON IT, on one tagged line naming
+-- `/wg enable` and nothing else. Two of this addon's thirteen verbs drive features — `show` and
+-- `test`, the two that put the popup on screen — which is enough for a silent `/wg show` to read
+-- as a bug, so this addon takes §2's SHOULD.
 --
--- ONE PLACE, AND IT IS HERE. A guard pasted into runShow and runTest would be two places to forget
--- and a third the next verb forgets by default -- the gate belongs where every verb already passes
--- through. Wrapping entry[3] is that seam: both dispatchers, the library's and the no-LibKa0s stub
--- above, call the handler out of this table and neither has any other way in. It also survives the
--- table crossing to settings/Panel.lua's landing page, which reads entry[1] and entry[2] and never
--- the handler, so the help index and the panel list the refused verbs exactly as before.
+-- EVERYTHING ELSE ANSWERS NORMALLY, and that is a ruling rather than a default. The standard
+-- narrowed the disabled surface to `enable` and `help` at v2.56.0 and REVERSED it at v2.57.0: the
+-- first thing anyone tried was `/wg` on a disabled addon, which answered with a refusal instead of
+-- opening the settings panel — the one surface a player uses to switch it back on by hand. A rule
+-- that hides the off switch has mistaken which half of the pair it protects. So while this addon
+-- is off, `/wg` opens the panel, `config` and `version` and the whole schema CLI —
+-- `get` / `set` / `list` / `reset` / `resetall` — read and repair settings, `debug` runs as the
+-- diagnostic it is, and `enable` above all still works.
 --
--- THE LIVE SET IS NAMED ONCE, AS DATA, and it is the standard's list verbatim rather than "the ones
--- that felt safe". A player must be able to READ AND REPAIR SETTINGS and REACH THE PANEL while the
--- addon is off -- which is precisely when they are most likely to need to -- and `enable` above
--- all, or the pair is one-way again. `debug` is a diagnostic rather than a feature: the usual
--- reason to reach for it is that the addon is misbehaving. `perf` is on the list because the
--- standard reserves it collection-wide; this addon does not register it (LIBKA0S-15), so the entry
--- is what keeps the set readable as the rule rather than as this addon's subset of it.
+-- THIS FILE OWNS NONE OF THAT ANY MORE. It carried its own ALWAYS_LIVE table and its own refusal
+-- wording until today, wrapping every feature verb's handler as it built COMMANDS. Both are the
+-- library's from Slash minor 13: `lib.LIVE_VERBS` is the standard's twelve reserved verbs and the
+-- gate sits after the COMMANDS lookup, which is what keeps a TYPO answering `unknown command`
+-- rather than "the addon is disabled" — a true sentence and the wrong answer, since it tells a
+-- player who mistyped that their spelling was fine. The wording lives in
+-- `lib.DISABLED_LINE_FORMAT` and is built by `Sl:DisabledLine()`, and it MUST NOT be re-spelled
+-- host-side: one sentence is exactly the kind of thing eleven addons each end up writing their own
+-- of, and a player who runs four of them then reads four answers to the same question.
 --
--- What is left refusing is `show` and `test`: the two that draw the popup.
-local ENABLED_PATH = "enabled"
-
-local ALWAYS_LIVE = {
-    help = true, config = true, version = true, enable = true, disable = true,
-    debug = true, perf = true,
-    get = true, set = true, list = true, reset = true, resetall = true,
-}
-
--- FAIL OPEN. Only a stored `false` refuses: a nil -- no db yet, no Helpers yet, a path the profile
--- has never held -- is not the player having turned the addon off, and reading it as one would
--- refuse every feature verb on an install that is merely early or degraded.
-local function standingDown()
-    local H = helpers()
-    return H ~= nil and H.Get ~= nil and H.Get(ENABLED_PATH) == false
-end
-
-for _, entry in ipairs(COMMANDS) do
-    if not ALWAYS_LIVE[entry[1]] then
-        local handler = entry[3]
-        entry[3] = function(rest)
-            if standingDown() then
-                return NS.Print(L["WhatGroup is disabled — |cffFFFF00/wg enable|r turns it back on"])
-            end
-            return handler(rest)
-        end
-    end
-end
+-- WHAT THE HOST STILL OWNS is two descriptor fields, below: `isEnabled`, asked at DISPATCH time so
+-- the command after an `enable` works, and `brandName`, the plain-text `Ka0s WhatGroup` that
+-- core/LauncherSetup.lua already gives the LDB object as `label` — launcher-§1 forbids escape
+-- sequences there, which is what makes it safe to drop into a colored line.
+--
+-- `liveVerbs` is deliberately NOT passed. The library's default IS the standard's list; passing a
+-- copy would be this addon's own opinion about which verbs a player may use on a disabled addon,
+-- which is the opinion v2.57.0 settled.
 
 -- Published so settings/Panel.lua's landing page renders the same table the help index does. It
 -- crosses as plain data; neither library resolves the other.
@@ -174,6 +161,13 @@ if not lib then
             return out
         end,
         HelpHeader      = function() return "v" .. NS.Version() .. " slash commands" end,
+        -- The launcher's left click calls this on every install, so the degraded shape has to
+        -- answer it too. Same sentence, same shape, built from the same two pieces the library
+        -- builds it from — there is no lib here to ask, and a click on a disabled addon's minimap
+        -- button is not the place to discover that.
+        DisabledLine    = function()
+            return "Ka0s WhatGroup is disabled \226\128\148 enable it with |cFFFFFF00/wg enable|r"
+        end,
         CliList         = unavailable,
         CliGet          = unavailable,
         CliSet          = unavailable,
@@ -217,6 +211,15 @@ Sl = lib:New({
     slash        = "/wg",
     slashAliases = { "/whatgroup" },
     commands     = COMMANDS,
+
+    -- THE GATE (slash-commands-§7). A function, asked at dispatch time and never cached, because
+    -- the value changes between two commands and a cached answer would refuse the one that follows
+    -- the `enable` that just worked. It asks the LATCH rather than `db.profile.enabled`, so the
+    -- perf hold and the disabled hold give the CLI one answer between them.
+    isEnabled = function() return not NS.IsStoodDown() end,
+    -- Required alongside `isEnabled`, and it is the same string core/LauncherSetup.lua gives the
+    -- LDB object as `label`. One brand spelling per addon, not a second one invented for a message.
+    brandName = "Ka0s WhatGroup",
 
     print   = function(line) NS.Print(line) end,
     -- The TOC first, then this addon's in-code constant, through the one seam that knows both
@@ -325,17 +328,24 @@ function runConfig() WhatGroup:OpenSettings() end
 --
 -- THE DISPATCHER SURVIVES THE DISABLED STATE, which is what stops the pair being one-way. Nothing
 -- in this addon unregisters `/wg`, drops COMMANDS or tears down the dispatcher when `enabled` goes
--- false: the master switch is read at the capture entry points (core/WhatGroup.lua's OnApplyToGroup
--- and the inviteaccepted arm) and nowhere else, so `/wg`, `/wg enable`, `/wg help`, `/wg config` and
--- `/wg version` all answer exactly as before. tests/test_slash.lua pins it.
+-- false — the chat command, the dispatcher and this table are SETUP, not features, and they come up
+-- on load in either state. What the stored `false` now does is take the latch's `disabled` hold,
+-- which unregisters every event, cancels every timer and takes the popup off screen
+-- (core/WhatGroup.lua's NS.StandDown). The addon is inert; its command surface is not the addon.
+-- tests/test_slash.lua and tests/test_disabled.lua pin both halves.
 --
 -- The ack is the CLI's own `key = value` line, built from the library's formatters rather than
 -- respelled here, and it RE-READS the stored value rather than echoing the argument. The plain
 -- fallback is for the install with no LibKa0s at all, where there is no formatter to call and the
 -- rest of this file already renders plainly.
 --
--- `ENABLED_PATH` is declared beside the disabled gate above, which is the other reader of it: the
--- gate asks the same row these two verbs write, so the switch and what it gates cannot disagree.
+-- `ENABLED_PATH` is declared at the top of this file. The other reader of that row is
+-- core/LifecycleSetup.lua's `disabled` hold, taken from it at OnEnable and re-taken on every
+-- profile switch, so these verbs, the checkbox and the latch are three surfaces over ONE value.
+--
+-- These two verbs are on the library's live set, so they answer while the addon is off — `enable`
+-- above all, or the pair is one-way and the only route back is the panel the player was trying not
+-- to open (slash-commands-§7).
 
 function runEnabled(on)
     local H = helpers()

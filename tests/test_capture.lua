@@ -64,7 +64,11 @@ end)
 test("capture: master switch off means nothing is queued", function()
     local NS, _, mock = T.bootAddon()
     local addon = NS.addon
-    addon.db.profile.enabled = false
+    -- THROUGH THE WRITE SEAM, never a raw db poke: the seam is what runs the row's onChange, which
+    -- is what takes the latch's `disabled` hold (slash-commands-§7). A test that wrote the field
+    -- directly would leave the addon enabled as far as every gate is concerned and would then be
+    -- asserting on nothing.
+    addon.Settings.Helpers.Set("enabled", false)
     mock.searchResults[100] = baseInfo({ activityIDs = { 500 } })
     mock.activities[500] = { mapID = 111 }
     addon:OnApplyToGroup(100)  -- returns early, nothing enqueued
@@ -83,7 +87,7 @@ end)
 test("capture: master switch off blocks the inviteaccepted fresh fetch too", function()
     local NS, _, mock = T.bootAddon()
     local addon = NS.addon
-    addon.db.profile.enabled = false
+    addon.Settings.Helpers.Set("enabled", false)   -- the seam, not the field (see above)
     mock.searchResults[100] = baseInfo({ name = "Fresh", activityIDs = { 500 } })
     mock.activities[500] = { fullName = "F", mapID = 111 }
 

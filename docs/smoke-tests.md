@@ -545,11 +545,13 @@ so a capture that never got an invite sat in the tables until group-leave.
 1. `/wg set enabled false`
 2. Apply to a group.
 
-**Expected:** `ApplyToGroup` hook still fires and the debug line still prints, but `OnApplyToGroup` returns immediately at the `enabled` check — no capture, no `pendingInfo`, no chat / popup on join.
+**Expected:** the `ApplyToGroup` hook still fires — `hooksecurefunc` has no un-hook, so it gates its own body and returns — and `OnApplyToGroup` does nothing: no capture, no `pendingInfo`, no chat, no popup on join.
+
+**And it is genuinely inert, not merely quiet.** Still disabled, pull a target and let combat start and end, then join and leave a group. **Expected:** nothing appears, nothing is logged, and no error names WhatGroup — because the four event registrations are gone, not gated. The old behavior was a draw gate: the registrations stayed and the client kept dispatching into handlers that returned immediately, which looks identical from here and is not the same thing.
 
 3. `/wg set enabled true` to restore.
 
-### 5.5 A disabled addon refuses its feature verbs (slash-commands-§2)
+### 5.5 A disabled addon stands down, and its slash surface does not (slash-commands-§7)
 
 1. `/wg disable`.
 2. `/wg show`, then `/wg test on`, then `/wg test notify`.
@@ -569,9 +571,22 @@ settings and reach the panel while the addon is off. None of them prints the ref
 **Expected:** it previews as usual. It is a panel control rather than a slash verb, and it is the
 route that replaces `/wg test notify`'s old master-switch bypass.
 
-5. `/wg enable` — it must work, or the pair is one-way — then `/wg show` again.
+5. Still disabled: **left-click the minimap button**, then **right-click** it.
 
-**Expected:** the verb acts immediately, with no reload in between.
+**Expected:** the left click prints the same one `[WG]` line naming `/wg enable` and does nothing
+else — no popup. The right click opens the settings panel, exactly as it does when the addon is
+running. The button itself stays on the minimap in either state.
+
+6. Still disabled: type a misspelling, `/wg shwo`.
+
+**Expected:** `unknown command 'shwo'` followed by the help index — **not** the refusal line. The
+addon genuinely did not understand, and telling a player who mistyped that the addon is off tells
+them their spelling was fine.
+
+7. `/wg enable` — it must work, or the pair is one-way — then `/wg show` again.
+
+**Expected:** the verb acts immediately, with no reload in between, and the popup honors any
+setting you changed while the addon was off.
 
 ---
 

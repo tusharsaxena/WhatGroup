@@ -60,7 +60,7 @@ The suites, in run order: `test_harness`, `test_libka0s`,
 `test_capture`, `test_notify`, `test_frame`, `test_panel`, `test_testmode`,
 `test_launcher`, `test_lifecycle`,
 `test_debuglog`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
-`test_register`, `test_vendor_sync`. `test_eol` runs last and arrives with the
+`test_register`, `test_disabled`, `test_vendor_sync`. `test_eol` runs last and arrives with the
 vendored kit rather than living in `tests/`.
 
 `test_libka0s` is the integration suite for the adopted LibKa0s majors: that

@@ -24,6 +24,7 @@ local Loader = dofile("tests/_kit/loader.lua")
 local LIBKA0S = {
     "libs/LibKa0s/Core.lua",
     "libs/LibKa0s/Env.lua",
+    "libs/LibKa0s/Lifecycle.lua",
     "libs/LibKa0s/Pool.lua",
     "libs/LibKa0s/Item.lua",
     "libs/LibKa0s/Media.lua",

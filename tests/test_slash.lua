@@ -527,8 +527,8 @@ test("slash: every verb is either on the live list or refuses — there is no th
     -- so a verb added tomorrow is checked the day it lands: if it drives a feature and the gate
     -- missed it, it acts here and reddens; if it belongs on the live list, it has to be put there
     -- deliberately, which is the decision the standard wants taken once per verb.
-    -- red under: a per-verb guard that the next verb forgets, or widening ALWAYS_LIVE past the
-    -- standard's list — dropping `debug` or a schema-CLI verb from it reddens the other half.
+    -- red under: a per-verb guard that the next verb forgets, or narrowing the library's live set
+    -- host-side — dropping `debug` or a schema-CLI verb from it reddens the other half.
     local NS, _, mock = disabled()
     local live = {}
     for _, verb in ipairs(LIVE_VERBS) do live[verb] = true end
@@ -541,10 +541,20 @@ test("slash: every verb is either on the live list or refuses — there is no th
         local lines = capture(mock, function() NS.addon:OnSlashCommand(verb) end)
         if live[verb] then
             allowed = allowed + 1
-            assertFalse(anyLine(lines, REFUSAL), verb .. " is on the live list and never refuses")
+            -- `help` IS THE ONE EXCEPTION, and it is not a refusal OF help: the index prints in
+            -- full — the player has to be able to SEE `enable` in the list — with the line
+            -- immediately under the header as a statement about the whole index, because some of
+            -- the rows below it are this addon's own feature verbs. Every other live verb answers
+            -- with no refusal anywhere in its output.
+            if verb == "help" then
+                assertTrue(#lines > #NS.addon.COMMANDS, "the index still prints in full")
+            else
+                assertFalse(anyLine(lines, REFUSAL), verb .. " is on the live list and never refuses")
+            end
         else
             refused = refused + 1
             assertTrue(anyLine(lines, REFUSAL), verb .. " drives a feature, so it refuses")
+            assertEqual(#lines, 1, verb .. " answers on ONE line and never the index")
         end
     end
     assertEqual(refused, #FEATURE_VERBS, "show and test, and nothing else, refuse today")

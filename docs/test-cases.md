@@ -738,6 +738,26 @@ badge and any count quoted in the docs must agree with it.
 
 - every deviation id the register cites is assigned by a bundle in docs/audits/
 
+### test_disabled.lua (17)
+
+- disabled 1: enabled, the addon holds a NON-EMPTY registration set
+- disabled 3: the registration set is EMPTY, by count and by name
+- disabled 3: the write seam is the route — the checkbox and the verb reach the same latch
+- disabled 4: no timer, ticker or OnUpdate survives, and none is armed afterwards
+- disabled 5: every frame shown while enabled is hidden, and the show ladder answers no
+- disabled 6: firing every event it used to watch writes nothing, says nothing, shows nothing
+- disabled 7: every reserved verb answers normally, and the bare /wg opens the panel
+- disabled 7: each FEATURE verb answers exactly one refusal line and reaches no write seam
+- disabled 8: left-click is refused with no write and no frame; right-click opens the panel
+- disabled 9: re-enabling restores the registration set exactly
+- disabled 9: a setting changed WHILE DISABLED is what the rebuild reflects
+- disabled 10: releasing the perf hold does NOT resurrect an addon `disabled` still holds down
+- disabled 10: the other order — disabled first, perf released last
+- disabled 10: the latch persists nothing
+- disabled: the chat command, the panel, the db callbacks and the launcher all survive
+- disabled: a profile switch that flips `enabled` is re-evaluated, both ways
+- disabled: a stand-down in combat holds the protected Hide pending, and one event with it
+
 ### test_vendor_sync.lua (3)
 
 - libs/LibKa0s is the LibKa0s release CLAUDE.md says this addon bundles
@@ -775,6 +795,7 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_doc_structure.lua | 8 |
 | test_register.lua | 1 |
+| test_disabled.lua | 17 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **667** |
+| **Total** | **684** |

@@ -30,7 +30,7 @@ LFG events ─▶ capture pipeline ─▶ pendingInfo
   Settings.Schema  ─►  panel widget + /wg list/get/set + AceDB defaults + /wg reset
   COMMANDS table   ─►  /wg help + /wg <verb> dispatch + the settings landing page
 
-  Seven of those arrows are LibKa0s-owned. The addon supplies a descriptor per
+  Eight of those arrows are LibKa0s-owned. The addon supplies a descriptor per
   module and the library owns the rest:
 
     core/CoreSetup.lua      ─►  LibKa0s-Core-1.0      printer, secret-safe seam, window skin
@@ -40,6 +40,7 @@ LFG events ─▶ capture pipeline ─▶ pendingInfo
     settings/OptionsSetup   ─►  LibKa0s-Options-1.0   canvas shell, widget makers, flow engine
     settings/Slash.lua      ─►  LibKa0s-Slash-1.0     dispatcher, help, the schema CLI
     core/LauncherSetup.lua  ─►  LibKa0s-Launcher-1.0  the broker object + the minimap button
+    core/LifecycleSetup.lua ─►  LibKa0s-Lifecycle-1.0 the stand-down latch and its two named holds
 ```
 
 | Subsystem | Lives in | Read |
@@ -72,7 +73,7 @@ owns the STRUCTURE and `NS.C` owns the VALUES (savedvariables-§2 / WG-24). The 
 
 | Path | Type | Tab |
 |---|---|---|
-| `enabled` | bool | Master controls — the master switch; its `onChange` off-flip calls `WhatGroup:WipeCapture()` |
+| `enabled` | bool | Master controls — the master switch; its `onChange` sets the latch's `disabled` hold, which is the whole stand-down (see `## The stand-down`) |
 | `visibility` | string | Master controls — `always` / `inCombat` / `outOfCombat` / `never`; gates every path into `WhatGroup:ShowFrame()` |
 | `scale` | number | Master controls — popup scale (0.5–2), applied by `WhatGroup:ApplyFrameScale()`, refused in combat |
 | `alpha` | number | Master controls — popup opacity (0–1), applied by `WhatGroup:ApplyFrameAlpha()`, allowed in combat |
@@ -153,6 +154,11 @@ landing page renders exactly what the dispatcher runs.
 
 Small and deliberately so — the whole surface, from `grep -rn "RegisterEvent\|hooksecurefunc"`:
 
+**Every row below is registered while the addon is ENABLED and gone while it is disabled**, except
+the two `hooksecurefunc` rows, which have no un-hook and gate their own bodies instead, and one
+transient: a stand-down taken in combat keeps `PLAYER_REGEN_ENABLED` until it can finish the
+protected `Hide` it owes. See `## The stand-down`.
+
 | Registered | Where | Handler does |
 |---|---|---|
 | `GROUP_ROSTER_UPDATE` | `core/WhatGroup.lua` `OnEnable` | Detects the not-in → in transition and calls `_TryFireJoinNotify("ROSTER transition")`; on leave, `WipeCapture()` |
@@ -182,6 +188,96 @@ the popup's `OnShow` and only while `f:IsShown()`**, canceled from the popup's `
 top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. The
 arm and the cancel are the same transition read in both directions, which is what makes "cannot
 outlive" a structural claim rather than a list of remembered call sites.
+
+## The stand-down
+
+**Disabled means the addon is not running** (`slash-commands-§7`). Not hidden, not quiet, not
+skipping a repaint — every event unregistered, every timer cancelled, nothing drawn and nothing
+written from a game event. Only the surface that can turn it back on is left alive.
+
+Until 2026-09-16 this addon implemented disabled as a **draw gate**: two reads of
+`db.profile.enabled`, at `OnApplyToGroup` and at the `inviteaccepted` arm, and the four event
+registrations stayed exactly where they were. From the outside that is indistinguishable from
+standing down, which is how the shape survived several audits. It is not the same thing: an early
+return means the addon **did not stop watching — it stopped reacting**, and the client still walked
+its registration list on every `GROUP_ROSTER_UPDATE`, built the argument frame, entered Lua and ran
+the comparison that decided to leave. That cost is what a player switching an addon off is trying
+to stop paying, and it is invisible from every surface they can see.
+
+### One latch, two named holds
+
+`core/LifecycleSetup.lua` builds **one** `LibKa0s-Lifecycle-1.0` instance. Two holds sit on it:
+
+| Hold | Taken by | Lifetime |
+|---|---|---|
+| `disabled` | the stored `enabled` path — the Master controls checkbox, `/wg enable` / `/wg disable`, `/wg set enabled false`, and a profile switch that carries a different answer | **persisted**, because surviving a `/reload` is the point of that setting |
+| `perf` | `LibKa0s-Perf-1.0`, for a capture's suspended arm. This addon **declines Perf** ([LIBKA0S-15](https://github.com/tusharsaxena/WhatGroup/issues/7)), so nothing takes it today | **session-only**, never persisted |
+
+The addon is **down whenever at least one hold is taken** and stands up **only when the last one is
+released**. There is no `:StandUp()` member on the latch at all, and its absence is the feature:
+`/wg disable` is a live verb, so a player can switch the addon off during a suspended perf arm, and
+a `resume` that called a bare stand-up would bring it back mid-capture and silently ruin the run.
+**Releasing one hold must not resurrect an addon the other is still holding down.**
+
+Standing up rebuilds **from current state**, never from a snapshot taken on the way down. The whole
+schema CLI answers while the addon is off, so a setting changed there has to be what the rebuild
+reflects.
+
+### What goes down, and what survives
+
+`NS.StandDown` (`core/WhatGroup.lua`) and `NS.FrameStandDown` (`modules/Frame.lua`) are the whole of
+the teardown, and the latch is their only caller.
+
+**Down:** all four AceEvent registrations actually `UnregisterEvent`'d; the notify timer and the
+teleport cooldown ticker cancelled; the capture state wiped; the popup and its ESC proxy off screen,
+with `visibilityAllows` answering **no at the source** so a combat edge, a settings change or a
+`/wg test` cannot re-show them behind the switch's back; both raw `PLAYER_REGEN_ENABLED`
+registrations on the popup frame and the deferred-build wait frame unregistered.
+
+**The one sanctioned exception is a hook that cannot be undone.** `hooksecurefunc` has no un-hook,
+so the `C_LFGList.ApplyToGroup` post-hook and the degraded client's `SetItemRef` post-hook gate
+their own bodies on `NS.IsStoodDown()` and return. That carve-out exists because the API is one-way
+and **does not generalize** to anything with a real unregister.
+
+**Survives, because it is SETUP and not a feature:** the chat command registration, the dispatcher
+and the `COMMANDS` table; the settings-category registration and the panel body; the AceDB handle,
+the single write seam and AceDB's `OnProfileChanged` / `OnProfileCopied` / `OnProfileReset`
+callbacks (a profile switch can flip `enabled` with nothing else touched, so the latch is
+re-evaluated there); and the launcher's registration — the minimap button stays on the minimap,
+because `minimap.hide` is a per-installation display preference and says nothing about whether the
+addon is running.
+
+### Secure work under lockdown
+
+The popup parents a `SecureActionButtonTemplate` teleport button, so `Hide` on it — and on every
+ancestor — is refused in combat. A stand-down taken mid-fight therefore takes `hidePopup`'s alpha-0
+route and **owes** the real `Hide` to the next legal edge. It keeps `PLAYER_REGEN_ENABLED` registered
+for exactly that, which is the **one** registration a disabled addon is permitted to hold, and
+`WhatGroup:OnDisabledCombatEnded` unregisters it the moment it fires. Attempting the protected call
+anyway is strictly worse than deferring: the frame does not hide either way, and the player
+additionally gets a red error naming this addon.
+
+### The launcher click
+
+Left-click is **refused** while the addon is disabled — WhatGroup is on launcher rung (a), so the
+left button drives the primary window, which is a feature. It prints `Sl:DisabledLine()` and does
+nothing else: no frame shown and, above all, **no SavedVariables write**. The rung-(c) carve-out
+does not reach it; a rung-(c) left-click opens the settings panel and nothing else, which is why
+that one is unchanged. **Right-click still opens the panel, in either state** — the ruling narrows
+the *slash* surface and a mouse click is not a slash command.
+
+### The slash surface is unchanged
+
+Every reserved verb answers while the addon is off and the bare `/wg` opens the panel; only this
+addon's own feature verbs (`show`, `test`) refuse, on one line. That is `slash-commands-§7`'s ruling
+after the v2.56.0 narrowing was reversed at v2.57.0, and it is documented in full in
+[slash-dispatch.md](./slash-dispatch.md). **It is not the stand-down.** The dispatcher and the
+settings registration are setup, so keeping them live costs nothing the stand-down was reclaiming.
+
+`tests/test_disabled.lua` is the conformance suite (`slash-commands-§7` MUST). Every assertion in it
+is on the **registration set**, the live timer set, the shown-frame set, the SavedVariables diff or
+the printed lines — never on a handler's return value, because a suite written that way certifies
+the draw gate it exists to catch.
 
 ## Taint Notes
 
@@ -226,7 +322,7 @@ outlive" a structural claim rather than a list of remembered call sites.
 - **Parent settings category is the landing page.** The parent never carries schema widgets — instead it shows the logo, TOC notes, and the slash-command list. `/wg config` calls `Helpers.OpenOptionsPanel()` and nothing else: since the `LibKa0s-Options-1.0` adoption that member is the **library's**, and it holds the main category's own ID, opens the parent, and unfolds the sidebar tree through the private `SettingsPanel:GetCategoryList():GetCategoryEntry(parent):SetExpanded(true)` traversal (`pcall`-wrapped, because that shape is Blizzard internals). `settings/Panel.lua` still records `WhatGroup._parentSettingsCategory` and `WhatGroup._settingsCategory`, but the open path does not read either. The `InCombatLockdown()` refusal lives inside `OpenOptionsPanel` too, so **every** caller is refused rather than just this verb (options-ui-§2). The user lands on the landing page with one click separating them from the General settings. See [docs/midnight-quirks.md](./midnight-quirks.md#settings-api-parent-vs-subcategory).
 - **Join notify uses a dual-path trigger.** `WhatGroup:_TryFireJoinNotify(reason)` is the single entry point that schedules `ShowNotification` + `ShowFrame`. It's called from BOTH the `GROUP_ROSTER_UPDATE` not-in → in transition AND the `LFG_LIST_APPLICATION_STATUS_UPDATED` `inviteaccepted` handler — because retail can fire those in either order, and the old "fire only on roster transition when pendingInfo is set" gate would silently miss when `inviteaccepted` arrived after the transition. A `notifiedFor` identity flag (the `pendingInfo` reference that already triggered) prevents double-firing when both paths catch the same join.
 - **Capture state is session-only.** `capturesByResult`, `pendingApplications`, `pendingInfo`, `wasInGroup`, `notifiedFor`, and the `self.notifyTimer` AceTimer handle never touch SavedVariables. Group-leave and the master-switch off-flip both route through `WhatGroup:WipeCapture()`, which clears all of them.
-- **`WhatGroup:WipeCapture()` is the master-switch wipe.** Flipping `db.profile.enabled` to false mid-flight (via panel checkbox or `/wg set enabled false`) calls `WipeCapture` so any pending capture, queued capture, or already-scheduled notify callback can't surface after the user has explicitly disabled the addon. Same method is reused on group-leave.
+- **The master switch is a LATCH, not a gate.** Flipping `db.profile.enabled` to false (panel checkbox, `/wg disable`, `/wg set enabled false`, a profile switch) takes the `disabled` hold on the one `LibKa0s-Lifecycle-1.0` instance, and the latch runs `NS.StandDown` — every event unregistered, every timer cancelled, the popup off screen at the source. `WhatGroup:WipeCapture()` is one line of that teardown and is also reused on group-leave. There is **no second teardown path**: an addon with two mechanisms that both mean "be inert" has two things to keep in step, and they diverge on the first module added after the second one was written. See `## The stand-down`.
 - **Notify timer is an AceTimer one-shot, canceled by `WipeCapture`.** `_TryFireJoinNotify` schedules the notify via `self:ScheduleTimer(fn, notify.delay)` (AceTimer-3.0) and stashes the handle in `self.notifyTimer`; `WipeCapture` `self:CancelTimer`s it so a scheduled callback can't fire after group-leave or the master-switch off-flip. The callback also re-checks `self.pendingInfo` identity before firing, guarding a same-tick replacement. Prevents an empty-data popup auto-opening during the delay window.
 - **Combat-defer for the secure popup.** `modules/Frame.lua` guards two secure-frame writes against `InCombatLockdown()`: (a) `ConfigureTeleportButton` stashes `info` and reruns on `PLAYER_REGEN_ENABLED`; (b) `WhatGroup:ShowFrame` defers the first-time `buildFrame()` past combat with a one-shot wait frame, printing a `Popup deferred until combat ends.` chat hint. Without these guards, secure-attribute writes on `SecureActionButtonTemplate` would silently drop in combat and leave the teleport button stuck in a stale state. `Settings.Register()` is **not** a third case — canvas-category registration is not a secure write and is not gated (options-ui-§9).
 - **Cyan `[WG]` chat prefix on every user-facing line, through one secret-safe printer.** Every chat line funnels through `NS.Util.print` — `LibKa0s-Core-1.0`'s printer, built in `core/CoreSetup.lua` and exposed as `NS.Print` / `WhatGroup._print` and a file-local `p` in `core/WhatGroup.lua`. It prepends `NS.PREFIX = "\|cff00FFFF[WG]\|r"` and runs each argument through `NS.SafeToString`, so a combat-protected value degrades to `<secret>` instead of raising in the chat path (events-frames-taint-§8 / WG-22); call sites pass label and value as **separate args** rather than pre-concatenating (WG-23). **Debug output does not go to chat** — it routes to the on-screen debug console (`NS.Debug(tag, …)` → `LibKa0s-DebugLog-1.0`, wired in `core/DebugLogSetup.lua`), wearing the same shared Ka0s window edge the popup does, as required for any addon with a main window (debug-logging-§7). Each console line is `HH:MM:SS | [Tag] message`. The log carries a thin always-shown scrollbar synced both ways to its scroll offset and a `N / 1500 lines` counter in the same monospace font (debug-logging-§11), driven only by the Lua mixin scroll API — the C getters are nil on a `ScrollingMessageFrame` (anti-pattern #41). Debug state is session-only (`NS.State.debug`), off on every login, never persisted. See [docs/debug.md](./debug.md).

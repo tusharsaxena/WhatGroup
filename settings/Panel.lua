@@ -255,12 +255,20 @@ local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{
 -- the off-flip wipe that used to sit on the row in settings/Schema.lua, and the other three are
 -- the settings modules/Frame.lua grew for this pass.
 local MASTER_HOOKS = {
-    -- Off-flip wipes any in-flight capture so a pre-toggle apply can't still surface a
-    -- notify/popup after the user has explicitly disabled the addon. WipeCapture also CancelTimers
-    -- any notify callback already scheduled (AceTimer, self.notifyTimer). The reason argument is
-    -- what makes it a material-effect log (debug-logging-§10): the [Set] line already shows
-    -- `enabled = false`, and WipeCapture logs only when there was something to drop.
-    enabled    = function(v) if not v then WhatGroup:WipeCapture("addon disabled") end end,
+    -- THE MASTER SWITCH, AND IT IS ONE LINE BECAUSE IT IS ONE LATCH (slash-commands-§7). This row
+    -- used to call WipeCapture directly, which was the whole of what "disabled" meant here: the
+    -- capture went, the four event registrations stayed, and the client went on dispatching into
+    -- an addon the player had switched off. `Set` takes or releases the `disabled` hold and the
+    -- latch runs the real teardown (core/WhatGroup.lua's NS.StandDown), which wipes the capture
+    -- among everything else -- so there is no second teardown path here to drift from that one.
+    --
+    -- `Set` rather than a branch: written once, in the library's shape, rather than as an
+    -- `if not v then …` each of eleven hosts writes for itself and one of them writes backwards.
+    -- The verbs `/wg enable` and `/wg disable` and `/wg set enabled false` all land here too,
+    -- because they write this same row through this same seam.
+    enabled    = function(v)
+        if NS.Lifecycle then NS.Lifecycle:Set(NS.HOLD_DISABLED, not v) end
+    end,
     -- A popup already on screen when the gate closes has to go, or the setting reads as ignored
     -- until the next open.
     visibility = function() WhatGroup:ApplyFrameVisibility() end,

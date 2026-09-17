@@ -54,6 +54,11 @@ core\DebugLogSetup.lua
 # After core\DebugLogSetup.lua, which publishes NS.Debug. Conventional -- the object is built here
 # but registered from OnEnable, and every seam it holds is read inside a closure.
 core\LauncherSetup.lua
+# The stand-down latch (slash-commands-§7): ONE LibKa0s-Lifecycle-1.0 instance, the `disabled` hold
+# taken from the stored enable path and the `perf` hold reserved for the harness. Last in # Core and
+# conventional: both host callbacks resolve NS.addon members at CALL time and the first call is from
+# OnEnable, by which point every file below has loaded.
+core\LifecycleSetup.lua
 
 # Defaults (data tables; conventional apart from the annotated line)
 # Before settings\Schema.lua: this file publishes NS.C, which Schema takes as a file-scope upvalue

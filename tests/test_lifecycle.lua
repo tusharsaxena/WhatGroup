@@ -426,10 +426,15 @@ end)
 -- button runs the same WhatGroup:RunTest body, and a player standing in the settings panel with
 -- the addon switched off is looking at the Enable checkbox while they click it.
 test("lifecycle: /wg test notify refuses while the master switch is off", function()
+    -- THROUGH THE DISPATCHER, not through the COMMANDS row. The gate is the library's since Slash
+    -- minor 13 and it sits in dispatch, after the COMMANDS lookup -- which is what keeps a TYPO
+    -- answering `unknown command` rather than "the addon is disabled". `runCmd` reaches entry[3]
+    -- directly and would walk straight past it, so a case written that way would assert on the
+    -- handler rather than on the surface a player actually types at.
     local NS, _, mock = T.bootAddon()
     NS.addon.Settings.Helpers.Set("enabled", false)
     local mark = #mock.prints
-    runCmd(NS, "test", "notify")
+    NS.addon:OnSlashCommand("test notify")
     assertNil(NS.addon.pendingInfo, "no synthetic capture was injected")
     assertEqual(#mock.prints - mark, 1, "one line, and no chat summary behind it")
     assertTrue(mock.prints[#mock.prints]:find("/wg enable", 1, true) ~= nil,

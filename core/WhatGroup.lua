@@ -93,6 +93,11 @@ local DETAILS_LINK       = ADDON_LINK_TYPE and (ADDON_LINK_TYPE .. ":" .. DETAIL
 local DETAILS_LINK_PREFIX = (ADDON_LINK_TYPE and (ADDON_LINK_TYPE .. ":") or "") .. "WhatGroup:"
 
 local function onDetailsLinkClick(linkArg)
+    -- The `hooksecurefunc("SetItemRef", …)` fallback route below has no un-hook, so the body gates
+    -- itself (slash-commands-§7's one sanctioned exception). The EventRegistry route shares the
+    -- gate rather than carrying its own: one answer, one place. A disabled addon prints no notify
+    -- line, so this link is a leftover from before the switch was flipped.
+    if NS.IsStoodDown() then return end
     if type(linkArg) ~= "string" then return end
     if linkArg:sub(1, #DETAILS_LINK_PREFIX) ~= DETAILS_LINK_PREFIX then return end
     if WhatGroup.OnSetItemRef then
@@ -190,6 +195,16 @@ local function reloadProfile(self)
     -- And every open panel is showing the outgoing profile's values.
     local H = NS.Settings and NS.Settings.Helpers
     if H and H.RefreshAll then H.RefreshAll() end
+    -- THE INCOMING PROFILE CARRIES ITS OWN ANSWER TO `enabled`, and nothing else in this addon
+    -- would notice: a profile switch flips the stored path with no checkbox clicked and no verb
+    -- typed. `Set` re-reads the path and `Reevaluate` fires a stand-down or a stand-up only on an
+    -- actual edge, so switching between two enabled profiles costs one comparison and no teardown
+    -- (slash-commands-§7, LibKa0s-Lifecycle-1.0). This is why the AceDB handle and these three
+    -- callbacks are on the survives-the-stand-down list: they are the route back.
+    if NS.Lifecycle then
+        NS.Lifecycle:Set(NS.HOLD_DISABLED, not (self.db and self.db.profile and self.db.profile.enabled))
+        NS.Lifecycle:Reevaluate()
+    end
 end
 
 -- A profile copy is logged HERE, once (debug-logging-§10): AceDB copying one profile over another is
@@ -266,18 +281,96 @@ function WhatGroup:OnInitialize()
     self:RegisterChatCommand("whatgroup", "OnSlashCommand")
 end
 
-function WhatGroup:OnEnable()
-    -- Hooks are installed at file-load (top of this file), not here.
+-- EVERY EVENT THIS ADDON OWNS, in one function, because it is called from two places that must
+-- never disagree: OnEnable at login, and StandUp when the last hold is released. Two lists would
+-- diverge on the first event added after the second one was written, and the divergence would show
+-- up as an addon that works until the player toggles it off and on again.
+--
+-- Hooks are NOT here: the apply post-hook and the chat-link callback are installed at file load
+-- (top of this file) for taint reasons, and `hooksecurefunc` has no un-hook -- so those two gate
+-- their own bodies on NS.IsStoodDown() instead, which is slash-commands-§7's one sanctioned
+-- exception and is not generalizable to anything that has a real unregister.
+local function registerFeatureEvents(self)
     self:RegisterEvent("GROUP_ROSTER_UPDATE")
     self:RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
     -- The popup's `visibility` setting has two combat-dependent values, and combat state changes
     -- without the player touching the panel — so the gate needs an event, not just an onChange.
     -- Both edges route to ONE handler because the answer is a single re-evaluation either way;
     -- which edge it is comes from the event name (see modules/Frame.lua's visibilityAllows).
-    -- Registered here in OnEnable and never in OnInitialize, like the two above.
+    -- Registered here and never in OnInitialize, like the two above.
     self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnCombatStateChanged")
     self:RegisterEvent("PLAYER_REGEN_ENABLED",  "OnCombatStateChanged")
-    wasInGroup = IsInGroup()
+    wasInGroup = IsInGroup() and true or false
+end
+
+-- ---------------------------------------------------------------------------
+-- The stand-down (slash-commands-§7)
+-- ---------------------------------------------------------------------------
+--
+-- DISABLED MEANS THE ADDON IS NOT RUNNING. Not hidden, not quiet, not skipping a repaint. These
+-- two functions are the latch's `standDown` / `standUp` (core/LifecycleSetup.lua) and they are the
+-- only route in either direction: there is no bare stand-up anywhere, because a resume that stood
+-- the addon up would resurrect it under a player who had disabled it mid-capture.
+--
+-- WHAT GOES DOWN: all four event registrations actually UNREGISTERED -- not gated, because a
+-- handler that early-returns still costs the dispatch on every GROUP_ROSTER_UPDATE in a raid --
+-- the notify timer and the cooldown ticker cancelled, the capture state wiped, and the popup off
+-- screen with the show ladder answering no AT THE SOURCE so a combat edge cannot bring it back.
+--
+-- WHAT SURVIVES, because it is SETUP and not a feature: the chat command registration and the
+-- dispatcher, the settings category and the panel body, the AceDB handle and its profile
+-- callbacks, and the launcher's registration. A disabled addon still has to be reachable by the
+-- player who wants to turn it back on.
+--
+-- THE ONE EVENT A DISABLED ADDON KEEPS is PLAYER_REGEN_ENABLED, and only when it is owed a
+-- protected call: the popup parents a SecureActionButtonTemplate button, so Hide on it is refused
+-- under lockdown and modules/Frame.lua takes the alpha-0 route instead. The real Hide is owed to
+-- the next legal edge, so the registration is held pending and released the moment it fires.
+function NS.StandDown()
+    local self = WhatGroup
+    self:UnregisterEvent("GROUP_ROSTER_UPDATE")
+    self:UnregisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
+    self:UnregisterEvent("PLAYER_REGEN_DISABLED")
+    self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+
+    -- Cancels the notify timer and drops pendingInfo, the two things that would otherwise wake up
+    -- or be rendered after the addon was switched off. It is not a SavedVariables write: every
+    -- table it touches is session-only.
+    self:WipeCapture("addon stood down")
+
+    -- The popup, the ESC proxy, the cooldown ticker and the deferred-teleport frame event.
+    if NS.FrameStandDown then NS.FrameStandDown() end
+
+    -- Owed a protected Hide. This is the one registration slash-commands-§7 permits a disabled
+    -- addon to keep, and OnDisabledCombatEnded below drops it the moment it fires.
+    if InCombatLockdown() and NS.FrameOwesHide and NS.FrameOwesHide() then
+        self:RegisterEvent("PLAYER_REGEN_ENABLED", "OnDisabledCombatEnded")
+    end
+end
+
+-- The pending stand-down's completion, and its own release. Registered only by StandDown above and
+-- only in combat; it unregisters itself FIRST so that nothing can leave a disabled addon watching
+-- an event it no longer owes anything to.
+function WhatGroup:OnDisabledCombatEnded()
+    self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+    if NS.FrameFinishStandDown then NS.FrameFinishStandDown() end
+end
+
+-- REBUILDS FROM CURRENT STATE, never from a snapshot taken on the way down: a setting can be
+-- changed while the addon is off (the whole schema CLI answers while disabled, slash-commands-§7),
+-- and the rebuild has to reflect the setting as it is NOW.
+function NS.StandUp()
+    local self = WhatGroup
+    -- Drop any pending combat hold before re-registering, or registerFeatureEvents would be
+    -- rebinding PLAYER_REGEN_ENABLED on top of the stand-down's own handler.
+    self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+    registerFeatureEvents(self)
+    if self.ApplyFrameVisibility then self:ApplyFrameVisibility() end
+end
+
+function WhatGroup:OnEnable()
+    -- Hooks are installed at file-load (top of this file), not here.
+    registerFeatureEvents(self)
 
     -- Register the Settings panel at login so the "Ka0s WhatGroup" entry shows
     -- in Settings → AddOns without the player running `/wg config` first — the
@@ -302,6 +395,15 @@ function WhatGroup:OnEnable()
     -- LibDataBroker or LibDBIcon, which are OptionalDeps and vendored -- the library says which
     -- one is absent, once, and the addon carries on without a button.
     if NS.Launcher then NS.Launcher:Register() end
+
+    -- THE LATCH, TAKEN FROM THE STORED PATH (slash-commands-§7). Last in OnEnable, and the
+    -- position is load-bearing in one direction only: everything above has to have gone UP before
+    -- the latch can take it back down, or a stand-down would unregister events that were never
+    -- registered and hide a panel that was never listed. It is not a special case -- it is the
+    -- same `Set` call the Master controls checkbox, `/wg enable` and a profile switch all make.
+    if NS.Lifecycle then
+        NS.Lifecycle:Set(NS.HOLD_DISABLED, not (self.db and self.db.profile and self.db.profile.enabled))
+    end
     -- No lifecycle line here: the debug flag is session-only and off at login,
     -- so a boot-time summary would always be gated off (debug-logging-§5 / debug-logging-§8). The [Init]
     -- summary is emitted at the DebugLog:SetEnabled seam instead, the only
@@ -650,7 +752,12 @@ function WhatGroup:OnApplyToGroup(searchResultID)
     -- entirely so no capture → no pendingInfo → no notification or
     -- popup later. /wg test notify and /wg show still work (they bypass the
     -- capture pipeline) so the user can preview / re-view at any time.
-    if not (self.db and self.db.profile and self.db.profile.enabled) then
+    -- `hooksecurefunc` HAS NO UN-HOOK, so this one gates its own body and returns -- the single
+    -- sanctioned exception in slash-commands-§7's stand-down, and it is not generalizable: the
+    -- events this addon registers are genuinely unregistered (NS.StandDown), because they can be.
+    -- The question asked is the LATCH's, not `db.profile.enabled`, so a perf-suspended arm and a
+    -- disabled addon get the same answer through one seam.
+    if NS.IsStoodDown() then
         return
     end
     local captured = self:CaptureGroupInfo(searchResultID)
@@ -877,13 +984,14 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
         -- The pragma is on the branch line and covers that line alone: the next empty branch
         -- written anywhere in this file, or this one, still reports.
     elseif newStatus == "inviteaccepted" then
-        -- Master enable gate, same read as OnApplyToGroup: when disabled the
-        -- addon must capture nothing, so the fresh re-fetch below never runs,
-        -- pendingInfo is never set and no notify or popup follows. Without
-        -- this the queue gate alone is not enough — the fresh fetch reaches
-        -- the LFG API directly and would resurrect a capture the master
-        -- switch was meant to suppress (WG-R-01).
-        if not (self.db and self.db.profile and self.db.profile.enabled) then
+        -- Belt and braces, and deliberately kept after the stand-down landed. A disabled addon
+        -- has UNREGISTERED LFG_LIST_APPLICATION_STATUS_UPDATED, so nothing dispatches into this
+        -- method at all -- which is the point of slash-commands-§7 and the thing the old
+        -- `db.profile.enabled` read here was NOT doing. What this line still covers is the one
+        -- caller the client does not drive: a test, a `/run`, or a future path that reaches the
+        -- method directly. It asks the LATCH rather than the stored path, so there is one notion
+        -- of "off" in this file rather than two that can disagree (WG-R-01).
+        if NS.IsStoodDown() then
             return
         end
         -- Pick the more-complete capture between fresh (re-fetched

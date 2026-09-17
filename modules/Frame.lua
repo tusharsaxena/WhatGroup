@@ -162,6 +162,13 @@ end
 -- caller passes nothing and gets the live read, which is correct for them because they are not on
 -- an edge.
 local function visibilityAllows(inCombat)
+    -- THE STAND-DOWN'S RUNG, AND IT IS FIRST (slash-commands-§7). Hiding the popup imperatively on
+    -- the way down is not enough and the reason is the same one performance-§6 gives about suspend:
+    -- hidden frames come back. A combat transition, a `/wg test` or a settings change re-shows it
+    -- behind the switch's back, and the addon is then visibly running while it claims to be off.
+    -- Every path to the screen -- ShowFrame, ApplyFrameVisibility, the launcher toggle, test mode
+    -- -- passes through this one answer.
+    if NS.IsStoodDown and NS.IsStoodDown() then return false end
     if inCombat == nil then inCombat = InCombatLockdown() and true or false end
     local v = WhatGroup.db and WhatGroup.db.profile and WhatGroup.db.profile.visibility
     if v == "never"       then return false end
@@ -219,6 +226,10 @@ end
 -- residue is exactly why `pendingHide` exists and why the soft state is never a resting one.
 local softHidden  = false   -- alpha-0 stand-in for a Hide the client refused
 local pendingHide = false   -- a real Hide owed once the lockdown lifts
+
+-- The first-show-in-combat defer's frame (ShowFrame, far below). At file scope so NS.FrameStandDown
+-- can unregister it; nil until a show is actually deferred.
+local buildWaitFrame
 
 -- The ESC proxy: the name in UISpecialFrames, standing in for the popup's own (buildEscapeProxy
 -- below). Unprotected, so its Show and Hide are legal in combat, and kept SHOWN exactly while the
@@ -1005,7 +1016,13 @@ function WhatGroup:ShowFrame()
         if not WhatGroup._frameBuildQueued then
             WhatGroup._frameBuildQueued = true
             local pending = WhatGroup.pendingInfo
-            local waitFrame = CreateFrame("Frame")
+            -- FILE-SCOPE, not a closure local, since the stand-down landed. A frame created and
+            -- registered inside this branch is unreachable from anywhere else, so a disabled addon
+            -- would have kept watching PLAYER_REGEN_ENABLED on a frame nothing could unregister --
+            -- exactly the survivor slash-commands-§7 exists to catch. One handle, replaced rather
+            -- than stacked, because `_frameBuildQueued` already forbids a second.
+            buildWaitFrame = buildWaitFrame or CreateFrame("Frame")
+            local waitFrame = buildWaitFrame
             waitFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
             waitFrame:SetScript("OnEvent", function(wf)
                 wf:UnregisterAllEvents()
@@ -1060,4 +1077,66 @@ function WhatGroup:ToggleFrame()
     end
     self:ShowFrame()
     return onScreen()
+end
+
+-- ---------------------------------------------------------------------------
+-- The stand-down, frame half (slash-commands-§7)
+-- ---------------------------------------------------------------------------
+--
+-- core/WhatGroup.lua's NS.StandDown owns the events, the timers and the capture state; this owns
+-- everything that draws. It is called by the latch and by nothing else.
+--
+-- WHY THE HIDE IS NOT THE WHOLE STORY. `hidePopup` is the one seam allowed to take the popup off
+-- screen and it refuses a real Hide under lockdown -- f parents a SecureActionButtonTemplate
+-- button, so Hide on it and on every ancestor is protected. In combat it takes the alpha-0 route
+-- and leaves `pendingHide` owed. That is why NS.FrameOwesHide exists: the stand-down asks it, and
+-- keeps the ONE event registration slash-commands-§7 permits a disabled addon to keep so the real
+-- Hide can be settled on PLAYER_REGEN_ENABLED. Attempting the protected call anyway is strictly
+-- worse -- the frame does not hide either way and the player additionally gets a red error naming
+-- this addon.
+function NS.FrameStandDown()
+    -- Test mode first: it holds `previewInfo`, which visibilityAllows' caller `ApplyFrameVisibility`
+    -- treats as an explicit request to see the popup and steps around the gate for. Ending it also
+    -- unticks the Master controls checkbox, so the panel does not read "test mode on" over an addon
+    -- that is off.
+    if endTestMode("addon disabled") then refreshPanel() end
+
+    stopCooldownTicker()
+
+    hidePopup()
+    gateWithheld = false
+    if escProxy then escProxy:Hide() end
+
+    -- The two RAW frame registrations this file makes, both PLAYER_REGEN_ENABLED and both for
+    -- deferred protected work that a disabled addon is no longer going to do. Unregistered rather
+    -- than gated: they can be, so slash-commands-§7 says they must be.
+    if f then
+        f:UnregisterEvent("PLAYER_REGEN_ENABLED")
+        f:SetScript("OnEvent", nil)
+        f._pendingTeleportInfo = nil
+    end
+    if buildWaitFrame then
+        buildWaitFrame:UnregisterAllEvents()
+        buildWaitFrame:SetScript("OnEvent", nil)
+    end
+    WhatGroup._frameBuildQueued = nil
+end
+
+--- Is a real Hide still owed to the next legal combat edge?
+---
+--- Asked by the stand-down, and it is the only thing that can justify a disabled addon keeping an
+--- event registered. A popup that was never built, or one already genuinely hidden, owes nothing.
+function NS.FrameOwesHide()
+    return pendingHide == true
+end
+
+--- Settle the debt, on PLAYER_REGEN_ENABLED, with the lockdown lifted.
+---
+--- `hidePopup` now takes the real route: f:Hide(), the alpha restored, and OnHide fires. After this
+--- the addon holds no event registration at all.
+function NS.FrameFinishStandDown()
+    if not pendingHide then return end
+    hidePopup()
+    gateWithheld = false
+    if escProxy then escProxy:Hide() end
 end

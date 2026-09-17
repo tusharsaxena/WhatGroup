@@ -97,51 +97,77 @@ Library verbs delegate to the instance; host verbs are the file-local functions 
 
 `Helpers.RestoreAllDefaults` deliberately **overrides** the library member of the same name (`settings/OptionsSetup.lua:287-300`, [LIBKA0S-08](https://github.com/tusharsaxena/WhatGroup/issues/10)): the library's is row-by-row over every row, with no profile reset and no confirmation. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched.
 
-## The dispatcher survives the disabled state
+## The dispatcher survives the disabled state, and so does every reserved verb
 
 `slash-commands-§2` requires it, and it is what stops `enable` / `disable` being a one-way switch:
 a player who turned the addon off with a verb has to be able to turn it back on with one, or the
 only route left is the settings panel they were trying not to open.
 
-It holds here **because the master switch is read in exactly two places** —
-`core/WhatGroup.lua`'s `OnApplyToGroup` and the `inviteaccepted` arm of the status handler — and
-nowhere else. Nothing unregisters `/wg`, empties `COMMANDS` or tears the dispatcher down on the
-off-flip: the chat commands are registered in `OnInitialize` and the settings category in
-`OnEnable`, both of which are **setup**, not features. So `/wg`, `help`, `config`, `version` and
-`enable` all answer exactly as before while the addon is off. `tests/test_slash.lua` pins that
-rather than leaving it to inspection.
+Nothing unregisters `/wg`, empties `COMMANDS` or tears the dispatcher down on the off-flip: the
+chat commands are registered in `OnInitialize` and the settings category in `OnEnable`, and both
+are **setup**, not features — they come up on load in either state and stay up. What the off-flip
+*does* do is take the latch's `disabled` hold, which unregisters every event, cancels every timer
+and takes the popup off screen ([the stand-down](./ARCHITECTURE.md#the-stand-down)). **The addon is
+inert; its command surface is not the addon.**
+
+**Every reserved verb answers while the addon is off** — `help`, `config`, `version`, `enable`,
+`disable`, `debug`, `perf`, `get`, `set`, `list`, `reset`, `resetall` — and the bare `/wg` opens the
+settings panel exactly as it does when the addon is running.
+
+That sentence is a **ruling rather than a default**, and the round trip behind it is worth knowing.
+The standard narrowed this surface to `enable` and `help` at **v2.56.0** and **reversed it at
+v2.57.0**, the same day. What settled it was ordinary: `/wg` on a disabled addon answered with a
+refusal instead of opening the panel — the one surface a player uses to switch it back on by hand.
+A rule that hides the off switch has mistaken which half of the pair it protects. The reasoning for
+the restored set is that a player must be able to **read and repair settings** and **reach the
+panel** while the addon is off, which is exactly when they are likeliest to need to, and **`enable`
+above all**. `debug` and `perf` are diagnostics rather than features: the usual reason to reach for
+either is that the addon is misbehaving. `perf` is reserved-but-unregistered here
+([LIBKA0S-15](https://github.com/tusharsaxena/WhatGroup/issues/7)), and a live verb with no
+`COMMANDS` row still gets the one line rather than the index — it is a real verb, not a typo.
 
 ### ...and a feature verb refuses instead of acting
 
-`slash-commands-§2`'s trailing SHOULD, made precise in standard **v2.54.0**, and this addon takes
-it. A verb that **drives the addon's features** — anything that draws, shows, tracks, tests or
-clears the thing the addon exists to do — answers on **one tagged line naming `/wg enable`** and
-does **nothing else**: no partial work, no side effect, no second line. Here that is **`show`** and
-**`test`**, in all of `test`'s forms.
+`slash-commands-§2`'s trailing SHOULD, which survived the reversal unchanged and is **the only
+refusal in the disabled state**. A verb that **drives the addon's features** — anything that draws,
+shows, tracks, tests or clears the thing the addon exists to do — answers on **one tagged line
+naming `/wg enable`** and does **nothing else**: no partial work, no side effect, no second line.
+Here that is **`show`** and **`test`**, in all of `test`'s forms.
 
-**The live set never refuses**, and it is the standard's list rather than this addon's judgement of
-what felt safe: `help`, `config`, `version`, `enable`, `disable`, `debug` and the schema CLI (`get`,
-`set`, `list`, `reset`, `resetall`). `perf` is on the list too, and is reserved-but-unregistered
-here ([LIBKA0S-15](https://github.com/tusharsaxena/WhatGroup/issues/7)); keeping the entry is what
-makes the set read as the rule rather than as a subset of it. The reasoning is that a player has to
-be able to **read and repair settings** and **reach the panel** while the addon is off — which is
-exactly when they are likeliest to need to — and **`enable` above all**, or the pair above is
-one-way again. `debug` is a diagnostic, not a feature: the usual reason to reach for it is that the
-addon is misbehaving.
+`lock` and `unlock` are **not** among them. `slash-commands-§8` is a MAY; this addon's lock is a
+**checkbox only** and it registers no verbs for it, which that section names explicitly as the case
+the MAY exists to leave alone. Declining a MAY is not a deviation and owes no register row.
 
-**It is implemented in ONE place — the dispatcher — and never as a guard inside each verb.**
-`settings/Slash.lua` names the live set once, as data (`ALWAYS_LIVE`), and wraps `entry[3]` for
-every row that is not on it, immediately after the `COMMANDS` literal. That is the seam every verb
-already passes through: the library's dispatcher and the no-LibKa0s stub both call the handler out
-of this table and neither has another way in, so both paths are gated by one wrapper and **a verb
-added tomorrow is gated by default**. A guard pasted into `runShow` and `runTest` would be two
-places to forget and a third the next verb forgets silently. The wrap touches handlers only, so the
-help index and the panel's landing page — which read `entry[1]` and `entry[2]` — still list the
-refused verbs, which is how the player finds out the addon has them.
+### The gate is the library's, not this file's
 
-The check **fails open**: only a stored `enabled == false` refuses. A nil — no db yet, no `Helpers`
-yet, a path the profile has never held — is not the player having turned the addon off, and reading
-it as one would refuse every feature verb on an install that is merely early or degraded.
+`settings/Slash.lua` used to name the live set itself (`ALWAYS_LIVE`) and wrap `entry[3]` for every
+row that was not on it. Both moved into `LibKa0s-Slash-1.0` at **minor 13**. The host now passes two
+descriptor fields and nothing else:
+
+- **`isEnabled`** — a function, asked at **dispatch time** and never cached, so the command after an
+  `enable` works. It asks the **latch** (`NS.IsStoodDown`) rather than `db.profile.enabled`, so the
+  `perf` hold and the `disabled` hold give the CLI one answer between them.
+- **`brandName`** — the plain-text `Ka0s WhatGroup`, the **same string** `core/LauncherSetup.lua`
+  gives the LDB object as `label`. One brand spelling per addon, not a second one invented for a
+  message.
+
+`liveVerbs` is deliberately **not** passed: the library's default *is* the standard's twelve, and
+passing a copy would be this addon's own opinion about which verbs a player may use on an addon they
+have switched off — the opinion v2.57.0 settled.
+
+Two consequences of where the gate now sits are worth naming, because both were wrong before:
+
+- **The gate sits AFTER the `COMMANDS` lookup.** A verb this addon ships and is standing down from
+  is refused; a **typo** gets `unknown command '<verb>'` and the index, because the addon genuinely
+  did not understand and `slash-commands-§3`'s unknown-verb MUST is unqualified. Gating before the
+  lookup answered a misspelling with "the addon is disabled" — a true sentence and the wrong answer.
+- **`help` prints the refusal line immediately after its header, unindented, and then the whole
+  index.** It is not a refusal *of* `help`: the player has to be able to **see** `enable` in the
+  list. It is a statement about the index, some of whose rows are this addon's own feature verbs.
+
+The wording lives in exactly one place — `lib.DISABLED_LINE_FORMAT`, built by `Sl:DisabledLine()` —
+and **MUST NOT** be re-spelled host-side. `core/LauncherSetup.lua`'s refused left-click calls that
+same member rather than writing the sentence again.
 
 **`/wg test notify` changed behavior with this.** It used to bypass the master switch deliberately,
 so a preview still ran with the addon disabled, and `tests/test_lifecycle.lua` pinned that. `test`

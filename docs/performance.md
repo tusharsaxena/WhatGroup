@@ -91,6 +91,17 @@ cite, and the sweep above is what an audit reads first.
 The long-form reasoning, and the date the user ratified it, are at
 [`LIBKA0S-15`](https://github.com/tusharsaxena/WhatGroup/issues/7).
 
+**(c) is an argument about a MEASUREMENT window, not about whether this addon can be made inert.**
+Since the stand-down landed (`slash-commands-§7`, `ARCHITECTURE.md` → `## The stand-down`) it very
+much can: `core/LifecycleSetup.lua` builds the `LibKa0s-Lifecycle-1.0` latch and `NS.StandDown`
+unregisters every event, cancels every timer and takes the popup off screen. The difference is who
+asked. A player who unticks *Enable WhatGroup* has asked to stop capturing and is entitled to have
+that mean it; a perf harness suspending the addon for thirty seconds has not, and the player loses
+the group info they joined for with nothing on screen to explain it. The **`perf` hold is wired on
+the same latch anyway** — it is the library's key and the latch is the same latch — so if the
+exemption is ever re-examined there is no second teardown path to reconcile, which is the whole
+reason `slash-commands-§7` insists the stand-down be built on this seam rather than beside it.
+
 ## The re-check trigger
 
 The exemption was **conditional on criterion (a) still being true**, and it fired on 2026-08-06 with
