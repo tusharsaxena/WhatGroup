@@ -166,7 +166,7 @@ Stated explicitly, because each of these is a reasonable guess that happens to b
 - **No CI.** There is no `.github/` directory and no workflow. `docs/testing.md:204-206` says so
   outright: the README `tests` badge is static and hand-maintained, with no GitHub Action behind it.
 - **No test dependency beyond `git` and a shell.** The suites `require` nothing outside `tests/`, and
-  the only shell-outs are the harness's own: `tests/_kit/framework.lua:357-358` lists a directory with
+  the only shell-outs are the harness's own: `tests/_kit/framework.lua:515-516` lists a directory with
   `ls -A` (`dir /b` on cmd.exe) because the collection takes no LuaFileSystem dependency, and the
   vendored-payload gate reads the sibling checkout with `git` — `tests/_kit/vendor_sync.lua:193`
   (the `git -C <sibling> …` runner behind its `show` and `ls-tree` reads) and `:236`
