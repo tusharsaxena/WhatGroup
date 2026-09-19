@@ -941,7 +941,7 @@ local APPLICATION_ENDED = {
 }
 
 -- The two short status arms live out here rather than inline. The handler is the file's most
--- complex function and sits at the `code-quality-§3` ceiling; the "inviteaccepted" arm is the
+-- complex function and sits at the CCN 15 ceiling (`automated-tests-§3`, `performance-§10`); the "inviteaccepted" arm is the
 -- one that has to be read as a whole, so the other two pay for it by being named instead.
 
 -- Move the capture off its search-result key and onto the application id the server has just

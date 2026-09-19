@@ -8,8 +8,8 @@ AceDB profile.
 This addon is built to the **Ka0s WoW Addon Standard** —
 <https://github.com/tusharsaxena/WowAddonStandards>. Treat that repo (its
 `standards/STANDARDS.md`) as the source of truth for structure, conventions,
-metadata, testing, and layout. **All development work in this repo is done
-against the standard** — check every change against it as you go.
+metadata, testing, and layout. All development here — features, refactors,
+doc changes — **MUST conform to it.**
 
 **Deviation rule (MUST).** If a change would deviate from the standard — or you
 notice existing code/docs that already deviate — **stop and flag it to the
@@ -26,6 +26,8 @@ whether it should be:
 
 Do not resolve a standards conflict on your own — surface it and let the user
 choose. (See the frozen compliance snapshot in `docs/audits/2026-08-04/`.)
+
+When in doubt, treat standard conformance as a hard requirement and ask.
 
 ## The `docs/` set — there is no `agent-context.md`
 
