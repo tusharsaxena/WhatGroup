@@ -594,7 +594,7 @@ badge and any count quoted in the docs must agree with it.
 - testmode: the popup's Close button ends test mode and unticks the box
 - testmode: ESC ends test mode and unticks the box
 - testmode: the lock is honored while it is up
-- testmode: a start in combat is refused with one gray line and leaves the box unticked
+- testmode: a start in combat from the checkbox is refused by the library's lock, box unticked
 - testmode: combat starting ends it, says so once, and unticks the box
 - testmode: combat with test mode off prints nothing about it
 - testmode: Reset all settings ends it

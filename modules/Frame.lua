@@ -951,7 +951,9 @@ end
 
 -- The checkbox's get/set, bound through settings/Schema.lua's SESSION table the way the Debug
 -- console's is. One table, handed out on every read. A refused start leaves the flag false, and the
--- settings seam's refresh after the write redraws the box unticked.
+-- settings seam's refresh after the write redraws the box unticked. In combat the click never
+-- gets here: LibKa0s's combat lock (options-ui-§2) refuses it first with its own notice, so
+-- startTestMode's combat guard serves `/wg test` alone.
 local TEST_MODE_CHECKBOX = {
     get = function() return NS.State.testMode == true end,
     set = function(v)
