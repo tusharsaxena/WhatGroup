@@ -144,7 +144,8 @@ test("testmode: /wg test in combat is refused with one line and leaves it off", 
     wgTest(NS, "")
     assertFalse(isOn(NS), "refused")
     assertEqual(#mock.prints - mark, 1, "one line")
-    assertTrue(printedSince(mock, mark, "cannot start test mode during combat"))
+    assertTrue(printedSince(mock, mark, "cannot start test mode during combat"), "the host's own line")
+    assertTrue(printedSince(mock, mark, "|cff808080"), "in gray")
     assertEqual(#mock.blocked, 0, "no protected call was attempted")
     assertEqual(checkbox(mock, "Test mode"):GetValue(), false, "the box stays unticked")
     wgTest(NS, "on")
@@ -317,18 +318,25 @@ end)
 -- Combat
 -- ---------------------------------------------------------------------------
 
-test("testmode: a start in combat is refused with one gray line and leaves the box unticked",
+-- LibKa0s v1.46.1 (options-ui-§2, combat lock): the library refuses the settings checkbox's click
+-- itself, with its own gray COMBAT_LOCKED_NOTICE, before the row's set runs -- so from the settings
+-- surface the host's own "cannot start test mode" line never prints. The host's refusal in
+-- startTestMode stays: it is what refuses `/wg test` (the slash write is not a settings-page
+-- control), pinned by the "/wg test in combat" test above.
+test("testmode: a start in combat from the checkbox is refused by the library's lock, box unticked",
 function()
-    local NS, _, mock = openGeneral()
+    local NS, env, mock = openGeneral()
+    local notice = env.LibStub("LibKa0s-Options-1.0").STRINGS.COMBAT_LOCKED_NOTICE
     mock.combat = true
     local mark = #mock.prints
     checkbox(mock, "Test mode"):Fire("OnValueChanged", true)
     assertFalse(isOn(NS), "refused")
     assertTrue(popup(mock) == nil or not popup(mock):IsShown(), "nothing was shown")
     assertEqual(#mock.blocked, 0, "no protected call was attempted")
-    assertTrue(printedSince(mock, mark, "cannot start test mode during combat"), "the refusal says why")
-    assertTrue(printedSince(mock, mark, "|cff808080"), "in gray")
-    assertEqual(checkbox(mock, "Test mode"):GetValue(), false, "the box redraws unticked")
+    assertTrue(printedSince(mock, mark, notice), "the library's combat-lock notice says why")
+    assertFalse(printedSince(mock, mark, "cannot start test mode during combat"),
+        "the host's own line never runs: the library refused before the set")
+    assertEqual(checkbox(mock, "Test mode"):GetValue(), false, "the box stays unticked")
 end)
 
 test("testmode: combat starting ends it, says so once, and unticks the box", function()

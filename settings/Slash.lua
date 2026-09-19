@@ -271,7 +271,8 @@ end
 
 -- `/wg test` IS the test mode (options-ui-§15): it writes the same session row the Master controls
 -- checkbox writes, through the same Helpers.Set, so the box follows, a start in combat is refused
--- with the checkbox's one line, and the [Set] trace logs. Bare toggles it; `on|off` sets it.
+-- by startTestMode's one gray line (the guard that serves this verb; the checkbox itself is
+-- refused first by LibKa0s's combat lock, options-ui-§2), and the [Set] trace logs. Bare toggles it; `on|off` sets it.
 -- `notify` keeps the one-shot join notice + popup flow, WhatGroup:RunTest, which the panel's Test
 -- button also runs.
 local TEST_MODE_PATH = "state.testMode"

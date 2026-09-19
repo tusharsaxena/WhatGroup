@@ -290,8 +290,12 @@ taint line. Keep the Settings panel open beside the popup throughout.
 7. Tick it and pull a training dummy. **Expected:** the popup goes as combat starts, one line reads
    `Test mode off — combat started`, the box is unticked, and there is no `ADDON_ACTION_BLOCKED`.
    Drop combat: the popup does **not** come back.
-8. In combat, `/wg test` (or tick the box on a panel you opened before the pull).
+8. In combat, `/wg test`.
    **Expected:** one gray line, `cannot start test mode during combat`, no popup, box unticked.
+   Then, with a panel you opened before the pull, try to tick the box. **Expected:** the page is
+   covered (*Settings are locked during combat.*), the click does nothing, at most one gray line
+   `settings are locked during combat — changes are refused until it ends` for the whole fight,
+   no popup, box unticked.
 9. Tick it, then `/wg test notify`. **Expected:** the box unticks and the one-shot flow runs as § 4 describes:
    the chat summary, then the popup showing that capture.
 10. Tick it, `/wg resetall` → **Yes**. **Expected:** test mode ends with the rest of the reset.
