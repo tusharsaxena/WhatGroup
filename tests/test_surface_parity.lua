@@ -93,7 +93,7 @@ end)
 -- ---------------------------------------------------------------------------
 
 test("parity: the Slash stub carries the whole live surface", function()
-    -- The live half is the LibKa0s-Slash-1.0 instance settings/Slash.lua:216 builds, registered
+    -- The live half is the LibKa0s-Slash-1.0 instance settings/Slash.lua:210 builds, registered
     -- under that name by tests/run.lua.
     --
     -- Nothing is ignored, and the empty list is the assertion: slash-commands-§1 keeps every

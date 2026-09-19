@@ -46,7 +46,7 @@ core\Compat.lua
 core\EnvSetup.lua
 core\Database.lua
 core\WhatGroup.lua
-# After core\WhatGroup.lua, which assigns NS.FONT_MONO at load (core/WhatGroup.lua:162). The
+# After core\WhatGroup.lua, which assigns NS.FONT_MONO at load (core/WhatGroup.lua:167). The
 # LibKa0s-DebugLog :New here runs at file scope (core/DebugLogSetup.lua:120) and the library
 # validates `font` as a string, so above that line the console is built from nil. Load-bearing.
 core\DebugLogSetup.lua
@@ -71,10 +71,10 @@ defaults\TeleportSpells.lua
 modules\Frame.lua
 
 # Settings (conventional WITHIN the group apart from the two annotated lines; the group as a whole
-# must follow # Core, because settings\Slash.lua:129 builds CLI_MISSING from NS.LIBKA0S_MISSING at
+# must follow # Core, because settings\Slash.lua:116 builds CLI_MISSING from NS.LIBKA0S_MISSING at
 # file scope and core\CoreSetup.lua:34 publishes it)
 # Before settings\Panel.lua: this file creates Settings.Schema, which Panel splices its master rows
-# into at file scope (settings/Panel.lua:288). Load-bearing.
+# into at file scope (settings/Panel.lua:295). Load-bearing.
 settings\Schema.lua
 # Before settings\Panel.lua: this file publishes the LibKa0s-Options instance as Settings.Helpers
 # (settings/OptionsSetup.lua:300), and Panel calls Helpers.MasterControls at file scope

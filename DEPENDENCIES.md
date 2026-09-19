@@ -43,7 +43,7 @@ was **removed in Lua 5.2**. "5.2 will probably work" is false, and it fails in a
 a broken test rather than a wrong interpreter.
 
 - Evidence: `tests/_kit/loader.lua:72` and `:91` call `setfenv(chunk, makeEnv(mocks))`;
-  `tests/loader.lua:98` calls `setfenv(chunk, env)`. `tests/_kit/loader.lua:89` uses **`loadstring`**,
+  `tests/loader.lua:99` calls `setfenv(chunk, env)`. `tests/_kit/loader.lua:89` uses **`loadstring`**,
   also 5.1-only.
 - Evidence: `.luacheckrc:4` pins `std = "lua51"`, so lint and the runtime agree on the dialect.
 - **LuaJIT is an acceptable substitute** — it implements the 5.1 API including `setfenv` and

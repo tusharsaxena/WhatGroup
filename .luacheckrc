@@ -62,7 +62,7 @@ read_globals = {
 files["tests/"] = {
   globals = {
     "_G.WHATGROUP_TEST",
-    -- The SavedVariables table, named as a field rather than bare because tests/loader.lua:91
+    -- The SavedVariables table, named as a field rather than bare because tests/loader.lua:94
     -- CLEARS it before each boot -- the kit's AceDB fake resolves the name against the real _G, so
     -- a previous instance's table would otherwise be adopted by the next one. The bare name is
     -- already writable above, for the shipped files that own it.
@@ -101,8 +101,8 @@ files["core/WhatGroup.lua"] = {
 -- The four `ApplyFrame*` appliers. Every one of them reads the popup through this file's `f`
 -- upvalue rather than through the addon table, so the receiver is unused -- but the method form is
 -- load-bearing at the call sites, not decoration. Two of them are reached through a PROBE of the
--- member on the addon table before the colon call -- settings/Schema.lua:261 (`if
--- WhatGroup.ApplyFrameSize then`) and core/WhatGroup.lua:706 (`if not self.ApplyFrameVisibility
+-- member on the addon table before the colon call -- settings/Schema.lua:263 (`if
+-- WhatGroup.ApplyFrameSize then`) and core/WhatGroup.lua:906 (`if not self.ApplyFrameVisibility
 -- then return end`) -- which is how a settings row and a combat-edge handler survive
 -- modules/Frame.lua failing to load. A plain local would have nothing for those probes to find.
 files["modules/Frame.lua"] = {
