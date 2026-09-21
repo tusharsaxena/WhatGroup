@@ -29,6 +29,10 @@ local LIBKA0S = {
     "libs/LibKa0s/Item.lua",
     "libs/LibKa0s/Media.lua",
     "libs/LibKa0s/Widgets.lua",
+    -- New in LibKa0s v1.48.0: the drag handle peeled out of Widgets.lua into its own file and
+    -- its own LibStub minor. This addon adopts nothing from it, but the client loads every
+    -- file of the XML, so this list carries it or the XML-order check fails.
+    "libs/LibKa0s/WidgetsDragHandle.lua",
     "libs/LibKa0s/DebugLog.lua",
     "libs/LibKa0s/Slash.lua",
     "libs/LibKa0s/Launcher.lua",
