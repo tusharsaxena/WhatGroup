@@ -574,7 +574,7 @@ local MASTER = { "enabled", "visibility", "scale", "alpha", "locked", "state.deb
                  "global.minimap.hide", "state.testMode" }
 
 test("settings: the Master controls block is the FIRST group, in canonical order", function()
-    -- The whole point of the composer is that nine addons cannot drift into nine orders, so the
+    -- The whole point of the composer is that eleven addons cannot drift into eleven orders, so the
     -- assertion is the LIST, not a count.
     -- red under: splicing the block anywhere but the head, reordering a row, adding a row the
     -- addon is not entitled to, or renaming the group (which also detaches the afterGroup hook).

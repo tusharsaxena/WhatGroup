@@ -186,10 +186,10 @@ end
 -- The Master controls tab (options-ui-§15)
 -- ---------------------------------------------------------------------------
 --
--- COMPOSED, NOT WRITTEN. `Helpers.MasterControls` emits the canonical nine-control block — enable,
--- general visibility, master scale, master alpha, lock frame, debug console, test mode, and the
--- closing reset pair — from this one declaration, so the tab every player looks at first is the same tab in all
--- nine addons and no addon can drift by editing a row. Composed HERE rather than in
+-- COMPOSED, NOT WRITTEN. `Helpers.MasterControls` emits the canonical ten-control block — enable,
+-- general visibility, master scale, master alpha, lock frame, debug console, minimap button, test
+-- mode, and the closing reset pair — from this one declaration, so the tab every player looks at
+-- first is the same tab in all eleven addons and no addon can drift by editing a row. Composed HERE rather than in
 -- settings/Schema.lua because the composer is a member of the LibKa0s instance, and the instance
 -- does not exist until settings/OptionsSetup.lua has run — which is the file immediately before
 -- this one in the TOC.
@@ -281,7 +281,7 @@ local TEST_MODE_TOOLTIP = "Show the popup with sample group info, so you can dra
     .. "without joining a group. It stays up until you untick this, close the popup, or combat starts."
 
 for _, row in ipairs(MASTER_ROWS) do
-    -- One section for the whole block: `/wg list` groups by section, and these seven are one
+    -- One section for the whole block: `/wg list` groups by section, and these eight are one
     -- subject however they are stored.
     row.section  = "general"
     row.onChange = MASTER_HOOKS[row.path]

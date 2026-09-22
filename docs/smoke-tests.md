@@ -424,7 +424,7 @@ The popup parents a `SecureActionButtonTemplate` teleport button, so the client 
 1. `/wg test notify` to raise the popup, out of combat. Pull a training dummy.
    - **Expected:** no red error, nothing in BugGrabber naming WhatGroup.
 2. Press **Close** while still in combat.
-   - **Expected:** **the popup goes away immediately.** No error, no chat line. This is the behaviour the 2026-09-08 ruling asked for; before it, Close in combat did nothing visible.
+   - **Expected:** **the popup goes away immediately.** No error, no chat line. This is the behavior the 2026-09-08 ruling asked for; before it, Close in combat did nothing visible.
 3. Drop combat.
    - **Expected:** it is still gone, and stays gone.
 4. `/wg test notify` again, pull, and this time press **ESC** in combat.
@@ -906,7 +906,7 @@ honest state of this section is unrun, and it is recorded that way rather than a
    the angle itself.
 8. **A broker display** (Titan Panel, ElvUI data texts, Bazooka), if you run one: **Expected:** one
    entry labelled exactly **`Ka0s WhatGroup`** — the brand name in plain text (`launcher-§1`), so it
-   files beside the rest of the collection rather than under `W`; no colour escapes anywhere in the
+   files beside the rest of the collection rather than under `W`; no color escapes anywhere in the
    row — wearing the same logo, whose left and right clicks do exactly what the minimap button's do,
    because it is the same object. Its own show/hide is the display's business, not ours; there is
    deliberately no addon setting for it.
