@@ -723,6 +723,11 @@ badge and any count quoted in the docs must agree with it.
 - lintconfig: every files[...] ignore is narrowed to a file or a name
 - lintconfig: no source file carries a bare inline luacheck ignore
 
+### test_prose.lua (2)
+
+- prose: no authored file carries a British spelling from localization-§5's published list
+- prose: the gate carries localization-§5's two lists whole, and nothing of its own
+
 ### test_doc_structure.lua (8)
 
 - docs/ARCHITECTURE.md carries the ten sections documentation-§3 names
@@ -793,9 +798,10 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 34 |
 | test_docmap.lua | 1 |
 | test_lintconfig.lua | 4 |
+| test_prose.lua | 2 |
 | test_doc_structure.lua | 8 |
 | test_register.lua | 1 |
 | test_disabled.lua | 17 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 1 |
-| **Total** | **684** |
+| **Total** | **686** |

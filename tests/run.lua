@@ -121,6 +121,7 @@ Kit.run{
         "test_debuglog",
         "test_docmap",
         "test_lintconfig",
+        "test_prose",
         "test_doc_structure",
         "test_register",
         "test_disabled",

@@ -189,7 +189,7 @@ local function build()
         -- client's rule is about changing a protected frame's visibility, and showing an ancestor
         -- changes it just as hiding one does. `/wg test` during combat raised
         -- ADDON_ACTION_BLOCKED on `WhatGroupFrame:Show()` in a real client while this mock answered
-        -- "fine" — modelling only the Hide half is what let that reach a player, one report after
+        -- "fine" — modeling only the Hide half is what let that reach a player, one report after
         -- the Hide half did.
         api.Show      = function()
             if mock.combat and f.__holdsProtected and f.__holdsProtected() then
@@ -750,8 +750,8 @@ local function build()
     -- other absent-client scenario in this file uses.
     --
     -- Registered on `mock.__libs` rather than by loading libs/LibDataBroker-1.1: these are the two
-    -- fakes' whole surface as LibKa0s-Launcher-1.0 uses it, and modelling the callbacks and the
-    -- minimap-angle maths of the real ones would be modelling code no case asserts.
+    -- fakes' whole surface as LibKa0s-Launcher-1.0 uses it, and modeling the callbacks and the
+    -- minimap-angle maths of the real ones would be modeling code no case asserts.
     mock.ldbObjects = {}      -- name -> the ONE data object, as NewDataObject stored it
     mock.__libs["LibDataBroker-1.1"] = {
         NewDataObject = function(_, name, tbl)

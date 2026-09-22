@@ -120,7 +120,7 @@ NS.Launcher = lib:New({
     --
     -- DELIBERATELY NOT THE TOC `## Title`, which is what this line used to read through NS.Meta. The
     -- two agree today, letter for letter, which is exactly why the wiring lasted — but a Title MAY
-    -- carry colour escapes and one in the collection does (Ka0s Pretty Chat's is
+    -- carry color escapes and one in the collection does (Ka0s Pretty Chat's is
     -- `Ka0s |cffff0000P|cffff9900r|…`), and a display that draws the string raw splatters that row
     -- across a list in which every other row is plain text. So no escape sequence of any kind, and
     -- the two fields are not wired to each other.

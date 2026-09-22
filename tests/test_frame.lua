@@ -659,7 +659,7 @@ test("frame: a show requested in combat is deferred, not forced", function()
     -- This case asserted the opposite until 2026-09-09 — "no defer needed once the frame exists" —
     -- and a player proved it wrong with `/wg test` mid-fight: ADDON_ACTION_BLOCKED on
     -- WhatGroupFrame:Show(). Show is protected for the same reason Hide is, because showing an
-    -- ancestor changes a protected child's visibility. The mock modelled only the Hide half, so
+    -- ancestor changes a protected child's visibility. The mock modeled only the Hide half, so
     -- this case passed while the client refused the call.
     -- red under: a ShowFrame that only defers the BUILD.
     local NS, _, mock = T.bootAddon()
