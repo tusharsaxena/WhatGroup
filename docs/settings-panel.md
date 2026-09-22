@@ -403,7 +403,7 @@ Rendered panel layout:
 [Width]               | [Height]
 ```
 
-The `Show ` prefix the six chat rows carried is gone: under a tab called **Chat**, seven labels beginning "Show" spend their first word saying what the tab already said. The **paths** are untouched — `notify.showInstance` is still `notify.showInstance` for `/wg set` and for every saved profile.
+The `Show ` prefix the six chat rows carried is gone: under a tab called **Chat**, six labels beginning "Show" spend their first word saying what the tab already said. The **paths** are untouched — `notify.showInstance` is still `notify.showInstance` for `/wg set` and for every saved profile.
 
 ## The minimap button row
 
