@@ -21,8 +21,8 @@ whether it should be:
    the `filename-§N` reference. That register is the single home: the reasoning
    may live in the issue-audit GitHub issue or an audit bundle and the row cites
    it, but a deviation not in the register is not ratified; or
-2. a **change to the standard definition** itself (a PR/edit to the
-   WowAddonStandards repo).
+2. a **change to the standard definition** itself — the update belongs upstream
+   in the WowAddonStandards repo, after which this addon conforms to the new rule.
 
 Do not resolve a standards conflict on your own — surface it and let the user
 choose. (See the frozen compliance snapshot in `docs/audits/2026-08-04/`.)
@@ -31,9 +31,14 @@ When in doubt, treat standard conformance as a hard requirement and ask.
 
 ## The `docs/` set — there is no `agent-context.md`
 
-The canonical `docs/` set is exactly three files: **`ARCHITECTURE.md`** (what this addon is),
-**`testing.md`** (how to verify) and **`smoke-tests.md`** (in-game checks) — plus the generated
-`test-cases.md`, and the topic-detail docs — Tier 1 (`scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`, `data-flow.md`, `common-tasks.md`) is always present, and `ARCHITECTURE.md` → `## Documentation map` lists the rest.
+The canonical `docs/` set (documentation-§3) is the trio **`ARCHITECTURE.md`** (what this addon
+is), **`testing.md`** (how to verify) and **`smoke-tests.md`** (in-game checks); the
+verification-and-record docs `test-cases.md` (generated), `performance.md`,
+`automated-tests/README.md` and `automated-tests/RESULTS.md` (generated) — `perf-analysis/README.md`
+is the conditional fifth, not shipped here because no performance harness is wired; the six Tier 1
+topic-detail docs `scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`, `data-flow.md` and
+`common-tasks.md`; and the Tier 2 and Tier 3 docs that `ARCHITECTURE.md` → `## Documentation map`
+registers.
 
 **`docs/agent-context.md` does not exist in this repo and MUST NOT be created.** The standard
 deleted it in **v2.17.0**; shipping it is **anti-pattern #49**. It held `NEW_ADDON_CONTEXT.md` —
