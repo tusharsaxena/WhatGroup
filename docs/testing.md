@@ -33,6 +33,7 @@ What stays this addon's is what is genuinely per-addon:
 | `tests/loader.lua` | the **isolated-instance** factory: one fresh mock environment and one fresh `NS` per call, over the kit's `Loader.makeEnv` and `Loader.tocFiles` |
 | `tests/wow_mock.lua` | a thin **extender** over `mock_base`, never a replacement |
 | `tests/test_*.lua` | the suites |
+| `tests/prose_waivers.lua` | the kit prose gate's per-file, per-word waivers: tokens this repo does not own (Blizzard's LFG status, AceTimer's field name) |
 
 `tests/loader.lua` derives the addon's own load list **from the TOC**
 (`Loader.tocFiles`, testing-§9) rather than restating it, and spells out every
@@ -60,8 +61,11 @@ The suites, in run order: `test_harness`, `test_libka0s`,
 `test_capture`, `test_notify`, `test_frame`, `test_panel`, `test_testmode`,
 `test_launcher`, `test_lifecycle`,
 `test_debuglog`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
-`test_register`, `test_disabled`, `test_vendor_sync`. `test_eol` runs last and arrives with the
-vendored kit rather than living in `tests/`.
+`test_register`, `test_disabled`, `test_vendor_sync`. Three more run last and arrive with the
+vendored kit rather than living in `tests/`, each declared by the pair form
+`{ name = ..., dir = "tests/_kit/" }` (testing-§9): `test_eol` (line-endings-§7), `test_prose`
+(localization-§5, reading this repo's per-file, per-word waivers from `tests/prose_waivers.lua`)
+and `test_layout_cap` (layout-§1, holding the census in `docs/ARCHITECTURE.md` to the tree).
 
 `test_libka0s` is the integration suite for the adopted LibKa0s majors: that
 each really registers, that each descriptor is well-formed, that the degraded
@@ -72,22 +76,25 @@ argument, and that the DebugLog descriptor passes `addonName` beside `name`.
 Both are invisible in game except by comparison: the factory receives no name,
 builds no texture path, and draws a perfectly good button.
 
-`test_surface_parity` is the degradation gate. Each of the four adopted seams
-carries a hand-written stub for the install where `libs/LibKa0s` is missing, and
+`test_surface_parity` is the degradation gate. Each of the five adopted seams
+with a degradation arm carries a hand-written stub for the install where `libs/LibKa0s` is missing, and
 a stub is a second implementation of somebody else's surface — so it drifts the
 moment the library grows a member the addon starts calling, staying green on the
-live path and raising on exactly the path the stub exists for. The four cases
+live path and raising on exactly the path the stub exists for. The five cases
 compare the two halves as a **set**, and both halves come from a real load: the
 degraded arm loads the addon with the library's files omitted, never by
 hand-stubbing the member under test.
 
-Three of the four name their live half rather than rebuilding it —
+Four of the five name their live half rather than rebuilding it —
 `assertSurfaceParity(stub, "LibKa0s-Options-1.0")` — which compares only the
 surface's public members, so the library's own `__`-prefixed internals are the
 kit's business rather than a hand-kept exemption list that grows on every
-re-vendor. Where that name resolves is registered in `tests/run.lua`: all three
+re-vendor. Where that name resolves is registered in `tests/run.lua`: three of the
 stubs mirror an **instance**, what `lib:New(descriptor)` returned, and not the
-library table `LibStub` answers for the same major. Core keeps the two-table form
+library table `LibStub` answers for the same major. The fourth, Compat's reader
+arm, mirrors the library table itself, because `core/Compat.lua` wires the
+library's members onto `NS.Compat` and builds no instance; its row is the live
+load's `LibStub("LibKa0s-Compat-1.0", true)`. Core keeps the two-table form
 because it is not a major's surface at all — `core/CoreSetup.lua` hangs its
 members on `NS` itself, so there is no name to look one up under. A member that
 is live-only on purpose is named in the case's `ignore` list with the rule that

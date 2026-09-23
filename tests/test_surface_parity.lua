@@ -1,13 +1,14 @@
 -- tests/test_surface_parity.lua — every degradation stub carries the whole live surface.
 --
--- WhatGroup adopts four LibKa0s seams — Core, DebugLog, Slash and Options — and each of the four
--- setup files carries a degradation stub for the install where libs/LibKa0s is missing. A stub is a
+-- WhatGroup adopts five LibKa0s seams with a degradation arm — Core, DebugLog, Slash, Options and
+-- Compat — and each of the five setup files carries a stub for the install where libs/LibKa0s is
+-- missing. A stub is a
 -- second implementation of somebody else's surface, so it drifts the moment the library grows a
 -- member the host starts calling: the live path stays green and the degraded path raises in exactly
 -- the install the stub exists for.
 --
 -- The member-by-member cases in tests/test_libka0s.lua each pin the members somebody thought of.
--- These four pin the SET: every key the live surface carries is present on the degraded one, and a
+-- These five pin the SET: every key the live surface carries is present on the degraded one, and a
 -- key that is a function live is a function degraded — the `H.Foo = UI and UI.Foo` shape leaves
 -- `false` in place, and a "is the key set?" check waves that through while the call site still
 -- raises.
@@ -146,5 +147,30 @@ test("parity: the Options helpers stub carries the whole live surface", function
         -- copy.
         "FONT_FLAGS", "FONT_FLAGS_SORT", "VISIBILITY_VALUES", "VISIBILITY_SORT",
         "MASTER_GROUP", "CLASS_COLOR_NOTE",
+    })
+end)
+
+-- ---------------------------------------------------------------------------
+-- Compat
+-- ---------------------------------------------------------------------------
+
+test("parity: the Compat reader arm carries every library member the addon wires", function()
+    -- The live half is the LibKa0s-Compat-1.0 LIBRARY TABLE, registered by tests/run.lua from the
+    -- live load's LibStub: core/Compat.lua puts the library's own members on NS.Compat, so there is
+    -- no instance. The degraded half is NS.Compat from a load with the library's files omitted.
+    --
+    -- The ignore list is the members this addon deliberately does not wire, each with its reason,
+    -- and it is what makes a member the library gains later fail here until somebody decides where
+    -- it goes (LibKa0s docs/api/Compat/version-1-docs.md, "How a host wires it").
+    local degraded = T.newAddon{ skip = NO_LIBKA0S }
+    T.assertSurfaceParity(degraded.Compat, "LibKa0s-Compat-1.0", {
+        -- The secret guards: nothing this addon reads is combat-protected (docs/ARCHITECTURE.md's
+        -- events-frames-taint-§8 row measures zero trigger-set APIs), so it compares no secret.
+        "IsSecret", "CanAccess", "IsSafeKey",
+        -- Readers with no caller here: no spell info beyond name and icon, and no spec.
+        "GetSpellInfo", "GetSpecialization", "GetSpecializationInfo",
+        -- Wired, but file-locally: GetSpellCooldownRemaining and GetSpellCooldownTimes are this
+        -- addon's call surface, built on it with the GCD floor and the two-value truncation.
+        "GetSpellCooldown",
     })
 end)

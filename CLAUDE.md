@@ -21,8 +21,8 @@ whether it should be:
    the `filename-§N` reference. That register is the single home: the reasoning
    may live in the issue-audit GitHub issue or an audit bundle and the row cites
    it, but a deviation not in the register is not ratified; or
-2. a **change to the standard definition** itself (a PR/edit to the
-   WowAddonStandards repo).
+2. a **change to the standard definition** itself — the update belongs upstream
+   in the WowAddonStandards repo, after which this addon conforms to the new rule.
 
 Do not resolve a standards conflict on your own — surface it and let the user
 choose. (See the frozen compliance snapshot in `docs/audits/2026-08-04/`.)
@@ -31,9 +31,14 @@ When in doubt, treat standard conformance as a hard requirement and ask.
 
 ## The `docs/` set — there is no `agent-context.md`
 
-The canonical `docs/` set is exactly three files: **`ARCHITECTURE.md`** (what this addon is),
-**`testing.md`** (how to verify) and **`smoke-tests.md`** (in-game checks) — plus the generated
-`test-cases.md`, and the topic-detail docs — Tier 1 (`scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`, `data-flow.md`, `common-tasks.md`) is always present, and `ARCHITECTURE.md` → `## Documentation map` lists the rest.
+The canonical `docs/` set (documentation-§3) is the trio **`ARCHITECTURE.md`** (what this addon
+is), **`testing.md`** (how to verify) and **`smoke-tests.md`** (in-game checks); the
+verification-and-record docs `test-cases.md` (generated), `performance.md`,
+`automated-tests/README.md` and `automated-tests/RESULTS.md` (generated) — `perf-analysis/README.md`
+is the conditional fifth, not shipped here because no performance harness is wired; the six Tier 1
+topic-detail docs `scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`, `data-flow.md` and
+`common-tasks.md`; and the Tier 2 and Tier 3 docs that `ARCHITECTURE.md` → `## Documentation map`
+registers.
 
 **`docs/agent-context.md` does not exist in this repo and MUST NOT be created.** The standard
 deleted it in **v2.17.0**; shipping it is **anti-pattern #49**. It held `NEW_ADDON_CONTEXT.md` —
@@ -62,16 +67,16 @@ are **frozen history** — never treat them as a live requirement, and never "re
 - **Never edit `libs/` or `tests/_kit/`.** Both are whole-folder, byte-identical copies of
   `../LibKa0s`'s ship folders. A library problem is a finding to fix **upstream** and
   re-vendor — a local patch is a fork nobody knows about, and the next re-vendor silently
-  reverts it. The addon takes eight of LibKa0s's majors (Core, DebugLog, Env, Launcher,
-  Lifecycle, Media, Options, Slash) through the eight seam files `core/CoreSetup.lua`,
-  `core/EnvSetup.lua`, `core/MediaSetup.lua`, `core/DebugLogSetup.lua`,
+  reverts it. The addon takes nine of LibKa0s's majors (Compat, Core, DebugLog, Env, Launcher,
+  Lifecycle, Media, Options, Slash) through the nine seam files `core/Compat.lua`,
+  `core/CoreSetup.lua`, `core/EnvSetup.lua`, `core/MediaSetup.lua`, `core/DebugLogSetup.lua`,
   `core/LauncherSetup.lua`, `core/LifecycleSetup.lua`, `settings/OptionsSetup.lua` and
   `settings/Slash.lua`; **Perf is
   declined** on structural grounds ([`LIBKA0S-15`](https://github.com/tusharsaxena/WhatGroup/issues/7)).
 
 ## Bundled LibKa0s
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.54.2 (MIT). That line is the
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.55.0 (MIT). That line is the
 repo's provenance claim — the tag `libs/LibKa0s/` and `tests/_kit/` were copied from — and
 `tests/test_vendor_sync.lua` reads it out of *this* file and compares both payloads against
 that tag in the sibling checkout. It is an input to the gate, not a comment: bump the version

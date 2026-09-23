@@ -487,7 +487,8 @@ end)
 -- this is the whole-library-missing scenario as well as the Core one.
 
 local NO_LIBKA0S = {
-    "libs/LibKa0s/Core.lua", "libs/LibKa0s/Env.lua", "libs/LibKa0s/Pool.lua",
+    "libs/LibKa0s/Core.lua", "libs/LibKa0s/Env.lua", "libs/LibKa0s/Compat.lua",
+    "libs/LibKa0s/Bus.lua", "libs/LibKa0s/Schema.lua", "libs/LibKa0s/Pool.lua",
     "libs/LibKa0s/Item.lua", "libs/LibKa0s/Media.lua", "libs/LibKa0s/Widgets.lua",
     "libs/LibKa0s/DebugLog.lua", "libs/LibKa0s/Slash.lua",
     "libs/LibKa0s/Options.lua", "libs/LibKa0s/OptionsWidgets.lua",
@@ -622,6 +623,41 @@ test("degraded: the STORED profile is the same shape with the library absent", f
     end
     sameShape(a, b, "")
     sameShape(b, a, "")
+end)
+
+-- Written before the LibKa0s-Schema-1.0 adoption attempt (docs/revendor/2026-09-23-v1.55.0), as the
+-- characterization of a path that attempt would move -- and these two are what stopped it: the
+-- attempt turned both red and was rolled back (issue #22). On a library-absent load the Master controls
+-- block is not composed (the hollow composer, options-ui-§1), so `enabled` and `state.testMode` have
+-- NO schema row -- and the host verbs still write both through Helpers.Set, because slash-commands-§1
+-- keeps host verbs working on a degraded install. A seam that refuses a path with no row (the
+-- library's JC-2 reading) turns both verbs into no-ops here, and nothing else in the suite would say.
+--
+-- red under: Helpers.Set refusing a path the schema does not carry.
+test("degraded: `/wg disable` and `/wg enable` still write the stored switch (slash-commands-§1)",
+function()
+    local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
+    NS.addon:OnInitialize()
+    NS.addon:OnEnable()
+    assertNil(NS.addon.Settings.Helpers.FindSchema("enabled"), "the composed row is absent here")
+    NS.addon:OnSlashCommand("disable")
+    assertEqual(NS.addon.db.profile.enabled, false, "the stored switch moved")
+    assertTrue(mock.prints[#mock.prints]:find("enabled = false", 1, true) ~= nil,
+        "and the ack re-reads it")
+    NS.addon:OnSlashCommand("enable")
+    assertEqual(NS.addon.db.profile.enabled, true)
+end)
+
+test("degraded: `/wg test on` and `off` still move test mode (slash-commands-§1)", function()
+    local NS = T.newAddon{ skip = NO_LIBKA0S }
+    NS.addon:OnInitialize()
+    NS.addon:OnEnable()
+    local H = NS.addon.Settings.Helpers
+    assertNil(H.FindSchema("state.testMode"), "the composed row is absent here")
+    NS.addon:OnSlashCommand("test on")
+    assertEqual(H.Get("state.testMode"), true)
+    NS.addon:OnSlashCommand("test off")
+    assertEqual(H.Get("state.testMode"), false)
 end)
 
 test("degraded: the settings stub carries no widget maker and no layout constant", function()

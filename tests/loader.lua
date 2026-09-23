@@ -24,7 +24,13 @@ local Loader = dofile("tests/_kit/loader.lua")
 local LIBKA0S = {
     "libs/LibKa0s/Core.lua",
     "libs/LibKa0s/Env.lua",
+    -- New in LibKa0s v1.55.0: three majors. Compat is looked up by core/Compat.lua; Bus and Schema
+    -- are not adopted. The client loads every file of the XML, so this list carries all three in
+    -- XML order.
+    "libs/LibKa0s/Compat.lua",
     "libs/LibKa0s/Lifecycle.lua",
+    "libs/LibKa0s/Bus.lua",
+    "libs/LibKa0s/Schema.lua",
     "libs/LibKa0s/Pool.lua",
     "libs/LibKa0s/Item.lua",
     "libs/LibKa0s/Media.lua",

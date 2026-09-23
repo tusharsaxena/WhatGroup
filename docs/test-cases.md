@@ -21,7 +21,7 @@ badge and any count quoted in the docs must agree with it.
 - harness: a registration naming a method the addon lacks is refused
 - harness: the addon's AceTimer handles are the kit's, on the kit's queue
 
-### test_libka0s.lua (48)
+### test_libka0s.lua (50)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
@@ -62,6 +62,8 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the console stub copies NO library formatter
 - degraded: every HAND-WRITTEN schema row survives the options library's absence (options-ui-§1)
 - degraded: the STORED profile is the same shape with the library absent
+- degraded: `/wg disable` and `/wg enable` still write the stored switch (slash-commands-§1)
+- degraded: `/wg test on` and `off` still move test mode (slash-commands-§1)
 - degraded: the settings stub carries no widget maker and no layout constant
 - degraded: the settings panel explains itself once at load and once per config
 - degraded: a bare /wg runs `config`, as the library's dispatcher does
@@ -72,12 +74,13 @@ badge and any count quoted in the docs must agree with it.
 - libka0s: Core has no STRINGS and reads no descriptor L (tripwire)
 - libka0s: Options reads no descriptor L (tripwire)
 
-### test_surface_parity.lua (4)
+### test_surface_parity.lua (5)
 
 - parity: the Core seam's whole namespace surface survives the library's absence
 - parity: the DebugLog stub carries the whole live surface
 - parity: the Slash stub carries the whole live surface
 - parity: the Options helpers stub carries the whole live surface
+- parity: the Compat reader arm carries every library member the addon wires
 
 ### test_mediasetup.lua (11)
 
@@ -138,7 +141,7 @@ badge and any count quoted in the docs must agree with it.
 - util: FormatDuration rounds fractional seconds up
 - util: FormatDuration renders a non-positive duration as 0s
 
-### test_compat.lua (31)
+### test_compat.lua (42)
 
 - compat: GetSpellName returns the C_Spell name
 - compat: GetSpellTexture is non-nil (caller supplies default)
@@ -171,6 +174,17 @@ badge and any count quoted in the docs must agree with it.
 - compat: AddOnLinkType is nil without LinkTypes.AddOn
 - compat: AddOnLinkType is nil without EventRegistry:RegisterCallback
 - compat: Compat is the sole namespace the addon reads variant APIs through
+- compat: GetSpellCooldownTimes hands SetCooldown exactly two values on every rung
+- compat: GetSpellCooldownRemaining reads a legacy isEnabled of 0 as disabled, 1 and nil as enabled
+- compat: GetSpellCooldownRemaining reads a modern table with no isEnabled as enabled
+- compat: GetSpellCooldownRemaining is 0 for a cooldown table with no start or duration
+- compat: GetSpellName and GetSpellTexture answer the popup's numeric teleport ids
+- compat: GetSpellName and GetSpellTexture ARE LibKa0s-Compat-1.0's members
+- compat: GetSpellName falls through a plain empty string from the modern rung
+- compat: GetSpellName reads C_Spell.GetSpellInfo's name when GetSpellName has none
+- compat: an id outside the spell domain answers the no-answer value without asking the client
+- compat: GetSpellTexture hands back one value when the client answers two
+- compat degraded: with LibKa0s absent the spell readers answer the library's absent values
 
 ### test_database.lua (9)
 
@@ -723,11 +737,6 @@ badge and any count quoted in the docs must agree with it.
 - lintconfig: every files[...] ignore is narrowed to a file or a name
 - lintconfig: no source file carries a bare inline luacheck ignore
 
-### test_prose.lua (2)
-
-- prose: no authored file carries a British spelling from localization-§5's published list
-- prose: the gate carries localization-§5's two lists whole, and nothing of its own
-
 ### test_doc_structure.lua (8)
 
 - docs/ARCHITECTURE.md carries the ten sections documentation-§3 names
@@ -769,21 +778,56 @@ badge and any count quoted in the docs must agree with it.
 - tests/_kit is the test kit that shipped with that release
 - the automated-test runner is recorded executable (100755)
 
-### test_eol.lua (1)
+### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
+- eol: .gitattributes is line-endings-5's canonical body for this repo kind
+
+### test_prose.lua (15)
+
+- prose: no authored file carries a British spelling from localization-5's published list
+- prose: the gate carries localization-5's two lists whole, and nothing of its own
+- prose self-test: the carve-out suppresses the named generated folder, and only it
+- prose self-test: a path the carve-out does not name is not covered by one that looks like it
+- prose self-test: a carve-out that is not a set of path strings is a failure, not a silence
+- prose self-test: a TOC's file lines are read as paths, and its directives and comments are not
+- prose self-test: a .pkgmeta's ignore block is read, and the keys around it are not
+- prose self-test: an ignore entry covers a path exactly, by folder, and by wildcard
+- prose self-test: the carve-out admits a generated dump and refuses a file the TOC loads
+- prose self-test: a waiver-file exclusion meets the same two refusals as the carve-out
+- prose self-test: each list is refused on the matching rule its own scan uses
+- prose self-test: the scan and the refusals read the added exclusions through one reader
+- prose self-test: a narrowing is refused by what it suppresses, not by how it is written
+- prose self-test: the disclosure names what each entry suppressed, and says when it is bounded
+- prose self-test: a malformed waived is a failure, not a silence
+
+### test_layout_cap.lua (13)
+
+- layoutcap: every authored file over the 1500-line cap is named in the census
+- layoutcap: no census row outlives the breach it records
+- layoutcap: every over-cap census row carries one of layout-1's three terminal states
+- layoutcap: the census and the exempt set agree about which paths were exempted
+- layoutcap: an empty census is written as a result rather than left standing empty
+- layoutcap self-test: the parser reads the census nested under the register, and stops there
+- layoutcap self-test: a census outside its register, or at the wrong level, is not read
+- layoutcap self-test: an over-cap file missing from the census is reported, and an exempt one is not
+- layoutcap self-test: a census row that outlives its breach is reported
+- layoutcap self-test: an over-cap row that names no terminal state is reported
+- layoutcap self-test: the census and the exempt set are held to naming the same paths
+- layoutcap self-test: a census that states nothing is told apart from one that states none
+- layoutcap self-test: the exempt set takes folders as well as paths
 
 ## Totals
 
 | Suite | Cases |
 |-------|------:|
 | test_harness.lua | 12 |
-| test_libka0s.lua | 48 |
-| test_surface_parity.lua | 4 |
+| test_libka0s.lua | 50 |
+| test_surface_parity.lua | 5 |
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
 | test_util.lua | 31 |
-| test_compat.lua | 31 |
+| test_compat.lua | 42 |
 | test_database.lua | 9 |
 | test_settings.lua | 56 |
 | test_slash.lua | 59 |
@@ -798,10 +842,11 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 34 |
 | test_docmap.lua | 1 |
 | test_lintconfig.lua | 4 |
-| test_prose.lua | 2 |
 | test_doc_structure.lua | 8 |
 | test_register.lua | 1 |
 | test_disabled.lua | 17 |
 | test_vendor_sync.lua | 3 |
-| test_eol.lua | 1 |
-| **Total** | **686** |
+| test_eol.lua | 2 |
+| test_prose.lua | 15 |
+| test_layout_cap.lua | 13 |
+| **Total** | **727** |

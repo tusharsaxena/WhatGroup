@@ -314,7 +314,7 @@ end
 --
 -- WHAT GOES DOWN: all four event registrations actually UNREGISTERED -- not gated, because a
 -- handler that early-returns still costs the dispatch on every GROUP_ROSTER_UPDATE in a raid --
--- the notify timer and the cooldown ticker cancelled, the capture state wiped, and the popup off
+-- the notify timer and the cooldown ticker canceled, the capture state wiped, and the popup off
 -- screen with the show ladder answering no AT THE SOURCE so a combat edge cannot bring it back.
 --
 -- WHAT SURVIVES, because it is SETUP and not a feature: the chat command registration and the
