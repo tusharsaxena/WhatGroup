@@ -625,7 +625,7 @@ test("degraded: the STORED profile is the same shape with the library absent", f
     sameShape(b, a, "")
 end)
 
--- Written before the LibKa0s-Schema-1.0 adoption attempt (docs/revendor/2026-09-23), as the
+-- Written before the LibKa0s-Schema-1.0 adoption attempt (docs/revendor/2026-09-23-v1.55.0), as the
 -- characterization of a path that attempt would move -- and these two are what stopped it: the
 -- attempt turned both red and was rolled back (issue #22). On a library-absent load the Master controls
 -- block is not composed (the hollow composer, options-ui-§1), so `enabled` and `state.testMode` have
