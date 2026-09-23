@@ -21,7 +21,7 @@ badge and any count quoted in the docs must agree with it.
 - harness: a registration naming a method the addon lacks is refused
 - harness: the addon's AceTimer handles are the kit's, on the kit's queue
 
-### test_libka0s.lua (48)
+### test_libka0s.lua (50)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
@@ -62,6 +62,8 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the console stub copies NO library formatter
 - degraded: every HAND-WRITTEN schema row survives the options library's absence (options-ui-§1)
 - degraded: the STORED profile is the same shape with the library absent
+- degraded: `/wg disable` and `/wg enable` still write the stored switch (slash-commands-§1)
+- degraded: `/wg test on` and `off` still move test mode (slash-commands-§1)
 - degraded: the settings stub carries no widget maker and no layout constant
 - degraded: the settings panel explains itself once at load and once per config
 - degraded: a bare /wg runs `config`, as the library's dispatcher does
@@ -820,7 +822,7 @@ badge and any count quoted in the docs must agree with it.
 | Suite | Cases |
 |-------|------:|
 | test_harness.lua | 12 |
-| test_libka0s.lua | 48 |
+| test_libka0s.lua | 50 |
 | test_surface_parity.lua | 5 |
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
@@ -847,4 +849,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **725** |
+| **Total** | **727** |
