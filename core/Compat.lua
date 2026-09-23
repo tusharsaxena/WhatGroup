@@ -4,14 +4,20 @@
 -- so every later file can reach NS.Compat.* without doing its own
 -- C_Spell-vs-legacy detection inline.
 --
--- Compat is the SOLE caller of the variant APIs (C_Spell.*, the global
--- GetSpell* fallbacks, C_SpellBook.IsSpellKnown and the IsSpellKnown
--- global, C_LFGList.GetActivityInfoTable), and the one place that asks
--- whether the client has Blizzard's addon chat-link path (LinkTypes.AddOn
--- plus EventRegistry).
--- When a patch renames or moves one of these, this file is the only
--- place that changes. Every shim degrades to a safe default (nil / false)
--- rather than throwing when the underlying API is absent.
+-- NS.Compat stays the ONE surface the rest of the addon calls, and this file
+-- the one place that decides who answers. Since LibKa0s v1.55.0 the spell
+-- readers two or more Ka0s addons wrote alike come from LibKa0s-Compat-1.0
+-- (GetSpellName and GetSpellTexture as the library's own members, the two
+-- cooldown shims built on its GetSpellCooldown); what stays here is what is
+-- this addon's alone: the spell link, the spell-known ladder (its namespaced
+-- answer is final, which another addon's ladder disagrees with), the GCD floor,
+-- the activity table and the chat-link detection. So this file and the library
+-- are between them the SOLE callers of the variant APIs (C_Spell.*, the global
+-- GetSpell* fallbacks, C_SpellBook.IsSpellKnown and the IsSpellKnown global,
+-- C_LFGList.GetActivityInfoTable, LinkTypes.AddOn plus EventRegistry).
+-- When a patch renames or moves one of these, one of the two changes. Every
+-- shim degrades to a safe default (nil / false / 0) rather than throwing when
+-- the underlying API, or the library, is absent.
 
 local _, NS = ...
 
@@ -22,33 +28,39 @@ NS.Compat = Compat
 -- Spell APIs (C_Spell.* on modern clients, legacy globals as fallback)
 -- ---------------------------------------------------------------------------
 
+-- LibKa0s-Compat-1.0 when the payload loaded, nil when it did not. Looked up once, here: the
+-- library reads the client's globals at CALL time, so a suite that removes a rung after load still
+-- watches the ladder move (tests/test_compat.lua).
+local CompatLib = LibStub and LibStub("LibKa0s-Compat-1.0", true)
+
+-- THE READER ARM (LibKa0s docs/api/Compat/version-1-docs.md, "Readers: the stub answers the absent
+-- value"). Without the library each reader answers the value the library documents for a client
+-- with no rung at all, and copies none of its ladder: a stub that re-implemented the top rung would
+-- re-create the duplication the major exists to remove. A degraded install therefore draws the
+-- teleport button with the question-mark icon and no spell name, and never raises. That install is
+-- already announced once by core/CoreSetup.lua, so no second line is printed here.
+local function absentSpellCooldown() return 0, 0, false, 1, false end
+
 --- Localized spell name for a spellID (used for the secure /cast macrotext
 --- and the popup teleport tooltip label). Returns nil when unknown.
-function Compat.GetSpellName(spellID)
-    if C_Spell and C_Spell.GetSpellName then
-        -- Fall through to the legacy path when the modern API is present
-        -- but returns nil, matching the old inline `A(x) or B(x)` chain.
-        local name = C_Spell.GetSpellName(spellID)
-        if name then return name end
-    end
-    if GetSpellInfo then
-        return (GetSpellInfo(spellID))
-    end
-    return nil
-end
+---
+--- The library's member: C_Spell.GetSpellName, then C_Spell.GetSpellInfo's name, then the legacy
+--- global, the first rung that ANSWERS winning (a nil or a plain "" falls through). A non-number,
+--- non-string id answers nil without calling the client.
+Compat.GetSpellName = CompatLib and CompatLib.GetSpellName or function() return nil end
 
 --- File ID of the spell's icon texture, or nil when unavailable. Callers
 --- supply their own default (the popup uses 134400, the question-mark
 --- icon) so a nil return stays visible rather than blank.
-function Compat.GetSpellTexture(spellID)
-    if C_Spell and C_Spell.GetSpellTexture then
-        return C_Spell.GetSpellTexture(spellID)
-    end
-    if GetSpellTexture then
-        return GetSpellTexture(spellID)
-    end
-    return nil
-end
+---
+--- The library's member: exactly one value (the client's second return, the original icon, is
+--- dropped), so it can be spread into SetTexture.
+Compat.GetSpellTexture = CompatLib and CompatLib.GetSpellTexture or function() return nil end
+
+-- `startTime, duration, isEnabled, modRate, isActive` -- always five values. Kept file-local
+-- rather than published: the two cooldown shims below are this addon's call surface, and each
+-- keeps its own contract on top of it.
+local spellCooldown = CompatLib and CompatLib.GetSpellCooldown or absentSpellCooldown
 
 --- Clickable spell hyperlink for the chat teleport line, or nil when the
 --- API is missing (the caller then renders a plain "[Spell <id>]" tag).
@@ -88,23 +100,15 @@ local GCD_SECONDS = 1.5
 --- only the GCD is running. Never negative and never nil, so the caller can
 --- treat any positive number as "cannot cast yet" without a second guard.
 ---
---- Normalizes retail's table form and the legacy multi-return; `isEnabled`
---- false means "do not draw a cooldown" (the spell is mid-cast), which is not
---- a wait the player can be told to sit out, so it reads as ready.
+--- The reading of the client is LibKa0s-Compat-1.0's GetSpellCooldown, which normalizes retail's
+--- table form and the legacy multi-return (a legacy `isEnabled` of 0 reads disabled, nil reads
+--- enabled) and answers `0, 0, false` for a nil table or no API. The POLICY is this addon's and
+--- stays here: `isEnabled` false means "do not draw a cooldown" (the spell is mid-cast), which is
+--- not a wait the player can be told to sit out, so it reads as ready; and the GCD floor above.
 function Compat.GetSpellCooldownRemaining(spellID)
-    local start, duration, enabled
-    if C_Spell and C_Spell.GetSpellCooldown then
-        local info = C_Spell.GetSpellCooldown(spellID)
-        if not info then return 0 end
-        start, duration, enabled = info.startTime, info.duration, info.isEnabled
-    elseif GetSpellCooldown then
-        start, duration, enabled = GetSpellCooldown(spellID)
-    else
-        return 0
-    end
-
-    if enabled == false or enabled == 0 then return 0 end
-    if not (start and duration) or start <= 0 or duration <= GCD_SECONDS then return 0 end
+    local start, duration, enabled = spellCooldown(spellID)
+    if not enabled then return 0 end
+    if start <= 0 or duration <= GCD_SECONDS then return 0 end
 
     local remaining = (start + duration) - GetTime()
     return remaining > 0 and remaining or 0
@@ -113,17 +117,12 @@ end
 --- The raw (start, duration) pair the cooldown swipe needs, straight through
 --- with no GCD floor — the widget draws whatever it is handed, and a swipe is
 --- the one readout that can afford to be literal. Returns 0, 0 when ready.
+---
+--- Truncated to TWO values on purpose: the caller spreads this into Cooldown:SetCooldown, whose
+--- third parameter is modRate, and the library's third return is the enabled flag.
 function Compat.GetSpellCooldownTimes(spellID)
-    if C_Spell and C_Spell.GetSpellCooldown then
-        local info = C_Spell.GetSpellCooldown(spellID)
-        if info then return info.startTime or 0, info.duration or 0 end
-        return 0, 0
-    end
-    if GetSpellCooldown then
-        local start, duration = GetSpellCooldown(spellID)
-        return start or 0, duration or 0
-    end
-    return 0, 0
+    local start, duration = spellCooldown(spellID)
+    return start, duration
 end
 
 -- ---------------------------------------------------------------------------

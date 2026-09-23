@@ -72,12 +72,13 @@ badge and any count quoted in the docs must agree with it.
 - libka0s: Core has no STRINGS and reads no descriptor L (tripwire)
 - libka0s: Options reads no descriptor L (tripwire)
 
-### test_surface_parity.lua (4)
+### test_surface_parity.lua (5)
 
 - parity: the Core seam's whole namespace surface survives the library's absence
 - parity: the DebugLog stub carries the whole live surface
 - parity: the Slash stub carries the whole live surface
 - parity: the Options helpers stub carries the whole live surface
+- parity: the Compat reader arm carries every library member the addon wires
 
 ### test_mediasetup.lua (11)
 
@@ -138,7 +139,7 @@ badge and any count quoted in the docs must agree with it.
 - util: FormatDuration rounds fractional seconds up
 - util: FormatDuration renders a non-positive duration as 0s
 
-### test_compat.lua (31)
+### test_compat.lua (42)
 
 - compat: GetSpellName returns the C_Spell name
 - compat: GetSpellTexture is non-nil (caller supplies default)
@@ -171,6 +172,17 @@ badge and any count quoted in the docs must agree with it.
 - compat: AddOnLinkType is nil without LinkTypes.AddOn
 - compat: AddOnLinkType is nil without EventRegistry:RegisterCallback
 - compat: Compat is the sole namespace the addon reads variant APIs through
+- compat: GetSpellCooldownTimes hands SetCooldown exactly two values on every rung
+- compat: GetSpellCooldownRemaining reads a legacy isEnabled of 0 as disabled, 1 and nil as enabled
+- compat: GetSpellCooldownRemaining reads a modern table with no isEnabled as enabled
+- compat: GetSpellCooldownRemaining is 0 for a cooldown table with no start or duration
+- compat: GetSpellName and GetSpellTexture answer the popup's numeric teleport ids
+- compat: GetSpellName and GetSpellTexture ARE LibKa0s-Compat-1.0's members
+- compat: GetSpellName falls through a plain empty string from the modern rung
+- compat: GetSpellName reads C_Spell.GetSpellInfo's name when GetSpellName has none
+- compat: an id outside the spell domain answers the no-answer value without asking the client
+- compat: GetSpellTexture hands back one value when the client answers two
+- compat degraded: with LibKa0s absent the spell readers answer the library's absent values
 
 ### test_database.lua (9)
 
@@ -809,11 +821,11 @@ badge and any count quoted in the docs must agree with it.
 |-------|------:|
 | test_harness.lua | 12 |
 | test_libka0s.lua | 48 |
-| test_surface_parity.lua | 4 |
+| test_surface_parity.lua | 5 |
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
 | test_util.lua | 31 |
-| test_compat.lua | 31 |
+| test_compat.lua | 42 |
 | test_database.lua | 9 |
 | test_settings.lua | 56 |
 | test_slash.lua | 59 |
@@ -835,4 +847,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **713** |
+| **Total** | **725** |

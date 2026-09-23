@@ -245,3 +245,169 @@ test("compat: Compat is the sole namespace the addon reads variant APIs through"
         assertEqual(type(NS.Compat[fn]), "function", "NS.Compat." .. fn .. " is missing")
     end
 end)
+
+-- ---------------------------------------------------------------------------
+-- Characterization: what the cooldown shims hand their callers (LibKa0s v1.55.0 adoption)
+-- ---------------------------------------------------------------------------
+--
+-- Written BEFORE core/Compat.lua moved its spell readers onto LibKa0s-Compat-1.0, and green against
+-- the host's own ladders, so the move is held to "behaves the same" rather than "still runs".
+-- GetSpellCooldownTimes is spread straight into Cooldown:SetCooldown (modules/Frame.lua), whose
+-- THIRD parameter is modRate, so its arity is part of what it answers: a third value would be read
+-- as a rate.
+
+local function pack(...) return { n = select("#", ...), ... } end
+
+test("compat: GetSpellCooldownTimes hands SetCooldown exactly two values on every rung", function()
+    local NS, env, mock = T.newAddon()
+    mock.spellCooldowns[445269] =
+        { startTime = 9000, duration = 28800, isEnabled = true, modRate = 0.5 }
+    local r = pack(NS.Compat.GetSpellCooldownTimes(445269))
+    assertEqual(r.n, 2, "modern rung: start and duration, never modRate")
+    assertEqual(r[1], 9000)
+    assertEqual(r[2], 28800)
+
+    r = pack(NS.Compat.GetSpellCooldownTimes(1))           -- no cooldown table: the client's nil
+    assertEqual(r.n, 2)
+    assertEqual(r[1], 0)
+    assertEqual(r[2], 0)
+
+    env.C_Spell = nil
+    env.GetSpellCooldown = function() return 5, 10, 1, 0.5 end
+    r = pack(NS.Compat.GetSpellCooldownTimes(1))
+    assertEqual(r.n, 2, "legacy rung: the global's enabled flag and modRate are dropped")
+    assertEqual(r[1], 5)
+    assertEqual(r[2], 10)
+
+    env.GetSpellCooldown = function() return nil end
+    r = pack(NS.Compat.GetSpellCooldownTimes(1))
+    assertEqual(r.n, 2)
+    assertEqual(r[1], 0)
+    assertEqual(r[2], 0)
+
+    env.GetSpellCooldown = nil
+    r = pack(NS.Compat.GetSpellCooldownTimes(1))
+    assertEqual(r.n, 2, "no rung at all")
+    assertEqual(r[1], 0)
+    assertEqual(r[2], 0)
+end)
+
+test("compat: GetSpellCooldownRemaining reads a legacy isEnabled of 0 as disabled, 1 and nil as enabled",
+     function()
+    local NS, env, mock = T.newAddon()
+    mock.now = 10000
+    env.C_Spell = nil
+    local enabled
+    env.GetSpellCooldown = function() return 9000, 28800, enabled, 1 end
+    enabled = 0
+    assertEqual(NS.Compat.GetSpellCooldownRemaining(445269), 0)
+    enabled = 1
+    assertEqual(NS.Compat.GetSpellCooldownRemaining(445269), 27800)
+    enabled = nil
+    assertEqual(NS.Compat.GetSpellCooldownRemaining(445269), 27800)
+end)
+
+test("compat: GetSpellCooldownRemaining reads a modern table with no isEnabled as enabled", function()
+    local NS, _, mock = T.newAddon()
+    mock.now = 10000
+    mock.spellCooldowns[445269] = { startTime = 9000, duration = 28800 }
+    assertEqual(NS.Compat.GetSpellCooldownRemaining(445269), 27800)
+end)
+
+test("compat: GetSpellCooldownRemaining is 0 for a cooldown table with no start or duration", function()
+    local NS, _, mock = T.newAddon()
+    mock.spellCooldowns[445269] = { isEnabled = true }
+    assertEqual(NS.Compat.GetSpellCooldownRemaining(445269), 0)
+    mock.spellCooldowns[445269] = { startTime = 9000, isEnabled = true }
+    assertEqual(NS.Compat.GetSpellCooldownRemaining(445269), 0)
+end)
+
+test("compat: GetSpellName and GetSpellTexture answer the popup's numeric teleport ids", function()
+    -- What modules/Frame.lua reads for the teleport button: a localized name for the /cast macro and
+    -- an icon file id. The ids come from defaults/TeleportSpells.lua, so they are always numbers.
+    local NS, _, mock = T.newAddon()
+    mock.spellNames[445269] = "Path of the Corrupted Foundry"
+    assertEqual(NS.Compat.GetSpellName(445269), "Path of the Corrupted Foundry")
+    assertEqual(NS.Compat.GetSpellTexture(445269), 100000 + 445269)
+end)
+
+-- ---------------------------------------------------------------------------
+-- LibKa0s-Compat-1.0: what the adoption changed, pinned
+-- ---------------------------------------------------------------------------
+
+test("compat: GetSpellName and GetSpellTexture ARE LibKa0s-Compat-1.0's members", function()
+    -- Delegation by identity, not by wrapper: a second body here would be the copy the major exists
+    -- to retire, and would drift from it the way the nine copies did.
+    local NS, env = T.newAddon()
+    local lib = env.LibStub("LibKa0s-Compat-1.0", true)
+    assertTrue(lib ~= nil, "the harness loads the library")
+    assertEqual(NS.Compat.GetSpellName, lib.GetSpellName)
+    assertEqual(NS.Compat.GetSpellTexture, lib.GetSpellTexture)
+end)
+
+test("compat: GetSpellName falls through a plain empty string from the modern rung", function()
+    -- A behavior the library brought (compat.md 8.6): "" is not an answer, so the next rung is
+    -- asked. The host's own ladder returned the "" as the name.
+    local NS, env = T.newAddon()
+    env.C_Spell = { GetSpellName = function() return "" end }
+    env.GetSpellInfo = function(id) return "Legacy " .. id end
+    assertEqual(NS.Compat.GetSpellName(5), "Legacy 5")
+end)
+
+test("compat: GetSpellName reads C_Spell.GetSpellInfo's name when GetSpellName has none", function()
+    local NS, env = T.newAddon()
+    env.C_Spell = { GetSpellName = function() return nil end,
+                    GetSpellInfo = function() return { name = "From Info" } end }
+    env.GetSpellInfo = function() return "Legacy" end
+    assertEqual(NS.Compat.GetSpellName(5), "From Info", "the middle rung comes before the global")
+end)
+
+test("compat: an id outside the spell domain answers the no-answer value without asking the client",
+     function()
+    local NS, env = T.newAddon()
+    local calls = 0
+    local function count() calls = calls + 1 end
+    env.C_Spell = { GetSpellName = count, GetSpellInfo = count, GetSpellTexture = count,
+                    GetSpellCooldown = count }
+    assertNil(NS.Compat.GetSpellName(nil))
+    assertNil(NS.Compat.GetSpellTexture({}))
+    local r = pack(NS.Compat.GetSpellCooldownTimes(nil))
+    assertEqual(r.n, 2)
+    assertEqual(r[1], 0)
+    assertEqual(r[2], 0)
+    assertEqual(NS.Compat.GetSpellCooldownRemaining(false), 0)
+    assertEqual(calls, 0, "no rung is called with a nil, a table or a boolean")
+end)
+
+test("compat: GetSpellTexture hands back one value when the client answers two", function()
+    local NS, env = T.newAddon()
+    env.C_Spell = { GetSpellTexture = function() return 7, 8 end }
+    local r = pack(NS.Compat.GetSpellTexture(1))
+    assertEqual(r.n, 1, "the original-icon return is dropped")
+    assertEqual(r[1], 7)
+end)
+
+test("compat degraded: with LibKa0s absent the spell readers answer the library's absent values",
+     function()
+    -- The library genuinely ABSENT (its files skipped, testing-§8), never the member stubbed. The
+    -- mock still carries every C_Spell rung, which is the point: the reader arm answers what the
+    -- library documents for a client with no rung at all, and does not read the client itself.
+    local NS, _, mock = T.newAddon{ skip = T.loadAddon.libFiles }
+    mock.spellNames[445269] = "Path of the Corrupted Foundry"
+    mock.now = 10000
+    mock.spellCooldowns[445269] =
+        { startTime = 9000, duration = 28800, isEnabled = true, modRate = 1 }
+    assertNil(NS.Compat.GetSpellName(445269))
+    assertNil(NS.Compat.GetSpellTexture(445269))
+    local r = pack(NS.Compat.GetSpellCooldownTimes(445269))
+    assertEqual(r.n, 2)
+    assertEqual(r[1], 0)
+    assertEqual(r[2], 0)
+    assertEqual(NS.Compat.GetSpellCooldownRemaining(445269), 0)
+    -- What stays this addon's own keeps answering from the client.
+    mock.knownSpells[445269] = true
+    assertEqual(NS.Compat.IsSpellKnown(445269), true)
+    assertTrue(NS.Compat.GetSpellLink(445269):find("Spell 445269", 1, true) ~= nil)
+    mock.activities[500] = { mapID = 2652 }
+    assertEqual(NS.Compat.GetActivityInfoTable(500).mapID, 2652)
+end)
