@@ -121,7 +121,6 @@ Kit.run{
         "test_debuglog",
         "test_docmap",
         "test_lintconfig",
-        "test_prose",
         "test_doc_structure",
         "test_register",
         "test_disabled",
@@ -132,5 +131,10 @@ Kit.run{
         -- declared with its own `dir`. Kit.assertSuiteInventory fails the run until it is
         -- declared, so it cannot arrive with a re-vendor and then quietly run nothing.
         { name = "test_eol", dir = "tests/_kit/" },
+        -- The US-English prose gate (localization-5) is the kit's too, since revision 24. It
+        -- was declared here as a bare "test_prose", which wired a hand-written copy under
+        -- tests/ and left this one loading zero cases; the copy is gone, and the per-file,
+        -- per-word waivers it carried live in tests/prose_waivers.lua, which this suite reads.
+        { name = "test_prose", dir = "tests/_kit/" },
     },
 }

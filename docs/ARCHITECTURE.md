@@ -513,3 +513,15 @@ not lost — they are the opening sentence of the row that survives, which is wh
 at today's deviation will actually be. The evidence is where it always was, in issue
 [#7](https://github.com/tusharsaxena/WhatGroup/issues/7) and in
 [`performance.md`](./performance.md)'s regenerated sweep.
+
+### Files over the 1500-line cap
+
+The `layout-§1` census: every authored `.lua` file this repository tracks that is over the
+1500-line cap, with its terminal state. Vendored code (`libs/`, `tests/_kit/`) is out of scope,
+and this repository has no generated data to carve out.
+
+Nothing is over the cap today. Measured 2026-09-23 with
+`git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l | sort -n`:
+the largest authored file is `tests/test_frame.lua` at 1421 lines, then `modules/Frame.lua`
+at 1144 and `core/WhatGroup.lua` at 1099. `tests/_kit/test_layout_cap.lua` holds this census to
+the tree on every run.
