@@ -136,5 +136,9 @@ Kit.run{
         -- tests/ and left this one loading zero cases; the copy is gone, and the per-file,
         -- per-word waivers it carried live in tests/prose_waivers.lua, which this suite reads.
         { name = "test_prose", dir = "tests/_kit/" },
+        -- The layout-1 cap gate, new in kit revision 25: every authored .lua file against the
+        -- 1500-line cap, held to the census under docs/ARCHITECTURE.md's deviations register.
+        -- No Kit.layoutCap opts: the census is in the default hub and nothing here is generated.
+        { name = "test_layout_cap", dir = "tests/_kit/" },
     },
 }

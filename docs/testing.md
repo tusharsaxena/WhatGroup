@@ -33,6 +33,7 @@ What stays this addon's is what is genuinely per-addon:
 | `tests/loader.lua` | the **isolated-instance** factory: one fresh mock environment and one fresh `NS` per call, over the kit's `Loader.makeEnv` and `Loader.tocFiles` |
 | `tests/wow_mock.lua` | a thin **extender** over `mock_base`, never a replacement |
 | `tests/test_*.lua` | the suites |
+| `tests/prose_waivers.lua` | the kit prose gate's per-file, per-word waivers: tokens this repo does not own (Blizzard's LFG status, AceTimer's field name) |
 
 `tests/loader.lua` derives the addon's own load list **from the TOC**
 (`Loader.tocFiles`, testing-§9) rather than restating it, and spells out every
@@ -60,8 +61,11 @@ The suites, in run order: `test_harness`, `test_libka0s`,
 `test_capture`, `test_notify`, `test_frame`, `test_panel`, `test_testmode`,
 `test_launcher`, `test_lifecycle`,
 `test_debuglog`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
-`test_register`, `test_disabled`, `test_vendor_sync`. `test_eol` runs last and arrives with the
-vendored kit rather than living in `tests/`.
+`test_register`, `test_disabled`, `test_vendor_sync`. Three more run last and arrive with the
+vendored kit rather than living in `tests/`, each declared by the pair form
+`{ name = ..., dir = "tests/_kit/" }` (testing-§9): `test_eol` (line-endings-§7), `test_prose`
+(localization-§5, reading this repo's per-file, per-word waivers from `tests/prose_waivers.lua`)
+and `test_layout_cap` (layout-§1, holding the census in `docs/ARCHITECTURE.md` to the tree).
 
 `test_libka0s` is the integration suite for the adopted LibKa0s majors: that
 each really registers, that each descriptor is well-formed, that the degraded
