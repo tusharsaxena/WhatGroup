@@ -232,6 +232,26 @@ test("chat link: the SetItemRef callback registers at file load, exactly once", 
     assertEqual(registrations(mock, "SetItemRef"), 1, "and the lifecycle adds none")
 end)
 
+test("lifecycle: disable drops the SetItemRef callback and enable restores exactly one", function()
+    -- slash-commands-§7: EventRegistry has a real unregister, so the stand-down must use it rather
+    -- than lean on the IsStoodDown gate the hooksecurefunc fallback needs.
+    -- red under: dropping the EventRegistry:UnregisterCallback in NS.StandDown, or the
+    -- registerLinkCallback() call in NS.StandUp.
+    local NS, _, mock = T.enableAddon()
+    local function owners()
+        local n = 0
+        for _ in pairs(mock.EventRegistry.__callbacks("SetItemRef")) do n = n + 1 end
+        return n
+    end
+    assertTrue(mock.EventRegistry.__callbacks("SetItemRef")[NS.addon] ~= nil, "registered while enabled")
+    NS.addon:OnSlashCommand("disable")
+    assertNil(mock.EventRegistry.__callbacks("SetItemRef")[NS.addon], "gone after /wg disable")
+    assertEqual(owners(), 0, "and no other owner stands in for it")
+    NS.addon:OnSlashCommand("enable")
+    assertTrue(mock.EventRegistry.__callbacks("SetItemRef")[NS.addon] ~= nil, "back after /wg enable")
+    assertEqual(owners(), 1, "exactly one owner key")
+end)
+
 -- A client without Blizzard's addon-link path: the old unregistered link and the post-hook come
 -- back. Its click still falls through to the ItemRef tooltip before the hook runs, which is the
 -- cost that fallback carries, so the case asserts it rather than hiding it.

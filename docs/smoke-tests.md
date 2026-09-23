@@ -592,6 +592,30 @@ them their spelling was fine.
 **Expected:** the verb acts immediately, with no reload in between, and the popup honors any
 setting you changed while the addon was off.
 
+### 5.5a The chat-link callback comes and goes with the switch — no taint (CRITICAL)
+
+The details link's `EventRegistry` `"SetItemRef"` callback is registered at file load for taint
+reasons, then **unregistered** by `NS.StandDown` and registered again by `NS.StandUp`
+(slash-commands-§7, anti-pattern #85). This step proves the re-registration after login does not
+taint GameMenu, and that the callback really goes away.
+
+1. `/wg disable`, then `/wg enable`.
+2. **Game Menu → Logout**, then cancel the countdown.
+
+**Expected:** no `ADDON_ACTION_FORBIDDEN` or `ADDON_ACTION_BLOCKED` naming WhatGroup, and Logout
+starts normally.
+
+3. Join a group through LFG (or `/wg test notify`) and click the chat line's **view details** link.
+
+**Expected:** the popup opens.
+
+4. `/wg disable` again and click that same (now old) link.
+
+**Expected:** nothing happens — no popup, no stale-link hint, no error.
+
+If step 2 shows the taint, the re-registration is the cause: revert it and record a
+slash-commands-§7 row under `docs/ARCHITECTURE.md` → `## Documented deviations` instead.
+
 ---
 
 ## 6. Persistence smoke (~30 sec)
@@ -787,13 +811,13 @@ a client at the time. Step 5 below is where it gets run.
 group:
 
 - **`info.fullName`** and **`info.shortName`** from `C_LFGList.GetActivityInfoTable`
-  (`core/Compat.lua:136-141`, stored at `core/WhatGroup.lua:491`, drawn at `modules/Frame.lua:859`
-  and in the chat summary at `core/WhatGroup.lua:696` and `:699`). German activity names are materially longer
+  (`core/Compat.lua:136-141`, stored at `core/WhatGroup.lua:507`, drawn at `modules/Frame.lua:859`
+  and in the chat summary at `core/WhatGroup.lua:712` and `:715`). German activity names are materially longer
   than English ones.
 - **`info.playstyleString`**, which the server renders in the player's language, preferred over the
-  enum lookup by `Labels.GetPlaystyleLabel` (`core/WhatGroup.lua:644-649`).
+  enum lookup by `Labels.GetPlaystyleLabel` (`core/WhatGroup.lua:660-665`).
 - **`GROUP_FINDER_GENERAL_PLAYSTYLE1` … `4`**, read into `Labels.PLAYSTYLE` at **file load time**
-  (`core/WhatGroup.lua:617-622`). A global that is nil at load leaves that label nil for the whole
+  (`core/WhatGroup.lua:633-638`). A global that is nil at load leaves that label nil for the whole
   session — there is no second read.
 - **`Compat.GetSpellName`** (`core/Compat.lua:27-38`), whose return goes straight into the teleport
   button's `/cast` macrotext (`modules/Frame.lua:409`, built at `:521`). Casting by name only works
@@ -805,7 +829,7 @@ English on every client. That is the addon's scope and not a defect. § 10 (the 
 that they render as prose rather than as keys, and it is unrelated to this section.
 
 **`/wg test notify` will not do for most of this.** Its fixture spells the activity name out in English
-(`core/WhatGroup.lua:1075`), so on a German client it is *expected* to show English. Use a real group
+(`core/WhatGroup.lua:1091`), so on a German client it is *expected* to show English. Use a real group
 for steps 1 to 3.
 
 1. **A real application, with a real German activity name.** Apply to a group through the LFG UI
@@ -814,7 +838,7 @@ for steps 1 to 3.
    field shows a short name or the group-type label, and the **Playstyle** row shows the server's
    own wording. No field shows `Unknown` where the client plainly has a name.
    **Fail:** `Unknown` in the Instance row — `fullName` came back empty on this locale and the
-   `activityName` fallback at `core/WhatGroup.lua:491` did not cover it. Also fail: a name that
+   `activityName` fallback at `core/WhatGroup.lua:507` did not cover it. Also fail: a name that
    renders as mojibake or `?` glyphs, which is the text not surviving the trip to the font.
 2. **Field width.** Read the popup with that longer name in it, and check the chat summary line too.
    **Expected:** the name fits its row or is truncated cleanly at the field's edge.
@@ -928,6 +952,7 @@ For a fast pre-release pass, run at minimum:
 - [ ] section 4.1b — Teleport not learned: the note says so, and never says cooldown
 - [ ] section 5.1 — One real LFG apply → join
 - [ ] section 5.1a — that join's details link opens the popup, by click and by shift-click
+- [ ] section 5.5a — `/wg disable` + `/wg enable`, then Logout: no taint; the details link works enabled and does nothing disabled
 - [ ] section 10 — no `SCREAMING_SNAKE` string on any page, in the console, or in chat
 - [ ] sections 11.5 / 11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
 - [ ] sections 12.1 / 12.4 — marks on the console title bar, and a mark **beside** the footer Close word

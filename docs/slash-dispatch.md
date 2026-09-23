@@ -4,7 +4,7 @@
 
 ## Registration
 
-Both names are registered through `AceConsole-3.0:RegisterChatCommand` in `OnInitialize` (`core/WhatGroup.lua:280`):
+Both names are registered through `AceConsole-3.0:RegisterChatCommand` in `OnInitialize` (`core/WhatGroup.lua:289`):
 
 ```lua
 self:RegisterChatCommand("wg",        "OnSlashCommand")

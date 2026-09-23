@@ -641,7 +641,7 @@ badge and any count quoted in the docs must agree with it.
 - launcher: the row still stores with no broker library at all
 - launcher: with LibKa0s absent the seam still answers every member
 
-### test_lifecycle.lua (45)
+### test_lifecycle.lua (46)
 
 - lifecycle: the addon exposes no public global (WG-01)
 - lifecycle: NS IS the addon object (AceAddon mixes into the namespace)
@@ -663,6 +663,7 @@ badge and any count quoted in the docs must agree with it.
 - chat link: another addon's addon: link is not ours
 - chat link: an item link goes to the ItemRef tooltip, not to us
 - chat link: the SetItemRef callback registers at file load, exactly once
+- lifecycle: disable drops the SetItemRef callback and enable restores exactly one
 - chat link: degraded (no EventRegistry) falls back to the WhatGroup: link and the post-hook
 - chat link: degraded (no LinkTypes.AddOn) falls back to the WhatGroup: link and the post-hook
 - chat link: the degraded post-hook ignores links that aren't ours
@@ -838,7 +839,7 @@ badge and any count quoted in the docs must agree with it.
 | test_panel.lua | 53 |
 | test_testmode.lua | 23 |
 | test_launcher.lua | 21 |
-| test_lifecycle.lua | 45 |
+| test_lifecycle.lua | 46 |
 | test_debuglog.lua | 34 |
 | test_docmap.lua | 1 |
 | test_lintconfig.lua | 4 |
@@ -849,4 +850,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **727** |
+| **Total** | **728** |

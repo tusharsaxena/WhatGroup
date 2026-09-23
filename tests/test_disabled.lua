@@ -33,7 +33,7 @@ local assertNil    = T.assertNil
 local NAME = "WhatGroup"
 
 -- ---------------------------------------------------------------------------
--- Surveys — all five read THROUGH the mock, never through the addon
+-- Surveys — every one reads THROUGH the mock, never through the addon
 -- ---------------------------------------------------------------------------
 
 --- The registration set as a sorted array of stable keys, so two snapshots compare as text rather
@@ -53,7 +53,7 @@ end
 ---
 --- The kit's `__registrations()` walks the frames the KIT built, and tests/wow_mock.lua builds its
 --- own richer stub for this addon (protection, anchors, attributes), so the kit's survey cannot see
---- them. The stub records on `RegisterEvent` and REMOVES on `UnregisterEvent` /
+--- them (nor the EventRegistry callbacks, which callbackRegs below surveys). The stub records on `RegisterEvent` and REMOVES on `UnregisterEvent` /
 --- `UnregisterAllEvents` (tests/wow_mock.lua), which is the half that makes the assertion
 --- falsifiable in the useful direction: a registry that only ever grew would report a perfectly
 --- torn-down addon as still watching everything.
@@ -71,12 +71,30 @@ local function rawRegs(mock)
     return out
 end
 
+--- EVENTREGISTRY CALLBACKS, surveyed out of this repo's EventRegistry fake (tests/wow_mock.lua).
+---
+--- The chat link's click route is an `EventRegistry:RegisterCallback("SetItemRef", …, owner)`, and
+--- neither the kit's survey nor the frame stub can see it. It has a real unregister, so
+--- slash-commands-§7's hooksecurefunc carve-out does not cover it: a stood-down addon must hold no
+--- callback there. One `callback:<event>` per live owner, so a callback that stacked a second
+--- owner would show up twice.
+local function callbackRegs(mock)
+    local out = {}
+    if not mock.EventRegistry then return out end
+    for _ in pairs(mock.EventRegistry.__callbacks("SetItemRef")) do
+        out[#out + 1] = "callback:SetItemRef"
+    end
+    return out
+end
+
 --- THE WHOLE REGISTRATION SET: AceEvent, message and bucket registrations from the kit's survey,
---- plus this repo's raw frame registrations. Nothing here is a handler return value.
+--- this repo's raw frame registrations, and the EventRegistry callbacks. Nothing here is a handler
+--- return value.
 local function regNames(mock)
     local out = {}
     for _, r in ipairs(mock.__registrations()) do out[#out + 1] = r.kind .. ":" .. r.event end
     for _, r in ipairs(rawRegs(mock)) do out[#out + 1] = r end
+    for _, r in ipairs(callbackRegs(mock)) do out[#out + 1] = r end
     table.sort(out)
     return out
 end
@@ -124,9 +142,9 @@ test("disabled 1: enabled, the addon holds a NON-EMPTY registration set", functi
     local R_on = regNames(mock)
     assertTrue(#R_on > 0, "the enabled addon watches something: " .. joined(R_on))
     assertEqual(joined(R_on),
-        "event:GROUP_ROSTER_UPDATE, event:LFG_LIST_APPLICATION_STATUS_UPDATED, "
+        "callback:SetItemRef, event:GROUP_ROSTER_UPDATE, event:LFG_LIST_APPLICATION_STATUS_UPDATED, "
         .. "event:PLAYER_REGEN_DISABLED, event:PLAYER_REGEN_ENABLED",
-        "and these four are what it watches")
+        "and these four events plus the chat-link callback are what it watches")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -139,6 +157,7 @@ test("disabled 3: the registration set is EMPTY, by count and by name", function
     -- passing its own test.
     -- red under: drop the four UnregisterEvent calls in core/WhatGroup.lua's NS.StandDown; the
     -- addon still ignores every event and this case still fails, which is the point.
+    -- red under: dropping the EventRegistry:UnregisterCallback in NS.StandDown
     local NS, mock = up()
     switchOff(NS)
     local R_off = regNames(mock)
@@ -407,13 +426,17 @@ end)
 -- ---------------------------------------------------------------------------
 
 test("disabled 9: re-enabling restores the registration set exactly", function()
-    -- red under: rebuilding from a snapshot taken on the way down, or forgetting one of the four.
+    -- red under: rebuilding from a snapshot taken on the way down, forgetting one of the four, or
+    -- not re-registering the chat-link callback in NS.StandUp.
     local NS, mock = up()
-    local R_on = regKeys(mock)
+    local R_on, N_on = regKeys(mock), regNames(mock)
+    assertTrue(joined(N_on):find("callback:SetItemRef", 1, true) ~= nil, "the callback is in the set")
     switchOff(NS)
     assertEqual(#regKeys(mock), 0)
+    assertEqual(#regNames(mock), 0)
     switchOn(NS)
     assertEqual(joined(regKeys(mock)), joined(R_on), "the same set, not a subset and not a superset")
+    assertEqual(joined(regNames(mock)), joined(N_on), "callback:SetItemRef included, exactly once")
 end)
 
 test("disabled 9: a setting changed WHILE DISABLED is what the rebuild reflects", function()

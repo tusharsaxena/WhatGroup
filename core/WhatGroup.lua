@@ -93,10 +93,11 @@ local DETAILS_LINK       = ADDON_LINK_TYPE and (ADDON_LINK_TYPE .. ":" .. DETAIL
 local DETAILS_LINK_PREFIX = (ADDON_LINK_TYPE and (ADDON_LINK_TYPE .. ":") or "") .. "WhatGroup:"
 
 local function onDetailsLinkClick(linkArg)
-    -- The `hooksecurefunc("SetItemRef", …)` fallback route below has no un-hook, so the body gates
-    -- itself (slash-commands-§7's one sanctioned exception). The EventRegistry route shares the
-    -- gate rather than carrying its own: one answer, one place. A disabled addon prints no notify
-    -- line, so this link is a leftover from before the switch was flipped.
+    -- This gate serves ONLY the `hooksecurefunc("SetItemRef", …)` fallback route below: a post-hook
+    -- has no un-hook, so its body gates itself (slash-commands-§7's one sanctioned exception). The
+    -- EventRegistry route has a real unregister and is really unregistered -- NS.StandDown drops it
+    -- and NS.StandUp puts it back -- so it never reaches here while disabled (anti-pattern #85).
+    -- A disabled addon prints no notify line, so a link clicked then is a leftover from before.
     if NS.IsStoodDown() then return end
     if type(linkArg) ~= "string" then return end
     if linkArg:sub(1, #DETAILS_LINK_PREFIX) ~= DETAILS_LINK_PREFIX then return end
@@ -105,10 +106,18 @@ local function onDetailsLinkClick(linkArg)
     end
 end
 
+-- Called at file load (the taint reason above still holds) and again by NS.StandUp. The owner is the
+-- addon object, so a repeat call replaces the callback rather than stacking a second one.
+local function registerLinkCallback()
+    if ADDON_LINK_TYPE then
+        EventRegistry:RegisterCallback("SetItemRef", function(_, linkArg)
+            onDetailsLinkClick(linkArg)
+        end, WhatGroup)
+    end
+end
+
 if ADDON_LINK_TYPE then
-    EventRegistry:RegisterCallback("SetItemRef", function(_, linkArg)
-        onDetailsLinkClick(linkArg)
-    end, WhatGroup)
+    registerLinkCallback()
 else
     hooksecurefunc("SetItemRef", onDetailsLinkClick)
 end
@@ -286,10 +295,12 @@ end
 -- diverge on the first event added after the second one was written, and the divergence would show
 -- up as an addon that works until the player toggles it off and on again.
 --
--- Hooks are NOT here: the apply post-hook and the chat-link callback are installed at file load
--- (top of this file) for taint reasons, and `hooksecurefunc` has no un-hook -- so those two gate
--- their own bodies on NS.IsStoodDown() instead, which is slash-commands-§7's one sanctioned
--- exception and is not generalizable to anything that has a real unregister.
+-- Hooks are NOT here: the apply post-hook and the chat-link route are installed at file load (top of
+-- this file) for taint reasons. The two `hooksecurefunc` post-hooks (ApplyToGroup, and SetItemRef
+-- on a degraded client) have no un-hook, so they gate their own bodies on NS.IsStoodDown() --
+-- slash-commands-§7's one sanctioned exception. The EventRegistry chat-link callback has a real
+-- unregister, so it does not take that exception: NS.StandDown unregisters it and NS.StandUp calls
+-- registerLinkCallback() to put it back.
 local function registerFeatureEvents(self)
     self:RegisterEvent("GROUP_ROSTER_UPDATE")
     self:RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
@@ -312,8 +323,9 @@ end
 -- only route in either direction: there is no bare stand-up anywhere, because a resume that stood
 -- the addon up would resurrect it under a player who had disabled it mid-capture.
 --
--- WHAT GOES DOWN: all four event registrations actually UNREGISTERED -- not gated, because a
--- handler that early-returns still costs the dispatch on every GROUP_ROSTER_UPDATE in a raid --
+-- WHAT GOES DOWN: all four event registrations and the EventRegistry "SetItemRef" chat-link
+-- callback actually UNREGISTERED -- not gated, because a handler that early-returns still costs the
+-- dispatch on every GROUP_ROSTER_UPDATE in a raid --
 -- the notify timer and the cooldown ticker canceled, the capture state wiped, and the popup off
 -- screen with the show ladder answering no AT THE SOURCE so a combat edge cannot bring it back.
 --
@@ -332,6 +344,9 @@ function NS.StandDown()
     self:UnregisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
     self:UnregisterEvent("PLAYER_REGEN_DISABLED")
     self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+    -- The chat-link callback has a real unregister, so it is dropped, not gated (anti-pattern #85).
+    -- The degraded client's SetItemRef post-hook cannot be, and gates itself in onDetailsLinkClick.
+    if ADDON_LINK_TYPE and EventRegistry then EventRegistry:UnregisterCallback("SetItemRef", WhatGroup) end
 
     -- Cancels the notify timer and drops pendingInfo, the two things that would otherwise wake up
     -- or be rendered after the addon was switched off. It is not a SavedVariables write: every
@@ -365,6 +380,7 @@ function NS.StandUp()
     -- rebinding PLAYER_REGEN_ENABLED on top of the stand-down's own handler.
     self:UnregisterEvent("PLAYER_REGEN_ENABLED")
     registerFeatureEvents(self)
+    registerLinkCallback()
     if self.ApplyFrameVisibility then self:ApplyFrameVisibility() end
 end
 
