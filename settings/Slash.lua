@@ -70,13 +70,13 @@ local COMMANDS = {
 }
 
 -- ---------------------------------------------------------------------------
--- The disabled gate (slash-commands-§2, §7) — THE LIBRARY'S, NOT THIS FILE'S
+-- The disabled gate (slash-commands-§2, slash-commands-§7) — THE LIBRARY'S, NOT THIS FILE'S
 -- ---------------------------------------------------------------------------
 --
 -- A DISABLED ADDON REFUSES A FEATURE VERB RATHER THAN ACTING ON IT, on one tagged line naming
 -- `/wg enable` and nothing else. Two of this addon's thirteen verbs drive features — `show` and
 -- `test`, the two that put the popup on screen — which is enough for a silent `/wg show` to read
--- as a bug, so this addon takes §2's SHOULD.
+-- as a bug, so this addon takes slash-commands-§2's SHOULD.
 --
 -- EVERYTHING ELSE ANSWERS NORMALLY, and that is a ruling rather than a default. The standard
 -- narrowed the disabled surface to `enable` and `help` at v2.56.0 and REVERSED it at v2.57.0: the

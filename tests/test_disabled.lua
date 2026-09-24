@@ -374,7 +374,7 @@ end)
 
 test("disabled 7: each FEATURE verb answers exactly one refusal line and reaches no write seam",
 function()
-    -- This addon TAKES §2's SHOULD, and there are two verbs in scope: `show` and `test`, the two
+    -- This addon TAKES slash-commands-§2's SHOULD, and there are two verbs in scope: `show` and `test`, the two
     -- that put the popup on screen. Pinned so the choice cannot drift silently -- an addon that
     -- declined the SHOULD would assert the opposite here, and either is conformant.
     --

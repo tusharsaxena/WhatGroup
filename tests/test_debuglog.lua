@@ -1,5 +1,5 @@
 -- tests/test_debuglog.lua — debug console: pure formatters, font constant,
--- and the /wg debug window-vs-flag semantics (debug-logging-§2/§3/§5).
+-- and the /wg debug window-vs-flag semantics (debug-logging-§2, debug-logging-§3, debug-logging-§5).
 local T = _G.WHATGROUP_TEST
 local test, assertEqual, assertTrue = T.test, T.assertEqual, T.assertTrue
 
@@ -186,16 +186,16 @@ test("debuglog: debug-logging-§11 scrollbar + line-counter sync is a safe no-op
     assertTrue(type(NS.DebugLog.UpdateScrollBar) == "function", "UpdateScrollBar must exist")
     assertTrue(type(NS.DebugLog.UpdateStatus) == "function", "UpdateStatus must exist")
     local ok = pcall(function()
-        NS.DebugLog:Show()                -- builds the §11 scrollbar + status bar + initial sync
+        NS.DebugLog:Show()                -- builds the debug-logging-§11 scrollbar + status bar + initial sync
         NS.DebugLog:UpdateScrollBar()
         NS.DebugLog:UpdateStatus()
         NS.DebugLog:Add("Test", "a line")
         NS.DebugLog:Clear()
     end)
-    assertTrue(ok, "the §11 sync path must not raise under the headless mock")
+    assertTrue(ok, "the debug-logging-§11 sync path must not raise under the headless mock")
 end)
 
--- ── message coverage / coalescing (debug-logging-§8/§9/§10) ────────────────
+-- ── message coverage / coalescing (debug-logging-§8, debug-logging-§9, debug-logging-§10) ────────────────
 
 -- Count buffer lines containing a literal fragment (plain-text buffer, no colors).
 local function countLines(NS, fragment)
@@ -255,7 +255,7 @@ end)
 test("debuglog: a profile reset from outside the helper is logged once, without a count (debug-logging-§10)", function()
     -- The line belongs to the profile-event handler, not to RestoreAllDefaults, so a reset driven
     -- straight at the db (AceDBOptions, a /run) is logged too, and only once. Nothing counted the
-    -- changed rows before that reset, and §10 lets the line omit a count that is not cheap to know.
+    -- changed rows before that reset, and debug-logging-§10 lets the line omit a count that is not cheap to know.
     local NS = T.bootAddon()
     dirtyTwoRows(NS)
     NS.State.debug = true
@@ -295,7 +295,7 @@ test("debuglog: an all-default page reset logs 0 rows, not a line per row (debug
 end)
 
 test("debuglog: the bulk bracket adds no line when the act reset the profile (debug-logging-§10)", function()
-    -- info.profileReset means the OnProfileReset handler has logged the reset already, and §10 forbids
+    -- info.profileReset means the OnProfileReset handler has logged the reset already, and debug-logging-§10 forbids
     -- a second line. The rows written inside the bracket stay muted, and the mute still lifts.
     local NS = T.bootAddon()
     NS.State.debug = true

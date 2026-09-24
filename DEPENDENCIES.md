@@ -43,7 +43,7 @@ was **removed in Lua 5.2**. "5.2 will probably work" is false, and it fails in a
 a broken test rather than a wrong interpreter.
 
 - Evidence: `tests/_kit/loader.lua:72` and `:91` call `setfenv(chunk, makeEnv(mocks))`;
-  `tests/loader.lua:99` calls `setfenv(chunk, env)`. `tests/_kit/loader.lua:89` uses **`loadstring`**,
+  `tests/loader.lua:109` calls `setfenv(chunk, env)`. `tests/_kit/loader.lua:89` uses **`loadstring`**,
   also 5.1-only.
 - Evidence: `.luacheckrc:4` pins `std = "lua51"`, so lint and the runtime agree on the dialect.
 - **LuaJIT is an acceptable substitute** — it implements the 5.1 API including `setfenv` and
@@ -131,8 +131,8 @@ lizard --version
 
 ### 2.4 git and diff — **required for the vendor gate**
 
-- Evidence: `docs/testing.md:248-251` runs four `diff -r` comparisons of `libs/LibKa0s` and
-  `tests/_kit` against a **sibling checkout at `../LibKa0s`**; `docs/testing.md:294` uses
+- Evidence: `docs/testing.md:265-268` runs four `diff -r` comparisons of `libs/LibKa0s` and
+  `tests/_kit` against a **sibling checkout at `../LibKa0s`**; `docs/testing.md:309` uses
   `git add --renormalize .` to fix a line-ending divergence.
 - Both ship with Ubuntu (`git` may need installing on a minimal image):
 
@@ -162,16 +162,16 @@ Stated explicitly, because each of these is a reasonable guess that happens to b
 - **No Python scripts, no `Makefile`, no `scripts/` directory.** The repo contains no `.py` file of
   its own, no `Makefile` and no `scripts/`. There is **one** shell script:
   `tests/_kit/run-automated-tests.sh`, the vendored automated-test runner that ships whole with the
-  LibKa0s test kit (`docs/testing.md:371-373`, [`docs/automated-tests/README.md`](docs/automated-tests/README.md)).
+  LibKa0s test kit (`docs/testing.md:384-390`, [`docs/automated-tests/README.md`](docs/automated-tests/README.md)).
   It needs **bash**, which Ubuntu already has, and it is a convenience wrapper — it shells out to
   the same `luacheck` / `lua tests/run.lua` / `lizard` above and treats a missing tool as a `skip`,
   never a failure. Every other documented command is typed directly.
-- **No CI.** There is no `.github/` directory and no workflow. `docs/testing.md:204-206` says so
+- **No CI.** There is no `.github/` directory and no workflow. `docs/testing.md:221-223` says so
   outright: the README `tests` badge is static and hand-maintained, with no GitHub Action behind it.
 - **No test dependency beyond `git` and a shell.** The suites `require` nothing outside `tests/`, and
-  the only shell-outs are the harness's own: `tests/_kit/framework.lua:515-516` lists a directory with
+  the only shell-outs are the harness's own: `tests/_kit/framework.lua:444-445` lists a directory with
   `ls -A` (`dir /b` on cmd.exe) because the collection takes no LuaFileSystem dependency, and the
-  vendored-payload gate reads the sibling checkout with `git` — `tests/_kit/vendor_sync.lua:193`
+  vendored-payload gate reads the sibling checkout with `git` — `tests/_kit/vendor_sync.lua:195`
   (the `git -C <sibling> …` runner behind its `show` and `ls-tree` reads) and `:236`
   (`git cat-file --batch`). With `git` or `../LibKa0s`
   absent, `tests/test_vendor_sync.lua`'s cases report **SKIP** with the reason and the run's exit code
@@ -186,7 +186,7 @@ to fix a typo.
 
 - **Packaging** is done by the **CurseForge/WoWAce packager**, a hosted service — not a local tool.
   Evidence: `.pkgmeta` (its config) declares `package-as: WhatGroup` (`:1`) and an `ignore:` list
-  (`:6-31`), and `.pkgmeta:3-4` records that there is **no `externals:` block** because every
+  (`:6-32`), and `.pkgmeta:3-4` records that there is **no `externals:` block** because every
   library is vendored.
   There is nothing to install locally for this.
 - **Media** — `media/logos` and `media/screenshots` are **committed binary assets**,

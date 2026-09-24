@@ -924,7 +924,7 @@ honest state of this section is unrun, and it is recorded that way rather than a
 
 ## 12c. The launcher — one button, two surfaces (~4 min)
 
-`launcher-§1`/`§2`/`§3`. Headless cases pin the wiring; what needs a client is that the icon actually
+`launcher-§1`, `launcher-§2`, `launcher-§3`. Headless cases pin the wiring; what needs a client is that the icon actually
 **draws** (a wrong TGA format draws nothing and raises nothing) and that the clicks land.
 
 1. **The AddOns list.** Esc → AddOns (or the addon list in Settings). **Expected:** the WhatGroup row

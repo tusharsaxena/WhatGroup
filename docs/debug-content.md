@@ -138,7 +138,7 @@ and hand-transcribing them is the duplicate debug-logging-§3 and testing-§8 fo
 ## Adding a debug line
 
 Call the sink with a tag, a format and raw values. Format args are applied only when debug is on, so
-string-building stays behind the gate (debug-logging-§4, §9):
+string-building stays behind the gate (debug-logging-§4, debug-logging-§9):
 
 ```lua
 NS.Debug("Apply", 'id=%s captured "%s" (map=%s)', id, title, mapID)

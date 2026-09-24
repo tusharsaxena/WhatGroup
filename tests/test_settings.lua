@@ -717,7 +717,7 @@ function()
 end)
 
 -- ---------------------------------------------------------------------------
--- The rules that hold for every row on every page (options-ui-§13 / §17)
+-- The rules that hold for every row on every page (options-ui-§13, options-ui-§17)
 -- ---------------------------------------------------------------------------
 
 test("settings: every row on every page carries a `group`", function()

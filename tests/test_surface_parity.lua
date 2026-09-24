@@ -129,11 +129,11 @@ test("parity: the Options helpers stub carries the whole live surface", function
     --   grep -n "Helpers\.[A-Za-z_]" core modules settings   names the addon's call sites.
     local degraded = T.newAddon{ skip = NO_LIBKA0S }
     T.assertSurfaceParity(degraded.addon.Settings.Helpers, "LibKa0s-Options-1.0", {
-        -- options-ui-§1 / §8: the layout scalars must not be carried into the stub and must not be
+        -- options-ui-§1, options-ui-§8: the layout scalars must not be carried into the stub and must not be
         -- copied by a host anywhere — a host copy is the copy that goes stale. Every consumer of
         -- them in settings/Panel.lua sits behind a maker that is a no-op on this path.
         -- CHROME_GAP / TAB_H / BANNER_H arrived with the tabbed page and the banner
-        -- (options-ui-§13 / §14) and are the same kind of thing: scalars the library publishes so
+        -- (options-ui-§13, options-ui-§14) and are the same kind of thing: scalars the library publishes so
         -- a host drawing BESPOKE chrome can measure its own band. This addon draws none — its one
         -- page hands the whole strip to RenderTabbedSchema — so nothing here reads them, degraded
         -- or live.

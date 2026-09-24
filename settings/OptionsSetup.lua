@@ -99,7 +99,7 @@ if not lib then
     H.__releaseSubTabs     = function() end
     H.__tabArtHeight       = function() return 0 end
     H.__resetTabArtHeight  = function() end
-    -- The five schema COMPOSERS (options-ui-§15/§16/§17). Four of them have no call site here --
+    -- The five schema COMPOSERS (options-ui-§15, options-ui-§16, options-ui-§17). Four of them have no call site here --
     -- the schema is bool, number and one enum, so there is no font, border, bar or standalone
     -- color block to compose -- and they are stubbed for the shape reason the chrome members
     -- above are. MasterControls is different: settings/Panel.lua calls it at FILE LOAD, which is

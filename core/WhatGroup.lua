@@ -269,7 +269,7 @@ function WhatGroup:OnInitialize()
         -- because a reset driven straight at the db (AceDBOptions, a /run) is the same act. N is the
         -- rows whose stored value the reset changed. Helpers.RestoreAllDefaults counts them just
         -- before it resets and hands the count over; a reset from anywhere else has no such count,
-        -- and §10 lets the line omit it.
+        -- and debug-logging-§10 lets the line omit it.
         local function logReset()
             local S = NS.Settings
             local name = self.db:GetCurrentProfile()

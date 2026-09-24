@@ -1,4 +1,4 @@
--- tests/test_doc_structure.lua — the shapes documentation-§1 and §3 fix in place for the README
+-- tests/test_doc_structure.lua — the shapes documentation-§1 and documentation-§3 fix in place for the README
 -- and the architecture hub.
 --
 -- WHAT IT PROVES, in five cases:
@@ -7,7 +7,7 @@
 --   3. Every markdown link pointing INTO one of the hub's headings lands on a heading that exists.
 --   4. README.md carries the two player-facing history surfaces `documentation-§1` allows, and the
 --      tracked markdown carries no third.
---   5. README.md's top-level sections are the ones §1 names, in the order it names them.
+--   5. README.md's top-level sections are the ones documentation-§1 names, in the order it names them.
 --
 -- WHY IT EXISTS. `documentation-§3` states the hub rule as two thresholds "because 'keep it short'
 -- demonstrably did not hold": a mandated section past roughly 60 lines MUST spill into its canonical
@@ -18,7 +18,7 @@
 -- at a time, each one defensible.
 --
 -- WHY THE THRESHOLD CASE EXEMPTS TWO SECTIONS. `## Documentation map` and `## Documented deviations`
--- are REGISTERS: §3 makes the hub their single home, so their storage IS the hub and they have no
+-- are REGISTERS: documentation-§3 makes the hub their single home, so their storage IS the hub and they have no
 -- canonical topic doc to spill into. Holding them to the spill threshold would be asking them to
 -- move somewhere the same section forbids. Every other mandated section has a named home —
 -- Overview → scope.md, Module Map → module-map.md, Settings Schema → schema.md, Message Bus →
@@ -31,7 +31,7 @@
 -- `## Version History`'s top row names the TOC's version (that is `wow-addon:bump-version`'s, and
 -- pinning it here would redden the tree between that command's own two edits), and does not count links per section
 -- — "exactly one link" is the spill's shape, but a compliant section may also cite a second doc, as
--- §3's own Module Map example does.
+-- documentation-§3's own Module Map example does.
 --
 -- IT FAILS RATHER THAN PASSES WHEN IT CANNOT LOOK. No `io.popen`, no git, no ARCHITECTURE.md and no
 -- README.md are each a failure, not a skip — the same bargain tests/_kit/test_eol.lua strikes.
@@ -55,7 +55,7 @@ local MANDATED = {
 -- The two of those ten whose storage IS the hub, and which therefore have nowhere to spill to.
 local REGISTERS = { ["documentation map"] = true, ["documented deviations"] = true }
 
--- §3's spill threshold, stated there as "roughly 60 lines". Held as a hard number here because a
+-- documentation-§3's spill threshold, stated there as "roughly 60 lines". Held as a hard number here because a
 -- gate cannot assert "roughly"; the slack is that the rule's own failure case is 189 lines, not 61.
 local SPILL_LINES = 60
 
@@ -168,7 +168,7 @@ test("docs/ARCHITECTURE.md carries the ten sections documentation-§3 names", fu
         if not found then missing[#missing + 1] = "## " .. name end
     end
     assertTrue(#missing == 0, ARCHITECTURE .. " is missing " .. table.concat(missing, ", ")
-        .. " — §3 names all ten rather than counting them, because a count goes stale in silence")
+        .. " — documentation-§3 names all ten rather than counting them, because a count goes stale in silence")
 end)
 
 test("every mandated hub section that has a topic doc has spilled into it", function()
@@ -194,7 +194,7 @@ test("every mandated hub section that has a topic doc has spilled into it", func
     end
     close(#all + 1)
     assertTrue(#over == 0, "hub sections past the " .. SPILL_LINES .. "-line spill threshold: "
-        .. table.concat(over, ", ") .. ". §3: a mandated section that exceeds roughly 60 lines MUST "
+        .. table.concat(over, ", ") .. ". documentation-§3: a mandated section that exceeds roughly 60 lines MUST "
         .. "spill into its canonical topic doc, leaving a summary and a link. The two registers "
         .. "(Documentation map, Documented deviations) are exempt — the hub is their single home")
 end)
@@ -228,7 +228,7 @@ test("the player-facing history has the ONE home documentation-§1 allows, and n
     assertTrue(versionHistory == 1, README .. " must carry exactly one `## Version History`; found "
         .. versionHistory)
 
-    -- And nowhere in the tracked markdown — §3's "docs/ is not where a forbidden root doc goes to
+    -- And nowhere in the tracked markdown — documentation-§3's "docs/ is not where a forbidden root doc goes to
     -- live" is the same rule one directory down.
     local extra = {}
     for _, path in ipairs(trackedMarkdown()) do
@@ -259,7 +259,7 @@ test("README.md's top-level sections are the ones documentation-§1 names, in it
             end
         end
     end
-    assertTrue(#out == 0, README .. " carries a top-level section §1 does not name, or names in a "
+    assertTrue(#out == 0, README .. " carries a top-level section documentation-§1 does not name, or names in a "
         .. "different position: " .. table.concat(out, ", ") .. ". Detail that wants a home of its "
         .. "own folds into the listed section it belongs to, or moves under docs/")
 

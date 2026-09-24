@@ -20,7 +20,7 @@ local addonName, NS = ...
 local lib = LibStub and LibStub("LibKa0s-DebugLog-1.0", true)
 
 -- ---------------------------------------------------------------------------
--- The §2 fetch-failure fallback
+-- The debug-logging-§2 fetch-failure fallback
 -- ---------------------------------------------------------------------------
 --
 -- debug-logging-§2 asks for a Blizzard font "as the fetch-failure fallback" behind the vendored
@@ -28,7 +28,7 @@ local lib = LibStub and LibStub("LibKa0s-DebugLog-1.0", true)
 -- cannot load the file — a packager that dropped the library's media/, a corrupt TTF, a path
 -- case-mangled on a case-sensitive filesystem — and does not raise. Without a fallback the console
 -- then comes up in whatever font the FontString already carried, i.e. a proportional one: the
--- aligned `HH:MM:SS | [tag] …` columns that the §2 monospace MUST exists for are gone, and
+-- aligned `HH:MM:SS | [tag] …` columns that the debug-logging-§2 monospace MUST exists for are gone, and
 -- nothing in the error log says why.
 --
 -- The library takes ONE resolved string (`descriptor.font`, fed straight to SetFont at
@@ -155,7 +155,7 @@ NS.DebugLog = lib:New({
 
     -- The one-line [Init] session summary. The library owns WHEN it is emitted — on enable,
     -- because the flag is session-only and off at login, so a load-time summary would always be
-    -- gated off and never render — and only the addon can know what it says (debug-logging-§5/§8).
+    -- gated off and never render — and only the addon can know what it says (debug-logging-§5, debug-logging-§8).
     initSummary = function()
         local addon = NS.addon
         if addon and addon.InitSummary then return addon:InitSummary() end

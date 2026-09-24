@@ -1,4 +1,4 @@
--- tests/test_launcher.lua — the launcher (launcher-§1..§5): ONE LibDataBroker object, registered
+-- tests/test_launcher.lua — the launcher (launcher-§1 to launcher-§5): ONE LibDataBroker object, registered
 -- twice, wearing this addon's own logo, answering a left click with the group popup and a right
 -- click with the settings panel.
 --
