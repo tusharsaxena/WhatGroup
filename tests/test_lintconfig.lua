@@ -9,6 +9,9 @@
 --      `.lua` file, or the entry names the variable as well as the code (`212/self`).
 --   4. No tracked `.lua` file carries a bare inline `-- luacheck: ignore` with no code after it,
 --      which is the same blanket wearing a different hat.
+-- Two more cases pin the config's scope and grants: `exclude_files` carries the lint template's
+-- frozen bundle stores (docs/revendor/ included), and `read_globals` grants none of the six names
+-- no shipped file reads (WHATGROUP-R-11, WHATGROUP-A-20).
 --
 -- WHY IT EXISTS, in this repo specifically. `.luacheckrc` carried
 -- `ignore = { "211/addonName", "212", "542" }` through the whole 2026-09-07 remediation, and the
@@ -176,6 +179,56 @@ test("lintconfig: every files[...] ignore is narrowed to a file or a name", func
             .. table.concat(wide, ", ") .. ". Name the single file in the stanza key, or write the "
             .. "entry as `<code>/<variable>` so a different unused name in the same tree still "
             .. "reports", 2)
+    end
+end)
+
+-- ---------------------------------------------------------------------------
+-- The config's scope and grants (WHATGROUP-R-11, WHATGROUP-A-20)
+-- ---------------------------------------------------------------------------
+
+--- The entries of a config list as a set, so membership reads as one lookup.
+local function asSet(list)
+    local set = {}
+    if type(list) == "table" then
+        for _, entry in ipairs(list) do set[tostring(entry)] = true end
+    end
+    return set
+end
+
+-- The frozen bundle stores the lint template excludes. docs/revendor/ is written once per re-vendor
+-- and never edited after, the same as the audit and review bundles beside it, so a Lua snippet
+-- quoted into one must not become a lint finding against today's tree.
+local FROZEN_STORES = { "docs/audits/", "docs/reviews/", "docs/revendor/" }
+
+test("lint: exclude_files carries the template's frozen stores", function()
+    local have = asSet(rawget(loadConfig(), "exclude_files"))
+    local missing = {}
+    for _, dir in ipairs(FROZEN_STORES) do
+        if not have[dir] then missing[#missing + 1] = dir end
+    end
+    if #missing > 0 then
+        fail(".luacheckrc exclude_files is missing the frozen bundle store(s) "
+            .. table.concat(missing, ", ") .. " that the lint template excludes", 2)
+    end
+end)
+
+-- Globals the addon once read directly and now reaches only through LibKa0s-Compat-1.0, or never
+-- read at all. A grant nobody reads widens the lint surface for free: a new direct call to one of
+-- them would pass where it should report.
+local UNREAD_GLOBALS = {
+    "GetSpellInfo", "GetSpellTexture", "GetSpellCooldown", "CastSpellByID", "SettingsPanel", "date",
+}
+
+test("lint: read_globals grants no removed or unread global", function()
+    local have = asSet(rawget(loadConfig(), "read_globals"))
+    local granted = {}
+    for _, name in ipairs(UNREAD_GLOBALS) do
+        if have[name] then granted[#granted + 1] = name end
+    end
+    if #granted > 0 then
+        fail(".luacheckrc read_globals still grants " .. table.concat(granted, ", ")
+            .. ", which no shipped file reads; drop the grant, or restore it with a comment "
+            .. "naming its reader", 2)
     end
 end)
 

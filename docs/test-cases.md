@@ -777,11 +777,13 @@ badge and any count quoted in the docs must agree with it.
 
 - docmap: every Tier 2 row agrees with what docs/ holds
 
-### test_lintconfig.lua (4)
+### test_lintconfig.lua (6)
 
 - lintconfig: .luacheckrc sets no top-level ignore
 - lintconfig: .luacheckrc switches no warning class off wholesale
 - lintconfig: every files[...] ignore is narrowed to a file or a name
+- lint: exclude_files carries the template's frozen stores
+- lint: read_globals grants no removed or unread global
 - lintconfig: no source file carries a bare inline luacheck ignore
 
 ### test_doc_structure.lua (8)
@@ -890,7 +892,7 @@ badge and any count quoted in the docs must agree with it.
 | test_lifecycle.lua | 46 |
 | test_debuglog.lua | 49 |
 | test_docmap.lua | 1 |
-| test_lintconfig.lua | 4 |
+| test_lintconfig.lua | 6 |
 | test_doc_structure.lua | 8 |
 | test_register.lua | 1 |
 | test_disabled.lua | 18 |
@@ -898,4 +900,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **772** |
+| **Total** | **774** |

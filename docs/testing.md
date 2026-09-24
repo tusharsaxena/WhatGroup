@@ -323,8 +323,9 @@ naming `CLAUDE.md`.
 ## Lint scope
 
 `luacheck`'s 0/0 is **scoped by `.luacheckrc`'s `exclude_files`**, not
-repo-wide: `libs/`, `tests/_kit/`, `_dev/` and the frozen audit/review bundles
-are excluded. **The rest of `tests/` is linted** — the suites, `run.lua`,
+repo-wide: `libs/`, `tests/_kit/`, `_dev/` and the frozen audit, review and
+re-vendor bundles (`docs/audits/`, `docs/reviews/`, `docs/revendor/`) are
+excluded. **The rest of `tests/` is linted** — the suites, `run.lua`,
 `loader.lua` and `wow_mock.lua` are this addon's code and are held to the same
 gate as `core/`, and a run that reports fewer than the full file count is a run
 that has stopped checking half the Lua in the repo. `tests/_kit/` is the one
@@ -346,8 +347,7 @@ fix — it is a finding for `../LibKa0s`.
 
 `exclude_files` narrows **which files** the run reads. The other half of "is 0/0
 a fact about the code?" is **which findings** the config throws away, and
-`tests/test_lintconfig.lua` is the four cases that hold it honest (lint.md,
-`M4-11`):
+`tests/test_lintconfig.lua` holds it honest (lint.md, `M4-11`), in six cases:
 
 | Case | Red when |
 |---|---|
@@ -355,6 +355,8 @@ a fact about the code?" is **which findings** the config throws away, and
 | no warning class is switched off wholesale | `unused_args = false` and eight relatives — a blanket spelled as a switch |
 | every `files[…]` ignore is narrowed | a stanza keyed on a **directory** whose entry names no variable |
 | no bare inline `-- luacheck: ignore` | the directive appears in any tracked `.lua` with no code after it |
+| `exclude_files` carries the frozen stores | `docs/audits/`, `docs/reviews/` or `docs/revendor/` is dropped |
+| `read_globals` grants no unread global | any of `GetSpellInfo`, `GetSpellTexture`, `GetSpellCooldown`, `CastSpellByID`, `SettingsPanel`, `date` returns |
 
 It reads `.luacheckrc` **as Lua**, under a sandbox that auto-creates tables the
 way luacheck's own loader does, so it inspects the table luacheck obeys rather
