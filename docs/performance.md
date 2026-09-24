@@ -92,7 +92,7 @@ The long-form reasoning, and the date the user ratified it, are at
 [`LIBKA0S-15`](https://github.com/tusharsaxena/WhatGroup/issues/7).
 
 **(c) is an argument about a MEASUREMENT window, not about whether this addon can be made inert.**
-Since the stand-down landed (`slash-commands-§7`, `ARCHITECTURE.md` → `## The stand-down`) it very
+Since the stand-down landed (`slash-commands-§7`, [stand-down.md](./stand-down.md)) it very
 much can: `core/LifecycleSetup.lua` builds the `LibKa0s-Lifecycle-1.0` latch and `NS.StandDown`
 unregisters every event, cancels every timer and takes the popup off screen. The difference is who
 asked. A player who unticks *Enable WhatGroup* has asked to stop capturing and is entitled to have

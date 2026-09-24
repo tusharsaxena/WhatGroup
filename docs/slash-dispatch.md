@@ -107,7 +107,7 @@ Nothing unregisters `/wg`, empties `COMMANDS` or tears the dispatcher down on th
 chat commands are registered in `OnInitialize` and the settings category in `OnEnable`, and both
 are **setup**, not features — they come up on load in either state and stay up. What the off-flip
 *does* do is take the latch's `disabled` hold, which unregisters every event, cancels every timer
-and takes the popup off screen ([the stand-down](./ARCHITECTURE.md#the-stand-down)). **The addon is
+and takes the popup off screen ([the stand-down](./stand-down.md)). **The addon is
 inert; its command surface is not the addon.**
 
 **Every reserved verb answers while the addon is off** — `help`, `config`, `version`, `enable`,

@@ -54,7 +54,8 @@ LFG events ─▶ capture pipeline ─▶ pendingInfo
 | `/wg` slash UX + `COMMANDS` table | `settings/Slash.lua` | [docs/slash-dispatch.md](./slash-dispatch.md) |
 | On-screen debug console + `NS.Debug` sink | `core/DebugLogSetup.lua` | [docs/debug-content.md](./debug-content.md) |
 | The shared library, its ten seams and the degraded install | `libs/LibKa0s/`, `core/CoreSetup.lua`, `core/Compat.lua`, `core/EnvSetup.lua`, `core/MediaSetup.lua`, `core/DebugLogSetup.lua`, `core/LauncherSetup.lua`, `core/LifecycleSetup.lua`, `settings/SchemaSetup.lua`, `settings/OptionsSetup.lua`, `settings/Slash.lua` | this file, below |
-| The launcher — the minimap button and the broker plugin | `core/LauncherSetup.lua` | this file (`## Invariants`, `## Load order`) |
+| The launcher — the minimap button and the broker plugin | `core/LauncherSetup.lua` | this file (`## Invariants`); [docs/module-map.md → Load order](./module-map.md#load-order) |
+| The stand-down — what disabled means, the latch and its holds, what survives | `core/LifecycleSetup.lua`, `core/WhatGroup.lua`, `modules/Frame.lua` | [docs/stand-down.md](./stand-down.md) |
 | Popup dialog (`WhatGroupFrame`) | `modules/Frame.lua` | [docs/frame.md](./frame.md) |
 | WoW API gotchas (hook discipline, Settings API, lazy panel build) | — | [docs/midnight-quirks.md](./midnight-quirks.md) |
 | Routine recipes (add a setting, add a command, refresh libs) | — | [docs/common-tasks.md](./common-tasks.md) |
@@ -192,111 +193,23 @@ teleport cooldown countdown at `modules/Frame.lua:524`, a 1-second `ScheduleRepe
 ticker is what ended the no-combat-path exemption; the wiring is still declined, now as a ratified
 deviation in its own right (see `## Documented deviations`).
 
-The teleport button's cooldown swipe (`modules/Frame.lua`) costs nothing on top of that: a
-`CooldownFrameTemplate` is driven engine-side once armed with `SetCooldown`, so the Lua side runs
-exactly once per popup open. Its companion countdown text is what ticks — one
-`C_Spell.GetSpellCooldown`, one formatted string and one `SetText` per second — and it cannot
-outlive the popup that armed it: a single handle, replaced rather than stacked, **armed only from
-the popup's `OnShow` and only while `f:IsShown()`**, canceled from the popup's `OnHide`, from the
-top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. The
-arm and the cancel are the same transition read in both directions, which is what makes "cannot
-outlive" a structural claim rather than a list of remembered call sites.
+The teleport button's cooldown swipe is engine-driven and costs nothing; its countdown text ticks
+once a second and cannot outlive the popup that armed it (armed from `OnShow` under `f:IsShown()`,
+canceled from `OnHide`). Detail: [frame.md → Teleport button](./frame.md#teleport-button).
 
 ## The stand-down
 
-**Disabled means the addon is not running** (`slash-commands-§7`). Not hidden, not quiet, not
-skipping a repaint — every event unregistered, every timer canceled, nothing drawn and nothing
-written from a game event. Only the surface that can turn it back on is left alive.
-
-Until 2026-09-16 this addon implemented disabled as a **draw gate**: two reads of
-`db.profile.enabled`, at `OnApplyToGroup` and at the `inviteaccepted` arm, and the four event
-registrations stayed exactly where they were. From the outside that is indistinguishable from
-standing down, which is how the shape survived several audits. It is not the same thing: an early
-return means the addon **did not stop watching — it stopped reacting**, and the client still walked
-its registration list on every `GROUP_ROSTER_UPDATE`, built the argument frame, entered Lua and ran
-the comparison that decided to leave. That cost is what a player switching an addon off is trying
-to stop paying, and it is invisible from every surface they can see.
-
-### One latch, two named holds
-
-`core/LifecycleSetup.lua` builds **one** `LibKa0s-Lifecycle-1.0` instance. Two holds sit on it:
-
-| Hold | Taken by | Lifetime |
-|---|---|---|
-| `disabled` | the stored `enabled` path — the Master controls checkbox, `/wg enable` / `/wg disable`, `/wg set enabled false`, and a profile switch that carries a different answer | **persisted**, because surviving a `/reload` is the point of that setting |
-| `perf` | `LibKa0s-Perf-1.0`, for a capture's suspended arm. This addon **declines Perf** ([LIBKA0S-15](https://github.com/tusharsaxena/WhatGroup/issues/7)), so nothing takes it today | **session-only**, never persisted |
-
-The addon is **down whenever at least one hold is taken** and stands up **only when the last one is
-released**. There is no `:StandUp()` member on the latch at all, and its absence is the feature:
-`/wg disable` is a live verb, so a player can switch the addon off during a suspended perf arm, and
-a `resume` that called a bare stand-up would bring it back mid-capture and silently ruin the run.
-**Releasing one hold must not resurrect an addon the other is still holding down.**
-
-Standing up rebuilds **from current state**, never from a snapshot taken on the way down. The whole
-schema CLI answers while the addon is off, so a setting changed there has to be what the rebuild
-reflects.
-
-### What goes down, and what survives
-
-`NS.StandDown` (`core/WhatGroup.lua`) and `NS.FrameStandDown` (`modules/Frame.lua`) are the whole of
-the teardown, and the latch is their only caller.
-
-**Down:** all four AceEvent registrations actually `UnregisterEvent`'d; the chat link's
-`EventRegistry` `"SetItemRef"` callback actually `UnregisterCallback`'d (and re-registered by
-`NS.StandUp`); the notify timer and the teleport cooldown ticker canceled; the capture state wiped; the popup and its ESC proxy off screen,
-with `visibilityAllows` answering **no at the source** so a combat edge, a settings change or a
-`/wg test` cannot re-show them behind the switch's back; the combat-end queue wiped, along with
-the stashes its deferred teleport configure and deferred first show read.
-
-**The one sanctioned exception is a hook that cannot be undone.** `hooksecurefunc` has no un-hook,
-so the `C_LFGList.ApplyToGroup` post-hook and the degraded client's `SetItemRef` post-hook gate
-their own bodies on `NS.IsStoodDown()` and return. That carve-out exists because the API is one-way
-and **does not generalize** to anything with a real unregister — which is why the `EventRegistry`
-chat-link callback is unregistered rather than gated (anti-pattern #85).
-
-**Survives, because it is SETUP and not a feature:** the chat command registration, the dispatcher
-and the `COMMANDS` table; the settings-category registration and the panel body; the AceDB handle,
-the single write seam and AceDB's `OnProfileChanged` / `OnProfileCopied` / `OnProfileReset`
-callbacks (a profile switch can flip `enabled` with nothing else touched, so the latch is
-re-evaluated there); and the launcher's registration — the minimap button stays on the minimap,
-because `minimap.hide` is a per-installation display preference and says nothing about whether the
-addon is running.
-
-### Secure work under lockdown
-
-The popup parents a `SecureActionButtonTemplate` teleport button, so `Hide` on it — and on every
-ancestor — is refused in combat. A stand-down taken mid-fight therefore takes `hidePopup`'s alpha-0
-route and **owes** the real `Hide` to the next legal edge. It keeps `PLAYER_REGEN_ENABLED` registered
-for exactly that, which is the **one** registration a disabled addon is permitted to hold, and
-`WhatGroup:OnDisabledCombatEnded` unregisters it the moment it fires. Attempting the protected call
-anyway is strictly worse than deferring: the frame does not hide either way, and the player
-additionally gets a red error naming this addon.
-
-### The launcher click
-
-Left-click is **refused** while the addon is disabled — WhatGroup is on launcher rung (a), so the
-left button drives the primary window, which is a feature. It prints `Sl:DisabledLine()` and does
-nothing else: no frame shown and, above all, **no SavedVariables write**. **The gate is the
-library's, and the line is the dispatcher's**: the descriptor hands `LibKa0s-Launcher-1.0` (minor 2)
-`isEnabled` → `not NS.IsStoodDown()` and `disabledLine` → `NS.SlashCommands:DisabledLine()`, and
-the library refuses the click before `onClick` — now the bare `WhatGroup:ToggleFrame` — is ever
-called. The launcher spells no refusal of its own (slash-commands-§7). The rung-(c) carve-out
-does not reach it; a rung-(c) left-click opens the settings panel and nothing else, which is why
-that one is unchanged. **Right-click still opens the panel, in either state** — the ruling narrows
-the *slash* surface and a mouse click is not a slash command.
-
-### The slash surface is unchanged
-
-Every reserved verb answers while the addon is off and the bare `/wg` opens the panel; only this
-addon's own feature verbs (`show`, `test`) refuse, on one line. That is `slash-commands-§7`'s ruling
-after the v2.56.0 narrowing was reversed at v2.57.0, and it is documented in full in
-[slash-dispatch.md](./slash-dispatch.md). **It is not the stand-down.** The dispatcher and the
-settings registration are setup, so keeping them live costs nothing the stand-down was reclaiming.
-
-`tests/test_disabled.lua` is the conformance suite (`slash-commands-§7` MUST). Every assertion in it
-is on the **registration set**, the live timer set, the shown-frame set, the SavedVariables diff or
-the printed lines — never on a handler's return value, because a suite written that way certifies
-the draw gate it exists to catch.
+**Disabled means the addon is not running** (`slash-commands-§7`): every event unregistered, every
+timer canceled, nothing drawn and nothing written from a game event. It is not a draw gate that
+stops reacting while still watching. `core/LifecycleSetup.lua` builds **one**
+`LibKa0s-Lifecycle-1.0` latch with two named holds, `disabled` (persisted, taken from the stored
+`enabled` path) and `perf` (session-only, and unused because Perf is declined). The addon stands up
+only when the **last** hold is released, and rebuilds from current state. `NS.StandDown` and
+`NS.FrameStandDown` are the whole teardown. The `hooksecurefunc` bodies gate themselves because a
+hook cannot be undone; setup survives (the slash dispatcher, the settings registration, AceDB and
+its profile callbacks, the launcher). A stand-down in combat keeps `PLAYER_REGEN_ENABLED` for the
+one `Hide` it owes, and the launcher's left click is refused while disabled. `tests/test_disabled.lua`
+is the conformance suite. Detail: [stand-down.md](./stand-down.md).
 
 ## Taint Notes
 
@@ -368,95 +281,40 @@ the draw gate it exists to catch.
 
 ## External dependencies
 
-All vendored under `libs/` and copied verbatim from Ka0s KickCD:
+All vendored under `libs/`; where each was copied from and what each is for is in
+[module-map.md → Embedded libraries](./module-map.md#embedded-libraries). Ace3 (`LibStub`,
+`CallbackHandler-1.0`, `AceAddon-3.0`, `AceEvent-3.0`, `AceConsole-3.0`, `AceTimer-3.0` — the
+mandated timer lib, WG-17 — `AceDB-3.0`, and `AceGUI-3.0` via its `.xml`), `LibSharedMedia-3.0`,
+the launcher's `LibDataBroker-1.1` and `LibDBIcon-1.0` (`OptionalDeps`, `launcher-§1`), and:
 
-- `LibStub`
-- `CallbackHandler-1.0`
-- `AceAddon-3.0`
-- `AceEvent-3.0`
-- `AceConsole-3.0`
-- `AceTimer-3.0` — the mandated timer lib (WG-17); backs the one-shot notify delay
-- `AceDB-3.0`
-- `AceGUI-3.0` (loaded via its `.xml`)
-- `LibDataBroker-1.1` and `LibDBIcon-1.0` — the launcher's two libraries (`launcher-§1`), copied from Ka0s Bank Ledger. `LibKa0s-Launcher-1.0` resolves both with `LibStub(..., true)` at `Register` time and degrades by name, so they are `OptionalDeps`: an install with neither loads, says which one is missing once, and carries on without a button
-- `LibSharedMedia-3.0` (via its `lib.xml`; copied from Ka0s AbsorbTracker) — the media registry `core/MediaSetup.lua` registers the library's JetBrains Mono and bar textures with, through one `Media.RegisterLSM(addonName)` call at load
 - `LibKa0s` (loaded **last**, via its own `LibKa0s.xml`) — the shared Ka0s addon library. WhatGroup takes ten of its majors: **Core** (the prefixed secret-safe printer, `SafeToString`, the shared window skin, the close-button factory), **Env** (the TOC-manifest reader behind `NS.Meta` / `NS.Version`), **Compat** (the spell name, icon and cooldown readers behind `NS.Compat`, since v1.55.0), **Media** (the icon catalog and the monospace face), **DebugLog** (the on-screen console), **Options** (the settings-canvas shell, the widget makers and the two-column flow engine), **Schema** (the settings schema's runtime — the path walk, the row index, the single write seam, the bulk bracket and the reset count — as `NS.SchemaRuntime`, wired in `settings/SchemaSetup.lua` and `settings/Schema.lua`, [#22](https://github.com/tusharsaxena/WhatGroup/issues/22)), **Slash** (the dispatcher, the help renderer and the schema CLI), **Launcher** (the one LibDataBroker object, both registrations and the click dispatch) and **Lifecycle** (the stand-down latch and its two named holds). **Perf is declined** on structural grounds — no hot path, and `suspend` would stop a capture addon capturing ([`LIBKA0S-15`](https://github.com/tusharsaxena/WhatGroup/issues/7)) — and so is **Bus**, because there is no bus ([#21](https://github.com/tusharsaxena/WhatGroup/issues/21)). Schema's seam refuses a write to a path with no row, and on a library-absent load `enabled` and `state.testMode` have none; no `writeThrough` list is passed, so there `/wg enable`, `/wg disable` and `/wg test` print the library-absent line instead of writing — `options-ui-§1` route (b), the owner's ruling on #22, recorded in `## Documented deviations`. The folder is vendored whole regardless, because the other majors sit on `Core` and a hand-picked subset is anti-pattern #48.
 
 WoW retail APIs the addon depends on: `C_LFGList.ApplyToGroup` / `GetSearchResultInfo` / `GetApplicationInfo` / `GetActivityInfoTable`, `C_Spell.GetSpellName` / `GetSpellTexture` / `GetSpellLink` / `GetSpellCooldown` (the legacy `GetSpell*` globals are the fallback rung for all but `GetSpellLink`, which degrades straight to `nil` — `core/Compat.lua:67-72`; the name, texture and cooldown ladders are `LibKa0s-Compat-1.0`'s), `C_SpellBook.IsSpellKnown` (the `IsSpellKnown` global is its fallback rung), `C_Timer.After`, `GetTime`, `IsInGroup`, and, for the details chat link, `LinkTypes.AddOn` plus `EventRegistry:RegisterCallback("SetItemRef", …)` (both detected in `NS.Compat.AddOnLinkType`; `SetItemRef` is post-hooked only when either is missing). Teleport casting goes through a `SecureActionButtonTemplate` `macrotext` (`/cast <SpellName>`) — **not** `CastSpellByID`, which a non-secure addon click would trip `ADDON_ACTION_FORBIDDEN` on. Settings API: `Settings.RegisterCanvasLayoutCategory`, `Settings.RegisterCanvasLayoutSubcategory`, `Settings.RegisterAddOnCategory`, `Settings.OpenToCategory`. Frame chrome: `BackdropTemplate`, `SecureActionButtonTemplate`, `UISpecialFrames`.
 
 ## Load order
 
-`WhatGroup.toc` is the source of truth. Order is dependency, not alphabetical:
-
-Every source file starts with the same two-vararg header — `NS` is the addon's
-private namespace, shared across files (WG-01). There is **no `_G.WhatGroup`**.
-The first vararg is the addon's **folder** name, and it is spelled
-`local addonName, NS = ...` in the eight files that read it (`core/CoreSetup.lua`,
-`core/EnvSetup.lua`, `core/MediaSetup.lua`, `core/DebugLogSetup.lua`,
-`core/LauncherSetup.lua`, `core/LifecycleSetup.lua`, `core/WhatGroup.lua`,
-`settings/Panel.lua` — all eight hand it to a
-vendored library that cannot infer which folder it was copied into) and `local _, NS = ...`
-in the eleven that do not. The `_` is not a style preference: a named local nothing
-reads is a `211` finding, and `M4c-04` took ten of them out of this tree rather
-than leave the blanket `ignore` that had been hiding them.
-
-1. **libs/** — `LibStub` → `CallbackHandler-1.0` → `AceAddon-3.0` → `AceEvent-3.0` → `AceConsole-3.0` → `AceTimer-3.0` → `AceDB-3.0` → `AceGUI-3.0` (via its `.xml`, because that pulls in `widgets/`) → `LibSharedMedia-3.0` (via its `lib.xml`) → `LibDataBroker-1.1` → `LibDBIcon-1.0` → **`LibKa0s`** (last, via its own `LibKa0s.xml`, which loads the files `libs/LibKa0s/LibKa0s.xml` lists, `Core.lua` first; every other major refuses to register without `Core`, which is why the folder is vendored whole).
-2. **`locales/enUS.lua`** — `NS.L`, a metatable shell whose missing keys return themselves. Loads first among the addon files (the `# Locales` section precedes `# Core`, toc-file-§5 / WG-14), so `NS.L` is available to every later file; callers still reference `NS.L[...]` at runtime by convention. Every *player-facing* string the addon authors routes through it; three classes deliberately do not, and the deviation table below carries the reasoning and the re-check trigger (localization-§3 / WG-07).
-3. **`core/CoreSetup.lua`** — wires `LibKa0s-Core-1.0` and publishes the seams under the keys the addon already reads: `NS.IsConcatSafe` / `NS.SafeToString` (the secret-safe stringifier, events-frames-taint-§8 / WG-22), `NS.Util.print` (the prefixed secret-safe chat printer, aliased to `NS.Print` / `WhatGroup._print` by `core/WhatGroup.lua`), and `NS.SKIN` / `NS.ApplySkin` / `NS.MakeCloseButton` (the shared Ka0s window chrome, standalone-windows). Also publishes `NS.LIBKA0S_MISSING`, the one cause clause every other seam appends to. **First** in `# Core`, and three facts put it there: `core/WhatGroup.lua` takes the printer as a file-scope upvalue (`local p = NS.Util.print`), so a seam that published later would be a silent no-op; the printer is published on `NS.Util.print` rather than `NS.Print`, out of reach of AceConsole's `:Print` embed (anti-patterns #36); and `NS.PREFIX` is defined two files later, so `prefix` is passed in its **function** form, which Core re-reads on every call. `sink` is passed explicitly too — this addon prints through the Lua global `print`, not `DEFAULT_CHAT_FRAME:AddMessage`.
-4. **`core/MediaSetup.lua`** — wires `LibKa0s-Media-1.0` and publishes `NS.Icon(name)` / `NS.MediaFont(name)`, both answering `nil` without the library, then calls `Media.RegisterLSM(addonName)` at file load. **This slot is load-bearing**, not conventional: `core/WhatGroup.lua` resolves `NS.FONT_MONO` from `NS.MediaFont` at load and `core/DebugLogSetup.lua` hands that value to a descriptor the library validates as a string, so a later slot would leave both reading `nil`. `addonName` is the addon's **folder** name — a texture path is absolute from `Interface\AddOns\` and a vendored library cannot infer which folder it was copied into. Does no frame work, which is what makes file-load registration safe here (library-stack-§8).
-5. **`core/Util.lua`** — what the library does not own: `NS.Windows`, standalone-window geometry persistence (WG-26).
-6. **`core/Compat.lua`** — hangs `NS.Compat` on the shared namespace. Version-variant spell / LFG shims plus the chat-link detection — six of its own: `GetSpellLink` / `IsSpellKnown` / `GetSpellCooldownRemaining` / `GetSpellCooldownTimes` / `GetActivityInfoTable` / `AddOnLinkType`, beside the library's `GetSpellName` / `GetSpellTexture`, wired by identity; the one surface the addon reads `C_Spell.*` / legacy globals / `C_LFGList.GetActivityInfoTable` through, and the one place that asks whether `LinkTypes.AddOn` and `EventRegistry` exist. It is also the `LibKa0s-Compat-1.0` seam (since v1.55.0): `GetSpellName` and `GetSpellTexture` are the library's own members, and the two cooldown shims read the library's `GetSpellCooldown` and keep this addon's GCD floor and two-value truncation. Without the library those readers take the documented reader arm (`nil`, `0, 0`) and copy none of its ladder. Detail: [docs/compat-layer.md](./compat-layer.md).
-7. **`core/EnvSetup.lua`** — wires `LibKa0s-Env-1.0` and publishes the TOC-manifest readers `NS.Meta(field)` and `NS.Version()`, the seam behind the `version` verb's banner and the settings landing page's Notes line. Both were inline ladders before — `settings/Slash.lua`'s `version()` and `settings/Panel.lua`'s `addNotesLine`, neither of them in `core/Compat.lua` — and both fall back to `C_AddOns.GetAddOnMetadata` (then the legacy global) without the library, so a degraded install still reads its own TOC instead of printing a blank. `addonName` is the **folder** name again, for the `core/MediaSetup.lua` reason. TOC slot: after `core/Compat.lua` and before the two files that read it; nothing resolves at load beyond the `LibStub` lookup, so the position is conventional.
-8. **`core/Database.lua`** — `NS.SCHEMA_VERSION`, the `NS.MIGRATIONS` step table and `NS:RunMigrations()` (step-driven, idempotent, called once after `AceDB:New`); establishes the migration seam (WG-08).
-9. **`core/WhatGroup.lua`** — `local WhatGroup = AceAddon:NewAddon(NS, addonName, "AceConsole-3.0", "AceEvent-3.0", "AceTimer-3.0")` (mixes Ace methods, incl. `ScheduleTimer`/`CancelTimer`, into `NS`; `NS.addon = WhatGroup`). Seeds `NS.State.debug=false`, `NS.PREFIX`, aliases the `core/CoreSetup.lua` printer as the file-local `p` / `NS.Print` / `WhatGroup._print` (the reclaim from AceConsole's embed, anti-patterns #36), and `NS.FONT_MONO_NAME` / `NS.FONT_MONO` (the latter resolved from `core/MediaSetup.lua`'s `NS.MediaFont` seam, which is why that file's TOC slot is load-bearing; the LibSharedMedia registration moved there too). Then **at file-load top-level** installs its two subscriptions before any later boot-time work, so GameMenu's `InitButtons` sees a clean secure context: the direct `hooksecurefunc` post-hook on `C_LFGList.ApplyToGroup`, and the details chat link's `EventRegistry:RegisterCallback("SetItemRef", …)`. Where `NS.Compat.AddOnLinkType()` is nil, the second is a `hooksecurefunc("SetItemRef")` post-hook instead. Defines `OnInitialize` / `OnEnable` / the capture handlers / `WhatGroup:RunTest` / `WhatGroup.Labels` (`PLAYSTYLE` / `GetGroupTypeLabel` / `GetPlaystyleLabel`). Module-locals `capturesByResult`, `pendingApplications`, `wasInGroup`, `notifiedFor` initialize to empty / `false` / `nil`; the notify timer handle lives on `self.notifyTimer` (AceTimer). Its user-facing strings reference `NS.L[...]` at **runtime**; `NS.L` is already available since `locales/enUS.lua` now loads first.
-10. **`core/DebugLogSetup.lua`** — wires `LibKa0s-DebugLog-1.0` and hangs `NS.DebugLog` + the bare `NS.Debug(tag, fmt, …)` sink on the namespace. The library owns the `WhatGroupDebugWindow` console, its Copy window, both line formatters, the ring buffer, the scrollbar sync and the enable seam; the descriptor supplies the frame-name prefix, the title, the mono font path, where the flag lives, what the `[Init]` summary says and who to tell when the window opens or closes. Loads **after** `core/WhatGroup.lua`, which is a move from where the hand-written console sat: the library validates `font`, `title`, `isEnabled` and `setEnabled` at `:New` time, and both `NS.FONT_MONO` and `NS.State.debug` are defined there. Nothing calls `NS.Debug` at file load, so the move costs nothing.
-11. **`core/LauncherSetup.lua`** — wires `LibKa0s-Launcher-1.0` and hangs `NS.Launcher` on the namespace: ONE LibDataBroker object of `type = "launcher"`, registered with LibDBIcon under the same FOLDER name (LibDBIcon keys the button's saved position by it). The descriptor supplies the icon, the label, `minimap` **as a function** (`db.global.minimap` does not exist at file load, and a table captured then is one AceDB replaces), `openSettings` → `WhatGroup:OpenSettings`, `onClick` → `WhatGroup:ToggleFrame`, and the disabled gate as `isEnabled` → `not NS.IsStoodDown()` plus `disabledLine` → `NS.SlashCommands:DisabledLine()` (Launcher minor 2 refuses the left click itself; see `### The launcher click`). `onClick`'s PRESENCE is the rung: WhatGroup is on rung **(a)** of `launcher-§2`, the group popup being its primary window, so the left button toggles it and the right button always opens the panel. Loads after `core/DebugLogSetup.lua` (which publishes `NS.Debug`); conventional rather than load-bearing, since every seam it holds is read inside a closure at click or `Register` time. **`Register()` is called from `OnEnable`**, not here.
-12. **`core/LifecycleSetup.lua`** — wires `LibKa0s-Lifecycle-1.0` and publishes `NS.Lifecycle` plus `NS.IsStoodDown()`, the one question every gate in the addon asks (the show ladder, both un-un-hookable `hooksecurefunc` bodies, the launcher's left click, the dispatcher's `isEnabled`). ONE latch, two named holds — `disabled`, written from the stored `enabled` path, and `perf`, reserved for the harness this addon declines; the descriptor points `standDown` / `standUp` at `NS.StandDown` / `NS.StandUp` in `core/WhatGroup.lua`. Without the library the stub is the hold set minus the diagnostics, because the checkbox and the verbs still have to work on a degraded install. Last in `# Core` and conventional: both host callbacks resolve `NS.addon` members at CALL time, and the first call comes from `OnEnable`. Detail: `## The stand-down`.
-13. **`defaults/Profile.lua`** — hangs `NS.C`, the nested table of profile default VALUES (savedvariables-§2 / WG-24). Each `settings/Schema.lua` row references its value via `default = NS.C.<path>`, so values live here and the schema stays the single source of structure. Loads before `settings/Schema.lua` (the `# Defaults` section precedes `# Settings`).
-14. **`defaults/TeleportSpells.lua`** — populates `NS.TeleportSpells` (mapID → Path-of spell ID lookup; values are a single spellID or a `{ id1, id2 }` candidate list). Writes straight to `NS`, so load order relative to `core/WhatGroup.lua` is irrelevant.
-15. **`modules/Frame.lua`** — `local WhatGroup = NS.addon`; file-load runs only the `WhatGroup:ShowFrame()` method assignment. Everything else (the `WhatGroupFrame`, the secure teleport button, the `UISpecialFrames` registration of the `WhatGroupFrameEscape` ESC proxy, `MakeLabel` calls) is wrapped in `buildFrame()`, called from the first `ShowFrame()`; the popup persists its position via `NS.Windows` (WG-26). Loads after `# Core` (needs `NS.addon` / `NS.L` / `NS.Windows`) and before `# Settings`, referencing nothing from the settings layer at load. Same lazy-creation reasoning as the Settings panel + reset popup.
-16. **`settings/SchemaSetup.lua`** — resolves `LibKa0s-Schema-1.0`, or else its `HostSchemaStub` (the write-completing, log-silent degradation stub LibKa0s's Schema version-2 doc describes), and publishes it as `Settings.SchemaLib`. **Load-bearing:** directly above `settings/Schema.lua`, which calls its `:New` at file scope.
-17. **`settings/Schema.lua`** — `local WhatGroup = NS.addon`, `local C = NS.C`; stamps `WhatGroup.Settings = { Schema, Helpers }`, builds the ONE schema runtime over the rows (`Settings.SchemaLib:New{...}`, published as `NS.SchemaRuntime`) and binds its members as the schema/db `Helpers`: schema access (`Get` / `Set` / `FindSchema` = the runtime's `Get` / `Set` / `FindRow`, plus `ValidateSchema`), defaults (`BuildDefaults`, which threads each row's `default = C.<path>` into the profile and declares `global.schemaVersion = 0` + an empty `global.windows`), and the reset surfaces (`ApplyDefault` / `RestoreAllDefaults` / `RefreshAll`). The runtime's `Set` is the single write-path — refuse a path no row declares, store, log, the row's `onChange`, then `announce` = `RefreshAll`. `Settings.StampClosureRows` gives the composed session and global rows their own `get` / `set`. `Settings.EnsureResetPopup()` lazily writes `StaticPopupDialogs["WHATGROUP_RESET_ALL"]` on first use — writing at file-load taints GameMenu callbacks. The refresher registry that used to live here is the library's now, and per-ctx rather than per-addon.
-18. **`settings/OptionsSetup.lua`** — wires `LibKa0s-Options-1.0` and **publishes the instance as `Settings.Helpers`**, with `settings/Schema.lua`'s data seams moved onto it. Also carries the addon's one adapter: the wrappers that keep the panel body and the Defaults button building on the next frame. Loads after `settings/Schema.lua` (whose runtime's `Get` / `Set` / `ApplyDefault` and bracket the descriptor binds) and before `settings/Panel.lua` (which takes the instance as a file-scope upvalue).
-19. **`settings/Panel.lua`** — the two halves of the settings surface that are genuinely this addon's: `Helpers.BuildMainContent` (the landing page's logo, TOC-notes line and command list), `Helpers.InlineButton` (the one fixed-width action button the library's `InlineButtonPair` cannot express), and the General page's registration through `Helpers.RegisterOptionsPage`. `Settings.Register` runs from `OnEnable` and again as an idempotent no-op from the `config` verb; guarded by `WhatGroup._settingsRegistered` and deliberately **not** combat-gated (options-ui-§9) — only panel *open* is refused, inside the library's `OpenOptionsPanel`.
-20. **`settings/Slash.lua`** — wires `LibKa0s-Slash-1.0`. Carries the `COMMANDS` table (positional triples, published as `WhatGroup.COMMANDS` so the landing page renders the same data), the host verbs (`show`, `test`, `config`, `enable`, `disable`, `resetall`, `debug`) plus `WhatGroup:OpenSettings`, the `config` body the launcher's right click also reaches, the `parse` adapter that keeps `toggle` working, and `WhatGroup:OnSlashCommand`. Loads last (the `# Settings` section is final, toc-file-§5 / WG-14).
-
-Lifecycle:
-
-- **`OnInitialize`** (fires on `ADDON_LOADED` for `"WhatGroup"`, after every TOC line has executed): `defaults = Settings.BuildDefaults()` → `db = AceDB:New("WhatGroupDB", defaults, true)` → `self:RunMigrations()` → register `/wg` and `/whatgroup` chat commands. Debug state is session-only (`NS.State.debug`), **not** seeded from SavedVariables.
-- **`OnEnable`** registers `GROUP_ROSTER_UPDATE`, `LFG_LIST_APPLICATION_STATUS_UPDATED` and the `PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED` pair that re-asks the `visibility` gate on a combat transition, snapshots `wasInGroup = IsInGroup()`, registers the Settings panel so the AddOns entry appears at login, and calls `NS.Launcher:Register()` — here rather than at file load because the table LibDBIcon keeps the button's position in is `db.global.minimap`, which `OnInitialize` has just built; the library's `Register` is idempotent. **No hook installation** here — hooks are at file-load (above). The popup's secure teleport button + `UISpecialFrames` insert (the real boot-taint sources) stay deferred to first `ShowFrame()`, and the reset popup registers lazily on first reset request — so GameMenu's `InitButtons` still runs in a clean context and Logout works correctly even after `/reload`.
-
-`Settings.Register()` runs at `OnEnable` (and again as a no-op from `runConfig`). It defers the AceGUI body build to the parent and General subcategory's first `OnShow` (each behind its own one-shot guard). See [docs/settings-panel.md](./settings-panel.md#lazy-panel-build).
+`WhatGroup.toc` is the source of truth, and the order is dependency, not alphabetical: the vendored
+libraries first (`LibKa0s` last among them), then the addon files by folder in the `toc-file-§5`
+section order — `# Locales`, `# Core`, `# Defaults`, `# Modules`, `# Settings`. A few slots are
+load-bearing (`core/CoreSetup.lua` first in `# Core`, `core/MediaSetup.lua` before
+`core/WhatGroup.lua`, `settings/SchemaSetup.lua` directly above `settings/Schema.lua`); the rest are
+conventional. Hooks install at file load, `OnInitialize` builds the db, and `OnEnable` registers the
+events, the settings category and the launcher. The per-file list with each slot's reason, the
+shared file header and the `OnInitialize` / `OnEnable` lifecycle are in
+[module-map.md → Load order](./module-map.md#load-order).
 
 If you add a new runtime file, put it in the right place in `WhatGroup.toc` (after libs, after the file it depends on).
 
 ## Known Limitations
 
-Things the addon does not do, and the reason each is a boundary rather than a bug. Scope decisions
-are reasoned in [docs/scope.md](./scope.md); a limitation that is a *ratified standards deviation*
-lives in the table below this one, not here.
+Things the addon does not do, and the reason each is a boundary rather than a bug. Scope decisions are reasoned in [docs/scope.md](./scope.md); a limitation that is a *ratified standards deviation* lives in the table below this one, not here.
 
-- **Capture is session-only.** `capturesByResult`, `pendingApplications`, `pendingInfo`, `wasInGroup` and
-  `notifiedFor` never touch SavedVariables, so `/reload` mid-application loses the pending capture
-  and the join that follows prints nothing. Deliberate: the data describes a group you are in right
-  now, and persisting it would resurface a stale group after a relog.
-- **Only groups joined through the Premade Group Finder are captured.** A guild or party invite
-  carries no LFG search result, so there is nothing to observe. `/wg test notify` exists precisely because
-  the real path cannot be exercised on demand.
-- **Teleport is limited to dungeon Path-of spells the player has learned.** The button renders
-  grayed until `IsSpellKnown` says otherwise, and only for map IDs present in
-  `defaults/TeleportSpells.lua` — a hand-maintained table, so a newly added dungeon needs a data
-  update.
-- **English only.** The locale shell (`locales/enUS.lua`, `NS.L`) is mandatory and every authored
-  player-facing string routes through it, but translation content is a non-goal (localization-§1 /
-  WG-07). The partial routing is ratified in the deviation table, re-check trigger "the first
-  non-English locale file".
+- **Capture is session-only.** `capturesByResult`, `pendingApplications`, `pendingInfo`, `wasInGroup` and `notifiedFor` never touch SavedVariables, so `/reload` mid-application loses the pending capture and the join that follows prints nothing. Deliberate: the data describes a group you are in right now, and persisting it would resurface a stale group after a relog.
+- **Only groups joined through the Premade Group Finder are captured.** A guild or party invite carries no LFG search result, so there is nothing to observe. `/wg test notify` exists precisely because the real path cannot be exercised on demand.
+- **Teleport is limited to dungeon Path-of spells the player has learned.** The button renders grayed until `IsSpellKnown` says otherwise, and only for map IDs present in `defaults/TeleportSpells.lua` — a hand-maintained table, so a newly added dungeon needs a data update.
+- **English only.** The locale shell (`locales/enUS.lua`, `NS.L`) is mandatory and every authored player-facing string routes through it, but translation content is a non-goal (localization-§1 / WG-07). The partial routing is ratified in the deviation table, re-check trigger "the first non-English locale file".
 - **No profiler wiring.** `LibKa0s-Perf-1.0` is vendored but not wired; see the deviation table.
-- **A load missing LibKa0s draws the teleport button bare.** The spell name, icon and cooldown reads
-  are `LibKa0s-Compat-1.0`'s, and without the library they answer its documented no-answer values
-  rather than a copy of its ladder (LibKa0s `docs/api/Compat/version-1-docs.md`, *Degradation*). The
-  popup shows the question-mark icon and no cooldown, and the secure `/cast` macro has no name. It
-  never raises, and that install is already announced once by `core/CoreSetup.lua`.
+- **A load missing LibKa0s draws the teleport button bare.** The spell name, icon and cooldown reads are `LibKa0s-Compat-1.0`'s, and without the library they answer its documented no-answer values rather than a copy of its ladder (LibKa0s `docs/api/Compat/version-1-docs.md`, *Degradation*). The popup shows the question-mark icon and no cooldown, and the secure `/cast` macro has no name. It never raises, and that install is already announced once by `core/CoreSetup.lua`.
 
 ## Documentation map
 
@@ -502,26 +360,14 @@ generated directories are named once each and never enumerated per run: `docs/au
 | Doc | Covers |
 |---|---|
 | `frame.md` | The popup frame: layout, rows, and the teleport buttons |
+| `stand-down.md` | What disabled means here: the one latch and its two holds, what goes down and what survives, the combat-owed `Hide`, the launcher click. Tier 3 because the stand-down is this addon's wiring of `slash-commands-§7`, not a Tier 1 or Tier 2 subject |
 | `debug-content.md` | What WhatGroup feeds the LibKa0s console: the descriptor, the tag vocabulary, the session flag, `/wg debug`. Tier 3 because the Tier 2 `debug.md` trigger has not fired, yet this content is the addon's own and not the library's |
 
 ## Documented deviations
 
-The **single home** for a ratified deviation from the Ka0s WoW Addon Standard (`documentation-§3`).
-A decision may be *reasoned* at length in this repo's GitHub issues and the **Why**
-cell cites that id — but **a deviation not in this table is not ratified**, and an audit files it as
-an open MUST failure. **Re-check trigger** is the condition that ends the deviation, stated so a
-reader can tell whether it has already fired; a row without one is a permanent opt-out wearing a
-table's clothes. A row whose cited rule the standard has since changed is **retired**, not kept.
+The **single home** for a ratified deviation from the Ka0s WoW Addon Standard (`documentation-§3`). A decision may be *reasoned* at length in this repo's GitHub issues and the **Why** cell cites that id — but **a deviation not in this table is not ratified**, and an audit files it as an open MUST failure. **Re-check trigger** is the condition that ends the deviation, stated so a reader can tell whether it has already fired; a row without one is a permanent opt-out wearing a table's clothes. A row whose cited rule the standard has since changed is **retired**, not kept.
 
-A `WG-NN` or `WG-A-NN` id in a **Why** cell is a deviation an audit filed and resolves in
-`docs/audits/`; one followed directly by a dated bundle — `WG-37 (docs/audits/2026-08-05/)` —
-resolves in that bundle. A review finding is cited as `F-NNN` **followed directly by its dated
-bundle** — `F-006 (docs/reviews/2026-08-05/)` — and resolves in that bundle's `01_FINDINGS.md`: review
-ids restart at `F-001` in every bundle, so a bare one names a different finding in each. The same
-holds for the 2026-09-07 review's `WHATGROUP-R-NN` ids and this repository's `WG-R-NN` shorthand for
-them — code comments and suites use the short form too — which resolve only beside
-`docs/reviews/2026-09-07/`. `tests/test_register.lua` holds every cited id to this key, and does not
-count an audit bundle's `## Recorded deviations` echo of this table as assigning anything.
+A `WG-NN` or `WG-A-NN` id in a **Why** cell is a deviation an audit filed and resolves in `docs/audits/`; one followed directly by a dated bundle — `WG-37 (docs/audits/2026-08-05/)` — resolves in that bundle. A review finding is cited as `F-NNN` **followed directly by its dated bundle** — `F-006 (docs/reviews/2026-08-05/)` — and resolves in that bundle's `01_FINDINGS.md`: review ids restart at `F-001` in every bundle, so a bare one names a different finding in each. The same holds for the 2026-09-07 review's `WHATGROUP-R-NN` ids and this repository's `WG-R-NN` shorthand for them — code comments and suites use the short form too — which resolve only beside `docs/reviews/2026-09-07/`. `tests/test_register.lua` holds every cited id to this key, and does not count an audit bundle's `## Recorded deviations` echo of this table as assigning anything.
 
 | Rule | What differs | Why | Decided | Re-check trigger |
 |---|---|---|---|---|
@@ -532,29 +378,10 @@ count an audit bundle's `## Recorded deviations` echo of this table as assigning
 | `standalone-windows` | `UISpecialFrames` holds an unprotected proxy (`WhatGroupFrameEscape`) that mirrors the popup being on screen, not `"WhatGroupFrame"` | The popup parents a `SecureActionButtonTemplate`, so the client blocks Escape's direct `WhatGroupFrame:Hide()` in combat (`ADDON_ACTION_BLOCKED`); the proxy's `OnHide` sends Escape through `hidePopup()` | 2026-09-12 | The popup stops parenting a secure child, or `standalone-windows` is amended to cover windows with secure content |
 | `options-ui-§1` | **Route (b), not the SHOULD route (a), for the composed rows on a library-absent load.** On a load without LibKa0s the Master controls block is not composed (the hollow composer), so `enabled` and `state.testMode` have no schema row, and the schema seam (`LibKa0s-Schema-1.0`, or `settings/SchemaSetup.lua`'s stub) refuses a row-less path. Route (a) would hand the seam a `writeThrough` list so `/wg enable` and `/wg disable` still write `enabled`; WhatGroup passes **no list**, and `/wg enable`, `/wg disable`, `/wg test`, `/wg test on` and `/wg test off` print `<verb> is unavailable: the LibKa0s library did not load.` instead (`settings/Slash.lua`), with no Lua error, no write and no ack. | The owner's ruling on [WhatGroup#22](https://github.com/tusharsaxena/WhatGroup/issues/22) (2026-09-23), accepted as a known gap; composers stay hollow and no host copy is written (anti-pattern #73). Pinned by `tests/test_libka0s.lua`'s two degraded cases. | 2026-09-24 | A report of a library-absent install that needs the switch, `options-ui-§1` raising (a) to a MUST, or the owner reopening #22 |
 
-**Retired on 2026-09-08: the claimed `performance-§12` exemption.** The register carried two
-`performance-§12` rows, the first claiming the no-combat-path exemption on 2026-08-02 and the
-second recording that its re-check trigger had **fired on 2026-08-06** when
-`modules/Frame.lua`'s teleport-cooldown `ScheduleRepeatingTimer` arrived. The first row said so of
-itself, in its own trigger cell, and was kept "only as the record of what was claimed and on what
-evidence". That is the graveyard `documentation-§3` forbids, and it is now reportable rather than
-merely wrong: `audit-review-history` MUSTs that an audit evaluate every trigger against the tree
-and report any row whose condition has already come true, because "that deviation ended on the day
-the condition came true, and every day the row stays in the register the document asserts a live
-deviation that is not one". It had asserted one for a month. The claim and the date it ended are
-not lost — they are the opening sentence of the row that survives, which is where a reader looking
-at today's deviation will actually be. The evidence is where it always was, in issue
-[#7](https://github.com/tusharsaxena/WhatGroup/issues/7) and in
-[`performance.md`](./performance.md)'s regenerated sweep.
+**Retired on 2026-09-08: the claimed `performance-§12` exemption.** The register carried two `performance-§12` rows, the first claiming the no-combat-path exemption on 2026-08-02 and the second recording that its re-check trigger had **fired on 2026-08-06** when `modules/Frame.lua`'s teleport-cooldown `ScheduleRepeatingTimer` arrived. The first row said so of itself, in its own trigger cell, and was kept "only as the record of what was claimed and on what evidence". That is the graveyard `documentation-§3` forbids, and it is now reportable rather than merely wrong: `audit-review-history` MUSTs that an audit evaluate every trigger against the tree and report any row whose condition has already come true, because "that deviation ended on the day the condition came true, and every day the row stays in the register the document asserts a live deviation that is not one". It had asserted one for a month. The claim and the date it ended are not lost — they are the opening sentence of the row that survives, which is where a reader looking at today's deviation will actually be. The evidence is where it always was, in issue [#7](https://github.com/tusharsaxena/WhatGroup/issues/7) and in [`performance.md`](./performance.md)'s regenerated sweep.
 
 ### Files over the 1500-line cap
 
-The `layout-§1` census: every authored `.lua` file this repository tracks that is over the
-1500-line cap, with its terminal state. Vendored code (`libs/`, `tests/_kit/`) is out of scope,
-and this repository has no generated data to carve out.
+The `layout-§1` census: every authored `.lua` file this repository tracks that is over the 1500-line cap, with its terminal state. Vendored code (`libs/`, `tests/_kit/`) is out of scope, and this repository has no generated data to carve out.
 
-Nothing is over the cap today. Measured 2026-09-24 with
-`git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l | sort -n`:
-the largest authored file is `tests/test_frame.lua` at 1421 lines, then `modules/Frame.lua`
-at 1165 and `core/WhatGroup.lua` at 1117. `tests/_kit/test_layout_cap.lua` holds this census to
-the tree on every run.
+Nothing is over the cap today. Measured 2026-09-24 with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l | sort -n`: the largest authored file is `tests/test_frame.lua` at 1421 lines, then `modules/Frame.lua` at 1165 and `core/WhatGroup.lua` at 1117. `tests/_kit/test_layout_cap.lua` holds this census to the tree on every run.
