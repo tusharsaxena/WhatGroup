@@ -420,10 +420,11 @@ only row in this addon whose storage is neither `db.profile` nor a session flag.
 it are deliberate and none is local taste:
 
 **It is stored at `db.global.minimap.hide` — LibDBIcon's OWN table, in the GLOBAL store.** The
-library is handed that same table at `Register` (`core/LauncherSetup.lua`) and writes `hide` itself
-when the player uses the button's right-click menu, and `minimapPos` when they drag it. A second key
-beside it — `minimap.show`, `showMinimapIcon` — would be a copy of one state that a library also
-writes, and the day the two disagree the button and the checkbox disagree (anti-pattern #81). The
+library is handed that same table at `Register` (`core/LauncherSetup.lua`), reads `hide` from it
+whenever it places the button, and writes `minimapPos` itself when the player drags it. `hide` is
+written only through this row's seam (it writes the key, then `NS.Launcher:SetShown` writes the same
+value); the button's right-click options menu (Launcher minor 4) never touches it. A second key beside it — `minimap.show`, `showMinimapIcon` — would be a copy of the one
+state the library reads, and the day the two disagree the button and the checkbox disagree (anti-pattern #81). The
 scope is global because a minimap button belongs to the **installation**, not to a profile: a
 profile switch must not move the player's buttons, and profile-scoped the row would ride every
 profile copy besides.

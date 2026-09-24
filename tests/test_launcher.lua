@@ -493,8 +493,8 @@ end)
 -- ---------------------------------------------------------------------------
 
 test("launcher: the Minimap button row is stored, global, and LibDBIcon's OWN hide key", function()
-    -- One boolean, in the GLOBAL store, and it is the key LibDBIcon itself writes from its own
-    -- right-click menu. A parallel `minimap.show` would be a second copy of one state.
+    -- One boolean, in the GLOBAL store, and it is the key LibDBIcon itself reads when it places
+    -- the button. A parallel `minimap.show` would be a second copy of one state.
     -- red under: sessionOnly on the row, a profile-scoped path, or a second key beside `hide`.
     local NS = T.enableAddon()
     local row = NS.addon.Settings.Helpers.FindSchema("global.minimap.shown")

@@ -330,8 +330,9 @@ local SESSION = {
 -- THE PATH READS IN THE ROW'S OWN SENSE; THE STORE DOES NOT MOVE (launcher-§3, standard v2.65.0).
 -- The path is also the row's CLI name, so it is `global.minimap.shown`: `/wg get` answers true
 -- while the button is on the minimap. What is STORED is still LibDBIcon's own `minimap.hide` --
--- there is ONE boolean, LibDBIcon writes it too from its own right-click menu, and a `shown` key
--- beside it would be a copy free to disagree (anti-pattern #81). So `shown` names the row and
+-- there is ONE boolean, the key LibDBIcon reads whenever it places the button (written only
+-- through this seam; the launcher's right-click menu never touches it), and a `shown` key beside it
+-- would be a copy free to disagree (anti-pattern #81). So `shown` names the row and
 -- nothing is ever written or declared at it; the two closures below invert onto `hide`, at the
 -- single write seam, and everything downstream (the checkbox, `/wg get`, `/wg set`, `/wg reset`)
 -- inverts with them. The old `global.minimap.hide` path is no alias: it answers "Setting not
