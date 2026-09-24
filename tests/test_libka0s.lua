@@ -660,6 +660,27 @@ test("degraded: `/wg test on` and `off` still move test mode (slash-commands-§1
     assertEqual(H.Get("state.testMode"), false)
 end)
 
+-- options-ui-§1 keeps the global reset real in the stub. On this path H IS Settings.Helpers, the
+-- table settings/Schema.lua already hung the host's RestoreAllDefaults on, so a stub that assigns
+-- its own no-op wipes the real reset -- and both entry points (the direct call and `/wg resetall`'s
+-- popup OnAccept body) then print success over an untouched profile.
+--
+-- red under: the stub assigning a no-op RestoreAllDefaults
+test("degraded: Reset all settings still resets the profile (options-ui-§1)", function()
+    local NS, env = T.newAddon{ skip = NO_LIBKA0S }
+    NS.addon:OnInitialize()
+    NS.addon:OnEnable()
+    NS.addon.db.profile.notify.delay = 7
+    NS.addon.Settings.Helpers.RestoreAllDefaults()
+    assertEqual(NS.addon.db.profile.notify.delay, NS.C.notify.delay, "the direct call resets")
+
+    -- And `/wg resetall` through the popup body, the path a user actually takes.
+    NS.addon.db.profile.notify.delay = 7
+    NS.addon:OnSlashCommand("resetall")
+    env.StaticPopupDialogs["WHATGROUP_RESET_ALL"].OnAccept()
+    assertEqual(NS.addon.db.profile.notify.delay, NS.C.notify.delay, "the popup body resets")
+end)
+
 test("degraded: the settings stub carries no widget maker and no layout constant", function()
     -- options-ui-§1 forbids both outright: hand-copying the code whose drift the extraction ended
     -- is anti-patterns #47, and a host copy of a library constant is the copy that goes stale.

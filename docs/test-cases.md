@@ -26,7 +26,7 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the Core stub's SafeRegisterEvent survives a bad name
 - events: a stand-up after a rejection records the name once
 
-### test_libka0s.lua (50)
+### test_libka0s.lua (51)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
@@ -69,6 +69,7 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the STORED profile is the same shape with the library absent
 - degraded: `/wg disable` and `/wg enable` still write the stored switch (slash-commands-§1)
 - degraded: `/wg test on` and `off` still move test mode (slash-commands-§1)
+- degraded: Reset all settings still resets the profile (options-ui-§1)
 - degraded: the settings stub carries no widget maker and no layout constant
 - degraded: the settings panel explains itself once at load and once per config
 - degraded: a bare /wg runs `config`, as the library's dispatcher does
@@ -843,7 +844,7 @@ badge and any count quoted in the docs must agree with it.
 | Suite | Cases |
 |-------|------:|
 | test_harness.lua | 17 |
-| test_libka0s.lua | 50 |
+| test_libka0s.lua | 51 |
 | test_surface_parity.lua | 5 |
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
@@ -871,4 +872,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **745** |
+| **Total** | **746** |

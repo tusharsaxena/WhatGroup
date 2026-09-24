@@ -147,7 +147,11 @@ if not lib then
     H.RefreshAllPanels     = function() end
     H.RefreshPanel         = function() end
     H.RefreshScalars       = function() end
-    H.RestoreAllDefaults   = function() end
+    -- options-ui-§1: the stub keeps the global reset REAL. H is Settings.Helpers, where
+    -- settings/Schema.lua already defined the host's RestoreAllDefaults -- the one stub member that
+    -- collides with a Schema.lua seam -- so a bare no-op here would wipe the real reset and leave
+    -- `/wg resetall` and the Defaults popup printing success over an untouched profile.
+    H.RestoreAllDefaults   = H.RestoreAllDefaults or function() end
     H.LSMValues            = function() return function() return {} end end
     H.PatchAlwaysShowScrollbar = function() end
     H.__pages              = function() return {} end
