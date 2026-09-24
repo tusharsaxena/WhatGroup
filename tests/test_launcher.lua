@@ -477,15 +477,14 @@ test("launcher: the row still stores with no broker library at all", function()
     assertFalse(H.Get("global.minimap.shown"))
 end)
 
-test("launcher: with LibKa0s absent the seam still answers every member", function()
+test("launcher: with LibKa0s absent the seam answers honestly and the store still moves", function()
     -- The degradation stub every core/ setup file carries. The one thing that still works is the
-    -- stored flag, because the write seam calls SetShown on every tick of the checkbox.
-    -- red under: core/LauncherSetup.lua returning early without publishing NS.Launcher.
+    -- stored flag, because the write seam calls SetShown on every tick of the checkbox. That the
+    -- stub carries EVERY member is tests/test_surface_parity.lua's Launcher case; this one pins what
+    -- the members that matter answer.
+    -- red under: Register claiming a button, or SetShown no longer writing the store.
     local NS = T.enableAddon{ skip = { "libs/LibKa0s/Launcher.lua" } }
-    assertTrue(NS.Launcher ~= nil, "the namespace member exists on the degraded path too")
     assertFalse(NS.Launcher:Register())
-    assertFalse(NS.Launcher:IsRegistered())
-    assertNil(NS.Launcher:Object())
     assertTrue(NS.Launcher:IsShown(), "shown, from the store rather than from a button")
     NS.Launcher:SetShown(false)
     assertEqual(NS.addon.db.global.minimap.hide, true, "and the store still moves")

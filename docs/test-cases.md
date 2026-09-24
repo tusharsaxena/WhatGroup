@@ -82,7 +82,7 @@ badge and any count quoted in the docs must agree with it.
 - libka0s: Core has no STRINGS and reads no descriptor L (tripwire)
 - libka0s: Options reads no descriptor L (tripwire)
 
-### test_surface_parity.lua (7)
+### test_surface_parity.lua (9)
 
 - parity: the Core seam's whole namespace surface survives the library's absence
 - parity: the DebugLog stub carries the whole live surface
@@ -90,6 +90,8 @@ badge and any count quoted in the docs must agree with it.
 - parity: the Options helpers stub carries the whole live surface
 - parity: the Schema host stub's instance carries the whole live instance surface
 - parity: the Schema host stub carries the library's own members
+- parity: the Launcher stub carries the whole live surface
+- parity: the Lifecycle stub carries the whole live surface
 - parity: the Compat reader arm carries every library member the addon wires
 
 ### test_mediasetup.lua (11)
@@ -666,7 +668,7 @@ badge and any count quoted in the docs must agree with it.
 - launcher: an install with neither broker library loads, and says so once
 - launcher: with no LibDBIcon the broker plugin still registers
 - launcher: the row still stores with no broker library at all
-- launcher: with LibKa0s absent the seam still answers every member
+- launcher: with LibKa0s absent the seam answers honestly and the store still moves
 
 ### test_lifecycle.lua (46)
 
@@ -852,7 +854,7 @@ badge and any count quoted in the docs must agree with it.
 |-------|------:|
 | test_harness.lua | 17 |
 | test_libka0s.lua | 53 |
-| test_surface_parity.lua | 7 |
+| test_surface_parity.lua | 9 |
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
 | test_util.lua | 31 |
@@ -879,4 +881,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **753** |
+| **Total** | **755** |

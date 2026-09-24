@@ -73,6 +73,11 @@ Kit.setSurfaceSource{
     ["LibKa0s-Slash-1.0"]    = surfaceNS.SlashCommands,
     ["LibKa0s-Options-1.0"]  = surfaceNS.addon.Settings.Helpers,
     ["LibKa0s-Compat-1.0"]   = surfaceMock.LibStub("LibKa0s-Compat-1.0", true),
+    -- Two more INSTANCES, for the same reason as the first three: core/LauncherSetup.lua and
+    -- core/LifecycleSetup.lua each publish what `lib:New(descriptor)` returned, and their stubs
+    -- mirror that instance, not the library table.
+    ["LibKa0s-Launcher-1.0"]  = surfaceNS.Launcher,
+    ["LibKa0s-Lifecycle-1.0"] = surfaceNS.Lifecycle,
     -- A library table too, for the same reason: settings/SchemaSetup.lua's HostSchemaStub stands in
     -- for the LIBRARY (its SplitPath / Read / Write / SameValue / New), so the by-name parity case
     -- compares it against what LibStub answers. The instance-vs-stub pair is the kit's two-table
