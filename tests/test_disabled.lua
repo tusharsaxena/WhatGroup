@@ -411,28 +411,35 @@ end)
 -- 8. The launcher (launcher-§2, slash-commands-§7)
 -- ---------------------------------------------------------------------------
 
-test("disabled 8: left-click is refused with no write and no frame; right-click opens the panel",
+test("disabled 8: left-click opens the panel; right-click's menu grays every feature entry",
 function()
-    -- WhatGroup is on rung (a): the left button drives the primary window, which is a feature. The
-    -- rung-(c) carve-out does not reach it -- a rung-(c) left-click opens the panel and nothing
-    -- else, which is why that one is unchanged and this one is not.
-    -- red under: dropping the NS.IsStoodDown guard from core/LauncherSetup.lua's onClick.
+    -- launcher-§2 (standard v2.67.0, LibKa0s-Launcher-1.0 minor 4): neither button is refused
+    -- while disabled. The left opens the settings panel, which is setup. The right opens the
+    -- options menu, where Enabled stays live -- it is how the addon comes back -- and Locked, Test
+    -- mode and Show window are grayed, because each drives a feature. Neither click writes.
+    -- red under: an isEnabled that does not read the latch, or a host gate on either button.
     local NS, mock = up()
     switchOff(NS)
     local object = mock.ldbObjects[NAME]
     assertTrue(object ~= nil, "the broker object survives the stand-down")
 
     mock.__resetSvWrites()
-    local mark, shown = #mock.prints, #visibleFrames(mock)
-    object.OnClick(nil, "LeftButton")
-    assertEqual(#mock.prints - mark, 1, "one refusal line, and nothing else")
-    assertTrue(mock.prints[#mock.prints]:find("WhatGroup is disabled", 1, true) ~= nil)
+    local mark, shown, opened = #mock.prints, #visibleFrames(mock), #mock.openedTo
+    object.OnClick(mock.UIParent, "LeftButton")
+    assertEqual(#mock.openedTo, opened + 1, "left-click opens the panel, in either state")
+    assertEqual(#mock.prints - mark, 0, "and prints no refusal")
+
+    object.OnClick(mock.UIParent, "RightButton")
+    local menu = mock.menu.last
+    assertTrue(menu ~= nil, "right-click opens the options menu")
+    assertTrue(menu:Find("Enabled").enabled, "Enabled stays live")
+    for _, entry in ipairs({ "Locked", "Test mode", "Show window" }) do
+        assertFalse(menu:Find(entry).enabled, entry .. " is grayed while disabled")
+        menu:Click(entry)
+    end
     assertEqual(#mock.__svWrites(), 0, "a click on a disabled addon writes NOTHING")
     assertEqual(#visibleFrames(mock), shown, "and shows nothing")
-
-    local opened = #mock.openedTo
-    object.OnClick(nil, "RightButton")
-    assertEqual(#mock.openedTo, opened + 1, "right-click still opens the panel, in either state")
+    assertFalse(helpers(NS).Get("state.testMode"), "test mode never started")
 end)
 
 -- ---------------------------------------------------------------------------

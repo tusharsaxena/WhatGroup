@@ -488,9 +488,22 @@ find first.
 `LibKa0s-Launcher-1.0` minor 3). The library draws it in every state, disabled included:
 `Enabled` answers from the *Enable WhatGroup* row's latch, `Locked` from the *Lock frame* row's
 profile `locked`, and `Test mode` from the *Test mode* row's session `state.testMode`, each asked on
-every hover, so ticking a row here changes the next hover. The left-click hint is
-`Toggle group popup` (rung (a)), or `disabled — /wg enable` while the addon is off; the right-click
-hint is always `Open settings`.
+every hover, so ticking a row here changes the next hover. The two click hints are fixed since
+Launcher minor 4: `Left-click: Open settings` and `Right-click: Options menu`, in either state.
+
+**The button's right-click menu toggles through the same rows** (`launcher-§2`, standard v2.67.0,
+`LibKa0s-Launcher-1.0` minor 4). Left-click opens this panel. Right-click opens the client's context
+menu with four checkboxes, each ticked from the row it mirrors and each running the body its verb
+runs, so the row, the verb and the menu entry write one value through one seam:
+
+| Menu entry | Mirrors | Toggles through | Grayed while disabled |
+|---|---|---|---|
+| Enabled | *Enable WhatGroup* (`enabled`, via the latch) | `WhatGroup:SlashEnabled` — the `/wg enable` / `/wg disable` body | no |
+| Locked | *Lock frame* (`locked`) | `WhatGroup:SlashToggleLock` — `/wg set locked toggle` (no `/wg lock` verb) | yes |
+| Test mode | *Test mode* (`state.testMode`) | `WhatGroup:SlashToggleTestMode` — bare `/wg test` | yes |
+| Show window | the group popup, on screen | `WhatGroup:ToggleFrame` — the Close button's and ESC's seam | yes |
+
+A grayed entry reads `<entry> (enable the addon first)` and calls nothing.
 
 ## Adding a setting
 

@@ -78,21 +78,19 @@ additionally gets a red error naming this addon.
 
 ## The launcher click
 
-Left-click is **refused** while the addon is disabled — WhatGroup is on launcher rung (a), so the
-left button drives the primary window, which is a feature. It prints `Sl:DisabledLine()` and does
-nothing else: no frame shown and, above all, **no SavedVariables write**. **The gate is the
-library's, and the line is the dispatcher's**: the descriptor hands `LibKa0s-Launcher-1.0` (minor 2)
-`isEnabled` → `not NS.IsStoodDown()` and `disabledLine` → `NS.SlashCommands:DisabledLine()`, and
-the library refuses the click before `onClick` — now the bare `WhatGroup:ToggleFrame` — is ever
-called. The launcher spells no refusal of its own (slash-commands-§7). The rung-(c) carve-out
-does not reach it; a rung-(c) left-click opens the settings panel and nothing else, which is why
-that one is unchanged. **Right-click still opens the panel, in either state** — the ruling narrows
-the *slash* surface and a mouse click is not a slash command.
+Neither button is refused while the addon is disabled (`launcher-§2`, standard v2.67.0,
+`LibKa0s-Launcher-1.0` minor 4). **Left-click opens the settings panel**, in either state: the panel
+is setup, and it is where the addon is switched back on. **Right-click opens the options menu**, in
+which **Enabled** stays live — it runs the `/wg enable` body — and **Locked**, **Test mode** and
+**Show window** are grayed, reading `<entry> (enable the addon first)`, because each drives a
+feature. A grayed entry calls nothing, so a disabled click shows no frame and, above all, makes
+**no SavedVariables write**. **The gate is the library's**: the descriptor hands it
+`isEnabled` → `not NS.IsStoodDown()`, and the launcher spells no refusal of its own
+(slash-commands-§7).
 
 **The hover says so first** (Launcher minor 3, `launcher-§1`). The tooltip still draws while the
-addon is disabled: `Enabled: No` in red, and the left-click hint becomes
-`Left-click: disabled — /wg enable`, the command read out of the same `DisabledLine()` the click
-prints. `Right-click: Open settings` does not change.
+addon is disabled, with `Enabled: No` in red. The click hints, `Left-click: Open settings` and
+`Right-click: Options menu`, do not change with the state.
 
 ## The slash surface is unchanged
 

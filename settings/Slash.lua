@@ -168,10 +168,9 @@ if not lib then
             return out
         end,
         HelpHeader      = function() return "v" .. NS.Version() .. " slash commands" end,
-        -- The launcher's disabledLine asks this on every install, so the degraded shape has to
-        -- answer it too. Same sentence, built from the same format and the same two pieces the
-        -- library builds it from — there is no lib here to ask, and a click on a disabled addon's
-        -- minimap button is not the place to discover that.
+        -- A member of the library instance, so the degraded shape answers it too (the surface
+        -- parity tests/test_surface_parity.lua pins). Same sentence, built from the same format
+        -- and the same two pieces the library builds it from — there is no lib here to ask.
         DisabledLine    = function()
             return DISABLED_LINE_FORMAT:format("Ka0s WhatGroup", "/wg enable")
         end,
@@ -318,9 +317,10 @@ function runTest(rest)
 end
 
 -- ON THE ADDON, not a file-local, because `/wg config` is no longer the only caller: the launcher's
--- RIGHT click opens the panel on every addon in the collection, and its LEFT click does on rung
--- (c) (launcher-§2). core/LauncherSetup.lua reaches this rather than keeping a second copy of the
--- ladder below, so a change to how the panel opens reaches both surfaces.
+-- LEFT click opens the panel on every addon in the collection (launcher-§2, standard v2.67.0), and
+-- its right click does where the client has no context-menu API. core/LauncherSetup.lua reaches
+-- this rather than keeping a second copy of the ladder below, so a change to how the panel opens
+-- reaches both surfaces.
 function WhatGroup:OpenSettings()
     -- Settings registration normally happens at login (OnEnable), so the panel is already in the
     -- AddOns list by the time the player runs this. This call is an idempotent fallback that also
@@ -334,7 +334,7 @@ function WhatGroup:OpenSettings()
     end
     -- The combat refusal and the sidebar-tree unfold both live inside OpenOptionsPanel
     -- (options-ui-§2). The gate belongs THERE rather than in this dispatcher so every caller is
-    -- refused — this verb, a /run script, the launcher's right click.
+    -- refused — this verb, a /run script, the launcher's left click.
     H.OpenOptionsPanel()
 end
 
@@ -452,6 +452,24 @@ function runDebug(rest)
         NS.Print("       /wg debug on|off (enable/disable logging)")
     end
 end
+
+-- ---------------------------------------------------------------------------
+-- The launcher's options menu (launcher-§2, standard v2.67.0; LibKa0s-Launcher-1.0 minor 4)
+-- ---------------------------------------------------------------------------
+--
+-- The minimap button's right-click menu toggles through the addon's OWN verb bodies, so its
+-- refusals, combat rules and chat acks are the ones the player gets from typing the command.
+-- core/LauncherSetup.lua reaches these three methods; they are ON THE ADDON because the bodies
+-- they wrap are file-locals here, and a second copy of any of them would be anti-pattern #81.
+--
+--   SlashEnabled(on)      runEnabled -- the one body `/wg enable` and `/wg disable` both call.
+--   SlashToggleTestMode() runTest("") -- bare `/wg test`, the toggle form.
+--   SlashToggleLock()     `/wg set locked toggle`. There is no `/wg lock` verb: the lock is a
+--                         checkbox here (slash-commands-§8 MAY), so its CLI form is the schema
+--                         verb over the Lock frame row's own path, through the same seam.
+function WhatGroup:SlashEnabled(on) runEnabled(on and true or false) end
+function WhatGroup:SlashToggleTestMode() runTest("") end
+function WhatGroup:SlashToggleLock() Sl:CliSet("locked toggle") end
 
 -- AceConsole registers both chat commands (core/WhatGroup.lua's OnInitialize); the library
 -- registers none of its own, which is what keeps every verb's output flowing through the tagged

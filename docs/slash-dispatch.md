@@ -166,9 +166,12 @@ Two consequences of where the gate now sits are worth naming, because both were 
   list. It is a statement about the index, some of whose rows are this addon's own feature verbs.
 
 The wording lives in exactly one place — `lib.DISABLED_LINE_FORMAT`, built by `Sl:DisabledLine()` —
-and **MUST NOT** be re-spelled host-side. The launcher's gate is `LibKa0s-Launcher-1.0`'s (minor 2):
-`core/LauncherSetup.lua` hands it `isEnabled` and a `disabledLine` that returns this same member, so
-the refused left-click prints the dispatcher's line rather than writing the sentence again. The one
+and **MUST NOT** be re-spelled host-side. The launcher prints no refusal at all since
+`LibKa0s-Launcher-1.0` minor 4: its left click opens the settings panel in either state, and its
+options menu grays every entry but Enabled while `isEnabled` answers false, so a disabled feature
+is never clicked and there is no second sentence to keep in step. The menu's entries run this
+file's own verb bodies (`WhatGroup:SlashEnabled`, `SlashToggleLock`, `SlashToggleTestMode`), so an
+entry's ack is the verb's. The one
 host copy is the degraded Slash stub's `DISABLED_LINE_FORMAT` in `settings/Slash.lua`, a byte copy
 for the path where there is no library to ask; the stub publishes it as `__disabledLineFormat` and
 `tests/test_libka0s.lua` pins it to the library's bytes with `Kit.assertLibraryConstant`, while a

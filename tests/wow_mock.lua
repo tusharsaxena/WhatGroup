@@ -758,6 +758,11 @@ local function build()
     -- self-consistent; real Lua built-ins still reach through the kit loader's env metatable.
     mock._G = mock
 
+    -- The client's context-menu API (11.0+), which LibKa0s-Launcher-1.0 minor 4 opens on a right
+    -- click. Installed on every build because the live client has it; tests/mock_menu.lua says why
+    -- and how a case takes it away.
+    mock.menu = dofile("tests/mock_menu.lua")(mock)
+
     return mock
 end
 

@@ -1,14 +1,14 @@
 -- tests/test_launcher.lua — the launcher (launcher-§1 to launcher-§5): ONE LibDataBroker object, registered
--- twice, wearing this addon's own logo, answering a left click with the group popup and a right
--- click with the settings panel.
+-- twice, wearing this addon's own logo, answering a left click with the settings panel and a right
+-- click with the options menu.
 --
 -- What is pinned here is the WIRING, because everything else about the object is
 -- LibKa0s-Launcher-1.0's and is tested where it lives. Three things nothing else can see:
 --
 --   * that the two registrations really are ONE object (two objects with two OnClicks is the same
 --     feature written twice, anti-pattern #81, and both would pass a behavioral assertion);
---   * that the LEFT click drives the addon's REAL popup seam rather than a copy of it -- the rung
---     is (a), the group popup, and the standard's ADDONS.md is where that is recorded;
+--   * that each options-menu entry drives the addon's REAL verb body rather than a copy of it --
+--     the four entries are the standard's ADDONS.md row for this addon;
 --   * that the icon file the object names is on disk and in the ONE format the client will draw --
 --     a wrong format here draws nothing and raises nothing, which is anti-pattern #82's subtler
 --     half and is exactly what no gate would otherwise report.
@@ -166,74 +166,215 @@ test("launcher: the TOC's IconTexture is the same file the object wears", functi
 end)
 
 -- ---------------------------------------------------------------------------
--- The click rule (launcher-§2) -- WhatGroup is on rung (a)
+-- The click rule (launcher-§2, standard v2.67.0; LibKa0s-Launcher-1.0 minor 4)
 -- ---------------------------------------------------------------------------
+--
+-- LEFT opens the settings panel, in either state. RIGHT opens the client's context menu, titled
+-- with the label, with one checkbox per toggle this addon has -- all four here: Enabled, Locked,
+-- Test mode, Show window (the standard's ADDONS.md row). The library owns the menu; what is pinned
+-- here is that each entry reaches the SAME body the addon's slash verb runs, which is the only
+-- thing that keeps the refusals, the combat rules and the chat acks one addon's rather than two.
+-- The menu is driven through tests/mock_menu.lua, installed on every build by tests/wow_mock.lua.
 
-test("launcher: LEFT-click toggles the group popup, through the addon's own seam", function()
-    -- RUNG (a): the popup is the primary window, so the left button spends itself on it and the
-    -- panel keeps the right button. The click drives WhatGroup:ToggleFrame -- the same seam the
-    -- Close button and ESC close the popup with -- so the launcher holds no copy of "is it up".
-    -- red under: onClick opening the settings panel (rung (c) behavior, which would make a skipped
-    -- rule look like a choice), or a second show/hide implementation on the object.
+local CAPTURE = { title = "Stonevault", leaderName = "Testadin", fullName = "The Stonevault",
+                  shortName = "", playstyleString = "", generalPlaystyle = 0,
+                  activityID = 2516, mapID = 2652 }
+
+-- Right-click the one object and hand back the menu the library just built.
+local function openMenu(mock, object)
+    local opens = mock.menu.opens
+    object.OnClick(mock.UIParent, "RightButton")
+    assertEqual(mock.menu.opens, opens + 1, "the right click opened a context menu")
+    return mock.menu.last
+end
+
+-- What a chat command printed, and what a menu click printed, on two fresh addons, so the two
+-- can be compared line for line.
+local function printedBy(fn)
     local NS, mock, object = launched()
-    NS.addon.pendingInfo = { title = "Stonevault", leaderName = "Testadin", fullName = "The Stonevault",
-                             shortName = "", playstyleString = "", generalPlaystyle = 0,
-                             activityID = 2516, mapID = 2652 }
-    object.OnClick(nil, "LeftButton")
-    assertTrue(onScreen(mock), "the popup opens")
-    object.OnClick(nil, "LeftButton")
-    assertFalse(onScreen(mock), "and the same click closes it again")
+    local mark = #mock.prints
+    fn(NS, mock, object)
+    local out = {}
+    for i = mark + 1, #mock.prints do out[#out + 1] = mock.prints[i] end
+    return out, NS, mock
+end
+
+test("launcher: LEFT-click opens the settings panel, and never the popup", function()
+    -- One meaning for the left button on every addon (launcher-§2, v2.67.0): the rungs are gone,
+    -- and the popup's toggle moved to the menu's Show window entry.
+    -- red under: a descriptor still passing onClick (the library ignores it, so the source pin
+    -- below is the half that reddens), or a host-side click route.
+    local NS, mock, object = launched()
+    NS.addon.pendingInfo = CAPTURE
+    local before = #mock.openedTo
+    object.OnClick(mock.UIParent, "LeftButton")
+    assertEqual(#mock.openedTo, before + 1, "the settings category was opened")
+    assertFalse(onScreen(mock), "and the popup stayed shut")
+    assertEqual(mock.menu.opens, 0, "and no menu opened")
 end)
 
-test("launcher: a LEFT-click dismissal ends test mode, as the Close button does", function()
-    -- A click that takes the popup off screen is a player dismissal in the full sense, so the Test
-    -- mode checkbox must not stay ticked over a popup that is gone.
+test("launcher: LEFT-click opens the panel while disabled too, with no refusal line", function()
+    -- The panel is setup, not a feature, and it is where a disabled addon is switched back on.
+    -- red under: a host gate on the left click, or the retired disabledLine refusal.
+    local NS, mock, object = launched()
+    NS.addon.Settings.Helpers.Set("enabled", false)
+    local before, mark = #mock.openedTo, #mock.prints
+    object.OnClick(mock.UIParent, "LeftButton")
+    assertEqual(#mock.openedTo, before + 1, "the panel opened")
+    assertEqual(#mock.prints - mark, 0, "and nothing was printed")
+end)
+
+test("launcher: RIGHT-click opens a menu titled with the label, with all four entries in order",
+function()
+    -- WhatGroup has every state the menu can carry: the enabled row, the Lock frame row, the
+    -- session Test mode, and a primary window -- the group popup. ADDONS.md records exactly
+    -- these four; the library draws an entry only for a full accessor-and-toggle pair.
+    -- red under: a missing pair (the entry vanishes), or the popup opening on a right click.
+    local _, mock, object = launched()
+    local menu = openMenu(mock, object)
+    assertEqual(menu.titles[1], "Ka0s WhatGroup", "titled with the label")
+    local texts = menu:Texts()
+    assertEqual(table.concat(texts, " / "), "Enabled / Locked / Test mode / Show window")
+    assertTrue(menu:Checked("Enabled"), "Enabled reads checked")
+    assertFalse(menu:Checked("Locked"), "Locked reads unchecked on a fresh profile")
+    assertFalse(menu:Checked("Test mode"), "Test mode reads off")
+    assertFalse(menu:Checked("Show window"), "and the popup is not up")
+    assertEqual(#mock.openedTo, 0, "the right click did not open the settings panel")
+end)
+
+test("launcher: the Enabled entry runs the /wg disable|enable body, ack and all", function()
+    -- setEnabled(on) is runEnabled, the body both verbs call: the same Helpers.Set write, the
+    -- same refusal handling and the same `enabled = false` ack line.
+    -- red under: a setEnabled that writes db.profile.enabled directly (no ack), or one that
+    -- routes through anything but the verb's body.
+    local viaSlash = printedBy(function(NS) NS.addon:OnSlashCommand("disable") end)
+    local viaMenu, NS, mock = printedBy(function(_, m, o) openMenu(m, o):Click("Enabled") end)
+    assertTrue(#viaSlash > 0, "the verb acknowledges")
+    assertEqual(table.concat(viaMenu, "\n"), table.concat(viaSlash, "\n"),
+        "the menu prints exactly what /wg disable prints")
+    assertFalse(NS.addon.db.profile.enabled, "the stored row moved")
+    assertTrue(NS.IsStoodDown(), "and the addon stood down")
+
+    -- And back on, from the menu of the now-disabled addon: Enabled is the one live entry.
+    openMenu(mock, mock.ldbObjects[NAME]):Click("Enabled")
+    assertTrue(NS.addon.db.profile.enabled, "the menu switched it back on")
+    assertFalse(NS.IsStoodDown())
+end)
+
+test("launcher: the Locked entry runs `/wg set locked toggle`, the Lock frame row's write",
+function()
+    -- WhatGroup ships no `/wg lock` verb: the Lock frame row is written through the schema seam,
+    -- and its CLI form is `/wg set locked toggle` (the host's own `toggle` grammar). The entry
+    -- runs exactly that, so its ack is the CLI's `locked = true`.
+    -- red under: a toggleLock writing db.profile.locked directly, or a second lock path.
+    local viaSlash = printedBy(function(NS) NS.addon:OnSlashCommand("set locked toggle") end)
+    local viaMenu, NS, mock = printedBy(function(_, m, o) openMenu(m, o):Click("Locked") end)
+    assertTrue(#viaSlash > 0, "the CLI acknowledges")
+    assertEqual(table.concat(viaMenu, "\n"), table.concat(viaSlash, "\n"),
+        "the menu prints exactly what /wg set locked toggle prints")
+    assertTrue(NS.addon.db.profile.locked, "the popup is locked")
+    assertTrue(openMenu(mock, mock.ldbObjects[NAME]):Checked("Locked"), "and the next open says so")
+    openMenu(mock, mock.ldbObjects[NAME]):Click("Locked")
+    assertFalse(NS.addon.db.profile.locked, "a second click unlocks")
+end)
+
+test("launcher: the Test mode entry runs the bare /wg test body", function()
+    -- runTest("") -- the toggle form of the verb, writing the session row through Helpers.Set, so
+    -- the Master controls checkbox follows and the popup comes up on its sample group.
+    -- red under: a toggleTestMode flipping NS.State.testMode directly (no popup, no checkbox).
+    local viaSlash = printedBy(function(NS) NS.addon:OnSlashCommand("test") end)
+    local viaMenu, NS, mock = printedBy(function(_, m, o) openMenu(m, o):Click("Test mode") end)
+    assertEqual(table.concat(viaMenu, "\n"), table.concat(viaSlash, "\n"),
+        "the menu prints exactly what /wg test prints")
+    local H = NS.addon.Settings.Helpers
+    assertTrue(H.Get("state.testMode"), "test mode is on")
+    assertTrue(onScreen(mock), "and the popup is up on the sample group")
+    openMenu(mock, mock.ldbObjects[NAME]):Click("Test mode")
+    assertFalse(H.Get("state.testMode"), "a second click ends it")
+end)
+
+test("launcher: the Show window entry toggles the group popup through WhatGroup:ToggleFrame",
+function()
+    -- The popup is the primary window. The entry drives the same seam the Close button and ESC
+    -- close it with, and its checkmark reads whether the popup is ON SCREEN (a popup soft-hidden
+    -- at alpha 0 in combat is not).
+    -- red under: a toggleWindow with its own show/hide, or an isWindowShown reading f:IsShown().
+    local NS, mock, object = launched()
+    NS.addon.pendingInfo = CAPTURE
+    openMenu(mock, object):Click("Show window")
+    assertTrue(onScreen(mock), "the popup opens")
+    assertTrue(openMenu(mock, object):Checked("Show window"), "and the next open reads it up")
+    openMenu(mock, object):Click("Show window")
+    assertFalse(onScreen(mock), "the same entry closes it again")
+    assertFalse(openMenu(mock, object):Checked("Show window"))
+end)
+
+test("launcher: a Show window dismissal ends test mode, as the Close button does", function()
+    -- Closing the popup from the menu is a player dismissal in the full sense, so the Test mode
+    -- checkbox must not stay ticked over a popup that is gone.
     -- red under: ToggleFrame calling hidePopup directly instead of the shared dismissPopup body.
     local NS, mock, object = launched()
     local H = NS.addon.Settings.Helpers
     H.Set("state.testMode", true)
     assertTrue(onScreen(mock), "test mode put the popup up")
-    object.OnClick(nil, "LeftButton")
+    assertTrue(openMenu(mock, object):Checked("Show window"), "the menu reads it up")
+    mock.menu.last:Click("Show window")
     assertFalse(onScreen(mock), "the click put it away")
     assertFalse(H.Get("state.testMode"), "and test mode went with it")
 end)
 
-test("launcher: a disabled left-click prints the dispatcher's line and does not toggle", function()
-    -- launcher-§2's disabled rung (a), and the gate is the LIBRARY'S (LibKa0s-Launcher-1.0 minor
-    -- 2): the descriptor answers `isEnabled` and `disabledLine`, and onClick is the bare toggle.
-    -- The line is the Slash dispatcher's own, asked rather than respelled, so the minimap and
-    -- `/wg show` refuse in one sentence. The behavior half is a characterization; the source half
-    -- is what makes a host-side gate red, because a gate inside onClick and the library's gate
-    -- print the same thing.
-    -- red under: gating inside onClick (the pre-minor-2 shape), or a host-spelled refusal line.
+test("launcher: while disabled only Enabled is live; the rest are grayed and call nothing",
+function()
+    -- Features refuse while disabled (slash-commands-§7), and the library says so in the entry's
+    -- own text rather than in a tooltip the client would not raise over a grayed entry.
+    -- red under: an isEnabled that does not read the latch (entries stay live).
     local NS, mock, object = launched()
-    NS.addon.pendingInfo = { title = "Stonevault", leaderName = "Testadin", fullName = "The Stonevault",
-                             shortName = "", playstyleString = "", generalPlaystyle = 0,
-                             activityID = 2516, mapID = 2652 }
+    NS.addon.pendingInfo = CAPTURE
     NS.addon.Settings.Helpers.Set("enabled", false)
-    local mark = #mock.prints
-    object.OnClick(nil, "LeftButton")
-    assertEqual(#mock.prints - mark, 1, "one refusal line, and nothing else")
-    assertTrue(mock.prints[#mock.prints]:find(NS.SlashCommands:DisabledLine(), 1, true) ~= nil,
-        "the dispatcher's own line")
-    assertFalse(onScreen(mock), "and the popup did not toggle open")
-
-    local src = readFile("core/LauncherSetup.lua")
-    assertTrue(src:find("isEnabled%s*=%s*function") ~= nil, "the descriptor carries isEnabled")
-    assertTrue(src:find("disabledLine%s*=%s*function") ~= nil, "and disabledLine")
-    assertNil(src:find("IsStoodDown and NS.IsStoodDown", 1, true), "onClick holds no gate of its own")
+    local menu = openMenu(mock, object)
+    assertEqual(table.concat(menu:Texts(), " / "),
+        "Enabled / Locked (enable the addon first) / Test mode (enable the addon first) / "
+        .. "Show window (enable the addon first)")
+    assertFalse(menu:Checked("Enabled"), "Enabled reads unchecked")
+    for _, entry in ipairs({ "Locked", "Test mode", "Show window" }) do
+        assertFalse(menu:Find(entry).enabled, entry .. " is grayed")
+        assertNil(menu:Click(entry), entry .. " cannot be clicked")
+    end
+    assertFalse(NS.addon.db.profile.locked, "nothing locked")
+    assertFalse(NS.addon.Settings.Helpers.Get("state.testMode"), "no test mode")
+    assertFalse(onScreen(mock), "and no popup")
 end)
 
-test("launcher: RIGHT-click opens the settings panel", function()
-    -- Always, on every addon, whatever rung its left click sits on -- which is what lets rung (a)
-    -- spend the left button on the popup at all.
-    -- red under: the right button toggling the popup too, or doing nothing.
-    local NS, mock, object = launched()
+test("launcher: with no MenuUtil the right click falls back to the settings panel", function()
+    -- A client without the 11.0 menu API (or one whose menu system failed to load) still gets
+    -- every toggle, on the panel. The library's degraded path, observed from the host.
+    -- red under: a host that builds a menu of its own when MenuUtil is absent.
+    local _, mock, object = launched()
+    mock.menu.remove()
     local before = #mock.openedTo
-    object.OnClick(nil, "RightButton")
-    assertEqual(#mock.openedTo, before + 1, "the settings category was opened")
-    assertFalse(onScreen(mock), "and the popup stayed shut")
-    assertTrue(NS.addon.OpenSettings ~= nil, "through the addon's own opener, not a copy of it")
+    object.OnClick(mock.UIParent, "RightButton")
+    assertEqual(#mock.openedTo, before + 1, "the panel opened instead")
+end)
+
+test("launcher: the descriptor passes the four pairs to the verbs' seams, and no retired field",
+function()
+    -- Source pins for what behavior cannot tell apart: the library ignores the retired fields, so
+    -- a leftover `onClick` would pass every case above and still be dead configuration
+    -- (launcher-§5); and each toggle names its verb's body rather than a copy of it.
+    -- red under: onClick / leftClickLabel / disabledLine / slash left in the descriptor, or a
+    -- toggle that stops naming the verb seam.
+    local src = readFile("core/LauncherSetup.lua")
+    for _, retired in ipairs({ "onClick", "leftClickLabel", "disabledLine", "slash" }) do
+        assertNil(src:find("\n%s*" .. retired .. "%s*="), retired .. " is not passed")
+    end
+    assertTrue(src:find("setEnabled%s*=%s*function%(on%)%s*NS%.addon:SlashEnabled%(on%)") ~= nil,
+        "setEnabled is the /wg enable|disable body")
+    assertTrue(src:find("toggleLock%s*=%s*function%(%)%s*NS%.addon:SlashToggleLock%(%)") ~= nil,
+        "toggleLock is `/wg set locked toggle`")
+    assertTrue(src:find("toggleTestMode%s*=%s*function%(%)%s*NS%.addon:SlashToggleTestMode%(%)")
+        ~= nil, "toggleTestMode is the bare /wg test body")
+    assertTrue(src:find("toggleWindow%s*=%s*function%(%)%s*NS%.addon:ToggleFrame%(%)") ~= nil,
+        "toggleWindow is the popup's own toggle")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -242,9 +383,9 @@ end)
 --
 -- The LIBRARY draws it; what is pinned here is what this addon HANDS it. WhatGroup has both
 -- states the tooltip can report -- the popup's Lock frame row and its session-only Test mode -- so
--- both lines appear, read from the same stores the Master controls rows read. The left-click
--- label is rung (a)'s, the group popup (ADDONS.md). The version is the TOC's. And no
--- onTooltipShow: this addon has no extra line worth a hover, so the block is the library's alone.
+-- both lines appear, read from the same stores the Master controls rows read. The two click hints
+-- are the library's fixed pair since minor 4. The version is the TOC's. And no onTooltipShow: this
+-- addon has no extra line worth a hover, so the block is the library's alone.
 
 -- A GameTooltip stand-in that records its lines, and a reader that strips the status colors.
 local function hover(object)
@@ -268,16 +409,16 @@ end
 test("launcher: the tooltip reads title, status, lock, test mode, then the two click hints", function()
     -- The fresh-login shape: enabled, unlocked, test mode off. Every line is the library's, drawn
     -- from this descriptor, and nothing is drawn twice.
-    -- red under: no isLocked / isTestMode (lines missing), no leftClickLabel ("Left-click: Toggle"),
-    -- no version (a bare title), or an onTooltipShow drawing a title or hint of its own.
+    -- red under: no isLocked / isTestMode (lines missing), no version (a bare title), or an
+    -- onTooltipShow drawing a title or hint of its own.
     local _, _, object = launched()
     assertLines(plain(hover(object)), {
         "Ka0s WhatGroup  v1.4.0",
         "Enabled: Yes",
         "Locked: No",
         "Test mode: Off",
-        "Left-click: Toggle group popup",
-        "Right-click: Open settings",
+        "Left-click: Open settings",
+        "Right-click: Options menu",
     }, "fresh login")
 end)
 
@@ -295,8 +436,8 @@ test("launcher: Locked and Test mode are read on every hover, from the rows' own
         "Enabled: Yes",
         "Locked: Yes",
         "Test mode: On",
-        "Left-click: Toggle group popup",
-        "Right-click: Open settings",
+        "Left-click: Open settings",
+        "Right-click: Options menu",
     }, "locked, test mode on")
     assertTrue(lines[3]:find("|cFF00FF00", 1, true) ~= nil, "Yes is green")
     H.Set("locked", false)
@@ -306,13 +447,13 @@ test("launcher: Locked and Test mode are read on every hover, from the rows' own
     assertEqual(again[4], "Test mode: Off", "and test mode ending")
 end)
 
-test("launcher: while disabled the tooltip still draws, and the left hint points at /wg enable",
+test("launcher: while disabled the tooltip still draws, with the same two click hints",
 function()
     -- The owner's ruling: the button always answers a hover, including while the addon is off,
-    -- which is when the player most needs to ask. The left hint mirrors the library's gate: the
-    -- click would refuse, so the hint says how to turn it back on. The command comes out of the
-    -- Slash dispatcher's own DisabledLine, so this addon passes no `slash`.
-    -- red under: the tooltip gated on isEnabled, or a disabledLine that does not name /wg enable.
+    -- which is when the player most needs to ask. Since minor 4 neither click is refused while
+    -- disabled -- left opens the panel, right opens the menu with Enabled live -- so the hints do
+    -- not change with the state.
+    -- red under: the tooltip gated on isEnabled.
     local NS, _, object = launched()
     NS.addon.Settings.Helpers.Set("enabled", false)
     local lines = hover(object)
@@ -321,8 +462,8 @@ function()
         "Enabled: No",
         "Locked: No",
         "Test mode: Off",
-        "Left-click: disabled \226\128\148 /wg enable",
-        "Right-click: Open settings",
+        "Left-click: Open settings",
+        "Right-click: Options menu",
     }, "disabled")
     assertTrue(lines[2]:find("|cFFFF0000", 1, true) ~= nil, "No is red")
 end)
@@ -335,17 +476,16 @@ test("launcher: the tooltip's version is the TOC's, not the in-code constant", f
     assertEqual(plain(hover(mock.ldbObjects[NAME]))[1], "Ka0s WhatGroup  v9.8.7")
 end)
 
-test("launcher: the left-click label is localized, and there is no host tooltip hook", function()
-    -- The label routes through NS.L (localization-§3), keyed in locales/enUS.lua; and the descriptor
-    -- passes no onTooltipShow, because every line this addon has to say is one the library draws
-    -- (a hook drawing a title or a click hint is anti-pattern #89).
-    -- red under: a bare literal label, a missing locale row, or an onTooltipShow in the descriptor.
+test("launcher: there is no host tooltip hook, and the retired label's locale row is gone", function()
+    -- The descriptor passes no onTooltipShow, because every line this addon has to say is one the
+    -- library draws (a hook drawing a title or a click hint is anti-pattern #89). The left-click
+    -- label it used to localize went with rung (a), and a locale row nothing reads is a string a
+    -- translator would be asked to translate for nothing.
+    -- red under: an onTooltipShow in the descriptor, or the dead locale row left behind.
     local src = readFile("core/LauncherSetup.lua")
-    assertTrue(src:find('leftClickLabel%s*=%s*L%["Toggle group popup"%]') ~= nil,
-        "leftClickLabel goes through the locale")
-    assertTrue(readFile("locales/enUS.lua"):find('L%["Toggle group popup"%]%s*=') ~= nil,
-        "and the locale carries the row")
     assertNil(src:find("\n%s*onTooltipShow%s*="), "no host tooltip hook")
+    assertNil(readFile("locales/enUS.lua"):find('L%["Toggle group popup"%]', 1, false),
+        "the retired left-click label is not in the locale")
 end)
 
 -- ---------------------------------------------------------------------------

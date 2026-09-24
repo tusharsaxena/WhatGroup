@@ -346,9 +346,10 @@ end
 local gateWithheld = false
 
 -- THE PLAYER PUT THE POPUP AWAY. One body, because there are three of them now: the Close button,
--- the ESC proxy, and the launcher's left click (WhatGroup:ToggleFrame below). All three mean the
--- same three things -- take it off screen, tell the gate not to bring it back on the next combat
--- edge, and end test mode so the checkbox does not read ticked over a popup that is gone.
+-- the ESC proxy, and the launcher menu's Show window entry (WhatGroup:ToggleFrame below). All
+-- three mean the same three things -- take it off screen, tell the gate not to bring it back on
+-- the next combat edge, and end test mode so the checkbox does not read ticked over a popup that
+-- is gone.
 --
 -- `gateWithheld` is set HERE rather than left to f's OnHide, because in combat hidePopup takes the
 -- alpha route and no OnHide fires. Declared below gateWithheld and above every caller.
@@ -1089,9 +1090,10 @@ function WhatGroup:ShowFrame()
     showPopup()
 end
 
--- THE LAUNCHER'S LEFT CLICK (launcher-§2 rung (a)). The popup IS this addon's primary window, so
--- the minimap button and the broker row toggle it -- core/LauncherSetup.lua passes this as the
--- descriptor's `onClick` and nothing else calls it.
+-- THE LAUNCHER MENU'S "Show window" ENTRY (launcher-§2, standard v2.67.0). The popup IS this
+-- addon's primary window, so the options menu on the minimap button and the broker row toggles it
+-- -- core/LauncherSetup.lua passes this as the descriptor's `toggleWindow`, beside
+-- WhatGroup:IsFrameOnScreen below as `isWindowShown`, and nothing else calls it.
 --
 -- It is a TOGGLE over the two seams that already exist, not a third way to move the popup: the
 -- open arm is ShowFrame, with its visibility gate, its combat defer and its test-mode handover
@@ -1104,8 +1106,8 @@ end
 --
 -- With no capture and no test mode the popup opens on its "No data" fallbacks, which is the honest
 -- answer to "show me this addon's window" and is what makes the toggle symmetric. `/wg show` still
--- refuses that case with its hint, because a verb the player typed can say why; a minimap click
--- has nowhere to say it but the window itself.
+-- refuses that case with its hint, because a verb the player typed can say why; a menu click has
+-- nowhere to say it but the window itself.
 ---@return boolean shown  whether the popup is on screen after the click
 function WhatGroup:ToggleFrame()
     if onScreen() then
@@ -1114,6 +1116,13 @@ function WhatGroup:ToggleFrame()
     end
     self:ShowFrame()
     return onScreen()
+end
+
+-- Whether the popup is ON SCREEN, for the launcher menu's Show window checkmark: the same
+-- `onScreen()` ToggleFrame branches on, so the checkmark and the click it predicts cannot disagree.
+---@return boolean
+function WhatGroup:IsFrameOnScreen()
+    return onScreen() and true or false
 end
 
 -- ---------------------------------------------------------------------------

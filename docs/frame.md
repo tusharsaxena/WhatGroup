@@ -205,7 +205,7 @@ There is intentionally no programmatic Hide method. The frame is closed by:
 
 - The Close button at the bottom (`UIPanelButtonTemplate`, 90×24) — goes through `hidePopup()`, never a bare `f:Hide()`, so a press in combat soft-hides instead of raising `ADDON_ACTION_BLOCKED`.
 - The ESC key — through the `WhatGroupFrameEscape` proxy's `OnHide`, which calls the same `hidePopup()` (§ ESC-to-close).
-- The **launcher's left click** — `WhatGroup:ToggleFrame`, rung (a) of `launcher-§2`: `onScreen()` decides, the open arm is `ShowFrame` (gate, combat defer and test-mode handover intact) and the close arm is the shared `dismissPopup()`. A popup soft-hidden at alpha 0 counts as off screen, so a click on one OPENS rather than hiding what the player cannot see.
+- The **launcher menu's Show window entry** — `WhatGroup:ToggleFrame`, the descriptor's `toggleWindow` (`launcher-§2`, standard v2.67.0), with `WhatGroup:IsFrameOnScreen` as its `isWindowShown`: `onScreen()` decides, the open arm is `ShowFrame` (gate, combat defer and test-mode handover intact) and the close arm is the shared `dismissPopup()`. A popup soft-hidden at alpha 0 counts as off screen, so a click on one OPENS rather than hiding what the player cannot see.
 - The `addon:WhatGroup:show` chat link → `WhatGroup:ShowFrame()` (re-opens, doesn't close).
 - The end of test mode — an untick, combat, a reset, an explicit show — through the same `hidePopup()` (§ Test mode).
 

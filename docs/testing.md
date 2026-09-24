@@ -116,8 +116,10 @@ no duplicate of those cases (testing-§8).
 `test_launcher` is the launcher's suite (`launcher-§1` to `launcher-§4`). Three of its cases
 cannot be replaced by anything else: that the two registrations really are ONE
 object (two objects with two `OnClick`s would pass a behavioral assertion and
-still be anti-pattern #81), that the LEFT click drives the addon's real popup
-seam rather than a copy of it, and that the icon file on disk is an
+still be anti-pattern #81), that each right-click menu entry runs the addon's
+real verb body rather than a copy of it (the menu is driven through
+`tests/mock_menu.lua`, a `MenuUtil` fake modeled on LibKa0s's own and installed
+on every build by `tests/wow_mock.lua`), and that the icon file on disk is an
 **uncompressed 32-bit TGA at 128×128** — read out of the header bytes, because a
 wrong format there draws nothing and raises nothing, in the client and in every
 other gate alike. `tests/wow_mock.lua` carries LibDataBroker and LibDBIcon fakes,

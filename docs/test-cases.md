@@ -646,7 +646,7 @@ badge and any count quoted in the docs must agree with it.
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
 
-### test_launcher.lua (29)
+### test_launcher.lua (36)
 
 - launcher: it registers at login, and the broker object IS the minimap button's
 - launcher: the object is a launcher, named for the FOLDER, wearing this addon's logo
@@ -656,15 +656,22 @@ badge and any count quoted in the docs must agree with it.
 - launcher: Register is idempotent -- a second call builds no second button
 - launcher: the icon file exists and is an uncompressed 32-bit TGA
 - launcher: the TOC's IconTexture is the same file the object wears
-- launcher: LEFT-click toggles the group popup, through the addon's own seam
-- launcher: a LEFT-click dismissal ends test mode, as the Close button does
-- launcher: a disabled left-click prints the dispatcher's line and does not toggle
-- launcher: RIGHT-click opens the settings panel
+- launcher: LEFT-click opens the settings panel, and never the popup
+- launcher: LEFT-click opens the panel while disabled too, with no refusal line
+- launcher: RIGHT-click opens a menu titled with the label, with all four entries in order
+- launcher: the Enabled entry runs the /wg disable|enable body, ack and all
+- launcher: the Locked entry runs `/wg set locked toggle`, the Lock frame row's write
+- launcher: the Test mode entry runs the bare /wg test body
+- launcher: the Show window entry toggles the group popup through WhatGroup:ToggleFrame
+- launcher: a Show window dismissal ends test mode, as the Close button does
+- launcher: while disabled only Enabled is live; the rest are grayed and call nothing
+- launcher: with no MenuUtil the right click falls back to the settings panel
+- launcher: the descriptor passes the four pairs to the verbs' seams, and no retired field
 - launcher: the tooltip reads title, status, lock, test mode, then the two click hints
 - launcher: Locked and Test mode are read on every hover, from the rows' own stores
-- launcher: while disabled the tooltip still draws, and the left hint points at /wg enable
+- launcher: while disabled the tooltip still draws, with the same two click hints
 - launcher: the tooltip's version is the TOC's, not the in-code constant
-- launcher: the left-click label is localized, and there is no host tooltip hook
+- launcher: there is no host tooltip hook, and the retired label's locale row is gone
 - launcher: the Minimap button row is stored, global, and LibDBIcon's OWN hide key
 - launcher: the row's get/set invert, and the button follows immediately
 - launcher: the row's CLI path reads in its own sense
@@ -818,7 +825,7 @@ badge and any count quoted in the docs must agree with it.
 - disabled 6: firing every event it used to watch writes nothing, says nothing, shows nothing
 - disabled 7: every reserved verb answers normally, and the bare /wg opens the panel
 - disabled 7: each FEATURE verb answers exactly one refusal line and reaches no write seam
-- disabled 8: left-click is refused with no write and no frame; right-click opens the panel
+- disabled 8: left-click opens the panel; right-click's menu grays every feature entry
 - disabled 9: re-enabling restores the registration set exactly
 - disabled 9: a setting changed WHILE DISABLED is what the rebuild reflects
 - disabled 10: releasing the perf hold does NOT resurrect an addon `disabled` still holds down
@@ -894,7 +901,7 @@ badge and any count quoted in the docs must agree with it.
 | test_frame_secure.lua | 7 |
 | test_panel.lua | 54 |
 | test_testmode.lua | 23 |
-| test_launcher.lua | 29 |
+| test_launcher.lua | 36 |
 | test_lifecycle.lua | 46 |
 | test_debuglog.lua | 49 |
 | test_docmap.lua | 1 |
@@ -906,4 +913,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **780** |
+| **Total** | **787** |

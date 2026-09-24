@@ -19,7 +19,7 @@
 -- SCOPE: the player-facing surfaces route through L — the join notification,
 -- the popup dialog, the command descriptions, the library-absent line that
 -- `/wg enable`, `/wg disable` and `/wg test` print when LibKa0s did not load,
--- the reset confirmation, and the launcher tooltip's left-click label. Slash-CLI diagnostics ("unknown command",
+-- and the reset confirmation. Slash-CLI diagnostics ("unknown command",
 -- "Usage: …", "debug logging ON/OFF") are deliberately NOT routed: they are
 -- developer/power-user feedback for the `/wg` command line, not chrome a
 -- translator would localize. Keeping them out keeps this table focused on the
@@ -139,8 +139,3 @@ L["Test mode on — the popup shows sample group info. Drag its title bar to pla
 L["Test mode off"] = "Test mode off"
 L["Test mode off — combat started"] = "Test mode off — combat started"
 L["cannot start test mode during combat"] = "cannot start test mode during combat"
-
--- The launcher's left-click hint (core/LauncherSetup.lua, launcher-§1). LibKa0s-Launcher-1.0 draws
--- the tooltip and its own words (`Left-click: %s`, `Enabled`, `Locked`, ...); this is the one
--- string in it that is the addon's, naming what rung (a)'s left click does here.
-L["Toggle group popup"] = "Toggle group popup"

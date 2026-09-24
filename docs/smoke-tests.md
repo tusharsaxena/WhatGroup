@@ -595,9 +595,11 @@ route that replaces `/wg test notify`'s old master-switch bypass.
 
 5. Still disabled: **left-click the minimap button**, then **right-click** it.
 
-**Expected:** the left click prints the same one `[WG]` line naming `/wg enable` and does nothing
-else — no popup. The right click opens the settings panel, exactly as it does when the addon is
-running. The button itself stays on the minimap in either state.
+**Expected:** the left click opens the settings panel, exactly as it does when the addon is
+running, and prints nothing. The right click opens the options menu: **Enabled** unticked and
+clickable; **Locked**, **Test mode** and **Show window** grayed, each reading
+`(enable the addon first)`, and clicking one does nothing. The button itself stays on the minimap
+in either state.
 
 6. Still disabled: type a misspelling, `/wg shwo`.
 
@@ -932,10 +934,21 @@ honest state of this section is unrun, and it is recorded that way rather than a
 2. **The button.** Look at the minimap. **Expected:** a round button wearing the same logo. If it
    draws as a blank/green square, the `.tga` is the wrong format — regenerate it with layout-§4's
    recipe; the format is asserted headlessly, so this should never be the failure.
-3. **Left-click it.** **Expected:** the group popup opens (on "No data" if you have no capture yet).
-   **Left-click again:** it closes. No error, no taint line.
-4. **Right-click it.** **Expected:** the Settings panel opens on the landing page — the same place
-   `/wg config` lands. Right-click while the popup is open: the panel opens and the popup stays.
+3. **Left-click it.** **Expected:** the Settings panel opens on the landing page — the same place
+   `/wg config` lands. Left-click while the popup is open: the panel opens and the popup stays.
+4. **Right-click it.** **Expected:** a context menu titled **Ka0s WhatGroup** with four checkboxes,
+   in this order: **Enabled** (ticked), **Locked**, **Test mode**, **Show window**. Then, one at a
+   time, reopening the menu between clicks:
+   - **Show window**: the group popup opens (on "No data" if you have no capture yet); the next
+     open shows it ticked, and clicking it again closes the popup.
+   - **Test mode**: the popup comes up on the sample group and chat says what `/wg test` says;
+     the *Test mode* checkbox on Master controls follows. Click again to end it.
+   - **Locked**: chat prints `locked = true`, exactly as `/wg set locked toggle` does, and the
+     popup's title bar no longer drags. Click again to unlock.
+   - **Enabled**: chat prints what `/wg disable` prints and the addon stands down; reopen the
+     menu — the other three are grayed with `(enable the addon first)`. Click **Enabled** again
+     to switch it back on.
+   No error and no taint line at any step.
 5. **Drag it** around the minimap, then `/reload`. **Expected:** it comes back where you left it
    (that is LibDBIcon's `minimapPos`, in `db.global.minimap`).
 6. **Untick Minimap button** on the **Master controls** tab. **Expected:** the button disappears
@@ -949,15 +962,16 @@ honest state of this section is unrun, and it is recorded that way rather than a
 8. **A broker display** (Titan Panel, ElvUI data texts, Bazooka), if you run one: **Expected:** one
    entry labeled exactly **`Ka0s WhatGroup`** — the brand name in plain text (`launcher-§1`), so it
    files beside the rest of the collection rather than under `W`; no color escapes anywhere in the
-   row — wearing the same logo, whose left and right clicks do exactly what the minimap button's do,
+   row — wearing the same logo, whose left click and right-click menu do exactly what the minimap
+   button's do,
    because it is the same object. Its own show/hide is the display's business, not ours; there is
    deliberately no addon setting for it.
 9. **Hover it** (`launcher-§1`, the library's status tooltip). **Expected**, top to bottom:
    `Ka0s WhatGroup  v<the TOC version>`, `Enabled: Yes` (green), `Locked: No`, `Test mode: Off`,
-   `Left-click: Toggle group popup`, `Right-click: Open settings`, and nothing drawn twice. Tick
+   `Left-click: Open settings`, `Right-click: Options menu`, and nothing drawn twice. Tick
    **Lock frame** and **Test mode** on Master controls and hover again: `Locked: Yes`,
-   `Test mode: On`. Then `/wg disable` and hover: the tooltip still shows, `Enabled: No` in red and
-   `Left-click: disabled — /wg enable`. `/wg enable` afterwards.
+   `Test mode: On`. Then `/wg disable` and hover: the tooltip still shows, `Enabled: No` in red,
+   with the same two click hints. `/wg enable` afterwards.
 
 ## 13. Quick reference checklist
 
@@ -982,7 +996,7 @@ For a fast pre-release pass, run at minimum:
 - [ ] sections 11.5 / 11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
 - [ ] sections 12.1 / 12.4 — marks on the console title bar, and the footer Close as the bare word with no mark beside it
 - [ ] section 12a — the tab strip's labels, selection and band height survive three passes
-- [ ] section 12c — the minimap button draws the logo, toggles the popup, right-clicks to Settings, and survives a profile switch hidden
+- [ ] section 12c — the minimap button draws the logo, left-clicks to Settings, right-clicks to the four-entry options menu, and survives a profile switch hidden
 - [ ] section 12b — the non-English-client pass, which is also the only login § 7a will get
 
 Run section 9 (degraded install), section 12 (shared art), section 12a (the pooled tab strip) and the rest of section 11 after a LibKa0s re-vendor or any change to the six seam files.
