@@ -361,7 +361,7 @@ badge and any count quoted in the docs must agree with it.
 - teleport: the Midnight season 2 rows match the spellbook-verified IDs
 - teleport: Siege of Boralus offers the spellbook-verified spell first
 
-### test_capture.lua (32)
+### test_capture.lua (35)
 
 - capture: inviteaccepted prefers FRESH when both have mapID
 - capture: inviteaccepted falls back to QUEUED when fresh lacks mapID
@@ -392,6 +392,9 @@ badge and any count quoted in the docs must agree with it.
 - capture: two outstanding applications pair to their own search results
 - capture: a declined application drops its queued capture
 - capture: a canceled application drops its unanswered capture
+- capture: a timedout application drops its capture
+- capture: an invitedeclined application drops its capture
+- capture: a failed application drops its capture
 - capture: a search field holding false takes the default, not the false
 - capture: an activity field holding false takes the default, not the false
 - capture: a stored zero survives the defaults, because 0 is truthy in Lua
@@ -848,7 +851,7 @@ badge and any count quoted in the docs must agree with it.
 | test_settings.lua | 56 |
 | test_slash.lua | 59 |
 | test_labels.lua | 34 |
-| test_capture.lua | 32 |
+| test_capture.lua | 35 |
 | test_notify.lua | 48 |
 | test_frame.lua | 90 |
 | test_frame_secure.lua | 6 |
@@ -866,4 +869,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **740** |
+| **Total** | **743** |

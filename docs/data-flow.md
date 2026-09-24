@@ -53,7 +53,8 @@ LFG_LIST_APPLICATION_STATUS_UPDATED  status = "applied"   appID assigned
         │
         ▼
 LFG_LIST_APPLICATION_STATUS_UPDATED  status = "declined" / "declined_full" /
-        │                                     "declined_delisted" / "cancelled"
+        │                                     "declined_delisted" / "cancelled" /
+        │                                     "timedout" / "invitedeclined" / "failed"
         └─ both tables drop this application's capture (it may still be under
            its search-result id if "applied" never arrived)
         │

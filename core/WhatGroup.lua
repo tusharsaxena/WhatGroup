@@ -970,16 +970,23 @@ function WhatGroup:GROUP_ROSTER_UPDATE()
     end
 end
 
--- Statuses that end an application with no invite behind them. Blizzard sends the bare
--- "declined" only sometimes — a full or delisted group carries its reason in the status
--- string, and those are the declines a player actually meets — so all three spellings are
--- here. Without this arm a dead application's capture stayed in the tables until the next
--- group-leave and could be handed to a later invite (WG-R-07).
+-- Every status that ends an application with no joined group behind it. Blizzard sends the bare
+-- "declined" only sometimes — a full or delisted group carries its reason in the status string,
+-- and those are the declines a player actually meets — so all three spellings are here. The last
+-- three end it from the other side: the application expired unanswered ("timedout"), the player
+-- turned the invite down ("invitedeclined"), or the server refused it ("failed"). The spellings
+-- are the ones Blizzard_GroupFinder's LFGList.lua switches on when it labels a search entry
+-- (LFG_LIST_APP_TIMED_OUT, LFG_LIST_APP_INVITE_DECLINED); smoke S-008 records them in-client.
+-- Without this arm a dead application's capture stayed in the tables until the next group-leave
+-- and could be handed to a later invite (WG-R-07, WHATGROUP-R-12).
 local APPLICATION_ENDED = {
     declined          = true,
     declined_full     = true,
     declined_delisted = true,
     cancelled         = true,
+    timedout          = true,
+    invitedeclined    = true,
+    failed            = true,
 }
 
 -- The two short status arms live out here rather than inline. The handler is the file's most
