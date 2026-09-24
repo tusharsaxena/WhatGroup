@@ -828,7 +828,7 @@ a client at the time. Step 5 below is where it gets run.
 group:
 
 - **`info.fullName`** and **`info.shortName`** from `C_LFGList.GetActivityInfoTable`
-  (`core/Compat.lua:136-141`, stored at `core/WhatGroup.lua:509`, drawn at `modules/Frame.lua:869`
+  (`core/Compat.lua:136-141`, stored at `core/WhatGroup.lua:509`, drawn at `modules/Frame.lua:880`
   and in the chat summary at `core/WhatGroup.lua:714` and `:717`). German activity names are materially longer
   than English ones.
 - **`info.playstyleString`**, which the server renders in the player's language, preferred over the
@@ -837,7 +837,7 @@ group:
   (`core/WhatGroup.lua:635-640`). A global that is nil at load leaves that label nil for the whole
   session — there is no second read.
 - **`Compat.GetSpellName`** (`core/Compat.lua:27-38`), whose return goes straight into the teleport
-  button's `/cast` macrotext (`modules/Frame.lua:414`, built at `:526`). Casting by name only works
+  button's `/cast` macrotext (`modules/Frame.lua:425`, built at `:537`). Casting by name only works
   when the name is the client's own, which is what makes this locale-independent by construction —
   and is therefore worth confirming rather than assuming.
 

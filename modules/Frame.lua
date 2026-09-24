@@ -147,12 +147,24 @@ function WhatGroup:ApplyFrameScale()
     f:SetScale(masterScale())
 end
 
+-- The soft-hidden state (hidePopup, below): declared here, above ApplyFrameAlpha, because the
+-- opacity write has to know about it.
+local softHidden  = false   -- alpha-0 stand-in for a Hide the client refused
+local pendingHide = false   -- a real Hide owed once the lockdown lifts
+
 -- NOT refused in combat: opacity moves nothing, so the secure child's position is untouched and
 -- the change can land while the player is fighting — which is the one time an alpha setting is
 -- actually being judged.
+--
+-- But a SOFT-HIDDEN popup stays at alpha 0 until something really shows it (WHATGROUP-R-02).
+-- preparePopup re-applies the opacity before ShowFrame asks the gate, and an alpha write from the
+-- panel or `/wg set alpha` lands mid-fight; either one restoring masterAlpha() on a popup the gate
+-- or the Close button put away would put it back on screen while onScreen() says it is gone, so
+-- the launcher toggle and Escape could not close it. showPopup and hidePopup's real route both
+-- clear softHidden before calling this, so they still get the master alpha.
 function WhatGroup:ApplyFrameAlpha()
     if not f then return end
-    f:SetAlpha(masterAlpha())
+    f:SetAlpha(softHidden and 0 or masterAlpha())
 end
 
 -- Is the popup allowed on screen right now? `always` and anything unrecognized (a hand-edited
@@ -229,8 +241,7 @@ end
 -- lockdown lifts: alpha 0 is invisible, not absent, so the title bar still drags and the teleport
 -- button still takes a click it cannot act on — a teleport cannot be cast in combat anyway. That
 -- residue is exactly why `pendingHide` exists and why the soft state is never a resting one.
-local softHidden  = false   -- alpha-0 stand-in for a Hide the client refused
-local pendingHide = false   -- a real Hide owed once the lockdown lifts
+-- `softHidden` and `pendingHide` are declared above ApplyFrameAlpha, which reads the first.
 
 -- The first-show-in-combat defer's frame (ShowFrame, far below). At file scope so NS.FrameStandDown
 -- can unregister it; nil until a show is actually deferred.

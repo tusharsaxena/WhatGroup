@@ -117,3 +117,61 @@ test("frame: a deferred no-capture configure is replayed, not dropped", function
     assertNil(btn:GetAttribute("type"))
     assertNil(btn:GetAttribute("macrotext"))
 end)
+
+-- The gate-declined reopen (WHATGROUP-R-02). With `outOfCombat`, PLAYER_REGEN_DISABLED soft-hides
+-- the popup at alpha 0. A reopen in combat runs preparePopup, which re-applies the opacity BEFORE
+-- the gate is asked, and the gate then declines -- so the alpha write is the only thing standing
+-- between the player and a popup that onScreen() says is not there.
+local ESC_PROXY = "WhatGroupFrameEscape"
+
+local function softHideByGate(NS, mock)
+    NS.addon.db.profile.visibility = "outOfCombat"
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    assertEqual(popup(mock):GetAlpha(), 1, "shown out of combat at the master alpha")
+    mock.combat = true
+    mock.__fireEvent("PLAYER_REGEN_DISABLED")
+    assertTrue(popup(mock):IsShown(), "the client will not Hide it mid-fight")
+    assertEqual(popup(mock):GetAlpha(), 0, "the gate soft-hid it on the combat edge")
+end
+
+test("frame: a gate-declined reopen in combat leaves a soft-hidden popup at alpha 0, and the launcher still closes it", function()
+    -- red under: ApplyFrameAlpha setting masterAlpha() unconditionally
+    local NS, _, mock = T.enableAddon()
+    softHideByGate(NS, mock)
+
+    NS.addon:OnSlashCommand("show")
+    assertEqual(popup(mock):GetAlpha(), 0, "the gate declined, so the popup must stay invisible")
+    assertFalse(mock.frames[ESC_PROXY]:IsShown(), "the ESC proxy stays down for a popup not on screen")
+
+    -- onScreen() is truthful, so the launcher OPENS (again declined) rather than dismissing an
+    -- invisible popup, and the popup stays invisible either way.
+    assertFalse(NS.addon:ToggleFrame(), "the launcher click opens, and the gate declines it")
+    assertEqual(popup(mock):GetAlpha(), 0)
+    assertEqual(#mock.blocked, 0)
+end)
+
+test("frame: an alpha write while soft-hidden does not reveal the popup", function()
+    -- red under: ApplyFrameAlpha setting masterAlpha() unconditionally
+    local NS, _, mock = T.enableAddon()
+    softHideByGate(NS, mock)
+
+    NS.addon:OnSlashCommand("set alpha 0.8")
+    assertEqual(NS.addon.db.profile.alpha, 0.8, "the write itself lands in combat")
+    assertEqual(popup(mock):GetAlpha(), 0, "but a soft-hidden popup stays invisible")
+end)
+
+test("frame: a real show after the soft hide restores the master alpha", function()
+    -- red under: ApplyFrameAlpha setting masterAlpha() unconditionally -- the guard must clear with
+    -- softHidden, or the popup comes back invisible.
+    local NS, _, mock = T.enableAddon()
+    softHideByGate(NS, mock)
+    NS.addon.db.profile.alpha = 0.8
+    NS.addon:ApplyFrameAlpha()
+    assertEqual(popup(mock):GetAlpha(), 0)
+
+    endCombat(mock)
+    assertTrue(popup(mock):IsShown(), "the gate reopens what it withheld when combat ends")
+    assertEqual(popup(mock):GetAlpha(), 0.8, "at the master alpha, not stuck at 0")
+    assertTrue(mock.frames[ESC_PROXY]:IsShown())
+end)
