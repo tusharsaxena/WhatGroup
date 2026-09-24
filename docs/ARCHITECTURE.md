@@ -170,6 +170,13 @@ protected `Hide` it owes. See `## The stand-down`.
 | `hooksecurefunc(C_LFGList, "ApplyToGroup")` | `core/WhatGroup.lua`, file-load | Records the group applied to |
 | `hooksecurefunc("SetItemRef")` | `core/WhatGroup.lua`, file-load, **only** where `NS.Compat.AddOnLinkType()` is nil | The degraded client's route for the old `WhatGroup:show` link. It runs after Blizzard's fallthrough ([data-flow.md](./data-flow.md)) |
 
+The four event rows are registered through **`NS.SafeRegisterEvent`** (LibKa0s-Core minor 8,
+bound in `core/CoreSetup.lua`; a one-rung `pcall` stub on the degraded path), never a bare
+`self:RegisterEvent`, so one name a patch retires costs only its own row and not the rest of
+`OnEnable` (events-frames-taint-§1). A refused name is kept once in the session-only
+`NS.RejectedEvents` and shown in the `[Init]` summary as `, rejected events: <names>`; the
+summary is unchanged when the list is empty. See [midnight-quirks.md](./midnight-quirks.md).
+
 Both subscriptions are **installed at file load**, never through AceHook and never in `OnEnable`:
 the `ApplyToGroup` post-hook, and the chat-link callback (or, on a degraded client, its post-hook).
 The `EventRegistry` callback is not in the `grep` above; `grep -n "RegisterCallback" core/WhatGroup.lua`

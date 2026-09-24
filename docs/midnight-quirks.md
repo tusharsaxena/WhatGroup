@@ -180,6 +180,10 @@ local texID = NS.Compat.GetSpellTexture(spellID) or 134400
 
 `134400` is widely used as a "dynamic / unknown spell" sentinel across Blizzard's UI. Not load-bearing — any other placeholder fileID would work — but it's the convention.
 
+## An unknown event name raises at registration
+
+The client raises `Attempt to register unknown event "<NAME>"` when an addon registers a name it does not know, and a patch that retires an event makes a formerly good name unknown. `registerFeatureEvents` runs first in `OnEnable`, so a bare `self:RegisterEvent` there would lose the settings category, the minimap button and the disable latch to one retired name. The four registrations go through `NS.SafeRegisterEvent` (LibKa0s-Core minor 8, bound in `core/CoreSetup.lua`) instead, and the trade is a probe before each one. `C_EventUtils.IsEventValid` is asked first when the client has it, and that answer decides without the name ever reaching AceEvent. On a client without it the library registers the name on a private frame under `pcall` and unregisters it at once, and the registration on the addon itself is `pcall`ed as well, so a retail raise on an unknown name is caught rather than propagated. A refused name is not retried and not printed: it is appended once to the session-only `NS.RejectedEvents`, and the `[Init]` line `/wg debug on` writes (`, rejected events: <names>`) is the only record of it. With the library missing, the degraded stub keeps only the `pcall` and the append.
+
 ## Pattern reference
 
 Ka0s KickCD (`/mnt/d/Profile/Users/Tushar/Documents/GIT/KickCD`) is the source pattern for WhatGroup's slash dispatch and schema-driven settings rendering. The shape here is a scaled-down version of `KickCD/core/KickCD.lua` (slash dispatch) and `KickCD/settings/Panel.lua` (helpers + builder). When in doubt about how to extend a system here, check how the equivalent system is shaped over there.

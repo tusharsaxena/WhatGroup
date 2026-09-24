@@ -6,7 +6,7 @@ badge and any count quoted in the docs must agree with it.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_harness.lua (12)
+### test_harness.lua (17)
 
 - harness: the runner is on the shared kit and reports its revision
 - harness: the addon's load list is DERIVED from the TOC, in TOC order (testing-§9)
@@ -20,6 +20,11 @@ badge and any count quoted in the docs must agree with it.
 - harness: UnregisterAllEvents silences what the dispatcher reaches
 - harness: a registration naming a method the addon lacks is refused
 - harness: the addon's AceTimer handles are the kit's, on the kit's queue
+- events: one retired event name does not abort OnEnable
+- events: one retired event name does not abort OnEnable on a client without C_EventUtils
+- events: the [Init] summary carries no rejected clause when every name registered
+- degraded: the Core stub's SafeRegisterEvent survives a bad name
+- events: a stand-up after a rejection records the name once
 
 ### test_libka0s.lua (50)
 
@@ -832,7 +837,7 @@ badge and any count quoted in the docs must agree with it.
 
 | Suite | Cases |
 |-------|------:|
-| test_harness.lua | 12 |
+| test_harness.lua | 17 |
 | test_libka0s.lua | 50 |
 | test_surface_parity.lua | 5 |
 | test_mediasetup.lua | 11 |
@@ -861,4 +866,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **735** |
+| **Total** | **740** |

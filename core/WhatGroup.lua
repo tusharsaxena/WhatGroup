@@ -40,6 +40,12 @@ WhatGroup.VERSION = "1.4.0"
 NS.State = NS.State or {}
 NS.State.debug = false
 
+-- Every event name the client refused at registration, in refusal order, each once. Session-only
+-- and never persisted: it describes this client build, and the next patch may answer differently.
+-- Filled by registerFeatureEvents through NS.SafeRegisterEvent; read by InitSummary, which is the
+-- only place the player sees it (events-frames-taint-§1).
+NS.RejectedEvents = {}
+
 -- Single shared chat prefix (slash-commands-§4). NS.PREFIX is the one source of
 -- truth; the secret-safe printer (core/Util.lua) prepends it to every line.
 NS.PREFIX = "|cff00FFFF[WG]|r"
@@ -301,16 +307,21 @@ end
 -- slash-commands-§7's one sanctioned exception. The EventRegistry chat-link callback has a real
 -- unregister, so it does not take that exception: NS.StandDown unregisters it and NS.StandUp calls
 -- registerLinkCallback() to put it back.
+--
+-- EACH CALL COSTS ONLY ITSELF (events-frames-taint-§1). The client raises on a name it does not
+-- know, and this function runs first in OnEnable: one event retired by a patch would otherwise take
+-- the settings category, the launcher and the latch down with it. NS.SafeRegisterEvent
+-- (core/CoreSetup.lua) refuses the name instead and records it once in NS.RejectedEvents.
 local function registerFeatureEvents(self)
-    self:RegisterEvent("GROUP_ROSTER_UPDATE")
-    self:RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
+    NS.SafeRegisterEvent(self, "GROUP_ROSTER_UPDATE", nil, NS.RejectedEvents)
+    NS.SafeRegisterEvent(self, "LFG_LIST_APPLICATION_STATUS_UPDATED", nil, NS.RejectedEvents)
     -- The popup's `visibility` setting has two combat-dependent values, and combat state changes
     -- without the player touching the panel — so the gate needs an event, not just an onChange.
     -- Both edges route to ONE handler because the answer is a single re-evaluation either way;
     -- which edge it is comes from the event name (see modules/Frame.lua's visibilityAllows).
     -- Registered here and never in OnInitialize, like the two above.
-    self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnCombatStateChanged")
-    self:RegisterEvent("PLAYER_REGEN_ENABLED",  "OnCombatStateChanged")
+    NS.SafeRegisterEvent(self, "PLAYER_REGEN_DISABLED", "OnCombatStateChanged", NS.RejectedEvents)
+    NS.SafeRegisterEvent(self, "PLAYER_REGEN_ENABLED",  "OnCombatStateChanged", NS.RejectedEvents)
     wasInGroup = IsInGroup() and true or false
 end
 
@@ -428,6 +439,14 @@ function WhatGroup:OnEnable()
     -- point where it is both current and visible — see InitSummary below.
 end
 
+-- The event names the client refused this session, as a trailing clause, or nothing at all: the
+-- summary is byte-identical to its old shape whenever every registration succeeded.
+local function rejectedClause()
+    local rejected = NS.RejectedEvents
+    if not rejected or #rejected == 0 then return "" end
+    return ", rejected events: " .. table.concat(rejected, ", ")
+end
+
 -- One-line [Init] session summary (debug-logging-§5 MUST / debug-logging-§8 boot-summary):
 -- addon name + version, schema/DB version, active AceDB profile. A pure builder
 -- — the DebugLog:SetEnabled seam calls it and appends the line via raw D:Add on
@@ -447,7 +466,7 @@ function WhatGroup:InitSummary()
         tostring(pr.notify and pr.notify.delay),
         tostring(not (pr.frame and pr.frame.autoShow == false)),
         tostring(IsInGroup() and true or false),
-        tostring(self.pendingInfo ~= nil))
+        tostring(self.pendingInfo ~= nil)) .. rejectedClause()
 end
 
 -- ---------------------------------------------------------------------------

@@ -132,3 +132,80 @@ test("harness: the addon's AceTimer handles are the kit's, on the kit's queue", 
     assertEqual(mock.__fireTimers(), 0, "a canceled timer does not run")
     assertEqual(#mock.timers, 0, "and the C_Timer.After queue stays separate")
 end)
+
+-- ---------------------------------------------------------------------------
+-- One retired event name costs only itself (events-frames-taint-§1, WHATGROUP-A-07)
+-- ---------------------------------------------------------------------------
+--
+-- registerFeatureEvents is the first thing OnEnable runs, and it used to make four bare
+-- self:RegisterEvent calls. The client raises on a name it does not know, so one event retired by a
+-- patch took the settings category, the launcher and the latch down with it. The four calls now go
+-- through NS.SafeRegisterEvent (LibKa0s-Core minor 8) and a refused name lands in the session-only
+-- NS.RejectedEvents, which the [Init] summary reads.
+
+local NO_LIBKA0S = T.loadAddon.libFiles
+local OTHER_THREE = {
+    LFG_LIST_APPLICATION_STATUS_UPDATED = true,
+    PLAYER_REGEN_DISABLED = "OnCombatStateChanged",
+    PLAYER_REGEN_ENABLED  = "OnCombatStateChanged",
+}
+
+local function badRoster(extra)
+    return function(m)
+        m.__badEvents = { GROUP_ROSTER_UPDATE = true }
+        if extra then extra(m) end
+    end
+end
+
+local function assertEnableSurvived(NS, mock)
+    for event, handler in pairs(OTHER_THREE) do
+        assertTrue(NS.addon.__events[event] ~= nil, event .. " still registered")
+        if handler ~= true then assertEqual(NS.addon.__events[event], handler, event .. " handler") end
+    end
+    assertEqual(#mock.categories, 2, "Settings.Register ran after the refusal")
+    assertTrue(NS.Launcher:IsRegistered(), "NS.Launcher:Register ran after the refusal")
+    assertFalse(NS.Lifecycle:IsDown(), "the latch was evaluated and stands up")
+    assertEqual(#NS.RejectedEvents, 1, "one name refused")
+    assertEqual(NS.RejectedEvents[1], "GROUP_ROSTER_UPDATE")
+    assertTrue(NS.addon:InitSummary():find("rejected events: GROUP_ROSTER_UPDATE", 1, true) ~= nil,
+        "the [Init] summary names the refused event")
+end
+
+test("events: one retired event name does not abort OnEnable", function()
+    -- red under: a bare self:RegisterEvent in registerFeatureEvents
+    local NS, _, mock = T.enableAddon{ mock = badRoster() }
+    assertEnableSurvived(NS, mock)
+end)
+
+test("events: one retired event name does not abort OnEnable on a client without C_EventUtils", function()
+    -- red under: a bare self:RegisterEvent in registerFeatureEvents
+    -- No front gate: the library's probe frame and the target's pcall decide.
+    local NS, _, mock = T.enableAddon{ mock = badRoster(function(m) m.C_EventUtils = nil end) }
+    assertEnableSurvived(NS, mock)
+end)
+
+test("events: the [Init] summary carries no rejected clause when every name registered", function()
+    local NS = T.enableAddon()
+    assertEqual(#NS.RejectedEvents, 0)
+    assertTrue(NS.addon:InitSummary():find("rejected", 1, true) == nil, "no clause on a clean enable")
+end)
+
+test("degraded: the Core stub's SafeRegisterEvent survives a bad name", function()
+    -- red under: a degraded branch in core/CoreSetup.lua that publishes no SafeRegisterEvent
+    local NS = T.enableAddon{ skip = NO_LIBKA0S, mock = badRoster() }
+    for event in pairs(OTHER_THREE) do
+        assertTrue(NS.addon.__events[event] ~= nil, event .. " still registered")
+    end
+    assertEqual(#NS.RejectedEvents, 1, "one name refused")
+    assertEqual(NS.RejectedEvents[1], "GROUP_ROSTER_UPDATE")
+end)
+
+test("events: a stand-up after a rejection records the name once", function()
+    -- red under: a rejected list the stand-up path appends to on every cycle
+    local NS = T.enableAddon{ mock = badRoster() }
+    NS.Lifecycle:Set(NS.HOLD_DISABLED, true)
+    NS.Lifecycle:Set(NS.HOLD_DISABLED, false)
+    assertFalse(NS.Lifecycle:IsDown(), "stood back up")
+    assertEqual(#NS.RejectedEvents, 1, "the name is recorded once across the cycle")
+    assertEqual(NS.RejectedEvents[1], "GROUP_ROSTER_UPDATE")
+end)
