@@ -800,7 +800,7 @@ badge and any count quoted in the docs must agree with it.
 
 ### test_register.lua (1)
 
-- every deviation id the register cites is assigned by a bundle in docs/audits/
+- every evidence id the register cites is assigned by its bundle in docs/audits/ or docs/reviews/
 
 ### test_disabled.lua (18)
 
