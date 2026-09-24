@@ -267,7 +267,7 @@ like the main popup, in a monospace font — **not** the chat frame. This is the
 standard's requirement for any addon that ships a main window (debug-logging-§7);
 the console is `LibKa0s-DebugLog-1.0`'s, wired in `core/DebugLogSetup.lua`. Each line is
 `HH:MM:SS | [Tag] message`. Full
-detail in [debug.md](./debug.md).
+detail in [debug-content.md](./debug-content.md).
 
 `NS.State.debug` is session-only (default off, never persisted, off again on the
 next login). Logging and the window are independent — capture runs even with the

@@ -13,14 +13,16 @@ and the two cooldown shims read `startTime, duration, isEnabled` from the librar
 when a patch renames or moves one of these APIs, the fix lands in the library (and reaches this addon
 on the re-vendor) or in this file, and nowhere else.
 
-**Eight shims**, counted the way `documentation-§3` counts them: entry points published on this
-addon's own `Compat` table, over this file alone. The threshold is three.
+**Six shims**, counted the way `documentation-§3` counts them
+(`grep -cE '^\s*function\s+[A-Za-z_.]+\.' core/Compat.lua`): entry points this file defines on the
+addon's own `Compat` table. The threshold is three. `NS.Compat.GetSpellName` and
+`NS.Compat.GetSpellTexture` are the library's own members, wired by identity, so they are not counted
+and not documented here: their ladders, degrade values and secret handling are LibKa0s
+`docs/api/Compat/version-1-docs.md`.
 
 | Group | Shim | Ladder | Answers with, where the API is absent |
 |---|---|---|---|
-| Spell | `GetSpellName(spellID)` | **the library's**: `C_Spell.GetSpellName` → `C_Spell.GetSpellInfo(id).name` → `GetSpellInfo` | `nil` |
-| | `GetSpellTexture(spellID)` | **the library's**: `C_Spell.GetSpellTexture` → `GetSpellTexture`, one value | `nil` |
-| | `GetSpellLink(spellID)` | `C_Spell.GetSpellLink` | `nil` |
+| Spell | `GetSpellLink(spellID)` | `C_Spell.GetSpellLink` | `nil` |
 | | `IsSpellKnown(spellID)` | `C_SpellBook.IsSpellKnown` → `IsSpellKnown`; see below | `false` |
 | Cooldown | `GetSpellCooldownRemaining(spellID)` | the library's `GetSpellCooldown`, then this file's GCD floor | `0` |
 | | `GetSpellCooldownTimes(spellID)` | the library's `GetSpellCooldown`, truncated to two values | `0, 0` |
@@ -32,40 +34,23 @@ and cooldown times; `core/WhatGroup.lua` builds the chat teleport line from the 
 check, reads the activity table in `CaptureGroupInfo`, and picks the details link's type and click
 route from `AddOnLinkType` once, at file load.
 
-## The shape, and the one rung that decides everything
+## The shape
 
-Modern namespace first, legacy global second, an honest default third — and the middle rung is not
-optional politeness. For the two spell readers the ladder is the library's now, and wired by
-identity rather than wrapped:
+Modern namespace first, legacy global second, an honest default third, and the middle rung is not
+optional politeness. Both the namespace and the member are checked: `C_Spell` existing does not mean
+`C_Spell.GetSpellLink` does, which is exactly the state a mid-migration client is in, and a bare
+`C_Spell.GetSpellLink(id)` is a nil-index error at the one moment the fallback was supposed to save
+you. Capability is probed by presence, never by asking which client this is: there is no
+`WOW_PROJECT_ID` branch in this file, and there must not be one.
 
-```lua
-local CompatLib = LibStub and LibStub("LibKa0s-Compat-1.0", true)
-Compat.GetSpellName    = CompatLib and CompatLib.GetSpellName    or function() return nil end
-Compat.GetSpellTexture = CompatLib and CompatLib.GetSpellTexture or function() return nil end
-```
-
-`GetSpellName` falls through to the next rung when a rung is **present and answers nil or a plain
-`""`**, which is not the same as falling through when it is absent. That preserves the old inline
-`A(x) or B(x)` chain the shims replaced: the client can carry `C_Spell.GetSpellName` and still have
-nothing to say about a spell it has not cached, and going quiet there would blank a teleport label
-that another reader would have filled in. The library adds a middle rung (`C_Spell.GetSpellInfo(id)`'s
-name), treats a plain `""` as no answer (the host's own ladder returned it), asks `IsSecret` before it
-compares a name with `""`, and answers `nil` for an id that is not a number or a string without
-calling the client. Every id this addon passes is a number from `defaults/TeleportSpells.lua`.
-
-Both the namespace and the member are checked. `C_Spell` existing does not mean the member does —
-that is exactly the state a mid-migration client is in — and `if C_Spell.GetSpellName(id)` without
-the `and` is a nil-index error at the one moment the fallback was supposed to save you. Capability is
-probed by presence, never by asking which client this is: there is no `WOW_PROJECT_ID` branch in this
-file or in the library, and there must not be one.
-
-**Without the library** (a load missing `libs/LibKa0s`), the two readers take the reader arm of
-LibKa0s `docs/api/Compat/version-1-docs.md`, *Degradation*: they answer the value the library
-documents for a client with no rung at all (`nil`, and `0, 0, false` for the cooldown read), and copy
-none of its ladder. A degraded install draws the teleport button with the question-mark icon, no
-spell name and no cooldown, and never raises. `tests/test_compat.lua`'s degraded case pins it with the
-library's files skipped, and `tests/test_surface_parity.lua` holds `NS.Compat` to the library's
-member set, less the members this addon does not wire.
+The two library members are wired in one line each (`CompatLib and CompatLib.GetSpellName or
+function() return nil end`). **Without the library** (a load missing `libs/LibKa0s`) they, and the
+`GetSpellCooldown` read the two cooldown shims sit on, take the reader arm of LibKa0s
+`docs/api/Compat/version-1-docs.md`, *Degradation*, and copy none of its ladder. A degraded install
+draws the teleport button with the question-mark icon, no spell name and no cooldown, and never
+raises. `tests/test_compat.lua`'s degraded case pins it with the library's files skipped, and
+`tests/test_surface_parity.lua` holds `NS.Compat` to the library's member set, less the members this
+addon does not wire.
 
 ## `IsSpellKnown`: built from the API docs, not yet confirmed in a client
 
@@ -85,8 +70,7 @@ C_SpellBook.IsSpellKnown(spellID: number, spellBank: SpellBookSpellBank = "Playe
 bank default to `Player`, which is where teleports live. The legacy global takes `(spellID, isPet)`,
 and the shim passes it only the spellID too.
 
-A `false` from the modern rung is the answer. It does not fall through to the global the way a `nil`
-from `C_Spell.GetSpellName` does. A boolean has no "no answer" value, and falling through on `false`
+A `false` from the modern rung is the answer. It does not fall through to the global. A boolean has no "no answer" value, and falling through on `false`
 would turn the ladder into "either reader says yes", which would hide a disagreement.
 
 What the documentation cannot say is whether the two readers **agree** on a real character. The
@@ -115,7 +99,7 @@ fallthrough. Both 12.0.7 and 12.1.0 carry it.
 
 **Both halves or neither.** A link of that type with no `EventRegistry.RegisterCallback` to subscribe
 through is a link nothing can hear, so the shim answers `LinkTypes.AddOn` only when the member is
-there too, and probes namespace and member separately for the same reason `GetSpellName` does. `nil`
+there too, and probes namespace and member separately for the same reason every shim here does. `nil`
 sends `core/WhatGroup.lua` back to what shipped before 2026-09-12: the unregistered `WhatGroup:show`
 link and a `hooksecurefunc("SetItemRef", …)` post-hook. That is the only click route such a client
 has, and it runs after Blizzard's fallthrough. What the shim cannot probe is whether the handler
@@ -132,7 +116,7 @@ remainder is one addon's policy, not a shape two addons agree on.
 
 **`GetSpellCooldownRemaining` applies a 1.5-second floor.** The global cooldown is a cooldown as far
 as the API is concerned, and it is the one every spell shares. Without the floor, casting anything at
-all would make an eight-hour teleport report "on cooldown" for a second and a half — a flicker that
+all would make a teleport with an hours-long cooldown report "on cooldown" for a second and a half — a flicker that
 says nothing true. No real teleport cooldown is anywhere near that short, so the floor costs no
 accuracy. It also never returns nil and never returns a negative, so a caller can treat any positive
 number as "cannot cast yet" without a second guard.
@@ -152,10 +136,8 @@ reading this file had.
 
 Each default is chosen from its caller's direction, not from habit:
 
-- **`nil` for the three name/texture/link readers**, because each caller supplies its own placeholder
-  and they are not the same placeholder. The popup falls back to icon `134400`, the question mark, so
-  a missing texture stays visible instead of leaving a blank square; the chat line renders a plain
-  `[Spell <id>]` tag where the link is missing. A shared default here would be wrong somewhere.
+- **`nil` for `GetSpellLink`**, because its caller supplies its own placeholder: the chat line renders
+  a plain `[Spell <id>]` tag where the link is missing.
 - **`false` for `IsSpellKnown`**, normalized to a plain boolean so the teleport known/unknown branch
   can use it directly rather than asking about truthiness at two call sites.
 - **`0` and `0, 0` for the cooldown readers**, because their callers do arithmetic and comparison on
@@ -170,7 +152,7 @@ Each default is chosen from its caller's direction, not from habit:
 
 Shims `LibKa0s` supplies are **not** counted against this file's trigger and are not restated on this
 page — the library documents its own substrate once, and an addon page repeating it is a copy going
-stale in eight places.
+stale in every addon that carries one.
 
 The case worth knowing is TOC metadata. The version-and-Notes ladder is `LibKa0s-Env-1.0`'s, reached
 through `core/EnvSetup.lua`, and it was **never** in `core/Compat.lua` — it lived inline in
@@ -197,5 +179,5 @@ a shim with no absent-API case is a shim whose fallback has never run.
 - [midnight-quirks.md](./midnight-quirks.md) — the client behavior these shims sit under.
 - [module-map.md](./module-map.md) — where `core/Compat.lua` sits in the load order.
 - [smoke-tests.md](./smoke-tests.md) — § 7a, the in-client check that the two `IsSpellKnown` readers agree.
-- [frame.md](./frame.md) — the teleport buttons that consume five of the eight.
+- [frame.md](./frame.md) — the teleport buttons that read the two cooldown shims and the library's name and texture readers.
 - [data-flow.md](./data-flow.md) — the details chat link `AddOnLinkType` picks the route for.
