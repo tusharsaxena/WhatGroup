@@ -198,6 +198,32 @@ test("launcher: a LEFT-click dismissal ends test mode, as the Close button does"
     assertFalse(H.Get("state.testMode"), "and test mode went with it")
 end)
 
+test("launcher: a disabled left-click prints the dispatcher's line and does not toggle", function()
+    -- launcher-§2's disabled rung (a), and the gate is the LIBRARY'S (LibKa0s-Launcher-1.0 minor
+    -- 2): the descriptor answers `isEnabled` and `disabledLine`, and onClick is the bare toggle.
+    -- The line is the Slash dispatcher's own, asked rather than respelled, so the minimap and
+    -- `/wg show` refuse in one sentence. The behavior half is a characterization; the source half
+    -- is what makes a host-side gate red, because a gate inside onClick and the library's gate
+    -- print the same thing.
+    -- red under: gating inside onClick (the pre-minor-2 shape), or a host-spelled refusal line.
+    local NS, mock, object = launched()
+    NS.addon.pendingInfo = { title = "Stonevault", leaderName = "Testadin", fullName = "The Stonevault",
+                             shortName = "", playstyleString = "", generalPlaystyle = 0,
+                             activityID = 2516, mapID = 2652 }
+    NS.addon.Settings.Helpers.Set("enabled", false)
+    local mark = #mock.prints
+    object.OnClick(nil, "LeftButton")
+    assertEqual(#mock.prints - mark, 1, "one refusal line, and nothing else")
+    assertTrue(mock.prints[#mock.prints]:find(NS.SlashCommands:DisabledLine(), 1, true) ~= nil,
+        "the dispatcher's own line")
+    assertFalse(onScreen(mock), "and the popup did not toggle open")
+
+    local src = readFile("core/LauncherSetup.lua")
+    assertTrue(src:find("isEnabled%s*=%s*function") ~= nil, "the descriptor carries isEnabled")
+    assertTrue(src:find("disabledLine%s*=%s*function") ~= nil, "and disabledLine")
+    assertNil(src:find("IsStoodDown and NS.IsStoodDown", 1, true), "onClick holds no gate of its own")
+end)
+
 test("launcher: RIGHT-click opens the settings panel", function()
     -- Always, on every addon, whatever rung its left click sits on -- which is what lets rung (a)
     -- spend the left button on the popup at all.

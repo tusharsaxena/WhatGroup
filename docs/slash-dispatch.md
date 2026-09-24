@@ -166,8 +166,13 @@ Two consequences of where the gate now sits are worth naming, because both were 
   list. It is a statement about the index, some of whose rows are this addon's own feature verbs.
 
 The wording lives in exactly one place — `lib.DISABLED_LINE_FORMAT`, built by `Sl:DisabledLine()` —
-and **MUST NOT** be re-spelled host-side. `core/LauncherSetup.lua`'s refused left-click calls that
-same member rather than writing the sentence again.
+and **MUST NOT** be re-spelled host-side. The launcher's gate is `LibKa0s-Launcher-1.0`'s (minor 2):
+`core/LauncherSetup.lua` hands it `isEnabled` and a `disabledLine` that returns this same member, so
+the refused left-click prints the dispatcher's line rather than writing the sentence again. The one
+host copy is the degraded Slash stub's `DISABLED_LINE_FORMAT` in `settings/Slash.lua`, a byte copy
+for the path where there is no library to ask; the stub publishes it as `__disabledLineFormat` and
+`tests/test_libka0s.lua` pins it to the library's bytes with `Kit.assertLibraryConstant`, while a
+sibling case fails any other `is disabled` literal in `core/` or `settings/`.
 
 **`/wg test notify` changed behavior with this.** It used to bypass the master switch deliberately,
 so a preview still ran with the addon disabled, and `tests/test_lifecycle.lua` pinned that. `test`

@@ -26,7 +26,7 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the Core stub's SafeRegisterEvent survives a bad name
 - events: a stand-up after a rejection records the name once
 
-### test_libka0s.lua (51)
+### test_libka0s.lua (53)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
@@ -74,6 +74,8 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the settings panel explains itself once at load and once per config
 - degraded: a bare /wg runs `config`, as the library's dispatcher does
 - degraded: `/wg debug on` still moves the flag and explains the missing window ONCE
+- libka0s: no seam re-spells the refusal line (slash-commands-§7)
+- degraded: the Slash stub's DisabledLine uses the library's DISABLED_LINE_FORMAT bytes
 - libka0s: the Master controls hook is keyed off the library's constant, not a copy of it
 - libka0s: the L-trap matcher flags the table and the `or` spelling, not the `and` one
 - libka0s: no seam file hands a descriptor this addon's locale table (the L trap)
@@ -639,7 +641,7 @@ badge and any count quoted in the docs must agree with it.
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
 
-### test_launcher.lua (23)
+### test_launcher.lua (24)
 
 - launcher: it registers at login, and the broker object IS the minimap button's
 - launcher: the object is a launcher, named for the FOLDER, wearing this addon's logo
@@ -651,6 +653,7 @@ badge and any count quoted in the docs must agree with it.
 - launcher: the TOC's IconTexture is the same file the object wears
 - launcher: LEFT-click toggles the group popup, through the addon's own seam
 - launcher: a LEFT-click dismissal ends test mode, as the Close button does
+- launcher: a disabled left-click prints the dispatcher's line and does not toggle
 - launcher: RIGHT-click opens the settings panel
 - launcher: the Minimap button row is stored, global, and LibDBIcon's OWN hide key
 - launcher: the row's get/set invert, and the button follows immediately
@@ -848,7 +851,7 @@ badge and any count quoted in the docs must agree with it.
 | Suite | Cases |
 |-------|------:|
 | test_harness.lua | 17 |
-| test_libka0s.lua | 51 |
+| test_libka0s.lua | 53 |
 | test_surface_parity.lua | 7 |
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
@@ -864,7 +867,7 @@ badge and any count quoted in the docs must agree with it.
 | test_frame_secure.lua | 6 |
 | test_panel.lua | 53 |
 | test_testmode.lua | 23 |
-| test_launcher.lua | 23 |
+| test_launcher.lua | 24 |
 | test_lifecycle.lua | 46 |
 | test_debuglog.lua | 34 |
 | test_docmap.lua | 1 |
@@ -876,4 +879,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **750** |
+| **Total** | **753** |

@@ -768,6 +768,52 @@ test("degraded: `/wg debug on` still moves the flag and explains the missing win
     end
 end)
 
+-- ---------------------------------------------------------------------------
+-- The refusal line — one spelling (slash-commands-§7)
+-- ---------------------------------------------------------------------------
+
+test("libka0s: no seam re-spells the refusal line (slash-commands-§7)", function()
+    -- The disabled line has ONE shape collection-wide, and the library owns it. The only copy this
+    -- addon may hold is the degraded Slash stub's DISABLED_LINE_FORMAT constant, which exists
+    -- because there is no library to ask on that path, and which the next case pins to the
+    -- library's bytes. Any other literal is a second spelling that drifts the day the library's
+    -- wording improves. Comments are stripped first: prose ABOUT the line is not a copy of it.
+    -- red under: the launcher's old `or "Ka0s WhatGroup is disabled."` fallback, or a stub that
+    -- writes the sentence out in its DisabledLine body.
+    local offenders = {}
+    for _, rel in ipairs(SEAM_FILES) do
+        if rel:match("^core/") or rel:match("^settings/") then
+            local n = 0
+            for line in (readFile(rel) or ""):gmatch("([^\n]*)\n?") do
+                n = n + 1
+                local code = line:gsub("%-%-.*$", "")
+                if code:find("is disabled", 1, true)
+                    and not code:match("^%s*local%s+DISABLED_LINE_FORMAT%s*=") then
+                    offenders[#offenders + 1] = rel .. ":" .. n
+                end
+            end
+        end
+    end
+    assertEqual(table.concat(offenders, ", "), "", "the refusal line is spelled outside the constant")
+end)
+
+test("degraded: the Slash stub's DisabledLine uses the library's DISABLED_LINE_FORMAT bytes",
+function()
+    -- The stub cannot ask the library (it is absent), so it carries a byte copy of
+    -- libs/LibKa0s/Slash.lua's DISABLED_LINE_FORMAT and publishes it as `__disabledLineFormat` — a
+    -- `__` key, so Kit.publicMembers skips it and surface parity is unaffected. The copy is pinned
+    -- against the LIVE library's constant through the kit's by-name read, which reaches the
+    -- lib-level member through the LibStub fallback tests/run.lua hands Kit.expose.
+    -- red under: a stub that does not publish the constant, or whose bytes drift from the library's.
+    local NS = T.newAddon{ skip = NO_LIBKA0S }
+    local Sl = NS.SlashCommands
+    T.assertLibraryConstant(Sl.__disabledLineFormat, "LibKa0s-Slash-1.0", "DISABLED_LINE_FORMAT")
+    assertEqual(Sl:DisabledLine(), Sl.__disabledLineFormat:format("Ka0s WhatGroup", "/wg enable"),
+        "DisabledLine is built from the constant")
+    -- And it is the same sentence the library-backed dispatcher answers.
+    assertEqual(Sl:DisabledLine(), T.newAddon().SlashCommands:DisabledLine())
+end)
+
 test("libka0s: the Master controls hook is keyed off the library's constant, not a copy of it",
 function()
     -- options-ui-§8. `["Master controls"]` in settings/Panel.lua was a hand-typed copy of

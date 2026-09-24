@@ -83,12 +83,19 @@ Kit.setSurfaceSource{
 -- The shared table every suite reaches through `_G.WHATGROUP_TEST`. Kit.expose merges `test` and
 -- the kit assertions in beside this repo's own keys, so no suite file changed when the harness
 -- moved onto the kit.
+--
+-- `LibStub` is the surface load's, handed over so Kit.expose records it as
+-- `assertLibraryConstant`'s fallback. The surface map above answers INSTANCES, and a lib-level
+-- constant such as LibKa0s-Slash-1.0's DISABLED_LINE_FORMAT is not on an instance; without the
+-- fallback the by-name read reddens with "carries no member". The source map is already set, so
+-- expose leaves it alone.
 _G.WHATGROUP_TEST = Kit.expose{
     newAddon    = newAddon,
     bootAddon   = bootAddon,
     enableAddon = enableAddon,
     loadAddon   = loadAddon,
     root        = root,
+    LibStub     = surfaceMock.LibStub,
 }
 
 -- Order is load-order-sensitive; keep it stable.

@@ -140,19 +140,18 @@ NS.Launcher = lib:New({
     -- THE LEFT CLICK, AND ITS PRESENCE IS THE RUNG (launcher-§2). The group popup is the primary
     -- window, so it toggles. Resolved at click time because modules/Frame.lua loads after this file.
     --
-    -- GATED ON THE STAND-DOWN LATCH (slash-commands-@7). The left button drives the primary window,
-    -- which is a FEATURE, so a disabled addon must refuse it rather than toggle a popup the player
-    -- switched off. The right click is not gated: opening the settings panel is how the player
-    -- turns the addon back on. The refusal is the dispatcher's own line, asked rather than
-    -- respelled, so the launcher and `/wg show` say one sentence between them.
-    onClick = function()
-        if NS.IsStoodDown and NS.IsStoodDown() then
-            local Sl = NS.SlashCommands
-            return NS.Print(Sl and Sl.DisabledLine and Sl:DisabledLine()
-                or "Ka0s WhatGroup is disabled.")
-        end
-        NS.addon:ToggleFrame()
-    end,
+    onClick = function() NS.addon:ToggleFrame() end,
+
+    -- GATED ON THE STAND-DOWN LATCH (slash-commands-§7, launcher-§2), and the gate is the
+    -- LIBRARY'S (LibKa0s-Launcher-1.0 minor 2): it asks `isEnabled` on every left click and, when
+    -- that answers false, prints `disabledLine` and never calls onClick. The left button drives
+    -- the primary window, which is a FEATURE, so a disabled addon refuses it rather than toggle a
+    -- popup the player switched off. The right click is not gated: opening the settings panel is
+    -- how the player turns the addon back on. The refusal is the Slash dispatcher's own line,
+    -- asked rather than respelled, so the launcher and `/wg show` say one sentence between them.
+    -- Both are resolved at click time: NS.IsStoodDown and NS.SlashCommands load after this file.
+    isEnabled    = function() return not NS.IsStoodDown() end,
+    disabledLine = function() return NS.SlashCommands:DisabledLine() end,
 
     print = function(line) NS.Print(line) end,
     debug = function(tag, message) NS.Debug(tag, message) end,

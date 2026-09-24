@@ -125,6 +125,13 @@ if not lib then
     -- help row renders plainly and says so.
     local function unavailable() NS.Print(CLI_MISSING) end
 
+    -- A BYTE COPY of libs/LibKa0s/Slash.lua's `lib.DISABLED_LINE_FORMAT` (:84), and the only place
+    -- this addon may spell the refusal line (slash-commands-§7). It is a copy because this is the
+    -- branch where the library is absent and there is nothing to ask; it is pinned to the live
+    -- library's bytes by tests/test_libka0s.lua through Kit.assertLibraryConstant, so a library-side
+    -- rewording reddens here instead of leaving two sentences in the collection.
+    local DISABLED_LINE_FORMAT = "%s is disabled \226\128\148 enable it with |cFFFFFF00%s|r"
+
     Sl = {
         OnSlash = function(_, msg)
             local raw = trim(msg)
@@ -161,13 +168,16 @@ if not lib then
             return out
         end,
         HelpHeader      = function() return "v" .. NS.Version() .. " slash commands" end,
-        -- The launcher's left click calls this on every install, so the degraded shape has to
-        -- answer it too. Same sentence, same shape, built from the same two pieces the library
-        -- builds it from — there is no lib here to ask, and a click on a disabled addon's minimap
-        -- button is not the place to discover that.
+        -- The launcher's disabledLine asks this on every install, so the degraded shape has to
+        -- answer it too. Same sentence, built from the same format and the same two pieces the
+        -- library builds it from — there is no lib here to ask, and a click on a disabled addon's
+        -- minimap button is not the place to discover that.
         DisabledLine    = function()
-            return "Ka0s WhatGroup is disabled \226\128\148 enable it with |cFFFFFF00/wg enable|r"
+            return DISABLED_LINE_FORMAT:format("Ka0s WhatGroup", "/wg enable")
         end,
+        -- Published for the byte pin above. A `__` key sits outside Kit.publicMembers, so the
+        -- surface-parity case against the library instance is unaffected.
+        __disabledLineFormat = DISABLED_LINE_FORMAT,
         CliList         = unavailable,
         CliGet          = unavailable,
         CliSet          = unavailable,
