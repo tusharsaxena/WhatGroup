@@ -75,10 +75,13 @@
 --     to the ItemRef tooltip (or to HandleModifiedItemClick on a modified click), which this mock
 --     records in `mock.itemRefFallthrough`. `hooksecurefunc("SetItemRef", …)` post-hooks run after
 --     that body returns, as they do in the client. The `addon` link type's registered handler
---     re-raises the click as `EventRegistry`'s "SetItemRef" event. Firing the post-hook by hand
---     is exactly what let a details link that Blizzard fell through on pass every case while doing
---     nothing in a real client (2026-09-12): the fallthrough ran first, and the hook ran only if the
---     fallthrough survived.
+--     re-raises the click as `EventRegistry`'s "SetItemRef" event, reading `mock.EventRegistry` at
+--     click time. That registry is the KIT'S (revision 26, tests/_kit/mock_events.lua), not this
+--     file's: its callbacks are `callback` rows in `mock.__registrations()`, and it already raises
+--     on the closure form and on a numeric owner, so nothing here wraps it. Firing the post-hook
+--     by hand is exactly what let a details link that Blizzard fell through on pass every case
+--     while doing nothing in a real client (2026-09-12): the fallthrough ran first, and the hook ran
+--     only if the fallthrough survived.
 
 local base = dofile("tests/_kit/mock_base.lua")
 
@@ -653,49 +656,14 @@ local function build()
         end,
     }
 
-    -- Blizzard_SharedXMLBase/CallbackRegistry.lua, which GlobalCallbackRegistry.lua:1 mixes into
-    -- EventRegistry. One callback per (event, owner): RegisterCallback unregisters the owner's
-    -- previous one first (:128-130), so a second registration REPLACES rather than adds. That is
-    -- why every call is also logged in `mock.eventRegistryLog`: the live table alone cannot show
-    -- "registered twice". Function callbacks are invoked as `func(owner, ...)` (:209-213). The
-    -- closure form (extra args after `owner`) is not modeled and raises, so a first use of it
-    -- fails loudly here instead of silently dropping the extra args. The client runs each callback
-    -- through securecallfunction, which reports an error instead of raising it. This mock lets the
-    -- error propagate, so the suite sees it.
-    local registry = {}          -- [event] -> { [owner] = func }
-    local nextOwnerID = 0
-    mock.eventRegistryLog = {}   -- { event, owner } per RegisterCallback call, in order
-    mock.EventRegistry = {
-        RegisterCallback = function(_, event, func, owner, ...)   -- :112-142
-            if type(event) ~= "string" then error("RegisterCallback 'event' requires string type.") end
-            if type(func) ~= "function" then error("RegisterCallback 'func' requires function type.") end
-            if select("#", ...) > 0 then error("wow_mock: the closure form of RegisterCallback is not modeled") end
-            if owner == nil then
-                nextOwnerID = nextOwnerID + 1
-                owner = nextOwnerID
-            elseif type(owner) == "number" then
-                error("RegisterCallback 'owner' as number is reserved internally.")
-            end
-            registry[event] = registry[event] or {}
-            registry[event][owner] = func
-            mock.eventRegistryLog[#mock.eventRegistryLog + 1] = { event = event, owner = owner }
-            return owner
-        end,
-        UnregisterCallback = function(_, event, owner)            -- :225-249
-            if owner == nil then error("UnregisterCallback 'owner' is required.") end
-            if registry[event] then registry[event][owner] = nil end
-        end,
-        TriggerEvent = function(_, event, ...)                    -- :184-223
-            local list = {}
-            for owner, fn in pairs(registry[event] or {}) do list[#list + 1] = { owner, fn } end
-            for _, pair in ipairs(list) do pair[2](pair[1], ...) end
-        end,
-        -- Test-only: the live callbacks for an event, owner -> func.
-        __callbacks = function(event) return registry[event] or {} end,
-    }
+    -- EventRegistry is the KIT'S since kit revision 26 (tests/_kit/mock_events.lua): one callback per
+    -- (event, owner), a re-registration replaces, the closure form and a numeric owner both raise,
+    -- and every live callback is a `{ kind = "callback", event, owner }` row in
+    -- `mock.__registrations()`. Nothing is wrapped here (fidelity note 7).
 
     -- Blizzard_UIPanels_Game/Shared/ItemRefHandlersShared.lua:278-281 (12.0.7: :265-268). Read
-    -- through `mock.EventRegistry` at click time, as the client reads its global.
+    -- through `mock.EventRegistry` at click time, as the client reads its global, which is the
+    -- kit's registry.
     mock.LinkUtil.RegisterLinkHandler(mock.LinkTypes.AddOn, function(link, text, _linkData, contextData)
         mock.EventRegistry:TriggerEvent("SetItemRef", link, text, contextData.button, contextData.frame)
     end)

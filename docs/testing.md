@@ -173,9 +173,11 @@ It runs `LinkUtil.ProcessLink` first and returns on Handled. Only an unhandled
 link falls through to the ItemRef tooltip, or to `HandleModifiedItemClick` when
 `mock.modifiedClick` is set, and each fallthrough is recorded in
 `mock.itemRefFallthrough`. `hooksecurefunc` post-hooks run after the body
-returns. The `addon` link type's handler re-raises the click through an
-`EventRegistry` that keeps the client's one-callback-per-owner rule and logs every
-registration in `mock.eventRegistryLog`. Suites click with the link the
+returns. The `addon` link type's handler re-raises the click through
+`EventRegistry`, read at click time. That registry is the kit's (revision 26):
+it keeps the client's one-callback-per-owner rule and reports each live
+callback as a `callback` row in `mock.__registrations()`, which is how the
+stand-down suite sees one left behind. Suites click with the link the
 notification actually printed. Firing a recorded post-hook by hand skips the
 body that stood between the click and the addon in the 2026-09-12 report, and
 every case passed while the link did nothing in the client.

@@ -155,12 +155,21 @@ local function popupShown(mock)
     return mock.frames["WhatGroupFrame"] ~= nil and mock.frames["WhatGroupFrame"]:IsShown()
 end
 
-local function registrations(mock, event)
-    local n = 0
-    for _, r in ipairs(mock.eventRegistryLog) do
-        if r.event == event then n = n + 1 end
+--- The live EventRegistry owners for one event, read off the kit's survey (revision 26), where each
+--- callback is a `{ kind = "callback", event, owner }` row.
+local function callbackOwners(mock, event)
+    local out = {}
+    for _, r in ipairs(mock.__registrations()) do
+        if r.kind == "callback" and r.event == event then out[#out + 1] = r.owner end
     end
-    return n
+    return out
+end
+
+local function holdsCallback(mock, event, owner)
+    for _, o in ipairs(callbackOwners(mock, event)) do
+        if o == owner then return true end
+    end
+    return false
 end
 
 test("chat link: the details link is Blizzard's addon link type, addon:WhatGroup:show", function()
@@ -222,14 +231,23 @@ test("chat link: an item link goes to the ItemRef tooltip, not to us", function(
 end)
 
 test("chat link: the SetItemRef callback registers at file load, exactly once", function()
-    local NS, _, mock = T.newAddon()   -- file load only: no OnInitialize, no OnEnable
-    assertEqual(registrations(mock, "SetItemRef"), 1, "one RegisterCallback, at file load")
-    assertTrue(mock.EventRegistry.__callbacks("SetItemRef")[NS.addon] ~= nil,
-        "owned by the addon object")
+    -- A re-registration by the same owner REPLACES in the client and in the kit's registry, so the
+    -- live survey alone cannot show "registered twice". The calls are counted as they are made,
+    -- through a pass-through installed before any source loads.
+    local calls = 0
+    local NS, _, mock = T.newAddon({ mock = function(m)   -- file load only: no OnInitialize, no OnEnable
+        local register = m.EventRegistry.RegisterCallback
+        m.EventRegistry.RegisterCallback = function(self, event, ...)
+            if event == "SetItemRef" then calls = calls + 1 end
+            return register(self, event, ...)
+        end
+    end })
+    assertEqual(calls, 1, "one RegisterCallback, at file load")
+    assertTrue(holdsCallback(mock, "SetItemRef", NS.addon), "owned by the addon object")
     assertNil(mock.hooks["SetItemRef"], "no SetItemRef post-hook on a client with the addon link path")
     NS.addon:OnInitialize()
     NS.addon:OnEnable()
-    assertEqual(registrations(mock, "SetItemRef"), 1, "and the lifecycle adds none")
+    assertEqual(calls, 1, "and the lifecycle adds none")
 end)
 
 test("lifecycle: disable drops the SetItemRef callback and enable restores exactly one", function()
@@ -238,17 +256,13 @@ test("lifecycle: disable drops the SetItemRef callback and enable restores exact
     -- red under: dropping the EventRegistry:UnregisterCallback in NS.StandDown, or the
     -- registerLinkCallback() call in NS.StandUp.
     local NS, _, mock = T.enableAddon()
-    local function owners()
-        local n = 0
-        for _ in pairs(mock.EventRegistry.__callbacks("SetItemRef")) do n = n + 1 end
-        return n
-    end
-    assertTrue(mock.EventRegistry.__callbacks("SetItemRef")[NS.addon] ~= nil, "registered while enabled")
+    local function owners() return #callbackOwners(mock, "SetItemRef") end
+    assertTrue(holdsCallback(mock, "SetItemRef", NS.addon), "registered while enabled")
     NS.addon:OnSlashCommand("disable")
-    assertNil(mock.EventRegistry.__callbacks("SetItemRef")[NS.addon], "gone after /wg disable")
+    assertFalse(holdsCallback(mock, "SetItemRef", NS.addon), "gone after /wg disable")
     assertEqual(owners(), 0, "and no other owner stands in for it")
     NS.addon:OnSlashCommand("enable")
-    assertTrue(mock.EventRegistry.__callbacks("SetItemRef")[NS.addon] ~= nil, "back after /wg enable")
+    assertTrue(holdsCallback(mock, "SetItemRef", NS.addon), "back after /wg enable")
     assertEqual(owners(), 1, "exactly one owner key")
 end)
 
@@ -262,7 +276,7 @@ for _, shape in ipairs({
     test("chat link: degraded (" .. shape.name .. ") falls back to the WhatGroup: link and the post-hook", function()
         local NS, _, mock = T.bootAddon({ mock = shape.strip })
         assertEqual(#(mock.hooks["SetItemRef"] or {}), 1, "the post-hook installs at file load")
-        assertEqual(registrations(mock, "SetItemRef"), 0, "and nothing is registered")
+        assertEqual(#callbackOwners(mock, "SetItemRef"), 0, "and nothing is registered")
         NS.addon.pendingInfo = pending()
         local data, text = detailsLink(NS, mock)
         assertEqual(data, "WhatGroup:show")

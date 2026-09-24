@@ -53,7 +53,7 @@ end
 ---
 --- The kit's `__registrations()` walks the frames the KIT built, and tests/wow_mock.lua builds its
 --- own richer stub for this addon (protection, anchors, attributes), so the kit's survey cannot see
---- them (nor the EventRegistry callbacks, which callbackRegs below surveys). The stub records on `RegisterEvent` and REMOVES on `UnregisterEvent` /
+--- them. The stub records on `RegisterEvent` and REMOVES on `UnregisterEvent` /
 --- `UnregisterAllEvents` (tests/wow_mock.lua), which is the half that makes the assertion
 --- falsifiable in the useful direction: a registry that only ever grew would report a perfectly
 --- torn-down addon as still watching everything.
@@ -72,30 +72,19 @@ local function rawRegs(mock)
     return out
 end
 
---- EVENTREGISTRY CALLBACKS, surveyed out of this repo's EventRegistry fake (tests/wow_mock.lua).
+--- THE WHOLE REGISTRATION SET: AceEvent, message and bucket registrations and the EventRegistry
+--- callbacks from the kit's survey, plus this repo's raw frame registrations. Nothing here is a
+--- handler return value.
 ---
---- The chat link's click route is an `EventRegistry:RegisterCallback("SetItemRef", …, owner)`, and
---- neither the kit's survey nor the frame stub can see it. It has a real unregister, so
---- slash-commands-§7's hooksecurefunc carve-out does not cover it: a stood-down addon must hold no
---- callback there. One `callback:<event>` per live owner, so a callback that stacked a second
---- owner would show up twice.
-local function callbackRegs(mock)
-    local out = {}
-    if not mock.EventRegistry then return out end
-    for _ in pairs(mock.EventRegistry.__callbacks("SetItemRef")) do
-        out[#out + 1] = "callback:SetItemRef"
-    end
-    return out
-end
-
---- THE WHOLE REGISTRATION SET: AceEvent, message and bucket registrations from the kit's survey,
---- this repo's raw frame registrations, and the EventRegistry callbacks. Nothing here is a handler
---- return value.
+--- The chat link's click route is an `EventRegistry:RegisterCallback("SetItemRef", …, owner)`. It
+--- has a real unregister, so slash-commands-§7's hooksecurefunc carve-out does not cover it: a
+--- stood-down addon must hold no callback there. The kit's registry (revision 26) reports each
+--- live owner as a `{ kind = "callback", event, owner }` row, so it reads `callback:SetItemRef`
+--- here, once per owner: a callback that stacked a second owner would show up twice.
 local function regNames(mock)
     local out = {}
     for _, r in ipairs(mock.__registrations()) do out[#out + 1] = r.kind .. ":" .. r.event end
     for _, r in ipairs(rawRegs(mock)) do out[#out + 1] = r end
-    for _, r in ipairs(callbackRegs(mock)) do out[#out + 1] = r end
     table.sort(out)
     return out
 end
@@ -474,7 +463,7 @@ test("disabled 9: a setting changed WHILE DISABLED is what the rebuild reflects"
     NS.addon:OnSlashCommand("set visibility never")
     assertEqual(helpers(NS).Get("visibility"), "never")
     switchOn(NS)
-    assertEqual(#regKeys(mock), 4, "it stood back up")
+    assertEqual(#regKeys(mock), 5, "it stood back up")
     NS.addon.pendingInfo = { title = "Stonevault", leaderName = "L", fullName = "F",
                              shortName = "", playstyleString = "", generalPlaystyle = 0 }
     NS.addon:ShowFrame()
@@ -505,7 +494,7 @@ function()
     assertTrue(NS.Lifecycle:IsHeld(NS.HOLD_DISABLED))
 
     switchOn(NS)
-    assertEqual(#regKeys(mock), 4, "and only the LAST release stands it up")
+    assertEqual(#regKeys(mock), 5, "and only the LAST release stands it up")
 end)
 
 test("disabled 10: the other order — disabled first, perf released last", function()
@@ -521,7 +510,7 @@ test("disabled 10: the other order — disabled first, perf released last", func
     assertEqual(joined(NS.Lifecycle:Holds()), "perf", "and it is the only one left")
 
     NS.Lifecycle:Release(NS.HOLD_PERF)
-    assertEqual(#regKeys(mock), 4, "now it stands up")
+    assertEqual(#regKeys(mock), 5, "now it stands up")
     assertEqual(#NS.Lifecycle:Holds(), 0)
 end)
 
@@ -573,7 +562,7 @@ test("disabled: a profile switch that flips `enabled` is re-evaluated, both ways
 
     NS.addon.db:SetProfile("Default")
     assertTrue(NS.addon.Settings.Helpers.Get("enabled"), "the default profile is enabled")
-    assertEqual(#regKeys(mock), 4, "so the switch brought it back up")
+    assertEqual(#regKeys(mock), 5, "so the switch brought it back up")
 end)
 
 -- ---------------------------------------------------------------------------
