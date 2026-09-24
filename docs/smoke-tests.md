@@ -778,12 +778,12 @@ section exists.
 | 12.1 | `/wg debug` | The console title bar's three right-hand controls are **small square marks, not words**: copy, clear and close, drawn in the same gray as every other Ka0s window's and turning red under the pointer. **A regression looks like the words `Copy` and `Clear` beside a multiplication sign `×`** — that is the library falling back, and it means `addonName` stopped being passed in the descriptor at `core/DebugLogSetup.lua`. |
 | 12.2 | With the console open, click the copy control | The copy window opens, and **its** close control is the same square mark. A `×` here alone means the copy window is being built without the folder name while the console is not — the two come from the same descriptor key, so they should never disagree. |
 | 12.3 | Read the log text | Monospace, with the `HH:MM:SS \| [tag] …` columns aligned. It is the **library's** JetBrains Mono now, at `libs/LibKa0s/media/fonts/`, not a copy under this addon's `media/`. A proportional face here means `NS.MediaFont` answered nil and the `STANDARD_TEXT_FONT` fallback caught it — readable, and wrong. |
-| 12.4 | `/wg test notify`, then look at the popup's footer | The **Close** button keeps its word and gains a small close mark to its left, the pair centered together. The word must not disappear: this is a wide action button, not a title-bar target. If the mark is missing and the word is centered on its own, `NS.Icon("close")` answered nil and the button correctly fell back to what it always drew. |
+| 12.4 | `/wg test notify`, then look at the popup's footer | The **Close** button is the word `Close` alone, centered, with no mark beside it. The mark was removed on 2026-08-25, and the `standalone-windows` row in docs/ARCHITECTURE.md's `## Documented deviations` records why. A mark beside the word means something draws `NS.Icon("close")` again, and the deviation row needs revisiting. |
 | 12.5 | Settings → any Ka0s addon's font dropdown | `JetBrains Mono` appears in the list. It is registered by `Media.RegisterLSM(addonName)` at file load, once, pointing at one set of bytes — so **every** Ka0s addon offering the dropdown shows the same entry rather than several that merely share a name. |
 | 12.6 | Open a second Ka0s addon's debug console beside this one | The two title bars are indistinguishable: same marks, same size, same pitch, same gray. Any difference between them is the defect this whole section is for. |
 
 **After renaming `libs/LibKa0s` away (section 9), re-check 12.1 and 12.4:** the console's controls go
-back to `Copy`, `Clear` and `×`, and the footer button back to the plain word `Close`. That is
+back to `Copy`, `Clear` and `×`, and the footer button is still the plain word `Close`. That is
 correct — the art is inside the payload that is missing. What must **not** happen is a blank control,
 an error, or a console that refuses to open.
 

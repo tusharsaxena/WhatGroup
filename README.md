@@ -38,14 +38,14 @@ Everything else is configuration, and it lives in two places: the **Ka0s WhatGro
 
 Click **Apply** in the Premade Group Finder and WhatGroup quietly writes down what the tile said. Applications queue, so four in flight at once do not confuse it — the details waiting for you when an invite lands are the ones belonging to the group you actually joined. Then the chat message prints and the popup opens, instantly by default, or after the pause you set under **Chat → Notification Delay** if you would rather let the zone-in settle first.
 
-The group info does not outlive the session. It is dropped the moment you leave the group, which is exactly why `/wg show` stops answering then. Your settings persist, and so do the places you dragged the two windows to. The machinery is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+The group info does not outlive the session. It is dropped the moment you leave the group, which is why `/wg show` stops answering then. Your settings persist, and so does the place you dragged the popup to. The machinery is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## FAQ
 
 | Question | Answer |
 |---|---|
 | Does this work for cross-realm or cross-faction groups? | Yes. WhatGroup reads whatever the group finder shows it, so realm, faction and category don't matter. |
-| Is anything saved between sessions? | Your settings, plus where you've dragged the popup and debug windows. The group info itself is session-only. It clears the moment you leave the group, so `/wg show` only works while you're still in it. |
+| Is anything saved between sessions? | Your settings, plus the place you dragged the popup to. The debug console's position isn't saved. The group info itself is session-only. It clears the moment you leave the group, so `/wg show` only works while you're still in it. |
 | How do I preview the popup without joining a real group? | `/wg test notify`, or the **Test** button in Settings. Both run the full message and popup on sample data, once. To keep the popup up while you move it, type `/wg test` or tick **Test mode** on the **Master controls** tab. |
 | Can I delay the message and popup instead of getting them instantly? | Yes. They appear instantly by default; set a pause under **Chat → Notification Delay** (0-10 seconds). |
 | What is the **Debug console**, and how do I turn on debug logging? | `/wg debug` opens the on-screen window; `/wg debug on` starts logging into it, `off` stops it. Logging is session-only and starts off after every login. The **Debug console** checkbox only shows or hides the window; it doesn't turn logging on. |

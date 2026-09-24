@@ -28,12 +28,13 @@
 -- ── What a degraded install gets ───────────────────────────────────────────
 --
 -- No LibKa0s means no art and no face: they are inside the payload that is
--- missing. `NS.Icon` answers nil, which every call site treats as "draw what
--- you drew before" — the library falls back to a multiplication sign for its
--- own close controls, and modules/Frame.lua simply skips the mark beside its
--- footer label. `NS.MediaFont` answers nil, which core/WhatGroup.lua turns into
--- the client's own STANDARD_TEXT_FONT. Neither is an error. Chrome degrades;
--- the group information the window exists to show stays readable.
+-- missing. `NS.Icon` answers nil; it has no caller outside this file today,
+-- since the mark beside the popup's footer Close label was removed, and it
+-- stays published for the next addon-drawn icon. The library's own close
+-- controls fall back to a multiplication sign. `NS.MediaFont` answers nil,
+-- which core/WhatGroup.lua turns into the client's own STANDARD_TEXT_FONT.
+-- Neither is an error. Chrome degrades; the group information the window
+-- exists to show stays readable.
 --
 -- NIL IS A REAL ANSWER TWICE OVER — no library, or no such name — and both mean
 -- the same thing to a caller. Never route around one by building a path with
