@@ -355,7 +355,7 @@ Rows on the **Master controls** tab are emitted by `Helpers.MasterControls` and 
 | Master controls | general | `alpha` | number | 1 | (paired) | *Master alpha* (0–1, step 0.05, rendered as a percentage). `WhatGroup:ApplyFrameAlpha()`, **not** refused in combat: opacity moves nothing. |
 | Master controls | general | `locked` | bool | false | startsLine, (paired) | *Lock frame*. Read at drag time by the title bar's `OnMouseDown`, so it takes effect on the next mouse-down with nothing to apply. |
 | Master controls | general | `state.debugConsole` | bool | false | (paired) | *Debug console*, `sessionOnly`. Shows/hides the console **window**; never `db.profile`, never the logging flag (WG-12). |
-| Master controls | general | `global.minimap.hide` | bool | true (the ROW's sense: *shown*) | startsLine, (paired) | *Minimap button*, composed from `minimapPath` (compose minor 7). The one **global** row — see [The minimap button row](#the-minimap-button-row) below. |
+| Master controls | general | `global.minimap.shown` | bool | true (the ROW's sense: *shown*) | startsLine, (paired) | *Minimap button*, composed from `minimapPath` (compose minor 7). The one **global** row, stored at `db.global.minimap.hide` — see [The minimap button row](#the-minimap-button-row) below. |
 | Master controls | general | `state.testMode` | bool | false | (paired) | *Test mode*, `sessionOnly`, composed from `testModePath`; the tooltip is overridden in `settings/Panel.lua`. `/wg test` drives the same row (bare toggles, `on\|off` sets). Ticked, the popup shows sample group info (`WhatGroup:SampleInfo()`) from a record of its own, never `pendingInfo`, whatever `frame.autoShow` and `visibility` say; `locked` still applies to dragging. Refused in combat: a click on the box is refused by the library's combat lock (its one gray `COMBAT_LOCKED_NOTICE` line; the row's set never runs), and `/wg test` by the host's own `startTestMode` guard (one gray line, `cannot start test mode during combat`). Ends on untick, on Close / ESC, on an explicit show (`/wg show`, `/wg test notify`, the chat link), on *Reset all settings* (the declared `default = false`), and at `PLAYER_REGEN_DISABLED` with `Test mode off — combat started`. The join popup does not end it: that capture waits. Never `db.profile`. |
 | Chat | notify | `notify.delay` | number | 0 | subgroup `Timing`, solo | Seconds (0–10, step 0.5) between joining and notifying **and** showing the popup. Default 0 = immediately; raise it to let the zone-in settle. Not one of §15's canonical nine, so it moved off the first tab to the one named for the notification it delays. |
 | Chat | notify | `notify.enabled` | bool | true | subgroup `Text`, solo | Print the chat summary on group join. The master for the six rows under it. |
@@ -451,7 +451,12 @@ the button, and one of those cases is what would say so.
 
 **The row's sense is SHOWN and the stored key says HIDDEN, so its get/set invert.** That inversion is
 the host's, not the library's, and it lives at the single write seam (`options-ui-§1`) rather than at
-a call site: `settings/Schema.lua`'s `GLOBAL` table intercepts the path in front of `Resolve`, the
+a call site. **The path reads in the row's sense too** (launcher-§3, standard v2.65.0): the row is
+declared at `global.minimap.shown`, which is also its CLI name, so `/wg get global.minimap.shown`
+answers `true` while the button is visible. Nothing is written or declared at `shown` — it names the
+row, and the store stays `db.global.minimap.hide`, so an existing `hide = true` reads as
+`shown = false` with no migration. The old `global.minimap.hide` path is not an alias and answers
+`Setting not found` like any path no row declares. At the write seam, `settings/Schema.lua`'s `GLOBAL` table intercepts the path in front of `Resolve`, the
 way `SESSION` intercepts `state.debugConsole` and `state.testMode`. Because every surface — the
 checkbox, `/wg get`, `/wg set`, `/wg reset`, `Reset all settings` — funnels through `Helpers.Get` /
 `Helpers.Set`, a routing decision made once there is one the other surfaces cannot get wrong.
@@ -463,7 +468,7 @@ to act, which is what keeps the player's choice stored on an install with no Lib
 The default — `minimap = { hide = false }` — is declared in `Settings.BuildDefaults` beside
 `schemaVersion` and `windows`, not in `defaults/Profile.lua` (`NS.C` is the *profile* defaults table)
 and not through the row's own `default`, which `BuildDefaults` deliberately skips for a global row:
-threading it through the profile walk would write a `profile.global.minimap.hide` branch nothing
+threading it through the profile walk would write a `profile.global.minimap.shown` branch nothing
 reads. That declared default is what materializes the table `architecture-§5` requires to exist
 before LibDBIcon writes into it.
 

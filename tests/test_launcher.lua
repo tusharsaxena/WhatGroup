@@ -219,7 +219,7 @@ test("launcher: the Minimap button row is stored, global, and LibDBIcon's OWN hi
     -- right-click menu. A parallel `minimap.show` would be a second copy of one state.
     -- red under: sessionOnly on the row, a profile-scoped path, or a second key beside `hide`.
     local NS = T.enableAddon()
-    local row = NS.addon.Settings.Helpers.FindSchema("global.minimap.hide")
+    local row = NS.addon.Settings.Helpers.FindSchema("global.minimap.shown")
     assertTrue(row ~= nil, "the row exists")
     assertEqual(row.label, "Minimap button")
     assertEqual(row.type, "bool")
@@ -236,17 +236,80 @@ test("launcher: the row's get/set invert, and the button follows immediately", f
     -- red under: storing the row's value uninverted, or writing the key without telling LibDBIcon.
     local NS, mock = T.enableAddon()
     local H = NS.addon.Settings.Helpers
-    assertTrue(H.Get("global.minimap.hide"), "shown by default")
+    assertTrue(H.Get("global.minimap.shown"), "shown by default")
     assertTrue(mock.minimapButtons[NAME].shown)
 
-    H.Set("global.minimap.hide", false)
+    H.Set("global.minimap.shown", false)
     assertEqual(NS.addon.db.global.minimap.hide, true, "the STORED key says hidden")
-    assertFalse(H.Get("global.minimap.hide"), "and the row reads not-shown")
+    assertFalse(H.Get("global.minimap.shown"), "and the row reads not-shown")
     assertFalse(mock.minimapButtons[NAME].shown, "the button went away now, not at the next reload")
 
-    H.Set("global.minimap.hide", true)
+    H.Set("global.minimap.shown", true)
     assertEqual(NS.addon.db.global.minimap.hide, false)
     assertTrue(mock.minimapButtons[NAME].shown, "and came back")
+end)
+
+-- ---------------------------------------------------------------------------
+-- The row's path reads in the row's own sense (launcher-§3, standard v2.65.0)
+-- ---------------------------------------------------------------------------
+--
+-- The path is also the row's CLI name, so a path spelled after the STORED key made
+-- `/wg get global.minimap.hide` answer true while the button was on the minimap. The row is
+-- declared at `global.minimap.shown`; storage does not move -- it is still LibDBIcon's own
+-- `minimap.hide`, and nothing is ever written at `shown` (anti-pattern #81).
+
+local function linesSince(mock, mark)
+    local out = {}
+    for i = mark + 1, #mock.prints do out[#out + 1] = mock.prints[i] end
+    return out
+end
+
+local function anyLine(lines, fragment)
+    for _, l in ipairs(lines) do
+        if l:find(fragment, 1, true) then return true end
+    end
+    return false
+end
+
+test("launcher: the row's CLI path reads in its own sense", function()
+    -- red under: the row declared at the stored key's name, `global.minimap.hide`.
+    local NS, mock = T.enableAddon()
+    local H = NS.addon.Settings.Helpers
+    assertTrue(mock.minimapButtons[NAME].shown, "the button is on the minimap")
+    assertTrue(H.Get("global.minimap.shown") == true, "and the row's path answers true")
+    -- Spelled in two halves so the item's "no quoted old path left" sweep stays meaningful.
+    local OLD = "global.minimap." .. "hide"
+    assertNil(H.FindSchema(OLD), "the stored key's name is no row")
+    local mark = #mock.prints
+    NS.addon:OnSlashCommand("get " .. OLD)
+    assertTrue(anyLine(linesSince(mock, mark), "Setting not found: " .. OLD),
+               "the old path answers the unknown-setting refusal, not an alias")
+end)
+
+test("launcher: a legacy store with hide = true reads not-shown, and nothing moves", function()
+    -- The carry-over: no SavedVariables migration, because the stored key is where it was. An
+    -- existing player's `hide = true` reads as `shown = false` with no code, the dragged angle is
+    -- untouched, and a set never materializes a `shown` key in the raw SavedVariables.
+    -- red under: a stored `shown` key, or a migration that rewrites the minimap table.
+    local NS, _, mock = T.newAddon()
+    _G.WhatGroupDB = { global = { minimap = { hide = true, minimapPos = 200 } } }
+    NS.addon:OnInitialize()
+    NS.addon:OnEnable()
+    local H = NS.addon.Settings.Helpers
+    local mark = #mock.prints
+    NS.addon:OnSlashCommand("get global.minimap.shown")
+    local lines = linesSince(mock, mark)
+    assertTrue(anyLine(lines, "global.minimap.shown") and anyLine(lines, "false"),
+               "/wg get global.minimap.shown answers false")
+    assertFalse(mock.minimapButtons[NAME].shown, "the button stays hidden")
+    local sv = _G.WhatGroupDB.global.minimap
+    assertEqual(sv.minimapPos, 200, "the dragged angle is untouched")
+
+    H.Set("global.minimap.shown", true)
+    H.Set("global.minimap.shown", false)
+    assertEqual(sv.hide, true, "the store is still LibDBIcon's hide key")
+    assertNil(rawget(sv, "shown"), "no shown key is ever written to the raw SavedVariables")
+    assertEqual(sv.minimapPos, 200)
 end)
 
 -- ---------------------------------------------------------------------------
@@ -281,7 +344,7 @@ local DELAY = "notify.delay"
 
 -- A hidden button and a dirty profile row, ready for a reset to be run at them.
 local function hiddenAndDirty(NS, H)
-    H.Set("global.minimap.hide", false)
+    H.Set("global.minimap.shown", false)
     H.Set(DELAY, 6)
     assertEqual(NS.addon.db.global.minimap.hide, true, "the player hid it")
 end
@@ -289,7 +352,7 @@ end
 local function assertSurvived(NS, mock, H)
     assertEqual(H.Get(DELAY), 0, "the profile row really was reset")
     assertEqual(NS.addon.db.global.minimap.hide, true, "the STORED key still says hidden")
-    assertFalse(H.Get("global.minimap.hide"), "the row still reads not-shown")
+    assertFalse(H.Get("global.minimap.shown"), "the row still reads not-shown")
     assertFalse(mock.minimapButtons[NAME].shown, "and the button did not come back")
 end
 
@@ -340,7 +403,7 @@ test("launcher: LibDBIcon's own writes into the table are not disturbed", functi
     -- red under: the write seam replacing the whole `minimap` table instead of one key.
     local NS = T.enableAddon()
     NS.addon.db.global.minimap.minimapPos = 217.5
-    NS.addon.Settings.Helpers.Set("global.minimap.hide", false)
+    NS.addon.Settings.Helpers.Set("global.minimap.shown", false)
     assertEqual(NS.addon.db.global.minimap.minimapPos, 217.5, "the dragged angle survived")
 end)
 
@@ -383,9 +446,9 @@ test("launcher: the row still stores with no broker library at all", function()
     -- red under: the seam delegating the WRITE to LibDBIcon.
     local NS = T.enableAddon{ mock = NO_BROKERS }
     local H = NS.addon.Settings.Helpers
-    H.Set("global.minimap.hide", false)
+    H.Set("global.minimap.shown", false)
     assertEqual(NS.addon.db.global.minimap.hide, true)
-    assertFalse(H.Get("global.minimap.hide"))
+    assertFalse(H.Get("global.minimap.shown"))
 end)
 
 test("launcher: with LibKa0s absent the seam still answers every member", function()

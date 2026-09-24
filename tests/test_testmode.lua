@@ -188,7 +188,7 @@ function()
     -- Since LibKa0s v1.39.0 the row PAIRS beside Minimap button on the line below Lock frame /
     -- Debug console (compose minor 7, options-ui-§15): the always-present row takes column 1 and
     -- the optional one sits to its right, so an addon with no test mode draws no hole.
-    assertEqual(S[at - 1].path, "global.minimap.hide", "beside the Minimap button row")
+    assertEqual(S[at - 1].path, "global.minimap.shown", "beside the Minimap button row")
     assertEqual(S[at - 2].path, "state.debugConsole", "on the line below Lock frame / Debug console")
     local row = S[at]
     assertEqual(row.label, "Test mode")

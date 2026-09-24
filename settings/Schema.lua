@@ -353,12 +353,17 @@ local SESSION = {
 -- and this row is neither a profile row nor sessionOnly -- and because this addon's Defaults button
 -- is that same reset rather than the library's row walk (settings/Panel.lua).
 --
--- THE INVERSION IS OURS, NOT THE LIBRARY'S. The row's boolean says SHOWN; LibDBIcon's `hide` key
--- says hidden. There is ONE boolean, LibDBIcon writes it too from its own right-click menu, and a
--- second key beside it would be a copy free to disagree (anti-pattern #81) -- so the row inverts
--- here, at the single write seam, and everything downstream (the checkbox, `/wg get`, `/wg set`,
--- `/wg reset`) inverts with it because they all come through these two functions.
-local MINIMAP_PATH = "global.minimap.hide"
+-- THE PATH READS IN THE ROW'S OWN SENSE; THE STORE DOES NOT MOVE (launcher-§3, standard v2.65.0).
+-- The path is also the row's CLI name, so it is `global.minimap.shown`: `/wg get` answers true
+-- while the button is on the minimap. What is STORED is still LibDBIcon's own `minimap.hide` --
+-- there is ONE boolean, LibDBIcon writes it too from its own right-click menu, and a `shown` key
+-- beside it would be a copy free to disagree (anti-pattern #81). So `shown` names the row and
+-- nothing is ever written or declared at it; the two closures below invert onto `hide`, at the
+-- single write seam, and everything downstream (the checkbox, `/wg get`, `/wg set`, `/wg reset`)
+-- inverts with them. The old `global.minimap.hide` path is no alias: it answers "Setting not
+-- found" like any path no row declares. An existing store needs no migration -- a saved
+-- `hide = true` simply reads as `shown = false`.
+local MINIMAP_PATH = "global.minimap.shown"
 
 local function minimapStore()
     local db = WhatGroup.db
@@ -603,9 +608,10 @@ function Settings.BuildDefaults()
     -- `global.windows` holds persisted standalone-window geometry (WG-26); an empty table so
     -- NS.Windows.Save/Restore never index a nil.
     -- `global.minimap` is LibDBIcon's OWN table (launcher-§3), and this declared default is what
-    -- MATERIALIZES it -- architecture-§5, not a whole-section write over a schema row: the row
-    -- addresses `global.minimap.hide` and nothing else writes the branch. `hide = false` is the
-    -- Minimap button row's default (SHOWN) through the inversion above. LibDBIcon adds
+    -- MATERIALIZES it -- architecture-§5, not a whole-section write over a schema row: the
+    -- `global.minimap.shown` row's closures address the stored `hide` key and nothing else writes
+    -- the branch. `hide = false` is that row's default (SHOWN) through the inversion above, and no
+    -- `shown` default is declared beside it (a second copy, anti-pattern #81). LibDBIcon adds
     -- `minimapPos` to the same table when the player drags the button, which is the library's own
     -- write into its own key and needs no row.
     local out = { profile = deepcopy(C),
@@ -613,7 +619,7 @@ function Settings.BuildDefaults()
                              minimap = { hide = false } } }
     for _, def in ipairs(Schema) do
         -- A GLOBAL row is not a profile row: threading its default through this walk would write
-        -- `profile.global.minimap.hide` -- a branch nothing reads, in the store the standard
+        -- `profile.global.minimap.shown` -- a branch nothing reads, in the store the standard
         -- deliberately keeps it out of. Its default is the literal above.
         if def.path and not def.sessionOnly and not GLOBAL[def.path] then
             local segs = {}

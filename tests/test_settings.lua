@@ -571,7 +571,7 @@ end)
 -- which opens the fourth line with Test mode beside it (options-ui-§15, launcher-§3). It is the
 -- one row of the block stored OUTSIDE db.profile.
 local MASTER = { "enabled", "visibility", "scale", "alpha", "locked", "state.debugConsole",
-                 "global.minimap.hide", "state.testMode" }
+                 "global.minimap.shown", "state.testMode" }
 
 test("settings: the Master controls block is the FIRST group, in canonical order", function()
     -- The whole point of the composer is that eleven addons cannot drift into eleven orders, so the

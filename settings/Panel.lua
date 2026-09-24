@@ -216,9 +216,9 @@ local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{
     -- line below Lock frame / Debug console, opening it, with Test mode pairing beside it. Verbatim
     -- and unprefixed like the two paths above, and for a sharper reason -- the table it names is
     -- LibDBIcon's own and lives in the GLOBAL store, outside this block's profile prefix entirely.
-    -- settings/Schema.lua's GLOBAL table routes it, and inverts it: the row says SHOWN, the stored
-    -- key says hidden.
-    minimapPath      = "global.minimap.hide",
+    -- settings/Schema.lua's GLOBAL table routes it, and inverts it: the path and the row say SHOWN
+    -- (launcher-§3, standard v2.65.0), the stored key `db.global.minimap.hide` says hidden.
+    minimapPath      = "global.minimap.shown",
     -- The popup's test mode (options-ui-§15, LibKa0s v1.37.0): a session-only `Test mode` row on its
     -- own line below Lock frame / Debug console. Verbatim, like the console path, and bound the same
     -- way -- settings/Schema.lua's SESSION table routes it to modules/Frame.lua.

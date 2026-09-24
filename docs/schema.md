@@ -41,7 +41,7 @@ db.global = {
     -- [name] = { point, relPoint, x, y }   written on drag-stop, restored on show
   },
   minimap = {                     -- LibDBIcon-1.0's OWN table (launcher-§3), handed to it whole
-    hide = false,                 -- the ONE schema row outside db.profile: `global.minimap.hide`
+    hide = false,                 -- stores the ONE schema row outside db.profile: `global.minimap.shown`
     -- minimapPos = 0             -- LibDBIcon writes this when the player drags the button
   },
 }
@@ -56,8 +56,8 @@ any old one, and the stamp `RunMigrations` writes (1 today) always differs from 
 persists (`savedvariables-§1`).
 
 Sixteen persisted profile settings, all of them user-facing, all of them schema rows — plus one
-**global** row, `global.minimap.hide` (the launcher's visibility, stored in LibDBIcon's own table and
-inverted at the write seam: the row says *shown*), and two **session-only** rows,
+**global** row, `global.minimap.shown` (the launcher's visibility, stored at LibDBIcon's own
+`db.global.minimap.hide` and inverted at the write seam: the path and the row say *shown*), and two **session-only** rows,
 `state.debugConsole` and `state.testMode`, which are schema rows and deliberately not persisted (see
 below). The minimap row is global rather than profile-scoped on purpose: a profile switch must not
 move the player's buttons. That it also **survives every reset** is a separate rule rather than a
@@ -105,8 +105,8 @@ row's `default` into the nested AceDB `profile` table, and also declares `global
 independent of whether LibKa0s is installed: the composed rows are absent on the degraded path, and
 without the seed the profile would arrive with no `enabled` key — which reads as false. `sessionOnly`
 rows are skipped, so nothing about the debug console or test mode reaches the db; **global rows are
-skipped too**, because threading `global.minimap.hide` through the profile walk would write a
-`profile.global.minimap.hide` branch nothing reads. Its default is the `global` literal above, which
+skipped too**, because threading `global.minimap.shown` through the profile walk would write a
+`profile.global.minimap.shown` branch nothing reads. Its default is the `global` literal above, which
 is what materializes the table LibDBIcon is handed (`architecture-§5`).
 
 ## One row, six surfaces
