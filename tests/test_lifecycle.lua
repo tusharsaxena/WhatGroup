@@ -410,12 +410,19 @@ test("lifecycle: /wg config is refused during combat (options-ui-§2)", function
     assertTrue(mock.prints[#mock.prints]:find("combat", 1, true) ~= nil)
 end)
 
-test("lifecycle: a login taken in combat still registers the panel", function()
-    local NS, _, mock = T.bootAddon()
+-- options-ui-§9: the category still registers at login with no user action; in combat the library
+-- parks it and lands it at combat end, before `/wg config` can be run out of combat.
+-- red under: LibKa0s Options registering immediately under InCombatLockdown (pre-LK-25)
+test("lifecycle: a login taken in combat registers the panel at combat end", function()
+    local NS, env, mock = T.bootAddon()
     mock.combat = true
-    NS.addon:OnEnable()             -- registration is not combat-gated (options-ui-§9)
-    assertEqual(#mock.categories, 2, "the category is in the AddOns list from login")
+    NS.addon:OnEnable()
+    assertEqual(#mock.categories, 0, "the login registration is parked in combat")
     mock.combat = false
+    local park = env.LibStub("LibKa0s-Options-1.0").__parkFrame
+    assertTrue(park ~= nil and park.__events.PLAYER_REGEN_ENABLED, "the park listens for combat end")
+    park.__fire("OnEvent", "PLAYER_REGEN_ENABLED")
+    assertEqual(#mock.categories, 2, "the category is in the AddOns list once combat ends")
     runCmd(NS, "config")
     assertEqual(#mock.categories, 2, "and runConfig's fallback call registers nothing more")
     assertEqual(#mock.openedTo, 1)

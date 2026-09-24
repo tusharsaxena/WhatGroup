@@ -98,26 +98,49 @@ test("panel: Register is idempotent — a second call registers nothing more", f
     assertEqual(#mock.categories, 2)
 end)
 
--- options-ui-§9: category registration never taints, and eager registration at
--- load is a MUST. A combat guard here would leave WhatGroup missing from the
--- Settings → AddOns list after any `/reload` taken in combat, which is exactly
--- what WG-A-12 filed. Restoring an `InCombatLockdown()` early-return in
--- `Settings.Register` turns this case red.
-test("panel: registering during combat still registers (options-ui-§9)", function()
-    local NS, _, mock = T.bootAddon()
+-- End combat the way the client does for LibKa0s Options' registration park (minor 24): the
+-- library's private park frame hears PLAYER_REGEN_ENABLED. Answers the park frame, so a case can
+-- assert the event was let go after the replay.
+local function endCombat(env, mock)
+    mock.combat = false
+    local lib = env.LibStub("LibKa0s-Options-1.0")
+    local f = lib.__parkFrame
+    assertTrue(f ~= nil and f.__events.PLAYER_REGEN_ENABLED,
+        "the library parked the registration and listens for the end of combat")
+    f.__fire("OnEvent", "PLAYER_REGEN_ENABLED")
+    return f
+end
+
+-- options-ui-§9: the category still registers at login with no user action; in combat the library
+-- parks it and lands it at combat end. WhatGroup's `Settings.Register` carries no combat guard of
+-- its own: an `InCombatLockdown()` early-return there would leave the idempotence flag unset and
+-- WhatGroup missing from the Settings → AddOns list after any `/reload` taken in combat, which is
+-- exactly what WG-A-12 filed. Restoring such a guard turns this case red.
+-- red under: LibKa0s Options registering immediately under InCombatLockdown (pre-LK-25)
+test("panel: a registration taken in combat is parked and lands at PLAYER_REGEN_ENABLED, with no second host call", function()
+    local NS, env, mock = T.bootAddon()
     mock.combat = true
     NS.addon.Settings.Register()
-    assertEqual(#mock.categories, 2, "combat does not gate category registration")
-    assertTrue(NS.addon._settingsRegistered, "and the idempotence flag is set")
+    assertTrue(NS.addon._settingsRegistered, "the idempotence flag is set; the library owns the replay")
+    assertEqual(#mock.categories, 0, "nothing registers under InCombatLockdown()")
+    local f = endCombat(env, mock)
+    assertEqual(#mock.categories, 2, "the parked registration lands at combat end")
+    assertFalse(f.__events.PLAYER_REGEN_ENABLED and true or false,
+        "the park lets go of PLAYER_REGEN_ENABLED once drained")
+    NS.addon.Settings.Register()
+    assertEqual(#mock.categories, 2, "a second Register registers nothing more")
 end)
 
-test("panel: a login taken in combat needs no second registration", function()
-    local NS, _, mock = T.bootAddon()
+-- red under: LibKa0s Options registering immediately under InCombatLockdown (pre-LK-25)
+test("panel: a login taken in combat is parked and lands at combat end, with no second registration", function()
+    local NS, env, mock = T.bootAddon()
     mock.combat = true
     NS.addon:OnEnable()
-    mock.combat = false
+    assertEqual(#mock.categories, 0, "the login registration is parked in combat")
+    endCombat(env, mock)
+    assertEqual(#mock.categories, 2, "and lands at combat end with no user action")
     NS.addon.Settings.Register()
-    assertEqual(#mock.categories, 2, "the login registration stands; the second call is a no-op")
+    assertEqual(#mock.categories, 2, "the landed registration stands; the second call is a no-op")
 end)
 
 test("panel: registration validates the schema", function()

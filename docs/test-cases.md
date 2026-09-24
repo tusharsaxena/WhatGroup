@@ -540,8 +540,8 @@ badge and any count quoted in the docs must agree with it.
 - panel: OnEnable registers the parent category and the General subcategory
 - panel: the parent category is added to the AddOns list
 - panel: Register is idempotent — a second call registers nothing more
-- panel: registering during combat still registers (options-ui-§9)
-- panel: a login taken in combat needs no second registration
+- panel: a registration taken in combat is parked and lands at PLAYER_REGEN_ENABLED, with no second host call
+- panel: a login taken in combat is parked and lands at combat end, with no second registration
 - panel: registration validates the schema
 - panel: both panels start hidden
 - panel: registration creates no AceGUI widgets
@@ -678,7 +678,7 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: InitSummary is safe before the db exists
 - lifecycle: /wg config opens the parent settings category
 - lifecycle: /wg config is refused during combat (options-ui-§2)
-- lifecycle: a login taken in combat still registers the panel
+- lifecycle: a login taken in combat registers the panel at combat end
 - lifecycle: /wg test notify injects a synthetic capture and runs the full flow
 - lifecycle: /wg test notify refuses while the master switch is off
 - lifecycle: the panel Test button previews while the addon is disabled
@@ -782,12 +782,12 @@ badge and any count quoted in the docs must agree with it.
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
-- eol: .gitattributes is line-endings-5's canonical body for this repo kind
+- eol: .gitattributes is line-endings-§5's canonical body for this repo kind
 
 ### test_prose.lua (15)
 
-- prose: no authored file carries a British spelling from localization-5's published list
-- prose: the gate carries localization-5's two lists whole, and nothing of its own
+- prose: no authored file carries a British spelling from localization-§5's published list
+- prose: the gate carries localization-§5's two lists whole, and nothing of its own
 - prose self-test: the carve-out suppresses the named generated folder, and only it
 - prose self-test: a path the carve-out does not name is not covered by one that looks like it
 - prose self-test: a carve-out that is not a set of path strings is a failure, not a silence
@@ -806,7 +806,7 @@ badge and any count quoted in the docs must agree with it.
 
 - layoutcap: every authored file over the 1500-line cap is named in the census
 - layoutcap: no census row outlives the breach it records
-- layoutcap: every over-cap census row carries one of layout-1's three terminal states
+- layoutcap: every over-cap census row carries one of layout-§1's three terminal states
 - layoutcap: the census and the exempt set agree about which paths were exempted
 - layoutcap: an empty census is written as a result rather than left standing empty
 - layoutcap self-test: the parser reads the census nested under the register, and stops there
