@@ -120,12 +120,18 @@ and no load pass to name.
 
 ## Message Bus
 
-**There is none, because** WhatGroup is a single-addon capture pipeline with no cross-module
-publish/subscribe need: `grep -rn "SendMessage\|RegisterMessage" core modules settings defaults`
-returns nothing. The capture path calls `WhatGroup:_TryFireJoinNotify(reason)` directly, and that
-one entry point is the coordination seam a bus would otherwise provide — the `notifiedFor` identity
-flag, not a message, is what keeps the two trigger paths from double-firing. If a second consumer of
-join data ever appears, AceEvent-3.0's `SendMessage` is already mixed in and is the route to take.
+**There is none, because** WhatGroup is below the threshold in `architecture-§4` (as amended in
+standard v2.65.0). The bus MUST binds an addon with two or more feature modules, or a feature module
+that registers game events a second feature module must react to — and the AceAddon object's own
+event handlers are not a feature module. WhatGroup is the shell (`core/WhatGroup.lua`, which
+registers the four game events) plus one feature module (`modules/Frame.lua`, which registers none),
+so direct calls are permitted: the capture path calls `WhatGroup:_TryFireJoinNotify(reason)`, and the
+`notifiedFor` identity flag, not a message, keeps the two trigger paths from double-firing.
+`grep -rn "SendMessage\|RegisterMessage" core modules settings defaults` returns nothing, and there
+is no deviation register row because nothing deviates.
+
+**Re-open when** a second feature module appears, or a second consumer of the join data does.
+AceEvent-3.0's `SendMessage` is already mixed in and is the route to take then.
 
 ## Slash Commands
 
@@ -475,7 +481,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | `slash-dispatch.md` | Present | 13 verbs in the command table |
 | `midnight-quirks.md` | Present | LFG and group-API behavior the addon works around |
 | `debug.md` | Present | The addon’s own debug surface beyond the library console |
-| `message-bus.md` | Not applicable | The addon defines no cross-module messages — it is a single feature module |
+| `message-bus.md` | Not applicable | Below the `architecture-§4` threshold: a shell plus one feature module, so no cross-module messages (see `## Message Bus`) |
 | `compat-layer.md` | Present | `core/Compat.lua` publishes eight addon-specific shims, over the three-or-more threshold |
 | `profiles.md` | Not applicable | No profile control ships in the options UI; a hook is noted in `settings/Schema.lua` if AceDBOptions is ever added |
 | `perf-analysis/README.md` | Not applicable | No performance harness is wired — see `performance.md` |
