@@ -257,7 +257,7 @@ Both pages share the same header layout (gold title + tinted divider) and the sa
 
 Defaults button → `panel.defaultsOnClick` → `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreAllDefaults()`. `/wg resetall` shows the same popup, and the Settings window's own footer Defaults control forwards through `panel.OnDefault` to the same handler, so all three share one OnAccept body.
 
-`WhatGroup._parentSettingsCategory` and `WhatGroup._settingsCategory` (the General subcategory) are the two handles the page build records; the open path does not use them. `/wg config` calls `Helpers.OpenOptionsPanel()`, which holds the main category's own ID, refuses under `InCombatLockdown()` — the gate lives *there* so every caller is refused, not just this verb — opens the parent, and then unfolds the sidebar tree by reaching into the same path the expand-arrow click handler uses:
+`/wg config` calls `Helpers.OpenOptionsPanel()`, which holds the main category's own ID, refuses under `InCombatLockdown()` — the gate lives *there* so every caller is refused, not just this verb — opens the parent, and then unfolds the sidebar tree by reaching into the same path the expand-arrow click handler uses:
 
 ```lua
 Settings.OpenToCategory(mainCategoryID)

@@ -85,10 +85,8 @@ test("panel: OnEnable registers the parent category and the General subcategory"
 end)
 
 test("panel: the parent category is added to the AddOns list", function()
-    local NS, _, mock = T.enableAddon()
+    local _, _, mock = T.enableAddon()
     assertEqual(mock.registeredCategory, mock.categories[1])
-    assertTrue(NS.addon._parentSettingsCategory ~= nil, "the /wg config handle is kept")
-    assertTrue(NS.addon._settingsCategory ~= nil, "the General handle is kept")
 end)
 
 test("panel: Register is idempotent — a second call registers nothing more", function()
@@ -678,6 +676,22 @@ test("panel: the landing page renders the Slash Commands heading and the logo", 
         end
     end
     assertTrue(logo ~= nil, "the brand logo texture is created")
+end)
+
+test("panel: the landing logo path is built from the folder this copy loaded from", function()
+    -- The launcher's icon already follows the folder (test_launcher.lua); the landing page's logo
+    -- is the same asset tree, so a copy loaded as another folder must draw its own logo too
+    -- (library-stack-§8).
+    -- red under: the hand-typed WhatGroup literal
+    local _, _, mock = T.enableAddon{ addonName = "WhatGroupCopy" }
+    local main = panels(mock)
+    open(mock, main)
+    local want = "Interface\\AddOns\\WhatGroupCopy\\media\\logos\\whatgroupcopy.logo.tga"
+    local logo
+    for _, tex in ipairs(mock.textures) do
+        if tex:GetTexture() == want then logo = tex end
+    end
+    assertTrue(logo ~= nil, "the landing logo names the folder it loaded from")
 end)
 
 -- Characterization (CCN split): the landing page is four independent sub-parts — logo, TOC notes

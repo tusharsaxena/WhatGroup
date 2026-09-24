@@ -562,7 +562,7 @@ badge and any count quoted in the docs must agree with it.
 - frame: a stand-down in combat drops a queued first show and a queued teleport configure
 - frame: reconfiguring the teleport button reuses the same three script handlers
 
-### test_panel.lua (53)
+### test_panel.lua (54)
 
 - panel: OnEnable registers the parent category and the General subcategory
 - panel: the parent category is added to the AddOns list
@@ -615,6 +615,7 @@ badge and any count quoted in the docs must agree with it.
 - panel: the landing page lists one row per slash command
 - panel: the landing page shows the TOC Notes line
 - panel: the landing page renders the Slash Commands heading and the logo
+- panel: the landing logo path is built from the folder this copy loaded from
 - panel: the landing page adds logo, notes, heading and command rows in that order
 - panel: a dirty landing page re-renders in place instead of stacking a second copy
 
@@ -883,7 +884,7 @@ badge and any count quoted in the docs must agree with it.
 | test_notify.lua | 48 |
 | test_frame.lua | 90 |
 | test_frame_secure.lua | 7 |
-| test_panel.lua | 53 |
+| test_panel.lua | 54 |
 | test_testmode.lua | 23 |
 | test_launcher.lua | 24 |
 | test_lifecycle.lua | 46 |
@@ -897,4 +898,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **771** |
+| **Total** | **772** |

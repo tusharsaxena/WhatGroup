@@ -35,14 +35,15 @@ WhatGroup follows this — see [settings-panel.md](./settings-panel.md#settingsr
 ## `Settings.OpenToCategory` requires the integer ID
 
 ```lua
-Settings.OpenToCategory(self._settingsCategory:GetID())  -- correct
+local category = Settings.RegisterCanvasLayoutCategory(panel, "Ka0s WhatGroup")
+Settings.OpenToCategory(category:GetID())                  -- correct
 Settings.OpenToCategory("Ka0s WhatGroup > General")        -- WRONG (not a valid form)
-Settings.OpenToCategory(self._settingsCategory)            -- WRONG (object, not ID)
+Settings.OpenToCategory(category)                          -- WRONG (object, not ID)
 ```
 
 `category:GetID()` returns the auto-assigned integer ID. **Do not overwrite `category.ID` with a string.** Doing so silently breaks the lookup and `OpenToCategory` becomes a no-op.
 
-WhatGroup's `/wg config` goes through `Helpers.OpenOptionsPanel()` — `LibKa0s-Options-1.0`'s member since the adoption, holding the main category's own ID rather than reading either of the handles `settings/Panel.lua` records. It calls `Settings.OpenToCategory` against the **parent** and then reaches into `SettingsPanel:GetCategoryList():GetCategoryEntry(parent):SetExpanded(true)` — the path the expand-arrow click handler itself uses — so the subcategory tree comes up unfolded. That whole traversal is wrapped in `pcall` because `CategoryList` / `GetCategoryEntry` / the `CategoryEntry:SetExpanded` shape are private Blizzard internals that can shift between patches; if any link goes missing the panel still opens, just without auto-unfold. The slash command also refuses to open during `InCombatLockdown()` — the Settings UI uses secure templates and opening it mid-combat can taint other addons' secure handlers.
+WhatGroup's `/wg config` goes through `Helpers.OpenOptionsPanel()` — `LibKa0s-Options-1.0`'s member since the adoption, holding the main category's own ID; `settings/Panel.lua` keeps no category handle of its own. It calls `Settings.OpenToCategory` against the **parent** and then reaches into `SettingsPanel:GetCategoryList():GetCategoryEntry(parent):SetExpanded(true)` — the path the expand-arrow click handler itself uses — so the subcategory tree comes up unfolded. That whole traversal is wrapped in `pcall` because `CategoryList` / `GetCategoryEntry` / the `CategoryEntry:SetExpanded` shape are private Blizzard internals that can shift between patches; if any link goes missing the panel still opens, just without auto-unfold. The slash command also refuses to open during `InCombatLockdown()` — the Settings UI uses secure templates and opening it mid-combat can taint other addons' secure handlers.
 
 ## Lazy AceGUI panel build
 

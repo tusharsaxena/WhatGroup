@@ -84,7 +84,10 @@ end
 -- Options_HorizontalDivider atlas, spell icons). Branding art, analogous to the TOC IconTexture; no
 -- Blizzard asset could substitute. options-ui-§5 mandates a logo here, so this is a deviation from
 -- the addon's own Blizzard-default-only baseline, not from the standard.
-local MAIN_LOGO_TEXTURE   = "Interface\\AddOns\\WhatGroup\\media\\logos\\whatgroup.logo.tga"
+-- Built from the folder this copy loaded from, as core/LauncherSetup.lua builds the icon, so a copy
+-- installed under another folder name still finds its own logo (library-stack-§8).
+local MAIN_LOGO_TEXTURE   = ("Interface\\AddOns\\%s\\media\\logos\\%s.logo.tga")
+    :format(addonName, addonName:lower())
 -- The landing page's own constants (options-ui-§8 lists these as the host's, because the body is).
 local MAIN_LOGO_SIZE      = 300
 local MAIN_GAP_AFTER_LOGO = 8
@@ -385,10 +388,6 @@ local function buildGeneralPage(parentCategory)
     end)
 
     local sub = _G.Settings.RegisterCanvasLayoutSubcategory(parentCategory, ctx.panel, "General")
-    WhatGroup._settingsCategory = sub
-    -- The parent handle, for anything that wants to reason about the tree. The panel-OPEN path goes
-    -- through Helpers.OpenOptionsPanel, which holds its own.
-    WhatGroup._parentSettingsCategory = parentCategory
     return sub
 end
 
