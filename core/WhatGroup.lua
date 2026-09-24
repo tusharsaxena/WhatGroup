@@ -398,8 +398,10 @@ function WhatGroup:OnEnable()
     -- OnShow (Panel.lua), so no AceGUI frame is created inside a secure-execute
     -- chain. Register() is idempotent (the `_settingsRegistered` guard), so
     -- runConfig's call becomes a harmless no-op fallback. Registration is not
-    -- combat-gated (options-ui-§9), so a `/reload` taken in combat still lands the
-    -- category in the list — only panel *open* is refused under lockdown.
+    -- combat-gated here (options-ui-§9): the category still registers at login
+    -- with no user action, and in combat the library parks it and lands it at
+    -- combat end, with no second `/wg config`. Only panel *open* is refused
+    -- under lockdown.
     if self.Settings and self.Settings.Register then
         self.Settings.Register()
     end

@@ -406,8 +406,11 @@ Helpers.RegisterOptionsPage("general", "General", buildGeneralPage)
 --
 -- Deliberately NOT combat-gated (options-ui-§9): registration never taints, and eager registration
 -- at load is a MUST. Only panel *open* is combat-gated, and that gate lives inside the library's
--- `OpenOptionsPanel` so every caller inherits it. A guard here only meant that a `/reload` taken in
--- combat left WhatGroup missing from the Settings → AddOns list until the next login.
+-- `OpenOptionsPanel` so every caller inherits it. The category still registers at login with no
+-- user action; in combat the library parks it and lands it at combat end (LibKa0s Options minor
+-- 24 replays it on PLAYER_REGEN_ENABLED), so the flag below is set either way and no second call
+-- is needed. A guard here only meant that a `/reload` taken in combat left WhatGroup missing from
+-- the Settings → AddOns list until the next login.
 
 function Settings.Register()
     if WhatGroup._settingsRegistered or not _G.Settings
@@ -418,7 +421,8 @@ function Settings.Register()
 
     -- Resolves AceGUI, runs the schema validation, registers the main canvas with its landing-page
     -- renderer, then runs every registered page builder. Idempotent in its own right; the flag
-    -- below makes the second (`runConfig`) call a cheap no-op.
+    -- below makes the second (`runConfig`) call a cheap no-op. Under InCombatLockdown() the
+    -- library parks this and replays it itself at PLAYER_REGEN_ENABLED.
     Helpers.CreateOptionsPanel()
 
     WhatGroup._settingsRegistered = true
