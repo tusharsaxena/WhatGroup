@@ -120,6 +120,7 @@ Kit.run{
         "test_capture",
         "test_notify",
         "test_frame",
+        "test_frame_secure",
         "test_panel",
         "test_testmode",
         "test_launcher",

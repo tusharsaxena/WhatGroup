@@ -32,6 +32,11 @@ local yGap         = -18
 -- by the time those functions execute.
 local f, fields, ConfigureTeleportButton
 
+-- What deferTeleportUntilCombatEnds stashes for a configure with NO capture. The replay runs only
+-- `if pending`, so a plain nil stash would read as "nothing owed" and drop the configure that hides
+-- the secure button and clears its action; this sentinel carries "no capture" through the stash.
+local NO_CAPTURE = {}
+
 -- TEST MODE's placeholder capture (options-ui-§15, preview-mode), and nil exactly while test mode is
 -- off. A record of its own rather than a write to `pendingInfo`, so a real capture the player is
 -- still holding survives a round of placing the popup. Every reader of "what does the popup show"
@@ -525,7 +530,7 @@ end
 
 local function deferTeleportUntilCombatEnds(info)
     if not InCombatLockdown() then return false end
-    f._pendingTeleportInfo = info
+    f._pendingTeleportInfo = (info == nil) and NO_CAPTURE or info
     f:RegisterEvent("PLAYER_REGEN_ENABLED")
     f:SetScript("OnEvent", function(self, ev)
         if ev ~= "PLAYER_REGEN_ENABLED" then return end
@@ -534,7 +539,8 @@ local function deferTeleportUntilCombatEnds(info)
         local pending = self._pendingTeleportInfo
         self._pendingTeleportInfo = nil
         if pending then
-            ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, pending)
+            ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon,
+                pending ~= NO_CAPTURE and pending or nil)
         end
     end)
     return true
@@ -849,7 +855,11 @@ local function PopulateFields()
         fields.type:SetText(noData)
         fields.leader:SetText(noData)
         fields.playstyle:SetText("|cff888888—|r")
-        fields.teleportBtn:Hide()
+        -- Through the configure, never a bare Hide: the button is a SecureActionButtonTemplate, and
+        -- a popup soft-hidden at alpha 0 is still shown, so a reopen in combat reaches this branch
+        -- inside the lockdown. The configure defers itself there and, out of combat, clears the
+        -- secure action and hides. The note is a plain FontString, so its Hide is always legal.
+        ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, nil)
         fields.teleportNote:Hide()
         return
     end
@@ -941,9 +951,9 @@ function endTestMode(why)
     previewInfo = nil
     hidePopup()
     gateWithheld = false
-    -- Not in combat: with no real capture PopulateFields hides the secure teleport button, which the
-    -- client refuses under lockdown. A popup ended by combat is soft-hidden, and the next show
-    -- refills it anyway.
+    -- Not in combat: the refill is owed by the next show anyway, since a popup ended by combat is
+    -- soft-hidden. The secure button's protected Hide is no longer the reason -- with no real
+    -- capture PopulateFields routes it through ConfigureTeleportButton, which defers it itself.
     if fields and not InCombatLockdown() then PopulateFields() end
     NS.Debug("Test", "test mode off (%s)", tostring(why))
     return true
