@@ -1,0 +1,14 @@
+Ka0s WhatGroup — offline perf  (v1.4.0, label 'offline')
+
+scenario                iters     ms/iter  api/iter  bytes/iter
+cooldownTick             2000     0.00194       2.0       240.4
+formatDurationLong       2000     0.00048       0.0        34.5
+formatDurationShort      2000     0.00040       0.0         0.8
+combatGateSteady         2000     0.00019       0.0         0.0
+combatGateFlipping       2000     0.00603       7.0      1000.0
+showFrameRepeat           500     0.01243      18.0      1744.1
+applyScale                500     0.00029       1.0         0.0
+applyAlpha                500     0.00022       1.0         0.0
+
+timings are for orientation only — compare scenarios within a run, never across machines
+wrote docs/automated-tests/20260924-111851/perf.json
