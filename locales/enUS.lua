@@ -129,6 +129,12 @@ L["Group info no longer available — captures clear on group-leave or |cffFFFF0
     "Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."
 L["Popup deferred until combat ends."] = "Popup deferred until combat ends."
 
+-- The library-absent line (options-ui-§1 route (b), the owner's ruling on WhatGroup#22). On a load
+-- without LibKa0s the Master controls rows are not composed, so `/wg enable`, `/wg disable` and
+-- `/wg test` have no row to write; each says so, naming itself. One sentence, one placeholder.
+L["%s is unavailable: the LibKa0s library did not load."] =
+    "%s is unavailable: the LibKa0s library did not load."
+
 -- Test mode (modules/Frame.lua)
 L["Test mode on — the popup shows sample group info. Drag its title bar to place it."] =
     "Test mode on — the popup shows sample group info. Drag its title bar to place it."

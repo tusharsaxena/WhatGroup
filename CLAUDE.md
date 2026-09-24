@@ -67,11 +67,11 @@ are **frozen history** — never treat them as a live requirement, and never "re
 - **Never edit `libs/` or `tests/_kit/`.** Both are whole-folder, byte-identical copies of
   `../LibKa0s`'s ship folders. A library problem is a finding to fix **upstream** and
   re-vendor — a local patch is a fork nobody knows about, and the next re-vendor silently
-  reverts it. The addon takes nine of LibKa0s's majors (Compat, Core, DebugLog, Env, Launcher,
-  Lifecycle, Media, Options, Slash) through the nine seam files `core/Compat.lua`,
+  reverts it. The addon takes ten of LibKa0s's majors (Compat, Core, DebugLog, Env, Launcher,
+  Lifecycle, Media, Options, Schema, Slash) through the ten seam files `core/Compat.lua`,
   `core/CoreSetup.lua`, `core/EnvSetup.lua`, `core/MediaSetup.lua`, `core/DebugLogSetup.lua`,
-  `core/LauncherSetup.lua`, `core/LifecycleSetup.lua`, `settings/OptionsSetup.lua` and
-  `settings/Slash.lua`; **Perf is
+  `core/LauncherSetup.lua`, `core/LifecycleSetup.lua`, `settings/OptionsSetup.lua`,
+  `settings/SchemaSetup.lua` and `settings/Slash.lua`; **Perf is
   declined** on structural grounds ([`LIBKA0S-15`](https://github.com/tusharsaxena/WhatGroup/issues/7)).
 
 ## Bundled LibKa0s

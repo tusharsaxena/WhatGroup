@@ -117,6 +117,7 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.16 | `/wg version` | Prints `[WG] v<version>` on its own line, matching the TOC `## Version` (WG-29). |
 | 2.17 | `/wg help` | The header line ends with `…/wg)` — **no** trailing colon (WG-19) — and lists a `/wg version` row. |
 | 2.18 | Move the popup (`/wg test notify`, drag it) and the debug console (`/wg debug`, drag it), then `/reload` and reopen each | Each window reopens at the spot you left it, not re-centered (WG-26). |
+| 2.19 | Library-absent verbs (options-ui-§1 route (b), WhatGroup#22): with the addon closed, rename `Interface/AddOns/WhatGroup/libs/LibKa0s`, log in, then run `/wg disable`, `/wg enable` and `/wg test on` | Each prints `[WG] <verb> is unavailable: the LibKa0s library did not load.` (e.g. `/wg disable is unavailable: …`), with **no** Lua error, and nothing moves: the addon stays enabled and no popup opens. Restore the folder name and `/reload`. Library present, the same verbs, the Master controls checkboxes and `/wg set notify.delay 3` behave as in 2.6 / 2.10a, with one `[Set]` line per write under `/wg debug on`. |
 
 ---
 

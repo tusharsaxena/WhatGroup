@@ -1,14 +1,14 @@
 -- tests/test_surface_parity.lua — every degradation stub carries the whole live surface.
 --
--- WhatGroup adopts five LibKa0s seams with a degradation arm — Core, DebugLog, Slash, Options and
--- Compat — and each of the five setup files carries a stub for the install where libs/LibKa0s is
--- missing. A stub is a
+-- WhatGroup adopts six LibKa0s seams with a degradation arm — Core, DebugLog, Slash, Options,
+-- Schema and Compat — and each of the six setup files carries a stub for the install where
+-- libs/LibKa0s is missing. A stub is a
 -- second implementation of somebody else's surface, so it drifts the moment the library grows a
 -- member the host starts calling: the live path stays green and the degraded path raises in exactly
 -- the install the stub exists for.
 --
 -- The member-by-member cases in tests/test_libka0s.lua each pin the members somebody thought of.
--- These five pin the SET: every key the live surface carries is present on the degraded one, and a
+-- These cases pin the SET: every key the live surface carries is present on the degraded one, and a
 -- key that is a function live is a function degraded — the `H.Foo = UI and UI.Foo` shape leaves
 -- `false` in place, and a "is the key set?" check waves that through while the call site still
 -- raises.
@@ -147,6 +147,33 @@ test("parity: the Options helpers stub carries the whole live surface", function
         -- copy.
         "FONT_FLAGS", "FONT_FLAGS_SORT", "VISIBILITY_VALUES", "VISIBILITY_SORT",
         "MASTER_GROUP", "CLASS_COLOR_NOTE",
+    })
+end)
+
+-- ---------------------------------------------------------------------------
+-- Schema (WhatGroup#22)
+-- ---------------------------------------------------------------------------
+
+test("parity: the Schema host stub's instance carries the whole live instance surface", function()
+    -- The live half is NS.SchemaRuntime from a full load, what LibKa0s-Schema-1.0's :New returned in
+    -- settings/Schema.lua; the degraded half is the same name from a load without the library,
+    -- where settings/SchemaSetup.lua's HostSchemaStub built it. The instance surface is not in the
+    -- library's published member manifest, so it is pinned with the two-table form
+    -- (LibKa0s docs/api/Schema/version-2-docs.md, "Pinning it"). Nothing is ignored: a stub member
+    -- WhatGroup never calls (SetMany, BulkAdd) is still carried, because the parity pin requires it.
+    local live = T.newAddon()
+    local degraded = T.newAddon{ skip = NO_LIBKA0S }
+    T.assertSurfaceParity(live.SchemaRuntime, degraded.SchemaRuntime, "schema instance vs host stub")
+end)
+
+test("parity: the Schema host stub carries the library's own members", function()
+    -- The live half is the LibKa0s-Schema-1.0 LIBRARY TABLE, registered by tests/run.lua. The stub
+    -- stands in for the library, so a host whose own code calls a primitive keeps one seam.
+    local degraded = T.newAddon{ skip = NO_LIBKA0S }
+    T.assertSurfaceParity(degraded.addon.Settings.SchemaLib, "LibKa0s-Schema-1.0", {
+        -- The library's refusal texts. The stub's refusals are this addon's own words, never a
+        -- copy of the library's constants (version-2-docs.md, "The degradation stub").
+        "STRINGS",
     })
 end)
 

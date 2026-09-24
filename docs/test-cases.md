@@ -67,8 +67,8 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the console stub copies NO library formatter
 - degraded: every HAND-WRITTEN schema row survives the options library's absence (options-ui-§1)
 - degraded: the STORED profile is the same shape with the library absent
-- degraded: `/wg disable` and `/wg enable` still write the stored switch (slash-commands-§1)
-- degraded: `/wg test on` and `off` still move test mode (slash-commands-§1)
+- degraded: `/wg disable` and `/wg enable` print the library-absent line and write nothing (options-ui-§1, WhatGroup#22)
+- degraded: `/wg test on|off` print the library-absent line and move nothing
 - degraded: Reset all settings still resets the profile (options-ui-§1)
 - degraded: the settings stub carries no widget maker and no layout constant
 - degraded: the settings panel explains itself once at load and once per config
@@ -80,12 +80,14 @@ badge and any count quoted in the docs must agree with it.
 - libka0s: Core has no STRINGS and reads no descriptor L (tripwire)
 - libka0s: Options reads no descriptor L (tripwire)
 
-### test_surface_parity.lua (5)
+### test_surface_parity.lua (7)
 
 - parity: the Core seam's whole namespace surface survives the library's absence
 - parity: the DebugLog stub carries the whole live surface
 - parity: the Slash stub carries the whole live surface
 - parity: the Options helpers stub carries the whole live surface
+- parity: the Schema host stub's instance carries the whole live instance surface
+- parity: the Schema host stub carries the library's own members
 - parity: the Compat reader arm carries every library member the addon wires
 
 ### test_mediasetup.lua (11)
@@ -235,18 +237,18 @@ badge and any count quoted in the docs must agree with it.
 - settings: a write creates the intermediate tables it walks through
 - settings: Get on an unknown deep path returns nil and creates no table
 - settings: Resolve replaces a non-table intermediate
-- settings: RawSet writes without firing onChange
-- settings: Set skipOnChange suppresses the side effect
-- settings: a throwing onChange is caught and reported, not propagated
-- settings: Set on a path with no schema row still writes
+- settings: there is no RawSet; a write to `enabled` always runs its onChange
+- settings: Set takes no skipOnChange option
+- settings: a throwing onChange propagates, after the value landed
+- settings: Set on a path with no schema row is refused and stores nothing
 - settings: FindSchema matches on the exact path
 - settings: RestoreAllDefaults restores every schema row
 - settings: RestoreAllDefaults leaves db.global untouched
 - settings: RefreshAll runs every refresher on the open page, in registration order
 - settings: a throwing refresher does not abort the sweep
 - settings: a hidden page is not refreshed — it is flagged dirty (options-ui-§11)
-- settings: Set skipRefresh suppresses the widget re-sync
-- settings: RestoreAllDefaults refreshes once, not once per row
+- settings: every Set re-syncs the widgets once; there is no skipRefresh
+- settings: RestoreAllDefaults refreshes once, plus once per session-only row
 - settings: EnsureResetPopup is idempotent
 - settings: the reset dialog is a blocking, escapable confirmation
 - settings: accepting the reset dialog acknowledges in chat
@@ -847,7 +849,7 @@ badge and any count quoted in the docs must agree with it.
 |-------|------:|
 | test_harness.lua | 17 |
 | test_libka0s.lua | 51 |
-| test_surface_parity.lua | 5 |
+| test_surface_parity.lua | 7 |
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
 | test_util.lua | 31 |
@@ -874,4 +876,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **748** |
+| **Total** | **750** |

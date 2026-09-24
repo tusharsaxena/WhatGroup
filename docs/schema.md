@@ -112,14 +112,24 @@ is what materializes the table LibDBIcon is handed (`architecture-§5`).
 ## One row, six surfaces
 
 A single row in `WhatGroup.Settings.Schema` drives all of these, so there is never a parallel mutator
-for a path that already has a row:
+for a path that already has a row. Every read and write goes through **one schema runtime**,
+`NS.SchemaRuntime`: a `LibKa0s-Schema-1.0` instance built over the rows in `settings/Schema.lua`, or,
+on an install without LibKa0s, the write-completing and log-silent stub in
+`settings/SchemaSetup.lua` (WhatGroup#22). `Helpers.Get`, `Helpers.Set`, `Helpers.FindSchema` and
+`Helpers.ApplyDefault` are its `Get`, `Set`, `FindRow` and `ApplyDefault`. `Set` refuses a path no row
+declares (`Setting not found: <path>`) and stores nothing for it.
+
+On a library-absent load the Master controls rows are not composed, so `enabled` and
+`state.testMode` have no row there. No `writeThrough` list is passed: `/wg enable`, `/wg disable`
+and `/wg test` print `<verb> is unavailable: the LibKa0s library did not load.` instead of writing
+(`options-ui-§1` route (b), a documented deviation in [ARCHITECTURE.md](ARCHITECTURE.md)).
 
 | Surface | How the row is used |
 |---|---|
 | Settings panel | the AceGUI widget rendered into the General sub-page, on the tab its `group` names (`options-ui-§13`) |
 | `/wg list` | grouped by `section`, printed as `path = formattedValue` |
 | `/wg get <path>` | `Helpers.FindSchema` + `Helpers.Get` |
-| `/wg set <path> <value>` | type-aware parse → `Helpers.Set` → the row's `onChange` → `RefreshAll` |
+| `/wg set <path> <value>` | type-aware parse → `Helpers.Set` (the runtime's `Set`) → the row's `onChange` → `RefreshAll`; a refusal prints the seam's own line |
 | AceDB defaults | `BuildDefaults` threads `default` into the nested `profile` table |
 | the reset surfaces | `/wg reset <path>` → `Helpers.ApplyDefault`, the ordinary `Helpers.Set` path with no confirmation; `/wg resetall` and the **Defaults** button → `Helpers.RestoreAllDefaults`, via the `WHATGROUP_RESET_ALL` popup |
 
@@ -130,13 +140,14 @@ for a path that already has a row:
 **Debug console** checkbox on the Master controls tab *is* a schema row now (`options-ui-§15` makes
 it one of the canonical nine), on the path `state.debugConsole` and marked `sessionOnly`: it toggles
 only the console *window's* visibility (`NS.DebugLog` Show/Hide), never the logging flag and never
-`db.profile`. `settings/Schema.lua`'s `SESSION` table intercepts the path in front of `Resolve`, so
-no caller can route it to the db; `BuildDefaults` skips it; and `RestoreAllDefaults` restores it row
+`db.profile`. `settings/Schema.lua`'s `SESSION` table gives the composed row its own `get` / `set`
+(`Settings.StampClosureRows`), which the runtime reads and writes through, so no caller can route it
+to the db; `BuildDefaults` skips it; and `RestoreAllDefaults` restores it row
 by row, because `db:ResetProfile()` cannot reach storage that is not the db (`options-ui-§12`). That
 is what keeps the WG-12 invariant — debug never persists — true.
 
 **Test mode is session-only too.** The **Test mode** checkbox on the same tab is the row
-`state.testMode`, composed from `testModePath` and marked `sessionOnly`; the `SESSION` table routes it
+`state.testMode`, composed from `testModePath` and marked `sessionOnly`; the `SESSION` table binds it
 to `WhatGroup:TestModeCheckbox()` in `modules/Frame.lua`, whose flag is `NS.State.testMode`. It is
 off at every login, never in `db.profile`, and its declared `default = false` is what lets
 `RestoreAllDefaults`' session sweep end it. The sample it shows is a record of its own

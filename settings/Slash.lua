@@ -227,13 +227,15 @@ Sl = lib:New({
     -- rather than a string keeps the banner reading the manifest rather than a load-time copy.
     version = NS.Version,
 
-    -- The single write seam again — the same functions settings/OptionsSetup.lua hands the options
-    -- module, so a CLI change and a checkbox click take one path (slash-commands-§5).
-    get          = function(path) local H = helpers(); return H and H.Get(path) end,
-    set          = function(path, value) local H = helpers(); if H then H.Set(path, value) end end,
-    findRow      = function(path) local H = helpers(); return H and H.FindSchema(path) end,
+    -- The single write seam again — the schema runtime's members, the same ones
+    -- settings/OptionsSetup.lua hands the options module, so a CLI change and a checkbox click take
+    -- one path (slash-commands-§5). Bound as VALUES: `set = S.Set` answers `false, err` on a
+    -- refusal, and CliSet prints the seam's own refusal rather than a success line.
+    get          = NS.SchemaRuntime.Get,
+    set          = NS.SchemaRuntime.Set,
+    findRow      = NS.SchemaRuntime.FindRow,
     allRows      = function() return WhatGroup.Settings.Schema end,
-    applyDefault = function(row) local H = helpers(); if H then H.ApplyDefault(row) end end,
+    applyDefault = NS.SchemaRuntime.ApplyDefault,
 
     -- `list` groups by the schema's own `section`, which is what it has always grouped by; the
     -- library's default would have used `row.page`, which these rows do not carry.
@@ -277,11 +279,23 @@ end
 -- button also runs.
 local TEST_MODE_PATH = "state.testMode"
 
+-- THE LIBRARY-ABSENT LINE (options-ui-§1 route (b); the owner's ruling on WhatGroup#22). The rows
+-- `enable`, `disable` and `test` write are composed by LibKa0s (options-ui-§15), so a load without
+-- it has no row for them, and the schema seam refuses a path no row declares. WhatGroup passes the
+-- seam no `writeThrough` list, so these verbs say they are unavailable instead: no Lua error, no
+-- write, no ack. The SHOULD deviation is recorded in docs/ARCHITECTURE.md.
+local function libraryAbsent(verb)
+    NS.Print(L["%s is unavailable: the LibKa0s library did not load."]:format(verb))
+end
+
 function runTest(rest)
     local sub = (rest or ""):match("^(%S+)")
     sub = sub and sub:lower() or ""
     if sub == "notify" then return WhatGroup:RunTest() end
     local H = helpers()
+    if (sub == "" or sub == "on" or sub == "off") and not H.FindSchema(TEST_MODE_PATH) then
+        return libraryAbsent("/wg test")
+    end
     if sub == "" then
         H.Set(TEST_MODE_PATH, not H.Get(TEST_MODE_PATH))
     elseif sub == "on" or sub == "off" then
@@ -351,10 +365,13 @@ function runConfig() WhatGroup:OpenSettings() end
 function runEnabled(on)
     local H = helpers()
     if not (H and H.Set) then return NS.Print(CLI_MISSING) end
-    H.Set(ENABLED_PATH, on)
+    local row = H.FindSchema(ENABLED_PATH)
+    if not row then return libraryAbsent(on and "/wg enable" or "/wg disable") end
+    -- Never ack a write that did not land: a refusal prints the seam's own words instead.
+    local ok, err = H.Set(ENABLED_PATH, on)
+    if ok == false then return NS.Print(tostring(err)) end
     local value = H.Get(ENABLED_PATH)
-    local row   = H.FindSchema and H.FindSchema(ENABLED_PATH)
-    if lib and row then
+    if lib then
         return NS.Print(lib.FormatKV(row.path, lib.FormatValue(row, value)))
     end
     NS.Print(ENABLED_PATH .. " = " .. tostring(value))

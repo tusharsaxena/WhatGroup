@@ -355,7 +355,7 @@ test("debuglog: a bracket that closes on an error still logs its tally and unmut
 end)
 
 -- A row whose write raises. The debug-console row is the one row whose storage is a set() the test
--- can reach, so the raise comes out of the real RawSet rather than a stub of the seam under test.
+-- can reach, so the raise comes out of the real seam's store rather than a stub of the seam under test.
 local function raisingConsoleRow(NS)
     NS.DebugLog.ConsoleCheckbox = function()
         return { get = function() return false end, set = function() error("boom", 0) end }

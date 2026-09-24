@@ -7,7 +7,7 @@
 --
 -- What stayed the host's, and why, is recorded below the descriptor and in this repo's GitHub issues.
 --
--- TOC slot: after settings/Schema.lua, whose Get/Set/FindSchema the descriptor reads, and before
+-- TOC slot: after settings/Schema.lua, whose schema runtime the descriptor binds, and before
 -- settings/Panel.lua, which registers its page at file load (options-ui-§1).
 
 local _, NS = ...
@@ -191,13 +191,14 @@ local O = lib:New({
     print = function(line) NS.Print(line) end,
     debug = function(tag, fmt, ...) NS.Debug(tag, fmt, ...) end,
 
-    -- The single write seam (options-ui-§1). A panel checkbox takes exactly the path `/wg set`
-    -- takes: the same [Set] debug line, the same row `onChange`, the same refresh. Two-argument by
-    -- construction, so no adapter is needed — `Helpers.Set`'s third parameter is an options table
-    -- the library never passes, which is the shape that makes this fit rather than a coincidence.
-    get          = function(path) return host.Get(path) end,
-    set          = function(path, value) host.Set(path, value) end,
-    applyDefault = function(row) host.ApplyDefault(row) end,
+    -- The single write seam (options-ui-§1): the schema runtime's own members, bound as VALUES
+    -- (settings/Schema.lua builds it as NS.SchemaRuntime). A panel checkbox takes exactly the path
+    -- `/wg set` takes: the same [Set] debug line, the same row `onChange`, the same refresh. There
+    -- is no pre-seam gate in this addon, so nothing sits in front of Set that a reset would bypass
+    -- (LibKa0s docs/api/Schema/version-2-docs.md, "A gate in front of the seam").
+    get          = NS.SchemaRuntime.Get,
+    set          = NS.SchemaRuntime.Set,
+    applyDefault = NS.SchemaRuntime.ApplyDefault,
 
     -- One page, so the page key is ignored and every row belongs to it. `filter` (ctx.unit) is
     -- never set: this addon has no per-unit pages.
@@ -217,12 +218,10 @@ local O = lib:New({
     -- RestoreAllDefaults: the seam's per-row [Set] line is muted inside it, and the act logs one
     -- `[Set] reset <scope>: N rows` line. Neither walk is on the live path today (the host's
     -- RestoreAllDefaults overrides the library's, and the Defaults button goes through the popup), so
-    -- this is defensive: a future caller of either logs one line per act, not one per row. Forwarders,
-    -- so the pair is resolved at call time from settings/Schema.lua.
-    bulkBegin = function(act, scope) Settings.Bulk.begin(act, scope) end,
-    bulkEnd   = function(act, scope, count, err, info)
-        Settings.Bulk.finish(act, scope, count, err, info)
-    end,
+    -- this is defensive: a future caller of either logs one line per act, not one per row. The
+    -- runtime's own BulkBegin / BulkEnd, which already take the descriptor's argument shape.
+    bulkBegin = NS.SchemaRuntime.BulkBegin,
+    bulkEnd   = NS.SchemaRuntime.BulkEnd,
 
     -- Deliberately NOT passed, each for a reason worth writing down rather than leaving as an
     -- absence:

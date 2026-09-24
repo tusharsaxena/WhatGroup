@@ -76,16 +76,16 @@ argument, and that the DebugLog descriptor passes `addonName` beside `name`.
 Both are invisible in game except by comparison: the factory receives no name,
 builds no texture path, and draws a perfectly good button.
 
-`test_surface_parity` is the degradation gate. Each of the five adopted seams
+`test_surface_parity` is the degradation gate. Each of the six adopted seams
 with a degradation arm carries a hand-written stub for the install where `libs/LibKa0s` is missing, and
 a stub is a second implementation of somebody else's surface — so it drifts the
 moment the library grows a member the addon starts calling, staying green on the
-live path and raising on exactly the path the stub exists for. The five cases
+live path and raising on exactly the path the stub exists for. The seven cases
 compare the two halves as a **set**, and both halves come from a real load: the
 degraded arm loads the addon with the library's files omitted, never by
 hand-stubbing the member under test.
 
-Four of the five name their live half rather than rebuilding it —
+Five of the seven name their live half rather than rebuilding it —
 `assertSurfaceParity(stub, "LibKa0s-Options-1.0")` — which compares only the
 surface's public members, so the library's own `__`-prefixed internals are the
 kit's business rather than a hand-kept exemption list that grows on every
@@ -96,7 +96,12 @@ arm, mirrors the library table itself, because `core/Compat.lua` wires the
 library's members onto `NS.Compat` and builds no instance; its row is the live
 load's `LibStub("LibKa0s-Compat-1.0", true)`. Core keeps the two-table form
 because it is not a major's surface at all — `core/CoreSetup.lua` hangs its
-members on `NS` itself, so there is no name to look one up under. A member that
+members on `NS` itself, so there is no name to look one up under. Schema has
+two cases (WhatGroup#22): `settings/SchemaSetup.lua`'s `HostSchemaStub` stands
+in for the library table, so it is compared by name against the live
+`LibStub("LibKa0s-Schema-1.0", true)` row with `STRINGS` ignored, and the
+instance it builds is compared with the two-table form against a full load's
+`NS.SchemaRuntime`, because the instance surface is in no member manifest. A member that
 is live-only on purpose is named in the case's `ignore` list with the rule that
 makes it so, because a deliberate omission and a bug otherwise read identically.
 

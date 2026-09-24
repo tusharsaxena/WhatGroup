@@ -282,11 +282,15 @@ test("options: the host's data seams survived the move onto the instance", funct
     local NS = T.enableAddon()
     local H = NS.addon.Settings.Helpers
     for _, member in ipairs({
-        "Get", "RawSet", "Set", "FindSchema", "ValidateSchema", "ApplyDefault",
+        "Get", "Set", "FindSchema", "ValidateSchema", "ApplyDefault",
         "RestoreAllDefaults", "RefreshAll", "InlineButton", "BuildMainContent",
     }) do
         assertEqual(type(H[member]), "function", "lost the host member " .. member)
     end
+    -- RE-PINNED AT ADOPTION (LibKa0s docs/api/Schema/version-2-docs.md, Adoption notes: skip flags
+    -- and side-effect-free writers stay in the host that has them; this one had no caller left).
+    -- RawSet left with the host seam when WhatGroup#22 moved it onto LibKa0s-Schema-1.0.
+    assertNil(H.RawSet, "the side-effect-free writer is gone")
     for _, member in ipairs({
         "CreatePanel", "EnsureScroll", "ClearScroll", "Section", "AddSpacer", "AttachTooltip",
         "RenderField", "RenderRows", "RenderSchema", "SessionCheckbox", "SetRenderer",
@@ -625,39 +629,49 @@ test("degraded: the STORED profile is the same shape with the library absent", f
     sameShape(b, a, "")
 end)
 
--- Written before the LibKa0s-Schema-1.0 adoption attempt (docs/revendor/2026-09-23-v1.55.0), as the
--- characterization of a path that attempt would move -- and these two are what stopped it: the
--- attempt turned both red and was rolled back (issue #22). On a library-absent load the Master controls
--- block is not composed (the hollow composer, options-ui-§1), so `enabled` and `state.testMode` have
--- NO schema row -- and the host verbs still write both through Helpers.Set, because slash-commands-§1
--- keeps host verbs working on a degraded install. A seam that refuses a path with no row (the
--- library's JC-2 reading) turns both verbs into no-ops here, and nothing else in the suite would say.
+-- Written before the LibKa0s-Schema-1.0 adoption (WhatGroup#22) as the characterization of a path
+-- the adoption moves, and REWRITTEN by it to the owner's ruling. On a library-absent load the
+-- Master controls block is not composed (the hollow composer, options-ui-§1), so `enabled` and
+-- `state.testMode` have NO schema row, and the schema seam -- the library's, or
+-- settings/SchemaSetup.lua's host stub -- refuses a path no row declares. WhatGroup passes no
+-- `writeThrough` list: that is options-ui-§1's route (b), the SHOULD deviation recorded in
+-- docs/ARCHITECTURE.md. So the verbs say they are unavailable, in one line through L, raise no Lua
+-- error, write nothing and acknowledge nothing.
 --
--- red under: Helpers.Set refusing a path the schema does not carry.
-test("degraded: `/wg disable` and `/wg enable` still write the stored switch (slash-commands-§1)",
-function()
+-- red under: the pre-adoption seam, whose RawSet wrote the row-less path; or a verb that acks a
+-- write that did not land.
+local ABSENT = " is unavailable: the LibKa0s library did not load."
+
+test("degraded: `/wg disable` and `/wg enable` print the library-absent line and write nothing "
+     .. "(options-ui-§1, WhatGroup#22)", function()
     local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
     NS.addon:OnInitialize()
     NS.addon:OnEnable()
     assertNil(NS.addon.Settings.Helpers.FindSchema("enabled"), "the composed row is absent here")
-    NS.addon:OnSlashCommand("disable")
-    assertEqual(NS.addon.db.profile.enabled, false, "the stored switch moved")
-    assertTrue(mock.prints[#mock.prints]:find("enabled = false", 1, true) ~= nil,
-        "and the ack re-reads it")
-    NS.addon:OnSlashCommand("enable")
-    assertEqual(NS.addon.db.profile.enabled, true)
+    for _, verb in ipairs({ "disable", "enable" }) do
+        local ok, err = pcall(NS.addon.OnSlashCommand, NS.addon, verb)
+        assertTrue(ok, "/wg " .. verb .. " raised: " .. tostring(err))
+        local last = mock.prints[#mock.prints] or ""
+        local want = "/wg " .. verb .. ABSENT
+        assertEqual(last:sub(-#want), want, "the library-absent line names the verb")
+        assertEqual(NS.addon.db.profile.enabled, true, "the stored switch did not move")
+    end
 end)
 
-test("degraded: `/wg test on` and `off` still move test mode (slash-commands-§1)", function()
-    local NS = T.newAddon{ skip = NO_LIBKA0S }
+test("degraded: `/wg test on|off` print the library-absent line and move nothing", function()
+    local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
     NS.addon:OnInitialize()
     NS.addon:OnEnable()
-    local H = NS.addon.Settings.Helpers
-    assertNil(H.FindSchema("state.testMode"), "the composed row is absent here")
-    NS.addon:OnSlashCommand("test on")
-    assertEqual(H.Get("state.testMode"), true)
-    NS.addon:OnSlashCommand("test off")
-    assertEqual(H.Get("state.testMode"), false)
+    assertNil(NS.addon.Settings.Helpers.FindSchema("state.testMode"), "the composed row is absent here")
+    for _, verb in ipairs({ "test on", "test off", "test" }) do
+        local ok, err = pcall(NS.addon.OnSlashCommand, NS.addon, verb)
+        assertTrue(ok, "/wg " .. verb .. " raised: " .. tostring(err))
+        local last = mock.prints[#mock.prints] or ""
+        local want = "/wg test" .. ABSENT
+        assertEqual(last:sub(-#want), want, "the library-absent line names /wg test")
+        assertTrue(NS.State.testMode ~= true, "test mode did not start")
+        assertNil(mock.frames["WhatGroupFrame"], "the popup was not built")
+    end
 end)
 
 -- options-ui-§1 keeps the global reset real in the stub. On this path H IS Settings.Helpers, the

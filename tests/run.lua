@@ -63,7 +63,7 @@ end
 -- Set BEFORE Kit.expose, which is what makes it stick: expose registers a source only when none is
 -- registered yet, precisely so a runner like this one keeps its own.
 --
--- LibKa0s-Compat-1.0 is the one row that IS a library table: core/Compat.lua wires the library's
+-- LibKa0s-Compat-1.0 is one of the two rows that ARE a library table: core/Compat.lua wires the library's
 -- own members onto NS.Compat rather than building an instance, so its live half is what the live
 -- load's LibStub answers for the name (LibKa0s docs/api/Compat/version-1-docs.md, "How a host wires
 -- it" -- a runner with a table map has to add the row, or the by-name call cannot resolve it).
@@ -73,6 +73,11 @@ Kit.setSurfaceSource{
     ["LibKa0s-Slash-1.0"]    = surfaceNS.SlashCommands,
     ["LibKa0s-Options-1.0"]  = surfaceNS.addon.Settings.Helpers,
     ["LibKa0s-Compat-1.0"]   = surfaceMock.LibStub("LibKa0s-Compat-1.0", true),
+    -- A library table too, for the same reason: settings/SchemaSetup.lua's HostSchemaStub stands in
+    -- for the LIBRARY (its SplitPath / Read / Write / SameValue / New), so the by-name parity case
+    -- compares it against what LibStub answers. The instance-vs-stub pair is the kit's two-table
+    -- form and needs no row here (LibKa0s docs/api/Schema/version-2-docs.md, "Pinning it").
+    ["LibKa0s-Schema-1.0"]   = surfaceMock.LibStub("LibKa0s-Schema-1.0", true),
 }
 
 -- The shared table every suite reaches through `_G.WHATGROUP_TEST`. Kit.expose merges `test` and

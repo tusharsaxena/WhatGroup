@@ -216,8 +216,8 @@ and it is the addon's, not the library's:
   visibility** is one, on the Master controls tab: `options-ui-§15` makes "Debug
   console" one of the canonical nine, so it is a `sessionOnly` schema row on the
   path `state.debugConsole` rather than the bespoke `SessionCheckbox` it used to
-  be. `settings/Schema.lua`'s `SESSION` table routes that path to
-  `D:ConsoleCheckbox()`'s own `get`/`set` in front of `Resolve`, so the module
+  be. `settings/Schema.lua`'s `SESSION` table binds that row to
+  `D:ConsoleCheckbox()`'s own `get`/`set` at the schema seam, so the module
   that owns the window still owns what the toggle *does*, and nothing about it
   reaches `db.profile`. The label and tooltip are now the composer's, which is
   the one visible difference. `BuildDefaults` skips the row; `RestoreAllDefaults`

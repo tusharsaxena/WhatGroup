@@ -1,5 +1,7 @@
 -- settings/Schema.lua
--- Schema rows + Helpers (get/set/validate, AceDB defaults, restore/refresh).
+-- Schema rows + Helpers (get/set/validate, AceDB defaults, restore/refresh), over ONE
+-- LibKa0s-Schema-1.0 runtime (NS.SchemaRuntime; settings/SchemaSetup.lua resolves the library or
+-- its degradation stub).
 --
 -- Every option is one row in WhatGroup.Settings.Schema -- eleven of them declared here, and the
 -- seven-row Master controls block composed by LibKa0s and spliced at the head of the array by
@@ -7,7 +9,7 @@
 --   * the AceGUI widget rendered in the General sub-page
 --   * /wg list (groups by `section`, prints path = formattedValue)
 --   * /wg get <path>            (Helpers.FindSchema + Helpers.Get)
---   * /wg set <path> <value>    (type-aware parse → Helpers.Set → onChange → RefreshAll)
+--   * /wg set <path> <value>    (type-aware parse → the runtime's Set → onChange → RefreshAll)
 --   * AceDB defaults            (BuildDefaults walks Schema and threads `default`
 --                                values into the nested `profile` table)
 --   * /wg reset / Defaults btn  (Helpers.RestoreDefaults via WHATGROUP_RESET_ALL popup)
@@ -129,7 +131,7 @@ local function add(t) Schema[#Schema + 1] = t end
 -- the composer is handed the addon's own defaults rather than inventing any.
 --
 -- The debug console is a canonical row now too, and it is still SESSION-ONLY: its path is
--- `state.debugConsole`, which SESSION below intercepts before Resolve ever sees it, so the
+-- `state.debugConsole`, whose row carries SESSION's get/set below and never reaches db.profile, so the
 -- WG-12 invariant (nothing about debug reaches db.profile) holds exactly as it did when the
 -- checkbox was drawn by hand through `pairWith`. `state.testMode`, the popup's test mode, is the
 -- block's other session-only row and takes the same route.
@@ -274,37 +276,6 @@ add{
 }
 
 -- ---------------------------------------------------------------------------
--- db.profile path helpers
--- ---------------------------------------------------------------------------
-
--- A READ DOES NOT WRITE (savedvariables-§2). `create` is what separates the two
--- callers. A WRITE may materialize the intermediate tables it walks through — a
--- schema row nested under a table SavedVariables has never held still has to be
--- writable — but a READ must not. Without the flag, `Helpers.Get` on a typo'd or
--- not-yet-existing path grew `db.profile` one empty table per segment, and that
--- junk then round-tripped into SavedVariables; worse, the typo the caller was
--- probing for became indistinguishable from a real-but-empty branch on the next
--- read. `Helpers.Get` passes no flag and gets nil; `Helpers.RawSet` passes true.
-local function Resolve(path, create)
-    if not (WhatGroup.db and WhatGroup.db.profile) then return nil, nil end
-    local segments = {}
-    for part in string.gmatch(path, "[^.]+") do
-        segments[#segments + 1] = part
-    end
-    if #segments == 0 then return nil, nil end
-    local parent = WhatGroup.db.profile
-    for i = 1, #segments - 1 do
-        local k = segments[i]
-        if type(parent[k]) ~= "table" then
-            if not create then return nil, nil end
-            parent[k] = {}
-        end
-        parent = parent[k]
-    end
-    return parent, segments[#segments]
-end
-
--- ---------------------------------------------------------------------------
 -- Session-only paths (WG-12 / debug-logging-§5)
 -- ---------------------------------------------------------------------------
 --
@@ -314,9 +285,12 @@ end
 -- like any other -- and it still must never reach db.profile: the flag it moves is a window's
 -- visibility, and a console left open is not a setting the next character inherits.
 --
--- Intercepted HERE, in front of Resolve, rather than branched on at each call site: Get, Set,
--- ApplyDefault, the panel's widget maker and the CLI all funnel through these two functions, and a
--- routing decision made in one of them is a routing decision the other four cannot get wrong.
+-- STAMPED ONTO THE ROW, not branched on at each call site. The row is composed by LibKa0s
+-- (settings/Panel.lua), so Settings.StampClosureRows below gives it a `get` and a `set` before it
+-- is added to the schema, and the schema runtime reads and writes a row that carries both through
+-- them (LibKa0s-Schema-1.0): Get, Set, ApplyDefault, the panel's widget maker and the CLI all
+-- funnel through that one seam, and a routing decision made there is one the others cannot get
+-- wrong.
 --
 -- The pair is NS.DebugLog's own ConsoleCheckbox() contract, unchanged from when settings/Panel.lua
 -- drew the checkbox by hand: the module that owns the window is still the one that says what
@@ -339,19 +313,19 @@ local SESSION = {
 -- The one GLOBAL path (launcher-§3)
 -- ---------------------------------------------------------------------------
 --
--- Every other row in this schema lives under `db.profile`, which is what Resolve walks. The
--- minimap button's does not: the standard fixes it in the global store because a profile switch
--- must not move a player's buttons -- the ring around the minimap is furniture the INSTALLATION
--- arranged, not something a profile copy carries. So the path is taken VERBATIM from the composer
--- (`minimapPath`, settings/Panel.lua), it names the global store, and it is intercepted HERE in
--- front of Resolve exactly as the session paths are.
+-- Every other stored row in this schema lives under `db.profile`, the runtime's `resolveRoot`
+-- below. The minimap button's does not: the standard fixes it in the global store because a
+-- profile switch must not move a player's buttons -- the ring around the minimap is furniture the
+-- INSTALLATION arranged, not something a profile copy carries. So the path is taken VERBATIM from
+-- the composer (`minimapPath`, settings/Panel.lua), it names the global store, and its row carries
+-- its own closures exactly as the session rows do.
 --
 -- SURVIVING A RESET IS ITS OWN RULE and is no longer derived from the store (launcher-§3, standard
 -- v2.54.0): the row is a per-installation display preference and must survive both *Reset all
--- settings* and a page-scoped Defaults button. It does here without an exemption, because
--- RestoreAllDefaults below is `db:ResetProfile()` plus a sweep narrowed to `sessionOnly` rows --
--- and this row is neither a profile row nor sessionOnly -- and because this addon's Defaults button
--- is that same reset rather than the library's row walk (settings/Panel.lua).
+-- settings* and a page-scoped Defaults button. RestoreAllDefaults below is `db:ResetProfile()`
+-- plus a sweep narrowed to `sessionOnly` rows, and this row is neither a profile row nor
+-- sessionOnly. The runtime's `resetExempt` names it as well, so a bracketed sweep -- the library's
+-- per-page Defaults walk, should anything ever call it -- vetoes it too.
 --
 -- THE PATH READS IN THE ROW'S OWN SENSE; THE STORE DOES NOT MOVE (launcher-§3, standard v2.65.0).
 -- The path is also the row's CLI name, so it is `global.minimap.shown`: `/wg get` answers true
@@ -390,190 +364,101 @@ local GLOBAL = {
     },
 }
 
-function Helpers.Get(path)
-    local session = SESSION[path]
-    if session then
-        local spec = session()
-        return spec and spec.get() or false
-    end
-    local g = GLOBAL[path]
-    if g then return g.get() end
-    local parent, key = Resolve(path)
-    if not parent then
-        NS.Debug("Schema", "Get: no path -> " .. tostring(path))
-        return nil
-    end
-    return parent[key]
-end
-
-function Helpers.RawSet(path, value)
-    local session = SESSION[path]
-    if session then
-        local spec = session()
-        if spec then spec.set(value and true or false) end
-        return
-    end
-    local g = GLOBAL[path]
-    if g then
-        g.set(value and true or false)
-        return
-    end
-    local parent, key = Resolve(path, true)
-    if not parent then return end
-    parent[key] = value
-end
-
--- Orchestrated single write-path: write the value, run the schema row's
--- onChange (if any), and re-sync open panel widgets. Every caller — CLI
--- (`/wg set`), panel widget callbacks, `/wg reset`, runtime toggles —
--- routes through here so the three side effects can't drift out of sync.
--- `opts.skipOnChange` suppresses the onChange call; `opts.skipRefresh`
--- suppresses RefreshAll (RestoreAllDefaults uses it on its sessionOnly
--- sweep, leaving the one reconcile to OnProfileReset's handler). Use
--- `RawSet` only for genuinely side-effect-free writes (none today).
---
--- The Settings.Bulk bracket's state (below). `bulkDepth` is the mute: a depth rather than a boolean,
--- so a bracket opened inside another still unmutes at the right time. Only the LOG is muted: the
--- write, the row's onChange and the refresh still run per row (debug-logging-§10). `bulkChanged` is
--- the tally of rows whose stored value actually changed, summed across nested brackets, and
--- `bulkSilent` records that some level reset the whole profile.
-local bulkDepth, bulkChanged, bulkSilent = 0, 0, false
-
--- Deep value equality, for "did this write change the stored value". A table default (none ship
--- today, but the seam accepts one) is a fresh copy on every write, so identity would call it changed.
-local function sameValue(a, b)
-    if a == b then return true end
-    if type(a) ~= "table" or type(b) ~= "table" then return false end
-    for k, v in pairs(a) do
-        if not sameValue(v, b[k]) then return false end
-    end
-    for k in pairs(b) do
-        if a[k] == nil then return false end
-    end
-    return true
-end
-
-function Helpers.Set(path, value, opts)
-    -- Inside a bulk bracket, tally the write only if it CHANGES the stored value: that tally, not the
-    -- library's count of rows walked, is §10's N, and a row already at its default is not counted.
-    -- Read only while bracketed, so an ordinary write pays nothing for it. The comparison needs the
-    -- value from BEFORE the write, but the tally is taken only AFTER RawSet returns: a write that
-    -- raised changed nothing, and N counts rows actually written.
-    local changed = bulkDepth > 0 and not sameValue(Helpers.Get(path), value)
-    Helpers.RawSet(path, value)
-    if changed then bulkChanged = bulkChanged + 1 end
-    -- Settings-change trace (debug-logging-§10): one canonical [Set] line at the single write
-    -- seam, unless the write is one row of a bulk reset, which §10 logs as ONE line for the whole
-    -- act. Two ways in: the Settings.Bulk bracket (the library's page reset), and opts.skipLog
-    -- (RestoreAllDefaults' sessionOnly rows, which the OnProfileReset line already covers).
-    if bulkDepth == 0 and not (opts and opts.skipLog) then
-        NS.Debug("Set", tostring(path) .. " = " .. tostring(value))
-    end
-    if not (opts and opts.skipOnChange) then
-        local def = Helpers.FindSchema(path)
-        if def and def.onChange then
-            local ok, err = pcall(def.onChange, value)
-            if not ok then
-                pout("onChange for " .. path .. " failed: " .. tostring(err))
+-- Give every composed row whose path is in SESSION or GLOBAL its own `get` and `set`, which the
+-- schema runtime then reads and writes through in place of `resolveRoot`. settings/Panel.lua calls
+-- this on the Master controls block before adding it to the schema. The coercion to a real boolean
+-- is the one the old host seam applied to both kinds of row: a closure row never stores nil.
+function Settings.StampClosureRows(rows)
+    for _, row in ipairs(rows or {}) do
+        local path = type(row) == "table" and row.path or nil
+        local session, g = SESSION[path], GLOBAL[path]
+        if session then
+            row.get = function()
+                local spec = session()
+                return spec and spec.get() or false
             end
+            row.set = function(v)
+                local spec = session()
+                if spec then spec.set(v and true or false) end
+            end
+        elseif g then
+            row.get = g.get
+            row.set = function(v) g.set(v and true or false) end
         end
     end
-    if not (opts and opts.skipRefresh) then
-        Helpers.RefreshAll()
-    end
 end
 
-function Helpers.FindSchema(path)
-    for _, def in ipairs(Schema) do
-        if def.path == path then return def end
-    end
-end
-
--- The bulk bracket (debug-logging-§10), handed to LibKa0s-Options-1.0 as the descriptor's
--- bulkBegin / bulkEnd in settings/OptionsSetup.lua. The library calls `begin` before a reset walk
--- writes its first row and `finish` once after it, always, even when a row raised. Only the
--- OUTERMOST `finish` logs, with the act's one line `[Set] <act> <scope>: N rows`. N is this seam's
--- own tally of rows whose stored value changed, summed across any nested bracket; it is NOT the
--- library's `count`, which is every row walked, including rows already at their default. An
--- all-default reset therefore logs `: 0 rows`, never a line per row. Nothing is logged if any level
--- reset the whole profile (`info.profileReset`): the OnProfileReset handler (core/WhatGroup.lua) has
--- logged that one, and §10 forbids a second line. On Settings rather than Helpers, so the pair is not
--- copied onto the Options instance and the instance's surface does not move.
+-- ---------------------------------------------------------------------------
+-- The schema runtime (LibKa0s-Schema-1.0, WhatGroup#22)
+-- ---------------------------------------------------------------------------
 --
--- An act that ends in an error (the library hands `finish` the raised value as `err`, then re-raises
--- it) still logs its one line, with STOPPED appended so the line does not read as a finished act.
--- `bulkFailed` records that some level of the bracket was handed an error.
-local Bulk = {}
-local STOPPED = " (stopped by an error)"
-local bulkFailed = false
+-- ONE instance over this file's rows, held by reference, and the single write seam every caller
+-- takes (architecture-§5): the panel's widgets and the CLI through their descriptors
+-- (settings/OptionsSetup.lua, settings/Slash.lua), the host verbs, Reset all settings. Its order is
+-- the library's contract: refuse a path no row declares, validate, refuse a missing root, store (a
+-- copy), the `[Set]` line (muted inside a bracket, whose one line stands for the act,
+-- debug-logging-§10), the row's `onChange`, then `announce` -- the panel refresh.
+--
+-- Settings.SchemaLib is the library, or settings/SchemaSetup.lua's write-completing, log-silent
+-- stub on an install without it. NO `writeThrough` list is passed, to either: WhatGroup takes
+-- options-ui-§1's route (b) under the owner's ruling on WhatGroup#22, so on a library-absent load
+-- the row-less `enabled` and `state.testMode` are refused here and settings/Slash.lua's verbs print
+-- the library-absent line instead (docs/ARCHITECTURE.md, Documented deviations).
+local S = Settings.SchemaLib:New{
+    rows         = Schema,
+    resolveRoot  = function() return WhatGroup.db and WhatGroup.db.profile, 1 end,
+    announce     = function() Helpers.RefreshAll() end,
+    debug        = function(tag, fmt, ...) NS.Debug(tag, fmt, ...) end,
+    debugEnabled = function() return NS.State.debug == true end,
+    print        = pout,
+    resetExempt  = { [MINIMAP_PATH] = true },
+}
+NS.SchemaRuntime = S
 
-function Bulk.begin()
-    if bulkDepth == 0 then bulkChanged, bulkSilent, bulkFailed = 0, false, false end
-    bulkDepth = bulkDepth + 1
-end
+-- The host's names for the seam, bound to the instance's members as values. settings/OptionsSetup.lua
+-- moves them onto the Options instance with the rest of Helpers.
+Helpers.Get, Helpers.Set, Helpers.FindSchema, Helpers.ApplyDefault =
+    S.Get, S.Set, S.FindRow, S.ApplyDefault
 
-function Bulk.finish(act, scope, _, err, info)
-    if bulkDepth == 0 then return end
-    bulkDepth = bulkDepth - 1
-    if info and info.profileReset then bulkSilent = true end
-    if err ~= nil then bulkFailed = true end
-    if bulkDepth > 0 or bulkSilent then return end
-    NS.Debug("Set", "%s %s: %d rows%s", tostring(act), tostring(scope), bulkChanged,
-             bulkFailed and STOPPED or "")
-end
+-- The bulk bracket (debug-logging-§10), under the names tests and the Options descriptor have
+-- always reached it by. On Settings rather than Helpers, so the pair is not copied onto the
+-- Options instance and the instance's surface does not move.
+Settings.Bulk = { begin = S.BulkBegin, finish = S.BulkEnd }
 
--- A whole-profile reset fired while a bracket is open. The OnProfileReset handler's line stands for
--- the act, so the bracket's close must not add a second one (debug-logging-§10). No path does this
--- today; the handler reaches it through Settings.ConsumeResetCount below.
-local function silenceOpenBracket()
-    if bulkDepth > 0 then bulkSilent = true end
-end
-
-Settings.Bulk = Bulk
+-- The OnProfileReset handler's count, taken once (core/WhatGroup.lua). nil when the reset did not
+-- come through RestoreAllDefaults. Also silences a bracket open around the reset: the handler's
+-- line stands for the act.
+Settings.ConsumeResetCount = S.ConsumeResetCount
 
 -- ---------------------------------------------------------------------------
 -- Schema-shape validation
 -- ---------------------------------------------------------------------------
 --
--- Run once at panel-registration time. Catches missing `path`, unknown
--- `type`, non-string `section` / `group` / `label`. Errors are PRINTED
--- only — a broken row is an addon-author bug; the right user-visible
--- behavior is "the option you wanted is missing AND a chat error tells
+-- Run once at panel-registration time. Errors are PRINTED only — a broken row is an addon-author
+-- bug; the right user-visible behavior is "the option you wanted is missing AND a chat error tells
 -- you why," not "the entire settings panel refuses to register."
+--
+-- The runtime's Validate checks what every host's rows share: a row that is not a table, a
+-- missing `path`, an unknown `type`, a missing `group`, a duplicate path. What is this addon's
+-- alone stays here, in the library's line shape: `section` (`/wg list`'s grouping key, which no
+-- other host reads) and `label`. The two counts are summed.
 
 -- `string` arrived with the Master controls block: General visibility is a DROPDOWN, because a
 -- boolean can only ever answer two of options-ui-§15's four states. It is the only enum row in
 -- this addon and the library's flow engine and CLI parser both already read `values` / `sorting`.
-local _validTypes = { bool = true, number = true, string = true }
+local VALID_TYPES = { bool = true, number = true, string = true }
 
 function Helpers.ValidateSchema()
-    local errors = 0
+    local errors = S.Validate{ types = VALID_TYPES }
     for i, def in ipairs(Schema) do
-        local where = "row #" .. i .. " (" .. tostring(def and def.path or "<no path>") .. ")"
-        if type(def) ~= "table" then
-            pout("|cffff0000schema error|r " .. where .. ": row is not a table")
-            errors = errors + 1
-        else
-            if type(def.path) ~= "string" or def.path == "" then
-                pout("|cffff0000schema error|r " .. where .. ": missing or empty `path`")
-                errors = errors + 1
-            end
-            if not _validTypes[def.type] then
-                pout("|cffff0000schema error|r " .. where
-                     .. ": invalid `type` = " .. tostring(def.type)
-                     .. " (expected one of: bool, number, string)")
-                errors = errors + 1
-            end
+        if type(def) == "table" then
+            local where = "row #" .. i .. " (" .. tostring(def.path or "<no path>") .. ")"
             if type(def.section) ~= "string" then
-                pout("|cffff0000schema error|r " .. where .. ": missing or non-string `section`")
-                errors = errors + 1
-            end
-            if type(def.group) ~= "string" then
-                pout("|cffff0000schema error|r " .. where .. ": missing or non-string `group`")
+                pout("|cffff0000schema error|r: " .. where .. ": missing or non-string `section`")
                 errors = errors + 1
             end
             if type(def.label) ~= "string" then
-                pout("|cffff0000schema error|r " .. where .. ": missing or non-string `label`")
+                pout("|cffff0000schema error|r: " .. where .. ": missing or non-string `label`")
                 errors = errors + 1
             end
         end
@@ -671,73 +556,45 @@ end
 -- popup instead.
 --
 -- db.global (schemaVersion) is intentionally left untouched: a profile reset is not a downgrade.
-local pendingResetCount
+--
+-- The count is the runtime's ResetCounted: the stored rows off their default just before the
+-- reset, pending until the handler takes it through Settings.ConsumeResetCount and cleared on both
+-- exits. The predicate drops the GLOBAL row for the same reason sessionOnly rows are dropped: N is
+-- the rows the PROFILE reset actually changes, and `db:ResetProfile()` cannot reach either store.
+local STOPPED = " (stopped by an error)"
 
--- The OnProfileReset handler's count, taken once. nil when the reset did not come through
--- RestoreAllDefaults, which is the only caller that counted before the profile was replaced.
--- The handler calls this on EVERY OnProfileReset, which also makes it the place to silence a bulk
--- bracket that is open around the reset: the handler's line stands for the act.
-function Settings.ConsumeResetCount()
-    silenceOpenBracket()
-    local n = pendingResetCount
-    pendingResetCount = nil
-    return n
-end
-
-local function countChangedProfileRows()
-    local n = 0
-    for _, def in ipairs(Schema) do
-        -- Global rows are excluded for the same reason session rows are: N is the rows the
-        -- PROFILE reset actually changes, and `db:ResetProfile()` cannot reach either store.
-        if def.path and not def.sessionOnly and not GLOBAL[def.path]
-           and not sameValue(Helpers.Get(def.path), def.default) then
-            n = n + 1
-        end
-    end
-    return n
-end
+local function notGlobal(row) return not GLOBAL[row.path] end
 
 function Helpers.RestoreAllDefaults()
     local db = WhatGroup.db
     if db and db.ResetProfile then
-        pendingResetCount = countChangedProfileRows()
-        local ok, err = pcall(db.ResetProfile, db)
-        -- Consumed by the handler. Cleared here too, on BOTH exits, so a count the handler never took
-        -- (no callback registered, or a reset that raised before AceDB fired the event) cannot be
-        -- claimed by some later, unrelated reset. A count still pending means the handler never ran.
-        local unlogged = pendingResetCount ~= nil
-        pendingResetCount = nil
+        local ok, err = pcall(S.ResetCounted, function() db:ResetProfile() end, notGlobal)
         if not ok then
-            -- The act still gets its one line, once, saying it did not finish. The handler never ran,
-            -- so it is logged here, with no count: nothing knows how many rows a reset that raised
-            -- part-way changed. (A raise from inside a handler cannot reach here in the client, where
-            -- CallbackHandler swallows handler errors, and that handler has logged already.) Then the
-            -- error is re-raised, unchanged, and the sessionOnly sweep below does not run.
-            if unlogged then
-                NS.Debug("Set", "reset profile '%s' to defaults%s", tostring(db:GetCurrentProfile()),
-                         STOPPED)
-            end
+            -- The act still gets its one line, once, saying it did not finish. The reset raised
+            -- before AceDB fired OnProfileReset, so the handler never logged; it is logged here, with
+            -- no count: nothing knows how many rows a reset that raised part-way changed. (A raise
+            -- from inside a handler cannot reach here in the client, where CallbackHandler swallows
+            -- handler errors.) Then the error is re-raised, unchanged, and the sessionOnly sweep
+            -- below does not run.
+            NS.Debug("Set", "reset profile '%s' to defaults%s", tostring(db:GetCurrentProfile()),
+                     STOPPED)
             error(err, 0)
         end
     end
     -- The one thing a profile reset cannot reach (options-ui-§12): a `sessionOnly` row's storage is
     -- its own set(), not the db, so it would otherwise outlive a reset that took everything around
-    -- it. Restored row by row, which for the debug console means the window closes -- the state a
-    -- freshly-created profile is in.
-    -- The same three suppressions the row sweep this function replaced used: no per-row [Set]
-    -- (the handler's one line stands for the whole reset, debug-logging-§10), no per-row refresh
-    -- (OnProfileReset's handler does the single reconcile), and no onChange (the row's own set() is
-    -- the effect).
-    for _, def in ipairs(Schema) do
-        if def.sessionOnly then
-            Helpers.Set(def.path, deepcopy(def.default),
-                        { skipRefresh = true, skipLog = true, skipOnChange = true })
+    -- it. Restored row by row through the seam, which for the debug console means the window closes
+    -- -- the state a freshly-created profile is in.
+    --
+    -- Inside one bracket marked as a profile reset, so no row logs its own [Set] line and the
+    -- bracket adds none: the OnProfileReset handler's one line stands for the whole act
+    -- (debug-logging-§10). Each row's write still runs the seam's announce, the panel refresh.
+    S.BulkRun("reset", "profile", function(info)
+        info.profileReset = true
+        for _, def in ipairs(Schema) do
+            if def.sessionOnly then S.ApplyDefault(def) end
         end
-    end
-    -- NO RefreshAll HERE. `db:ResetProfile()` fires OnProfileReset, and core/WhatGroup.lua's
-    -- handler runs the migrations and refreshes -- one reconcile, on the same path a profile
-    -- SWITCH takes. Calling it here as well would refresh twice for one action, which is the
-    -- N-refreshes problem this function has always been careful about in miniature.
+    end)
 end
 
 -- Re-sync every open panel widget against the current db.profile value. Called
@@ -745,21 +602,12 @@ end
 -- hook is here if AceDBOptions is ever added).
 --
 -- The body is LibKa0s-Options-1.0's RefreshScalars, installed over this stub by
--- settings/OptionsSetup.lua. What survives here is the NAME, because the write
--- seam above calls it on every Set and the seam file loads later; and the
+-- settings/OptionsSetup.lua. What survives here is the NAME, because the runtime's
+-- `announce` calls it on every write and the seam file loads later; and the
 -- degraded path, where there are no panels and a reset must still not raise.
 function Helpers.RefreshAll()
     local H = Settings.Helpers
     if H and H.RefreshScalars then H.RefreshScalars() end
-end
-
--- Restore one row to its declared default. The library's per-page Defaults
--- button and the schema CLI's `reset` both come through here, so a single-row
--- reset takes the same write path a `/wg set` does — same [Set] line, same
--- onChange, same refresh.
-function Helpers.ApplyDefault(row)
-    if not (row and row.path) then return end
-    Helpers.Set(row.path, deepcopy(row.default))
 end
 
 -- ---------------------------------------------------------------------------

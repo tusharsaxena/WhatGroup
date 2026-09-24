@@ -199,8 +199,8 @@ end
 --
 -- `defaults` is passed for every leaf so the composer stores THIS addon's values, and
 -- `debugConsolePath` is the collection's verbatim `state.debugConsole` — a path
--- settings/Schema.lua's SESSION table intercepts in front of db.profile, which is what keeps the
--- console session-only now that it is a schema row (WG-12).
+-- settings/Schema.lua's SESSION table gives its own get/set, which is what keeps the console
+-- session-only now that it is a schema row (WG-12).
 local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{
     prefix           = "",
     page             = "general",
@@ -291,10 +291,11 @@ end
 -- HEAD OF THE ARRAY, because RenderTabbedSchema partitions by `group` in DECLARATION order and
 -- options-ui-§15 requires this tab to be the FIRST one. Spliced rather than declared in
 -- settings/Schema.lua for the load-order reason above; the rows are ordinary schema rows from the
--- moment they land here.
-for i = #MASTER_ROWS, 1, -1 do
-    table.insert(Settings.Schema, 1, MASTER_ROWS[i])
-end
+-- moment they land here. The session and global rows first get their own get/set
+-- (Settings.StampClosureRows), and the splice goes through the schema runtime so its path index
+-- sees them (LibKa0s-Schema-1.0's AddRows, a head insert at 1).
+Settings.StampClosureRows(MASTER_ROWS)
+NS.SchemaRuntime.AddRows(MASTER_ROWS, 1)
 
 -- ---------------------------------------------------------------------------
 -- The General page
