@@ -26,7 +26,7 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the Core stub's SafeRegisterEvent survives a bad name
 - events: a stand-up after a rejection records the name once
 
-### test_libka0s.lua (53)
+### test_libka0s.lua (54)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
@@ -81,6 +81,7 @@ badge and any count quoted in the docs must agree with it.
 - libka0s: no seam file hands a descriptor this addon's locale table (the L trap)
 - libka0s: Core has no STRINGS and reads no descriptor L (tripwire)
 - libka0s: Options reads no descriptor L (tripwire)
+- locale: every key enUS.lua defines has a reader
 
 ### test_surface_parity.lua (9)
 
@@ -872,7 +873,7 @@ badge and any count quoted in the docs must agree with it.
 | Suite | Cases |
 |-------|------:|
 | test_harness.lua | 17 |
-| test_libka0s.lua | 53 |
+| test_libka0s.lua | 54 |
 | test_surface_parity.lua | 9 |
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
@@ -900,4 +901,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **774** |
+| **Total** | **775** |

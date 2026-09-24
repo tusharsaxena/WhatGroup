@@ -939,3 +939,40 @@ test("libka0s: Options reads no descriptor L (tripwire)", function()
     assertTrue(widgets ~= nil, "the vendored OptionsWidgets.lua is readable")
     assertNil(widgets:match("d%.L"), "OptionsWidgets.lua now reads a descriptor L")
 end)
+
+-- ---------------------------------------------------------------------------
+-- The locale table holds only keys something reads (localization-§3)
+-- ---------------------------------------------------------------------------
+--
+-- locales/enUS.lua's header says a key with no L[...] reader is a defect: it tells a translator a
+-- surface is covered when it is not. This is the check that makes the sentence true. Each defined
+-- key's source literal, quotes and escapes included, must appear inside an L[...] read somewhere in
+-- the addon's own core/, modules/ or settings/ source. Matching the literal rather than the decoded
+-- string keeps it honest about spelling: a read that writes the em dash one way and a definition
+-- that writes it another are two keys, and the fall-back metatable would hide the mismatch.
+
+test("locale: every key enUS.lua defines has a reader", function()
+    local locale = readFile("locales/enUS.lua")
+    assertTrue(locale ~= nil, "locales/enUS.lua is readable")
+    local readers = {}
+    for _, path in ipairs(SEAM_FILES) do
+        local p = path:gsub("\\", "/")
+        if p:match("^core/") or p:match("^modules/") or p:match("^settings/") then
+            local src = readFile(path)
+            assertTrue(src ~= nil, path .. " is in the TOC load list but could not be read")
+            readers[#readers + 1] = src
+        end
+    end
+    assertTrue(#readers >= 10, "the reader sweep covered the addon's source, not an empty list")
+    local body = table.concat(readers, "\n")
+    local defined, orphans = 0, {}
+    for line in (locale .. "\n"):gmatch("([^\n]*)\n") do
+        local key = line:match('^L%[(".-")%]%s*=')
+        if key then
+            defined = defined + 1
+            if not body:find("L[" .. key .. "]", 1, true) then orphans[#orphans + 1] = key end
+        end
+    end
+    assertTrue(defined >= 30, "the locale table was walked, not an empty one")
+    assertEqual(#orphans, 0, "enUS.lua keys with no L[...] reader: " .. table.concat(orphans, ", "))
+end)
