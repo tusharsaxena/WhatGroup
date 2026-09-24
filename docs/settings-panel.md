@@ -136,9 +136,10 @@ Default *values* live in `defaults/Profile.lua` as the nested `NS.C` table (the 
 
 ```lua
 function Settings.BuildDefaults()
-    -- global seeds schemaVersion (WG-08) and the windows table (WG-26)
+    -- global declares schemaVersion 0 (pre-versioning, so the stamp survives AceDB's
+    -- logout strip; see schema.md) and the windows table (WG-26)
     local out = { profile = deepcopy(C),
-                  global = { schemaVersion = NS.SCHEMA_VERSION or 1, windows = {} } }
+                  global = { schemaVersion = 0, windows = {}, minimap = { hide = false } } }
     for _, def in ipairs(Schema) do
         if def.path and not def.sessionOnly then
             -- split def.path on "." into segments
@@ -311,7 +312,7 @@ profile = {
   },
 }
 global = {
-  schemaVersion = 1,   -- seeded here; read by NS:RunMigrations (Database.lua)
+  schemaVersion = 0,   -- declared 0 here; NS:RunMigrations (Database.lua) stamps 1
   windows = {          -- persisted standalone-window geometry (WG-26); each entry
     -- [name] = { point, relPoint, x, y }   written on drag-stop, restored on show
   },

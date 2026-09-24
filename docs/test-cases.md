@@ -191,12 +191,14 @@ badge and any count quoted in the docs must agree with it.
 - compat: GetSpellTexture hands back one value when the client answers two
 - compat degraded: with LibKa0s absent the spell readers answer the library's absent values
 
-### test_database.lua (9)
+### test_database.lua (11)
 
 - database: fresh DB lands at schemaVersion 1
 - database: RunMigrations is idempotent
 - database: RunMigrations re-seeds a missing schemaVersion
-- database: BuildDefaults seeds global.schemaVersion from NS.SCHEMA_VERSION
+- database: defaults declare global.schemaVersion 0 (savedvariables-§1)
+- database: the stamp survives AceDB's logout strip, so the first real migration runs
+- database: a raising step leaves the stamp at the last completed version
 - database: RunMigrations before the db exists is a no-op
 - database: an older saved DB is stepped up to the current version
 - database: a version move is logged, a no-op migration is silent (debug-logging-§8)
@@ -847,7 +849,7 @@ badge and any count quoted in the docs must agree with it.
 | test_envsetup.lua | 8 |
 | test_util.lua | 31 |
 | test_compat.lua | 42 |
-| test_database.lua | 9 |
+| test_database.lua | 11 |
 | test_settings.lua | 56 |
 | test_slash.lua | 59 |
 | test_labels.lua | 34 |
@@ -869,4 +871,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **743** |
+| **Total** | **745** |

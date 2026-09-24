@@ -594,11 +594,14 @@ end
 -- A `sessionOnly` row is skipped outright: its storage is its own set(), and threading a default
 -- for it would materialize the very db.profile branch WG-12 exists to keep empty.
 function Settings.BuildDefaults()
-    -- `global.schemaVersion` seeds AceDB's account-wide store so a fresh
-    -- install lands at the current version; Database.lua's RunMigrations
-    -- reads it (WG-08). `global.windows` holds persisted standalone-window
-    -- geometry (WG-26); an empty table so NS.Windows.Save/Restore never index
-    -- a nil.
+    -- `global.schemaVersion` declares 0, the PRE-VERSIONING value, never NS.SCHEMA_VERSION
+    -- (savedvariables-§1). AceDB's removeDefaults strips a stored value equal to its default at
+    -- logout, so a default equal to the current version would never persist, and the first real
+    -- bump would read the new default back as the stored version and skip its own step. With 0
+    -- declared, a fresh install walks core/Database.lua's steps from 0 like any old one, and the
+    -- stamp RunMigrations writes always differs from the default and survives logout.
+    -- `global.windows` holds persisted standalone-window geometry (WG-26); an empty table so
+    -- NS.Windows.Save/Restore never index a nil.
     -- `global.minimap` is LibDBIcon's OWN table (launcher-§3), and this declared default is what
     -- MATERIALIZES it -- architecture-§5, not a whole-section write over a schema row: the row
     -- addresses `global.minimap.hide` and nothing else writes the branch. `hide = false` is the
@@ -606,7 +609,7 @@ function Settings.BuildDefaults()
     -- `minimapPos` to the same table when the player drags the button, which is the library's own
     -- write into its own key and needs no row.
     local out = { profile = deepcopy(C),
-                  global = { schemaVersion = NS.SCHEMA_VERSION or 1, windows = {},
+                  global = { schemaVersion = 0, windows = {},
                              minimap = { hide = false } } }
     for _, def in ipairs(Schema) do
         -- A GLOBAL row is not a profile row: threading its default through this walk would write

@@ -9,7 +9,7 @@ test("settings: BuildDefaults threads profile + global defaults", function()
     assertEqual(d.profile.notify.delay, 0)
     assertEqual(d.profile.notify.enabled, true)
     assertEqual(d.profile.frame.autoShow, true)
-    assertEqual(d.global.schemaVersion, 1)
+    assertEqual(d.global.schemaVersion, 0)
 end)
 
 test("settings: defaults source from NS.C (defaults/Profile.lua, WG-24)", function()
