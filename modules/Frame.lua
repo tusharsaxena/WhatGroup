@@ -420,6 +420,29 @@ local function stopCooldownTicker()
     end
 end
 
+-- The teleport button's three script handlers, defined once (WHATGROUP-R-16). Each configure
+-- writes the spell onto the button (`__wgSpellID`, `__wgSpellName`) and re-passes these same
+-- functions, so reopening the popup allocates no closures. They read the spell off `self`.
+local function onTeleportEnter(self)
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetSpellByID(self.__wgSpellID)
+    GameTooltip:Show()
+end
+
+local function onTeleportLeave() GameTooltip:Hide() end
+
+-- Material-effect trace (debug-logging-§10): log the actual press. The button registers the down
+-- edge as well as the up (see RegisterForClicks in buildFrame), so the `down` check is what keeps
+-- one press to one line. PreClick is non-secure work that runs alongside the secure /cast, so it
+-- is taint-free even in combat. The args go to NS.Debug unformatted: the sink formats them only
+-- when debug is on.
+local function onTeleportPreClick(self, mouseButton, down)
+    if down then
+        NS.Debug("Frame", "teleport button pressed \226\134\146 /cast %s (spellID=%s, button=%s)",
+            self.__wgSpellName, self.__wgSpellID, mouseButton)
+    end
+end
+
 -- Secure-button attribute writes (`type`, `macrotext`) and Show/Hide are protected while in
 -- combat — silently dropped, not erroring. Stash the info, queue a re-run on combat-end, and tell
 -- the caller to bail. The button retains its prior visual state until PLAYER_REGEN_ENABLED fires;
@@ -439,6 +462,8 @@ end
 -- Arms or disarms the click. Everything here is protected-frame work, which is why the caller
 -- has already established it is out of combat.
 local function applyTeleportAction(btn, spellID, spellName, known, ready)
+    -- Before any SetScript: the shared handlers read the spell off the button.
+    btn.__wgSpellID, btn.__wgSpellName = spellID, spellName
     if ready and spellName then
         -- Secure-handler macro path: clicking runs `/cast <SpellName>`
         -- through Blizzard's secure action system, side-stepping the
@@ -446,25 +471,9 @@ local function applyTeleportAction(btn, spellID, spellName, known, ready)
         btn:SetAttribute("type", "macro")
         btn:SetAttribute("macrotext", "/cast " .. spellName)
         btn:EnableMouse(true)
-        btn:SetScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetSpellByID(spellID)
-            GameTooltip:Show()
-        end)
-        btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        -- Material-effect trace (debug-logging-§10): log the actual press.
-        -- The button registers the down edge only (see RegisterForClicks in buildFrame), so
-        -- one press is one line. The `down` check stays as a guard rather than a filter: it
-        -- costs nothing and keeps the trace honest if the registration is ever widened again.
-        -- PreClick is non-secure work that runs alongside the secure /cast, so it's taint-free
-        -- even in combat.
-        btn:SetScript("PreClick", function(_, mouseButton, down)
-            if down then
-                NS.Debug("Frame", "teleport button pressed \226\134\146 /cast "
-                    .. spellName .. " (spellID=" .. tostring(spellID)
-                    .. ", button=" .. tostring(mouseButton) .. ")")
-            end
-        end)
+        btn:SetScript("OnEnter", onTeleportEnter)
+        btn:SetScript("OnLeave", onTeleportLeave)
+        btn:SetScript("PreClick", onTeleportPreClick)
     else
         -- Clearing the attributes IS the disable: the button still takes the click, the
         -- secure handler finds no action to run, and nothing is cast. Calling :Disable() would
@@ -479,12 +488,8 @@ local function applyTeleportAction(btn, spellID, spellName, known, ready)
         -- the note beside the button already says so.
         if known then
             btn:EnableMouse(true)
-            btn:SetScript("OnEnter", function(self)
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetSpellByID(spellID)
-                GameTooltip:Show()
-            end)
-            btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+            btn:SetScript("OnEnter", onTeleportEnter)
+            btn:SetScript("OnLeave", onTeleportLeave)
         else
             btn:EnableMouse(false)
             btn:SetScript("OnEnter", nil)

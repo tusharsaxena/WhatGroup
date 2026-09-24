@@ -552,7 +552,7 @@ badge and any count quoted in the docs must agree with it.
 - frame: PLAYER_REGEN_DISABLED is answered from the event, not from a lockdown flag that has not flipped
 - frame: a combat transition with no popup built is a no-op, not an error
 
-### test_frame_secure.lua (6)
+### test_frame_secure.lua (7)
 
 - frame: reopening a soft-hidden popup in combat with no capture never Hides the secure button
 - frame: a deferred no-capture configure is replayed, not dropped
@@ -560,6 +560,7 @@ badge and any count quoted in the docs must agree with it.
 - frame: an alpha write while soft-hidden does not reveal the popup
 - frame: a real show after the soft hide restores the master alpha
 - frame: a stand-down in combat drops a queued first show and a queued teleport configure
+- frame: reconfiguring the teleport button reuses the same three script handlers
 
 ### test_panel.lua (53)
 
@@ -866,7 +867,7 @@ badge and any count quoted in the docs must agree with it.
 | test_capture.lua | 35 |
 | test_notify.lua | 48 |
 | test_frame.lua | 90 |
-| test_frame_secure.lua | 6 |
+| test_frame_secure.lua | 7 |
 | test_panel.lua | 53 |
 | test_testmode.lua | 23 |
 | test_launcher.lua | 24 |
@@ -881,4 +882,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **755** |
+| **Total** | **756** |

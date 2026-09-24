@@ -205,3 +205,41 @@ test("frame: a stand-down in combat drops a queued first show and a queued telep
     assertNil(btn:GetAttribute("macrotext"), "the dropped configure never arms the button")
     assertEqual(#mock.blocked, 0)
 end)
+
+-- WHATGROUP-R-16. The OnEnter / OnLeave / PreClick trio is defined once at file scope and reads the
+-- spell off the button, so a reconfigure swaps the data on the button and never allocates fresh
+-- closures. The second capture's spell must still be what the tooltip and the trace name.
+test("frame: reconfiguring the teleport button reuses the same three script handlers", function()
+    -- red under: per-call closures in applyTeleportAction
+    local NS, _, mock = T.enableAddon()
+    learnStonevault(NS, mock)
+    local SECOND_MAP, SECOND_PORT = 2660, 445417
+    mock.spellNames[SECOND_PORT] = "Path of the Ara-Kara"
+    mock.knownSpells[SECOND_PORT] = true
+    NS.TeleportSpells[SECOND_MAP] = SECOND_PORT
+
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    local btn = teleportBtn(mock)
+    local enter, leave, pre = btn:GetScript("OnEnter"), btn:GetScript("OnLeave"), btn:GetScript("PreClick")
+    assertTrue(enter and leave and pre, "the first capture wired all three handlers")
+
+    NS.addon.pendingInfo = pending({ mapID = SECOND_MAP, activityName = "Ara-Kara" })
+    NS.addon:ShowFrame()
+    assertEqual(btn:GetAttribute("macrotext"), "/cast Path of the Ara-Kara", "the second capture re-armed it")
+    assertTrue(rawequal(btn:GetScript("OnEnter"), enter), "OnEnter is the same function across configures")
+    assertTrue(rawequal(btn:GetScript("OnLeave"), leave), "OnLeave is the same function across configures")
+    assertTrue(rawequal(btn:GetScript("PreClick"), pre), "PreClick is the same function across configures")
+
+    local tip = mock.GameTooltip
+    local shownID
+    tip.SetSpellByID = function(_, id) shownID = id end
+    btn.__fire("OnEnter")
+    assertEqual(shownID, SECOND_PORT, "the tooltip shows the second capture's spell")
+
+    NS.State.debug = true
+    btn.__fire("PreClick", "LeftButton", true)
+    local last = NS.DebugLog.buffer[#NS.DebugLog.buffer]
+    assertTrue(last and last:find("/cast Path of the Ara-Kara (spellID=445417, button=LeftButton)", 1, true) ~= nil,
+        "the PreClick trace names the second spell: " .. tostring(last))
+end)

@@ -141,7 +141,7 @@ column but `ms/iter`.
 | `formatDurationShort` | 2000 | 0.0 | 0.8 | The same on the seconds-only branch |
 | `combatGateSteady` | 2000 | **0.0** | **0.0** | A combat transition that changes nothing. Asserted at zero |
 | `combatGateFlipping` | 2000 | 7.0 | 1064.1 | A transition that genuinely flips the popup, on `visibility = inCombat` |
-| `showFrameRepeat` | 500 | 18.0 | 1872.5 | A group capture arriving: repopulate and show |
+| `showFrameRepeat` | 500 | 18.0 | 1744.5 | A group capture arriving: repopulate and show. Re-measured 2026-09-24 |
 | `applyScale` | 500 | 1.0 | 0.0 | Dragging the scale slider |
 | `applyAlpha` | 500 | 1.0 | 0.0 | Dragging the alpha slider |
 
@@ -159,6 +159,10 @@ column but `ms/iter`.
   (the popup, its secure child, and the alpha restore that settles a lockdown-deferred hide), and a
   show edge re-anchors and repopulates. Seven is the real figure; what is asserted is that it stays
   constant, because a player crosses two edges per pull and a constant cost does not accumulate.
+- **A capture arriving dropped from 1872.5 to 1744.5 bytes** when the teleport button's three
+  script handlers moved to file scope (2026-09-24, WHATGROUP-R-16): a configure now writes the spell
+  onto the button instead of building fresh closures. Its ceiling is pinned as a literal in
+  `tests/perf.lua`, so a closure that creeps back trips it.
 - **The slider paths allocate nothing**, which is what makes a drag cheap: they call one setter and
   build no strings.
 
