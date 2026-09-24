@@ -1,5 +1,5 @@
 -- core/WhatGroup.lua
--- AceAddon shell, event handling, group-info capture, slash dispatch.
+-- AceAddon shell, event handling, group-info capture. Slash dispatch lives in settings/Slash.lua.
 --
 -- Settings layer lives in settings/Schema.lua (schema + helpers) and
 -- settings/Panel.lua (canvas panel). Frame UI lives in modules/Frame.lua. All persistent
@@ -16,9 +16,9 @@
 -- mixes its methods (RegisterChatCommand / RegisterEvent / db / …) directly
 -- INTO `NS`, so `NS` IS the addon object and `NS.addon` aliases it. Earlier
 -- files have already hung their fields on this same table — locales/enUS.lua
--- (NS.L; the `# Locales` section now precedes `# Core`, WG-14), core/Util.lua
--- (NS.Util / NS.SafeToString / NS.Windows), Compat (NS.Compat), Database
--- (NS:RunMigrations) — and NewAddon preserves them. L strings are still
+-- (NS.L; the `# Locales` section now precedes `# Core`, WG-14), core/CoreSetup.lua
+-- (NS.Util / NS.SafeToString), core/Util.lua (NS.Windows / NS.FormatDuration), Compat
+-- (NS.Compat), Database (NS:RunMigrations) — and NewAddon preserves them. L strings are still
 -- referenced as NS.L[...] at runtime, never captured at file scope here.
 --
 -- No `_G.WhatGroup` — the addon exposes no public global (WG-01). Downstream
@@ -47,7 +47,7 @@ NS.State.debug = false
 NS.RejectedEvents = {}
 
 -- Single shared chat prefix (slash-commands-§4). NS.PREFIX is the one source of
--- truth; the secret-safe printer (core/Util.lua) prepends it to every line.
+-- truth; the secret-safe printer (core/CoreSetup.lua) prepends it to every line.
 NS.PREFIX = "|cff00FFFF[WG]|r"
 
 -- Both subscriptions below are installed at file-load (NOT in OnEnable):
@@ -141,7 +141,7 @@ local wasInGroup          = false
 local notifiedFor         = nil  -- pendingInfo identity that already fired notify+popup
 
 -- Single secret-safe chat seam (slash-commands-§4, WG-22). Every user-facing
--- line funnels through NS.Util.print (core/Util.lua), which prepends NS.PREFIX
+-- line funnels through NS.Util.print (core/CoreSetup.lua), which prepends NS.PREFIX
 -- and stringifies each arg via NS.SafeToString — so a combat-protected value
 -- can never raise in the chat path. `p` is the file-local alias for the many
 -- call sites; NS.Print / _print expose the same one seam to other files

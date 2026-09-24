@@ -155,12 +155,12 @@ Kit.run{
         -- declared with its own `dir`. Kit.assertSuiteInventory fails the run until it is
         -- declared, so it cannot arrive with a re-vendor and then quietly run nothing.
         { name = "test_eol", dir = "tests/_kit/" },
-        -- The US-English prose gate (localization-5) is the kit's too, since revision 24. It
+        -- The US-English prose gate (localization-§5) is the kit's too, since revision 24. It
         -- was declared here as a bare "test_prose", which wired a hand-written copy under
         -- tests/ and left this one loading zero cases; the copy is gone, and the per-file,
         -- per-word waivers it carried live in tests/prose_waivers.lua, which this suite reads.
         { name = "test_prose", dir = "tests/_kit/" },
-        -- The layout-1 cap gate, new in kit revision 25: every authored .lua file against the
+        -- The layout-§1 cap gate, new in kit revision 25: every authored .lua file against the
         -- 1500-line cap, held to the census under docs/ARCHITECTURE.md's deviations register.
         -- No Kit.layoutCap opts: the census is in the default hub and nothing here is generated.
         { name = "test_layout_cap", dir = "tests/_kit/" },

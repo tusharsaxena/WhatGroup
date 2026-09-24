@@ -12,7 +12,7 @@
 --
 -- IT IS ALSO THE BASE Settings.BuildDefaults COPIES FIRST. The Master controls block is composed
 -- by LibKa0s-Options-1.0 rather than declared here (options-ui-§15), so with the library absent
--- those six rows are not in the schema at all -- and a schema-only BuildDefaults would then hand
+-- that composed block is not in the schema at all -- and a schema-only BuildDefaults would then hand
 -- AceDB a profile with no `enabled` key, which reads as false and turns the addon off for the one
 -- install that is already missing a library. Seeding from this table first makes the stored
 -- profile the same shape either way, and keeps this file what savedvariables-§2 says it is.
@@ -21,8 +21,8 @@ local _, NS = ...
 
 NS.C = {
     -- Master controls (options-ui-§15). Every one of these is stored at the profile ROOT, which
-    -- is the path the composer's own prefix-less form produces -- the same five keys, spelled the
-    -- same way, in all nine addons.
+    -- is the path the composer's own prefix-less form produces -- the same keys, spelled the same
+    -- way, in every Ka0s addon.
     enabled    = true,              -- master switch
     visibility = "always",          -- always | inCombat | outOfCombat | never
     scale      = 1,                 -- popup scale   (0.5 .. 2)

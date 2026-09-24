@@ -211,16 +211,15 @@ end
 -- What that costs, per value, because it is not uniform:
 --   * `inCombat`   — hides when combat ENDS. InCombatLockdown() is already false on that edge, so
 --                    the hide is legal and the gate is honored exactly.
---   * `outOfCombat` — would hide when combat STARTS, which is inside the lockdown and refused. The
---                    popup therefore STAYS UP for the fight and the gate is honored late, at
---                    PLAYER_REGEN_ENABLED. There is no way to do better while the secure child
---                    exists; the only real alternative is to stop parenting it to f, which costs a
+--   * `outOfCombat` — would hide when combat STARTS, which is inside the lockdown and refused. On
+--                    that entering edge hidePopup SOFT-hides it instead: the popup goes to alpha 0
+--                    (invisible, though still shown) and owes the real Hide, which lands at
+--                    PLAYER_REGEN_ENABLED when ApplyFrameVisibility settles `pendingHide`. The only
+--                    real alternative is to stop parenting the secure child to f, which costs a
 --                    floating orphan button the client will equally refuse to hide.
--- Attempting it anyway is strictly worse than deferring: the frame does not hide either way, and the
--- player additionally gets a red error naming this addon.
---
--- f:Show() on an already-built frame is not a secure write — the secure work is buildFrame's, and it
--- has already happened by the time f exists. Only the hide direction is constrained.
+-- Calling f:Hide() anyway is strictly worse than the soft route: the frame does not hide, and the
+-- player additionally gets a red error naming this addon. Show is protected the same way (see
+-- showPopup), so the re-show in combat is only ever the alpha coming back.
 --
 -- The re-show is gated on there being a capture to render: a "No data" popup appearing the moment
 -- the player pulls is worse than no popup at all. It is deliberately NOT gated on the caller, so
@@ -443,22 +442,6 @@ local function onTeleportPreClick(self, mouseButton, down)
     end
 end
 
--- Secure-button attribute writes (`type`, `macrotext`) and Show/Hide are protected while in
--- combat — silently dropped, not erroring. Stash the info, queue a re-run on combat-end, and tell
--- the caller to bail. The button retains its prior visual state until PLAYER_REGEN_ENABLED fires;
--- at that point we Configure with the most recently-stashed info.
---
--- Returns true when the work was deferred, so the caller's guard reads as one line.
--- Resolves everything the button's appearance depends on, in one place, and returns nil when this
--- activity has no teleport at all — the caller's cue to clear the button rather than paint it.
---
--- A learned teleport that is still recharging is its own state (WG-31). The player owns the spell,
--- so "not learned" would be a lie and hiding the icon would be worse; it renders like the unlearned
--- state but says why, and the swipe shows the wait draining. `remaining` is only asked of a spell
--- the player actually has: an unlearned one has no meaningful cooldown, and answering with one
--- answers a question nobody asked.
--- The note beneath the button: three states, one line of text, and the only place the cooldown
--- countdown lives.
 -- Arms or disarms the click. Everything here is protected-frame work, which is why the caller
 -- has already established it is out of combat.
 local function applyTeleportAction(btn, spellID, spellName, known, ready)
@@ -498,6 +481,8 @@ local function applyTeleportAction(btn, spellID, spellName, known, ready)
     end
 end
 
+-- The note beneath the button: three states, one line of text, and the only place the cooldown
+-- countdown lives.
 local function applyTeleportNote(spellID, known, remaining, info)
     local note = fields.teleportNote
     local function renderNote(secondsLeft)
@@ -542,6 +527,14 @@ local function applyTeleportNote(spellID, known, remaining, info)
     end
 end
 
+-- Resolves everything the button's appearance depends on, in one place, and returns nil when this
+-- activity has no teleport at all — the caller's cue to clear the button rather than paint it.
+--
+-- A learned teleport that is still recharging is its own state (WG-31). The player owns the spell,
+-- so "not learned" would be a lie and hiding the icon would be worse; it renders like the unlearned
+-- state but says why, and the swipe shows the wait draining. `remaining` is only asked of a spell
+-- the player actually has: an unlearned one has no meaningful cooldown, and answering with one
+-- answers a question nobody asked.
 local function resolveTeleportState(info)
     local spellID, known = WhatGroup:GetTeleportSpell(info and info.activityID, info and info.mapID)
     NS.Debug("Frame", "teleport spellID=%s known=%s (activity=%s map=%s)", spellID, known,
@@ -575,6 +568,12 @@ local function replayTeleport()
     end
 end
 
+-- Secure-button attribute writes (`type`, `macrotext`) and Show/Hide are protected while in
+-- combat — silently dropped, not erroring. Stash the info, queue a re-run on combat-end, and tell
+-- the caller to bail. The button retains its prior visual state until PLAYER_REGEN_ENABLED fires;
+-- at that point we Configure with the most recently-stashed info.
+--
+-- Returns true when the work was deferred, so the caller's guard reads as one line.
 local function deferTeleportUntilCombatEnds(info)
     if not InCombatLockdown() then return false end
     f._pendingTeleportInfo = (info == nil) and NO_CAPTURE or info
@@ -647,7 +646,7 @@ local function buildFrame()
     -- menu. By now f:IsShown() is false, so the proxy's OnHide sees the popup off screen and stops.
     f:SetScript("OnHide", function(self)
         gateWithheld = false
-        stopCooldownTicker(self)
+        stopCooldownTicker()
         if escProxy then escProxy:Hide() end
     end)
 
@@ -787,11 +786,11 @@ local function buildFrame()
     local teleportIcon = teleportBtn:CreateTexture(nil, "ARTWORK")
     teleportIcon:SetAllPoints()
 
-    -- The swipe is the ONLY live element in this popup, and it is live without costing the addon
-    -- an OnUpdate or a repeating timer: the Cooldown widget animates engine-side once armed. That
-    -- distinction is load-bearing — zero Lua-side repeat is the condition LIBKA0S-15 (issue #7) rests on for
-    -- declining LibKa0s-Perf (docs/performance.md). The numbers are hidden because at 24px they
-    -- are unreadable, and the note beside the button carries the figure instead.
+    -- The swipe has no Lua-side repeat: the Cooldown widget animates engine-side once armed, so it
+    -- costs the addon no OnUpdate and no timer of its own. The note's countdown beside the button
+    -- is the one repeating thing in the addon, the ratified cooldown ticker (see stopCooldownTicker
+    -- above; the reasoning is in docs/performance.md and the performance-§12 register row). The
+    -- numbers are hidden because at 24px they are unreadable, and the note carries the figure.
     local teleportSwipe = CreateFrame("Cooldown", nil, teleportBtn, "CooldownFrameTemplate")
     teleportSwipe:SetAllPoints()
     teleportSwipe:SetHideCountdownNumbers(true)
@@ -1054,13 +1053,6 @@ function WhatGroup:ShowFrame()
         NS.Debug("Frame", "popup suppressed: visibility = never")
         return
     end
-    -- First-show-in-combat defer: buildFrame creates a
-    -- SecureActionButtonTemplate button and inserts into UISpecialFrames;
-    -- both operations are protected. If we're in combat AND the popup
-    -- has never been built, queue the show on the combat-end queue and
-    -- print a chat hint. Once buildFrame has run once, subsequent calls
-    -- are safe in combat (only the secure-button reconfigure, handled
-    -- by ConfigureTeleportButton's own combat guard, is at risk).
     -- REFUSED IN COMBAT, and it is the show that is refused now, not only the build. Building
     -- creates the secure button and the UISpecialFrames entry, both protected; showing changes a
     -- protected frame's visibility through its ancestor, equally protected. `/wg test` mid-fight

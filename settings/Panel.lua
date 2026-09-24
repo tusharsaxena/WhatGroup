@@ -189,13 +189,13 @@ end
 -- The Master controls tab (options-ui-§15)
 -- ---------------------------------------------------------------------------
 --
--- COMPOSED, NOT WRITTEN. `Helpers.MasterControls` emits the canonical ten-control block — enable,
--- general visibility, master scale, master alpha, lock frame, debug console, minimap button, test
--- mode, and the closing reset pair — from this one declaration, so the tab every player looks at
--- first is the same tab in all eleven addons and no addon can drift by editing a row. Composed HERE rather than in
--- settings/Schema.lua because the composer is a member of the LibKa0s instance, and the instance
--- does not exist until settings/OptionsSetup.lua has run — which is the file immediately before
--- this one in the TOC.
+-- COMPOSED, NOT WRITTEN. `Helpers.MasterControls` emits the canonical Master controls block —
+-- enable, general visibility, master scale, master alpha, lock frame, debug console, minimap
+-- button, test mode, and the closing reset pair — from this one declaration, so the tab every
+-- player looks at first is the same tab in every Ka0s addon and no addon can drift by editing a
+-- row. Composed HERE rather than in settings/Schema.lua because the composer is a member of the
+-- LibKa0s instance, and the instance does not exist until settings/OptionsSetup.lua has run —
+-- which is the file immediately before this one in the TOC.
 --
 -- WhatGroup is NOT frameless: modules/Frame.lua's popup is SetMovable(true) and drag-persisted
 -- (WG-26), so all four frame rows apply and all four are wired there.
@@ -284,8 +284,8 @@ local TEST_MODE_TOOLTIP = "Show the popup with sample group info, so you can dra
     .. "without joining a group. It stays up until you untick this, close the popup, or combat starts."
 
 for _, row in ipairs(MASTER_ROWS) do
-    -- One section for the whole block: `/wg list` groups by section, and these eight are one
-    -- subject however they are stored.
+    -- One section for the whole block: `/wg list` groups by section, and the whole composed block is
+    -- one subject however they are stored.
     row.section  = "general"
     row.onChange = MASTER_HOOKS[row.path]
     if row.path == "state.testMode" then row.tooltip = TEST_MODE_TOOLTIP end
@@ -314,7 +314,7 @@ NS.SchemaRuntime.AddRows(MASTER_ROWS, 1)
 -- tab's rows.
 --
 -- The Test button follows the tab its group ended up on. It was keyed to "General", and General is
--- the Master controls tab now: `enabled` became one of options-ui-§15's canonical nine and
+-- the Master controls tab now: `enabled` became one of options-ui-§15's canonical rows and
 -- `notify.delay` moved to Chat, which is where this button's own tooltip already said it belonged
 -- -- previewing the chat-output toggles. It is NOT folded into the Master controls button pair: a
 -- 160px left-aligned action is not one of that block's two resets.

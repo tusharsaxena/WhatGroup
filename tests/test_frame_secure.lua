@@ -1,7 +1,7 @@
 -- tests/test_frame_secure.lua — the popup's secure child: reopening a soft-hidden popup, its alpha,
 -- and the teleport handlers (modules/Frame.lua).
 --
--- A sibling of tests/test_frame.lua rather than more of it: that suite sits near the layout-1
+-- A sibling of tests/test_frame.lua rather than more of it: that suite sits near the layout-§1
 -- 1500-line cap. The cases here are the ones where the popup is still SHOWN at alpha 0 during a
 -- lockdown, so ShowFrame's first-show defer lets the reopen through and every protected call on
 -- the SecureActionButtonTemplate teleport button has to be deferred by the code that makes it.

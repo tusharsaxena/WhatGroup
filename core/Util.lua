@@ -1,6 +1,6 @@
 -- core/Util.lua
--- Standalone-window geometry persistence (WG-26) — the one low-level seam in this addon that has
--- no LibKa0s equivalent.
+-- The addon's two low-level seams with no LibKa0s equivalent: NS.Windows, the standalone-window
+-- geometry persistence (WG-26), and NS.FormatDuration, the cooldown-wait renderer.
 --
 -- Everything else that used to live here is now the library's and is wired up in
 -- core/CoreSetup.lua, which loads immediately before this file:
@@ -14,15 +14,6 @@
 -- time, by which point the later files have run.
 
 local _, NS = ...
-
--- ---------------------------------------------------------------------------
--- Standalone-window geometry persistence (standalone-windows, WG-26)
--- ---------------------------------------------------------------------------
---
--- Windows persist only their anchor POINT (all standalone windows here are fixed-size). Saved
--- under db.global.windows[name]; guarded on the db being ready so a pre-login show (in theory) is a
--- harmless no-op rather than a nil index. Frame wiring: capture on OnDragStop, restore on the show
--- path.
 
 -- ---------------------------------------------------------------------------
 -- Duration rendering
@@ -50,6 +41,14 @@ function NS.FormatDuration(seconds)
     return string.format("%ds", s)
 end
 
+-- ---------------------------------------------------------------------------
+-- Standalone-window geometry persistence (standalone-windows, WG-26)
+-- ---------------------------------------------------------------------------
+--
+-- Windows persist only their anchor POINT (all standalone windows here are fixed-size). Saved
+-- under db.global.windows[name]; guarded on the db being ready so a pre-login show (in theory) is a
+-- harmless no-op rather than a nil index. Frame wiring: capture on OnDragStop, restore on the show
+-- path.
 NS.Windows = NS.Windows or {}
 
 -- Read a frame's primary anchor into a plain, persistable table, or nil if the frame has no point
