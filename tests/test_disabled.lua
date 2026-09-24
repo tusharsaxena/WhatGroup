@@ -58,8 +58,9 @@ end
 --- falsifiable in the useful direction: a registry that only ever grew would report a perfectly
 --- torn-down addon as still watching everything.
 ---
---- modules/Frame.lua makes two of these, both PLAYER_REGEN_ENABLED and both for deferred protected
---- work, and a suite that surveyed only AceEvent would miss both.
+--- modules/Frame.lua makes NONE since its two combat-end replays moved onto a queue the addon's own
+--- AceEvent PLAYER_REGEN_ENABLED handler drains (WHATGROUP-A-08). The survey stays as the regression
+--- guard: a raw registration brought back would be invisible to an AceEvent-only survey.
 local function rawRegs(mock)
     local out = {}
     for _, f in ipairs(mock.frames) do
@@ -175,6 +176,30 @@ function()
     NS.addon:OnSlashCommand("disable")
     assertEqual(#regNames(mock), 0, "the verb stands the addon down too")
     assertTrue(NS.Lifecycle:IsHeld(NS.HOLD_DISABLED), "through the same named hold")
+end)
+
+test("disabled: no raw frame registration exists at any point, in combat or out", function()
+    -- Both combat-end replays in modules/Frame.lua -- the first show deferred past combat and the
+    -- teleport configure deferred past combat -- wait in its combat-end queue, which the addon's own
+    -- AceEvent PLAYER_REGEN_ENABLED handler drains. Nothing is left for a private frame to watch, so
+    -- the raw survey reads empty enabled, mid-defer and after; it stays as the regression guard.
+    -- red under: a frame:RegisterEvent in modules/Frame.lua
+    local NS, mock = up()
+    assertEqual(joined(rawRegs(mock)), "", "enabled, out of combat")
+    NS.addon.pendingInfo = { title = "Stonevault", leaderName = "L", fullName = "F",
+                             shortName = "", playstyleString = "", generalPlaystyle = 0 }
+    mock.combat = true
+    NS.addon:ShowFrame()          -- never built: the first show is deferred
+    assertEqual(joined(rawRegs(mock)), "", "a combat first-show defer")
+    mock.combat = false
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    assertTrue(mock.frames["WhatGroupFrame"]:IsShown(), "the deferred show landed")
+    mock.combat = true
+    NS.addon:ShowFrame()          -- shown, so the fields refill and the teleport configure defers
+    assertEqual(joined(rawRegs(mock)), "", "a combat teleport defer")
+    mock.combat = false
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    assertEqual(joined(rawRegs(mock)), "", "after combat")
 end)
 
 -- ---------------------------------------------------------------------------

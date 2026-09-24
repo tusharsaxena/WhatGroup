@@ -59,15 +59,11 @@ local function learnStonevault(NS, mock)
     NS.TeleportSpells[STONEVAULT_MAP] = STONEVAULT_PORT
 end
 
--- The lockdown lifts: AceEvent's dispatch for the addon's handlers, and the popup's own frame
--- event, which is where deferTeleportUntilCombatEnds parks its replay.
+-- The lockdown lifts: AceEvent's dispatch for the addon's handlers, which is also what drains
+-- modules/Frame.lua's combat-end queue, where deferTeleportUntilCombatEnds parks its replay.
 local function endCombat(mock)
     mock.combat = false
     mock.__fireEvent("PLAYER_REGEN_ENABLED")
-    local f = popup(mock)
-    if f.__events and f.__events["PLAYER_REGEN_ENABLED"] and f.__scripts.OnEvent then
-        f.__fire("OnEvent", "PLAYER_REGEN_ENABLED")
-    end
 end
 
 test("frame: reopening a soft-hidden popup in combat with no capture never Hides the secure button", function()
@@ -174,4 +170,38 @@ test("frame: a real show after the soft hide restores the master alpha", functio
     assertTrue(popup(mock):IsShown(), "the gate reopens what it withheld when combat ends")
     assertEqual(popup(mock):GetAlpha(), 0.8, "at the master alpha, not stuck at 0")
     assertTrue(mock.frames[ESC_PROXY]:IsShown())
+end)
+
+test("frame: a stand-down in combat drops a queued first show and a queued teleport configure", function()
+    -- Both replays wait in modules/Frame.lua's combat-end queue, and NS.FrameStandDown wipes it:
+    -- work deferred for an addon that has since been switched off is not work it still owes.
+    -- red under: an NS.FrameStandDown that leaves the combat-end queue (or its stashes) in place --
+    -- the re-enable below re-registers OnCombatStateChanged, whose drain would then replay both.
+    -- The first show: never built, deferred in combat, then the addon goes down and comes back.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pending()
+    mock.combat = true
+    NS.addon:ShowFrame()
+    assertTrue(NS.addon._frameBuildQueued, "the first show is queued for combat end")
+    NS.addon:OnSlashCommand("disable")
+    assertNil(NS.addon._frameBuildQueued, "the stand-down drops the queued show")
+    NS.addon:OnSlashCommand("enable")
+    NS.addon.pendingInfo = pending()
+    endCombat(mock)
+    assertNil(popup(mock), "nothing is built or shown for the dropped show")
+
+    -- The teleport configure: armed out of combat, a new capture refilled in combat, then disabled.
+    NS, _, mock = T.enableAddon()
+    learnStonevault(NS, mock)
+    NS.addon:ShowFrame()          -- built out of combat, no capture yet
+    local btn = teleportBtn(mock)
+    assertNil(btn:GetAttribute("macrotext"))
+    mock.combat = true
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()          -- still shown, so the configure is deferred
+    NS.addon:OnSlashCommand("disable")
+    NS.addon:OnSlashCommand("enable")
+    endCombat(mock)
+    assertNil(btn:GetAttribute("macrotext"), "the dropped configure never arms the button")
+    assertEqual(#mock.blocked, 0)
 end)

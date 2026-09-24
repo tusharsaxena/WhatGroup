@@ -353,7 +353,7 @@ function NS.StandDown()
     -- table it touches is session-only.
     self:WipeCapture("addon stood down")
 
-    -- The popup, the ESC proxy, the cooldown ticker and the deferred-teleport frame event.
+    -- The popup, the ESC proxy, the cooldown ticker and the combat-end queue.
     if NS.FrameStandDown then NS.FrameStandDown() end
 
     -- Owed a protected Hide. This is the one registration slash-commands-§7 permits a disabled
@@ -921,6 +921,11 @@ function WhatGroup:OnCombatStateChanged(event)
     if event == "PLAYER_REGEN_DISABLED" and self.EndTestModeForCombat then
         self:EndTestModeForCombat()
     end
+    -- The lockdown has lifted: replay the protected work modules/Frame.lua queued during it (a
+    -- deferred teleport configure, a deferred first show) before the gate is asked, so the gate
+    -- sees the popup as it now is. Two table reads when nothing is queued. OnDisabledCombatEnded
+    -- does not drain: the stand-down has already dropped the queue.
+    if event == "PLAYER_REGEN_ENABLED" and NS.FrameDrainCombatEnd then NS.FrameDrainCombatEnd() end
     if not self.ApplyFrameVisibility then return end
     self:ApplyFrameVisibility(event == "PLAYER_REGEN_DISABLED")
 end

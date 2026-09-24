@@ -485,7 +485,7 @@ badge and any count quoted in the docs must agree with it.
 - frame: a first show in combat defers the build and says so
 - frame: leaving combat builds the deferred popup
 - frame: the deferred show restores a pendingInfo cleared during the wait
-- frame: repeated in-combat shows queue exactly one wait frame
+- frame: repeated in-combat shows queue exactly one deferred show
 - frame: a show requested in combat is deferred, not forced
 - frame: a popup held at alpha 0 comes back in combat without a Show
 - frame: reconfiguring the teleport button in combat stashes and replays it
@@ -535,13 +535,14 @@ badge and any count quoted in the docs must agree with it.
 - frame: PLAYER_REGEN_DISABLED is answered from the event, not from a lockdown flag that has not flipped
 - frame: a combat transition with no popup built is a no-op, not an error
 
-### test_frame_secure.lua (5)
+### test_frame_secure.lua (6)
 
 - frame: reopening a soft-hidden popup in combat with no capture never Hides the secure button
 - frame: a deferred no-capture configure is replayed, not dropped
 - frame: a gate-declined reopen in combat leaves a soft-hidden popup at alpha 0, and the launcher still closes it
 - frame: an alpha write while soft-hidden does not reveal the popup
 - frame: a real show after the soft hide restores the master alpha
+- frame: a stand-down in combat drops a queued first show and a queued teleport configure
 
 ### test_panel.lua (53)
 
@@ -761,11 +762,12 @@ badge and any count quoted in the docs must agree with it.
 
 - every deviation id the register cites is assigned by a bundle in docs/audits/
 
-### test_disabled.lua (17)
+### test_disabled.lua (18)
 
 - disabled 1: enabled, the addon holds a NON-EMPTY registration set
 - disabled 3: the registration set is EMPTY, by count and by name
 - disabled 3: the write seam is the route — the checkbox and the verb reach the same latch
+- disabled: no raw frame registration exists at any point, in combat or out
 - disabled 4: no timer, ticker or OnUpdate survives, and none is armed afterwards
 - disabled 5: every frame shown while enabled is hidden, and the show ladder answers no
 - disabled 6: firing every event it used to watch writes nothing, says nothing, shows nothing
@@ -844,7 +846,7 @@ badge and any count quoted in the docs must agree with it.
 | test_capture.lua | 32 |
 | test_notify.lua | 48 |
 | test_frame.lua | 90 |
-| test_frame_secure.lua | 5 |
+| test_frame_secure.lua | 6 |
 | test_panel.lua | 53 |
 | test_testmode.lua | 23 |
 | test_launcher.lua | 21 |
@@ -854,9 +856,9 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 4 |
 | test_doc_structure.lua | 8 |
 | test_register.lua | 1 |
-| test_disabled.lua | 17 |
+| test_disabled.lua | 18 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **733** |
+| **Total** | **735** |

@@ -828,7 +828,7 @@ a client at the time. Step 5 below is where it gets run.
 group:
 
 - **`info.fullName`** and **`info.shortName`** from `C_LFGList.GetActivityInfoTable`
-  (`core/Compat.lua:136-141`, stored at `core/WhatGroup.lua:509`, drawn at `modules/Frame.lua:880`
+  (`core/Compat.lua:136-141`, stored at `core/WhatGroup.lua:509`, drawn at `modules/Frame.lua:902`
   and in the chat summary at `core/WhatGroup.lua:714` and `:717`). German activity names are materially longer
   than English ones.
 - **`info.playstyleString`**, which the server renders in the player's language, preferred over the
@@ -837,7 +837,7 @@ group:
   (`core/WhatGroup.lua:635-640`). A global that is nil at load leaves that label nil for the whole
   session — there is no second read.
 - **`Compat.GetSpellName`** (`core/Compat.lua:27-38`), whose return goes straight into the teleport
-  button's `/cast` macrotext (`modules/Frame.lua:425`, built at `:537`). Casting by name only works
+  button's `/cast` macrotext (`modules/Frame.lua:447`, built at `:559`). Casting by name only works
   when the name is the client's own, which is what makes this locale-independent by construction —
   and is therefore worth confirming rather than assuming.
 
@@ -846,7 +846,7 @@ English on every client. That is the addon's scope and not a defect. § 10 (the 
 that they render as prose rather than as keys, and it is unrelated to this section.
 
 **`/wg test notify` will not do for most of this.** Its fixture spells the activity name out in English
-(`core/WhatGroup.lua:1093`), so on a German client it is *expected* to show English. Use a real group
+(`core/WhatGroup.lua:1098`), so on a German client it is *expected* to show English. Use a real group
 for steps 1 to 3.
 
 1. **A real application, with a real German activity name.** Apply to a group through the LFG UI

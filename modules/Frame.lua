@@ -243,9 +243,31 @@ end
 -- residue is exactly why `pendingHide` exists and why the soft state is never a resting one.
 -- `softHidden` and `pendingHide` are declared above ApplyFrameAlpha, which reads the first.
 
--- The first-show-in-combat defer's frame (ShowFrame, far below). At file scope so NS.FrameStandDown
--- can unregister it; nil until a show is actually deferred.
-local buildWaitFrame
+-- THE COMBAT-END QUEUE: protected work refused under lockdown, replayed once it lifts. No private
+-- frame watches PLAYER_REGEN_ENABLED for it (events-frames-taint-§1); core/WhatGroup.lua's
+-- OnCombatStateChanged drains it first thing on that edge, through the addon's own AceEvent
+-- registration, and NS.FrameStandDown wipes it. One slot per key, so queueing again REPLACES the
+-- replay rather than stacking a second, and the drain walks a fixed key list: an empty queue costs
+-- two table reads and allocates nothing (perf combatGateSteady).
+local combatEndQueue = {}
+local COMBAT_END_ORDER = { "teleport", "firstShow" }
+
+function NS.FrameQueueForCombatEnd(key, fn)
+    combatEndQueue[key] = fn
+end
+
+-- The slot is cleared BEFORE its replay runs, so a replay that has to queue again (it cannot at
+-- combat end, but the seam does not rely on that) lands in a fresh slot rather than being wiped.
+function NS.FrameDrainCombatEnd()
+    for i = 1, #COMBAT_END_ORDER do
+        local key = COMBAT_END_ORDER[i]
+        local fn = combatEndQueue[key]
+        if fn then
+            combatEndQueue[key] = nil
+            fn()
+        end
+    end
+end
 
 -- The ESC proxy: the name in UISpecialFrames, standing in for the popup's own (buildEscapeProxy
 -- below). Unprotected, so its Show and Hide are legal in combat, and kept SHOWN exactly while the
@@ -539,21 +561,21 @@ local function resolveTeleportState(info)
     }
 end
 
+-- The teleport configure's combat-end replay. It reads the stash when it RUNS, not when it was
+-- queued, so the most recent capture of the combat window is the one configured.
+local function replayTeleport()
+    local pending = f._pendingTeleportInfo
+    f._pendingTeleportInfo = nil
+    if pending then
+        ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon,
+            pending ~= NO_CAPTURE and pending or nil)
+    end
+end
+
 local function deferTeleportUntilCombatEnds(info)
     if not InCombatLockdown() then return false end
     f._pendingTeleportInfo = (info == nil) and NO_CAPTURE or info
-    f:RegisterEvent("PLAYER_REGEN_ENABLED")
-    f:SetScript("OnEvent", function(self, ev)
-        if ev ~= "PLAYER_REGEN_ENABLED" then return end
-        self:UnregisterEvent("PLAYER_REGEN_ENABLED")
-        self:SetScript("OnEvent", nil)
-        local pending = self._pendingTeleportInfo
-        self._pendingTeleportInfo = nil
-        if pending then
-            ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon,
-                pending ~= NO_CAPTURE and pending or nil)
-        end
-    end)
+    NS.FrameQueueForCombatEnd("teleport", replayTeleport)
     return true
 end
 
@@ -997,6 +1019,16 @@ function WhatGroup:EndTestModeForCombat()
     end
 end
 
+-- The first-show defer's combat-end replay (ShowFrame, below). It restores the stashed pendingInfo
+-- only if it was cleared (e.g. group-leave) during the wait window: the player's intent was to see
+-- *this* group's popup.
+local function replayFirstShow()
+    WhatGroup._frameBuildQueued = nil
+    WhatGroup.pendingInfo = WhatGroup.pendingInfo or WhatGroup._deferredShowInfo
+    WhatGroup._deferredShowInfo = nil
+    WhatGroup:ShowFrame()
+end
+
 -- Public API
 function WhatGroup:ShowFrame()
     -- A real show takes the popup from test mode: whatever called this wants the real capture on it.
@@ -1020,7 +1052,7 @@ function WhatGroup:ShowFrame()
     -- First-show-in-combat defer: buildFrame creates a
     -- SecureActionButtonTemplate button and inserts into UISpecialFrames;
     -- both operations are protected. If we're in combat AND the popup
-    -- has never been built, queue the build on PLAYER_REGEN_ENABLED and
+    -- has never been built, queue the show on the combat-end queue and
     -- print a chat hint. Once buildFrame has run once, subsequent calls
     -- are safe in combat (only the secure-button reconfigure, handled
     -- by ConfigureTeleportButton's own combat guard, is at risk).
@@ -1038,25 +1070,10 @@ function WhatGroup:ShowFrame()
         end
         if not WhatGroup._frameBuildQueued then
             WhatGroup._frameBuildQueued = true
-            local pending = WhatGroup.pendingInfo
-            -- FILE-SCOPE, not a closure local, since the stand-down landed. A frame created and
-            -- registered inside this branch is unreachable from anywhere else, so a disabled addon
-            -- would have kept watching PLAYER_REGEN_ENABLED on a frame nothing could unregister --
-            -- exactly the survivor slash-commands-§7 exists to catch. One handle, replaced rather
-            -- than stacked, because `_frameBuildQueued` already forbids a second.
-            buildWaitFrame = buildWaitFrame or CreateFrame("Frame")
-            local waitFrame = buildWaitFrame
-            waitFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-            waitFrame:SetScript("OnEvent", function(wf)
-                wf:UnregisterAllEvents()
-                wf:SetScript("OnEvent", nil)
-                WhatGroup._frameBuildQueued = nil
-                -- Restore the captured pendingInfo only if it was
-                -- cleared (e.g. group-leave) during the wait window;
-                -- the user's intent was to see *this* group's popup.
-                WhatGroup.pendingInfo = WhatGroup.pendingInfo or pending
-                WhatGroup:ShowFrame()
-            end)
+            -- Stashed on the addon rather than closed over, so NS.FrameStandDown can drop it along
+            -- with the queued replay; `_frameBuildQueued` forbids a second queueing.
+            WhatGroup._deferredShowInfo = WhatGroup.pendingInfo
+            NS.FrameQueueForCombatEnd("firstShow", replayFirstShow)
         end
         return
     end
@@ -1130,18 +1147,12 @@ function NS.FrameStandDown()
     gateWithheld = false
     if escProxy then escProxy:Hide() end
 
-    -- The two RAW frame registrations this file makes, both PLAYER_REGEN_ENABLED and both for
-    -- deferred protected work that a disabled addon is no longer going to do. Unregistered rather
-    -- than gated: they can be, so slash-commands-§7 says they must be.
-    if f then
-        f:UnregisterEvent("PLAYER_REGEN_ENABLED")
-        f:SetScript("OnEvent", nil)
-        f._pendingTeleportInfo = nil
-    end
-    if buildWaitFrame then
-        buildWaitFrame:UnregisterAllEvents()
-        buildWaitFrame:SetScript("OnEvent", nil)
-    end
+    -- The combat-end queue, and the stashes its two replays read: deferred protected work that a
+    -- disabled addon is no longer going to do. Dropped rather than left to a drain, because a
+    -- re-enable before the lockdown lifts re-registers the handler that drains it.
+    wipe(combatEndQueue)
+    if f then f._pendingTeleportInfo = nil end
+    WhatGroup._deferredShowInfo = nil
     WhatGroup._frameBuildQueued = nil
 end
 
