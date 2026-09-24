@@ -19,7 +19,7 @@ first bundle and the audit horizon). The payload at the start of the span, vendo
 **v1.15.0 -> v1.54.2**, and the next recorded bundle, `docs/revendor/2026-09-23-v1.55.0/`, correctly
 names v1.54.2 as its base (vendored at `7f38ddd`).
 
-Seven tags inside that range already have their own bundles and are **not** in the span list:
+Six tags inside that range already have their own bundles and are **not** in the span list:
 v1.25.0 (`2026-09-03/`), v1.30.0 (`2026-09-12/`), v1.31.0, v1.32.0, v1.33.0 (`2026-09-12-v1.3x.0/`)
 and v1.34.0 (`2026-09-13-v1.34.0/`). Two of the bare-dated ones name a second tag on line 1 as their
 base (v1.24.0 in `2026-09-03/`, v1.29.0 in `2026-09-12/`). The audit check reads only the last tag of
