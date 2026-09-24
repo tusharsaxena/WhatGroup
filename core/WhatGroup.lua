@@ -571,7 +571,7 @@ end
 -- undocumented behavior a patch could decouple at any time.
 --
 -- The appID path stays as the fallback rather than being deleted: it is what
--- shipped and is known to work at retail 120000-120007, so if
+-- shipped and is known to work on the 12.0 retail builds, so if
 -- GetApplicationInfo is missing, raises, or yields nothing usable, capture
 -- degrades to the old behavior instead of going dark. Both returns shapes are
 -- accepted — the multi-return form (id, appStatus, …) and a table, in case a

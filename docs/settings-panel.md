@@ -324,6 +324,14 @@ global = {
 
 There is **no `debug` key and no `state` table** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). The Master controls tab's "Debug console" checkbox is a schema row on the path `state.debugConsole`, but it is `sessionOnly`: `settings/Schema.lua`'s `SESSION` table gives that row its own `get` / `set`, `BuildDefaults` skips it, and the toggle drives the console *window's* visibility only — neither a profile key nor the debug logging flag. The **Test mode** checkbox (`state.testMode`) takes the same route to `modules/Frame.lua`'s session flag, `NS.State.testMode`. Capture / pending state (`capturesByResult`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [data-flow.md](./data-flow.md#state) for why.
 
+## Pages
+
+One row per settings subcategory page (documentation-§3, options-ui-§5). WhatGroup registers one; the landing page above it is the parent category, not a subcategory, and its body is described under [Landing page body](#landing-page-body). The tabs belong to the page → tab → row tree below, starting at [The tab strip](#the-tab-strip).
+
+| Page | Covers |
+|---|---|
+| **General** | Every setting WhatGroup has, on three tabs: **Master controls** (enable, visibility, scale, alpha, lock, debug console, minimap button, test mode, and the reset buttons), **Chat** (when the join summary fires and which lines it prints, plus the Test button) and **Popup** (whether the group-info window opens by itself, and its size). |
+
 ## The tab strip
 
 The page is **tabbed** (`options-ui-§13`). `LibKa0s-Options-1.0`'s `RenderTabbedSchema` partitions the page's rows by `group`, **in declaration order**, and draws one tab per distinct group — so the order of the `add{}` calls in `settings/Schema.lua` *is* the strip, and a group's rows must stay contiguous. There is no second field naming a tab; the group heading and the tab are the same string, which is why the tabbed renderer suppresses the headings the scrolling one drew.
