@@ -228,8 +228,7 @@ end
 -- copy has landed in the ACTIVE profile. A method rather than a closure, so a test can call it with
 -- those real arguments directly (since kit revision 18 the AceDB mock passes the source as well).
 function WhatGroup:OnProfileCopied(_, _, source)
-    NS.Debug("Set", "copied profile '%s' \226\134\146 '%s'", tostring(source),
-             tostring(self.db:GetCurrentProfile()))
+    NS.Debug("Set", "copied profile '%s' \226\134\146 '%s'", source, self.db:GetCurrentProfile())
     reloadProfile(self)
 end
 
@@ -540,7 +539,7 @@ end
 function WhatGroup:CaptureGroupInfo(searchResultID)
     local info = C_LFGList.GetSearchResultInfo(searchResultID)
     if not info then
-        NS.Debug("Capture", "GetSearchResultInfo returned nil for id=" .. tostring(searchResultID))
+        NS.Debug("Capture", "GetSearchResultInfo returned nil for id=%s", searchResultID)
         return
     end
 
@@ -800,10 +799,8 @@ function WhatGroup:OnApplyToGroup(searchResultID)
     local captured = self:CaptureGroupInfo(searchResultID)
     if captured then
         capturesByResult[searchResultID] = captured
-        NS.Debug("Apply", 'id=%s captured "%s" (activity=%s map=%s m+=%s)',
-            tostring(searchResultID), tostring(captured.title),
-            tostring(captured.activityID), tostring(captured.mapID),
-            tostring(captured.isMythicPlus))
+        NS.Debug("Apply", 'id=%s captured "%s" (activity=%s map=%s m+=%s)', searchResultID,
+            captured.title, captured.activityID, captured.mapID, captured.isMythicPlus)
     end
 end
 
@@ -820,7 +817,7 @@ end
 -- text, the mouse button and the chat frame the client also passes were carried into this
 -- signature and never read.
 function WhatGroup:OnSetItemRef()
-    NS.Debug("ChatLink", "clicked hasPending=" .. tostring(self.pendingInfo ~= nil))
+    NS.Debug("ChatLink", "clicked hasPending=%s", self.pendingInfo ~= nil)
     -- pendingInfo is session-only (cleared on group-leave or /reload).
     -- A click on a stale chat link from a previous session would
     -- otherwise open an empty "No data" popup; print a one-line hint.
@@ -852,7 +849,7 @@ function WhatGroup:_TryFireJoinNotify(reason)
         -- Only log "no pendingInfo" from the inviteaccepted path —
         -- ROSTER transitions hit this constantly and just clutter chat.
         if reason == "inviteaccepted" then
-            NS.Debug("Notify", "skip: no pendingInfo (" .. reason .. ")")
+            NS.Debug("Notify", "skip: no pendingInfo (%s)", reason)
         end
         return
     end
@@ -866,7 +863,7 @@ function WhatGroup:_TryFireJoinNotify(reason)
     -- Cancel any still-pending notify before scheduling a fresh one so a rapid
     -- re-fire can't leave two timers racing to the same popup.
     if self.notifyTimer then self:CancelTimer(self.notifyTimer) end
-    NS.Debug("Notify", "scheduling in " .. tostring(delay) .. "s (" .. reason .. ")")
+    NS.Debug("Notify", "scheduling in %ss (%s)", delay, reason)
     -- WG-17 (library-stack-§1): the one-shot notify delay runs through
     -- AceTimer-3.0 (the mandated timer lib). The handle is stashed in
     -- self.notifyTimer and canceled by WipeCapture (group-leave, master-switch
@@ -919,7 +916,7 @@ function WhatGroup:WipeCapture(reason)
     wipe(capturesByResult)
     wipe(pendingApplications)
     if reason and hadInFlight then
-        NS.Debug("Capture", "wiped (" .. reason .. ")")
+        NS.Debug("Capture", "wiped (%s)", reason)
     end
 end
 
@@ -955,9 +952,8 @@ function WhatGroup:GROUP_ROSTER_UPDATE()
     -- change (talents, specs, auras on some patches) and floods chat.
     -- Only log on a transition or when there's pendingInfo to clear.
     if inGroup ~= wasInGroup or (not inGroup and self.pendingInfo) then
-        NS.Debug("Roster", "inGroup=" .. tostring(inGroup)
-            .. " wasInGroup=" .. tostring(wasInGroup)
-            .. " hasPending=" .. tostring(self.pendingInfo ~= nil))
+        NS.Debug("Roster", "inGroup=%s wasInGroup=%s hasPending=%s", inGroup, wasInGroup,
+            self.pendingInfo ~= nil)
     end
 
     if inGroup and not wasInGroup then
@@ -1019,7 +1015,7 @@ local function dropApplication(self, appID, newStatus)
 end
 
 function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
-    NS.Debug("LFG", "appID=" .. tostring(appID) .. " status=" .. tostring(newStatus))
+    NS.Debug("LFG", "appID=%s status=%s", appID, newStatus)
     if newStatus == "applied" then
         pairApplication(self, appID)
     elseif APPLICATION_ENDED[newStatus] then
@@ -1068,11 +1064,10 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
         notifiedFor      = nil  -- new pendingInfo identity → eligible to fire again
 
         if final then
-            NS.Debug("Invite", 'accepted appID=%s → "%s" map=%s (source=%s)',
-                tostring(appID), tostring(final.title), tostring(final.mapID),
-                tostring(source))
+            NS.Debug("Invite", 'accepted appID=%s → "%s" map=%s (source=%s)', appID, final.title,
+                final.mapID, source)
         else
-            NS.Debug("Invite", "accepted appID=" .. tostring(appID) .. " → no capture")
+            NS.Debug("Invite", "accepted appID=%s → no capture", appID)
         end
 
         wipe(capturesByResult)
@@ -1142,7 +1137,7 @@ end
 -- ShowFrame ends test mode if it is on, so the two never overlap.
 function WhatGroup:RunTest()
     self.pendingInfo = self:SampleInfo()
-    NS.Debug("Test", 'synthetic capture injected "' .. tostring(self.pendingInfo.title) .. '"')
+    NS.Debug("Test", 'synthetic capture injected "%s"', self.pendingInfo.title)
     self:ShowNotification()
     self:ShowFrame()
 end

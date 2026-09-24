@@ -544,10 +544,8 @@ end
 
 local function resolveTeleportState(info)
     local spellID, known = WhatGroup:GetTeleportSpell(info and info.activityID, info and info.mapID)
-    NS.Debug("Frame", "teleport spellID=" .. tostring(spellID)
-        .. " known=" .. tostring(known)
-        .. " (activity=" .. tostring(info and info.activityID)
-        .. " map=" .. tostring(info and info.mapID) .. ")")
+    NS.Debug("Frame", "teleport spellID=%s known=%s (activity=%s map=%s)", spellID, known,
+        info and info.activityID, info and info.mapID)
     if not spellID then return nil end
 
     local remaining = known and NS.Compat.GetSpellCooldownRemaining(spellID) or 0
@@ -935,9 +933,11 @@ local function preparePopup()
     WhatGroup:ApplyFrameScale()
     WhatGroup:ApplyFrameAlpha()
     local info = shownInfo()
-    NS.Debug("Frame", info
-        and ('popup shown "' .. tostring(info.title) .. '" map=' .. tostring(info.mapID))
-        or "popup shown (no pendingInfo → 'No data' fallbacks)")
+    if info then
+        NS.Debug("Frame", 'popup shown "%s" map=%s', info.title, info.mapID)
+    else
+        NS.Debug("Frame", "popup shown (no pendingInfo → 'No data' fallbacks)")
+    end
     PopulateFields()
 end
 
@@ -993,7 +993,7 @@ function endTestMode(why)
     -- soft-hidden. The secure button's protected Hide is no longer the reason -- with no real
     -- capture PopulateFields routes it through ConfigureTeleportButton, which defers it itself.
     if fields and not InCombatLockdown() then PopulateFields() end
-    NS.Debug("Test", "test mode off (%s)", tostring(why))
+    NS.Debug("Test", "test mode off (%s)", why)
     return true
 end
 
@@ -1090,8 +1090,8 @@ function WhatGroup:ShowFrame()
         -- re-show arm is allowed to act on. Without this, `Only in combat` would show once on the
         -- next pull and never again — the request would be forgotten the moment it was refused.
         gateWithheld = true
-        NS.Debug("Frame", "popup built but not shown: visibility = "
-            .. tostring(self.db and self.db.profile and self.db.profile.visibility))
+        NS.Debug("Frame", "popup built but not shown: visibility = %s",
+            self.db and self.db.profile and self.db.profile.visibility)
         return
     end
     showPopup()

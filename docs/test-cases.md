@@ -720,7 +720,7 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: /wg resetall asks for confirmation rather than resetting outright
 - lifecycle: /wg resetall and the Defaults button share one OnAccept body
 
-### test_debuglog.lua (34)
+### test_debuglog.lua (49)
 
 - debuglog: FONT_MONO points at the library payload's JetBrains Mono TTF
 - debuglog: the console renders in the vendored TTF when the client can fetch it
@@ -756,6 +756,21 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: a profile copy logs one [Set] copied line naming the source (debug-logging-§10)
 - debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state
 - debuglog: enable ack is color-coded green/red matching the header (debug-logging-§5)
+- debuglog: pin — a vanished search result logs the [Capture] nil line
+- debuglog: pin — an apply logs the [Apply] captured line
+- debuglog: pin — every application status logs the [LFG] appID/status line
+- debuglog: pin — an accepted invite with a capture logs the [Invite] line naming it
+- debuglog: pin — an accepted invite with no capture logs the [Invite] no-capture line
+- debuglog: pin — a roster transition logs the [Roster] line
+- debuglog: pin — the details link logs the [ChatLink] click line
+- debuglog: pin — an accepted invite with nothing pending logs the [Notify] skip line
+- debuglog: pin — a scheduled join notify logs the [Notify] scheduling line
+- debuglog: pin — a wipe with a reason and something in flight logs the [Capture] wiped line
+- debuglog: pin — /wg test notify logs the [Test] injection line
+- debuglog: pin — showing a capture logs the [Frame] popup-shown and teleport lines
+- debuglog: pin — showing with no capture logs the [Frame] fallback and nil teleport lines
+- debuglog: pin — a show the visibility gate withholds logs the [Frame] not-shown line
+- debuglog: pin — unticking test mode logs the [Test] off line with its reason
 
 ### test_docmap.lua (1)
 
@@ -872,7 +887,7 @@ badge and any count quoted in the docs must agree with it.
 | test_testmode.lua | 23 |
 | test_launcher.lua | 24 |
 | test_lifecycle.lua | 46 |
-| test_debuglog.lua | 34 |
+| test_debuglog.lua | 49 |
 | test_docmap.lua | 1 |
 | test_lintconfig.lua | 4 |
 | test_doc_structure.lua | 8 |
@@ -882,4 +897,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **756** |
+| **Total** | **771** |

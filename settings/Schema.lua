@@ -576,8 +576,7 @@ function Helpers.RestoreAllDefaults()
             -- from inside a handler cannot reach here in the client, where CallbackHandler swallows
             -- handler errors.) Then the error is re-raised, unchanged, and the sessionOnly sweep
             -- below does not run.
-            NS.Debug("Set", "reset profile '%s' to defaults%s", tostring(db:GetCurrentProfile()),
-                     STOPPED)
+            NS.Debug("Set", "reset profile '%s' to defaults%s", db:GetCurrentProfile(), STOPPED)
             error(err, 0)
         end
     end

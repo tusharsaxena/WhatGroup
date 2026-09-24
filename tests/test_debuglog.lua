@@ -469,3 +469,176 @@ test("debuglog: enable ack is color-coded green/red matching the header (debug-l
     local offAck = mock.prints[#mock.prints]
     assertTrue(offAck:find("|cffff4040OFF|r", 1, true) ~= nil, "OFF ack is red ff4040")
 end)
+
+-- ── call-site wording pins (debug-logging-§4) ───────────────────────────────
+--
+-- Each case below pins one NS.Debug call site's WHOLE rendered line, byte for byte. The sites used
+-- to build the message before the call (`"appID=" .. tostring(appID)`), which debug-logging-§4
+-- forbids: it allocates on every event with the console off, and the values skip the sink's
+-- safeToString. They now pass a format and the raw values. These went green on the old wording
+-- first, so a rewrite that changes one character of a line turns its case red.
+--
+-- `logged` compares against the part of a buffer line after the timestamp, so a pin is the tag in
+-- brackets plus the message, exactly as the console shows it.
+local ARROW = "\226\134\146"
+
+local function logged(NS, expected)
+    for _, line in ipairs(NS.DebugLog.buffer) do
+        if line:match("^%d%d:%d%d:%d%d | (.*)$") == expected then return true end
+    end
+    return false
+end
+
+local function assertLogged(NS, expected)
+    local tail = {}
+    local buf = NS.DebugLog.buffer
+    for i = math.max(1, #buf - 5), #buf do tail[#tail + 1] = buf[i] end
+    assertTrue(logged(NS, expected),
+        "expected the line '" .. expected .. "'; the buffer ends with:\n  " .. table.concat(tail, "\n  "))
+end
+
+-- A search result shaped like tests/test_capture.lua's, so the Apply and Invite lines have a
+-- capture to name.
+local function searchResult(name, activityID)
+    return {
+        name = name, leaderName = "L", numMembers = 3, voiceChat = "",
+        generalPlaystyle = 0, playstyleString = "", age = 0, activityIDs = { activityID },
+    }
+end
+
+local function pendingCapture(overrides)
+    local i = {
+        title = "Stonevault Speedrun", leaderName = "Testadin-Silvermoon", numMembers = 3,
+        voiceChat = "", age = 0, activityIDs = { 2516 }, activityID = 2516,
+        fullName = "Dungeons > Mythic+ > The Stonevault", activityName = "The Stonevault",
+        maxNumPlayers = 5, isMythicPlus = true, isCurrentRaid = false, isHeroicRaid = false,
+        categoryID = 1, mapID = 2652, generalPlaystyle = 3, playstyleString = "", shortName = "",
+    }
+    for k, v in pairs(overrides or {}) do i[k] = v end
+    return i
+end
+
+test("debuglog: pin — a vanished search result logs the [Capture] nil line", function()
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    NS.addon:CaptureGroupInfo(42)
+    assertLogged(NS, "[Capture] GetSearchResultInfo returned nil for id=42")
+end)
+
+test("debuglog: pin — an apply logs the [Apply] captured line", function()
+    local NS, _, mock = T.bootAddon()
+    NS.State.debug = true
+    mock.searchResults[100] = searchResult("Queued", 500)
+    mock.activities[500] = { fullName = "Q", mapID = 111 }
+    NS.addon:OnApplyToGroup(100)
+    assertLogged(NS, '[Apply] id=100 captured "Queued" (activity=500 map=111 m+=false)')
+end)
+
+test("debuglog: pin — every application status logs the [LFG] appID/status line", function()
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    NS.addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "applied")
+    assertLogged(NS, "[LFG] appID=100 status=applied")
+end)
+
+test("debuglog: pin — an accepted invite with a capture logs the [Invite] line naming it", function()
+    local NS, _, mock = T.bootAddon()
+    NS.State.debug = true
+    mock.searchResults[100] = searchResult("Queued", 500)
+    mock.activities[500] = { fullName = "Q", mapID = 111 }
+    NS.addon:OnApplyToGroup(100)
+    NS.addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "applied")
+    mock.searchResults[100] = searchResult("Fresh", 501)
+    mock.activities[501] = { fullName = "F", mapID = 222 }
+    NS.addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+    assertLogged(NS, '[Invite] accepted appID=100 ' .. ARROW .. ' "Fresh" map=222 (source=fresh)')
+end)
+
+test("debuglog: pin — an accepted invite with no capture logs the [Invite] no-capture line", function()
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    NS.addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+    assertLogged(NS, "[Invite] accepted appID=100 " .. ARROW .. " no capture")
+end)
+
+test("debuglog: pin — a roster transition logs the [Roster] line", function()
+    local NS, _, mock = T.bootAddon()
+    NS.State.debug = true
+    mock.inGroup = true
+    NS.addon:GROUP_ROSTER_UPDATE()
+    assertLogged(NS, "[Roster] inGroup=true wasInGroup=false hasPending=false")
+end)
+
+test("debuglog: pin — the details link logs the [ChatLink] click line", function()
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    NS.addon:OnSetItemRef()
+    assertLogged(NS, "[ChatLink] clicked hasPending=false")
+end)
+
+test("debuglog: pin — an accepted invite with nothing pending logs the [Notify] skip line", function()
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    NS.addon:_TryFireJoinNotify("inviteaccepted")
+    assertLogged(NS, "[Notify] skip: no pendingInfo (inviteaccepted)")
+end)
+
+test("debuglog: pin — a scheduled join notify logs the [Notify] scheduling line", function()
+    local NS, _, mock = T.bootAddon()
+    NS.State.debug = true
+    NS.addon.Settings.Helpers.Set("notify.delay", 2.5)
+    mock.inGroup = true
+    NS.addon.pendingInfo = pendingCapture()
+    NS.addon:_TryFireJoinNotify("inviteaccepted")
+    assertLogged(NS, "[Notify] scheduling in 2.5s (inviteaccepted)")
+end)
+
+test("debuglog: pin — a wipe with a reason and something in flight logs the [Capture] wiped line", function()
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    NS.addon.pendingInfo = pendingCapture()
+    NS.addon:WipeCapture("master switch off")
+    assertLogged(NS, "[Capture] wiped (master switch off)")
+end)
+
+test("debuglog: pin — /wg test notify logs the [Test] injection line", function()
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    NS.addon:RunTest()
+    assertLogged(NS, '[Test] synthetic capture injected "' .. NS.addon:SampleInfo().title .. '"')
+end)
+
+test("debuglog: pin — showing a capture logs the [Frame] popup-shown and teleport lines", function()
+    local NS, _, mock = T.bootAddon()
+    NS.State.debug = true
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    NS.addon.pendingInfo = pendingCapture()
+    NS.addon:ShowFrame()
+    assertLogged(NS, '[Frame] popup shown "Stonevault Speedrun" map=2652')
+    assertLogged(NS, "[Frame] teleport spellID=445269 known=true (activity=2516 map=2652)")
+end)
+
+test("debuglog: pin — showing with no capture logs the [Frame] fallback and nil teleport lines", function()
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    NS.addon:ShowFrame()
+    assertLogged(NS, "[Frame] popup shown (no pendingInfo " .. ARROW .. " 'No data' fallbacks)")
+    assertLogged(NS, "[Frame] teleport spellID=nil known=nil (activity=nil map=nil)")
+end)
+
+test("debuglog: pin — a show the visibility gate withholds logs the [Frame] not-shown line", function()
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    NS.addon.db.profile.visibility = "inCombat"
+    NS.addon:ShowFrame()
+    assertLogged(NS, "[Frame] popup built but not shown: visibility = inCombat")
+end)
+
+test("debuglog: pin — unticking test mode logs the [Test] off line with its reason", function()
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    NS.addon.Settings.Helpers.Set("state.testMode", true)
+    NS.addon.Settings.Helpers.Set("state.testMode", false)
+    assertLogged(NS, "[Test] test mode off (unticked)")
+end)
