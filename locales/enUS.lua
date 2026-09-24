@@ -19,12 +19,13 @@
 -- SCOPE: the player-facing surfaces route through L — the join notification,
 -- the popup dialog, the command descriptions, the library-absent line that
 -- `/wg enable`, `/wg disable` and `/wg test` print when LibKa0s did not load,
--- and the reset confirmation. Slash-CLI diagnostics ("unknown command",
+-- the reset confirmation, and the launcher tooltip's left-click label. Slash-CLI diagnostics ("unknown command",
 -- "Usage: …", "debug logging ON/OFF") are deliberately NOT routed: they are
 -- developer/power-user feedback for the `/wg` command line, not chrome a
 -- translator would localize. Keeping them out keeps this table focused on the
 -- strings a player actually reads. So are the library's own strings: the
--- "Defaults" button and the combat-refusal notice (LibKa0s-Options-1.0), and
+-- "Defaults" button and the combat-refusal notice (LibKa0s-Options-1.0), the
+-- launcher tooltip's frame of words (LibKa0s-Launcher-1.0's lib.STRINGS), and
 -- the help header and the disabled-addon refusal (slash-commands-§2), which is
 -- LibKa0s-Slash-1.0's DISABLED_LINE_FORMAT built by Sl:DisabledLine (the
 -- degraded stub in settings/Slash.lua prints the same bytes). LibKa0s authors
@@ -138,3 +139,8 @@ L["Test mode on — the popup shows sample group info. Drag its title bar to pla
 L["Test mode off"] = "Test mode off"
 L["Test mode off — combat started"] = "Test mode off — combat started"
 L["cannot start test mode during combat"] = "cannot start test mode during combat"
+
+-- The launcher's left-click hint (core/LauncherSetup.lua, launcher-§1). LibKa0s-Launcher-1.0 draws
+-- the tooltip and its own words (`Left-click: %s`, `Enabled`, `Locked`, ...); this is the one
+-- string in it that is the addon's, naming what rung (a)'s left click does here.
+L["Toggle group popup"] = "Toggle group popup"

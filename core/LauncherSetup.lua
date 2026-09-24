@@ -40,6 +40,7 @@
 local addonName, NS = ...
 
 local lib = LibStub and LibStub("LibKa0s-Launcher-1.0", true)
+local L = NS.L
 
 -- THE ADDON'S OWN LOGO, and the same file `## IconTexture` names (launcher-§4, layout-§4): the
 -- AddOns list, the minimap button and a broker display then show one identity rather than three.
@@ -156,12 +157,44 @@ NS.Launcher = lib:New({
     print = function(line) NS.Print(line) end,
     debug = function(tag, message) NS.Debug(tag, message) end,
 
+    -- ── THE STATUS TOOLTIP (launcher-§1, LibKa0s-Launcher-1.0 minor 3) ──────────────────────
+    --
+    -- The LIBRARY draws it, on every hover and while the addon is disabled too: the label and
+    -- version, `Enabled` (from `isEnabled` above), `Locked` and `Test mode` where the descriptor
+    -- passes them, then the two click hints. These fields only answer its questions, each asked
+    -- on every show and never cached, so the tooltip cannot disagree with the settings panel.
+    --
+    -- The version is the TOC's, through NS.Version (slash-commands-§3's ladder, the same one
+    -- `/wg version` prints). NS.Version answers "?" when nothing is readable; the title then
+    -- drops the version rather than print `v?`.
+    version = function()
+        local v = NS.Version()
+        return v ~= "?" and v or nil
+    end,
+
+    -- WhatGroup HAS both states, so both lines: the popup's Lock frame row is the profile's
+    -- `locked` (modules/Frame.lua reads it at drag time), and its session-only Test mode is
+    -- NS.State.testMode (modules/Frame.lua owns it). The same stores the two Master-controls
+    -- checkboxes read, so the tooltip and the panel say one thing.
+    isLocked   = function()
+        local db = NS.addon and NS.addon.db
+        return (db and db.profile and db.profile.locked) and true or false
+    end,
+    isTestMode = function() return (NS.State and NS.State.testMode) and true or false end,
+
+    -- Rung (a)'s left click, in words (the standard's ADDONS.md: "(a) the group popup"). The
+    -- library draws it as `Left-click: <label>` while enabled and swaps in the disabled hint,
+    -- read out of `disabledLine`'s `/wg enable`, while stood down -- so no `slash` is passed.
+    leftClickLabel = L["Toggle group popup"],
+
     -- Deliberately NOT passed:
-    --   onTooltipShow — the button's tooltip is the library's default, which names the addon and
-    --                   says what each button does. This addon has no live value to put there: the
-    --                   popup's contents are a capture, not a number, and a tooltip that read
-    --                   "no group" most of the time would be worse than the two click hints.
-    --   L             — nothing here is translated yet, and NS.L answers every key with the key
-    --                   itself (anti-patterns #2), so handing it over would render the launcher's
-    --                   own reports as NO_BROKER / NO_ICON.
+    --   onTooltipShow -- since minor 3 it APPENDS the addon's own lines inside the library's
+    --                   block. This addon has no live value to add: the popup's contents are a
+    --                   capture, not a number, and a line reading "no group" most of the time is
+    --                   noise. A hook drawing a title, status or click hint would draw a second
+    --                   copy of the library's (anti-pattern #89).
+    --   L             -- the library's own words (`Enabled`, `Left-click: %s`, the reports) stay
+    --                   the library's English, like every other LibKa0s string this addon shows
+    --                   (the ratified partial-routing deviation, docs/ARCHITECTURE.md). Only the
+    --                   one string that is this addon's goes through NS.L, above.
 })

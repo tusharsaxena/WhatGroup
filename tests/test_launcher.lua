@@ -237,6 +237,118 @@ test("launcher: RIGHT-click opens the settings panel", function()
 end)
 
 -- ---------------------------------------------------------------------------
+-- The status tooltip (launcher-§1, LibKa0s-Launcher-1.0 minor 3)
+-- ---------------------------------------------------------------------------
+--
+-- The LIBRARY draws it; what is pinned here is what this addon HANDS it. WhatGroup has both
+-- states the tooltip can report -- the popup's Lock frame row and its session-only Test mode -- so
+-- both lines appear, read from the same stores the Master controls rows read. The left-click
+-- label is rung (a)'s, the group popup (ADDONS.md). The version is the TOC's. And no
+-- onTooltipShow: this addon has no extra line worth a hover, so the block is the library's alone.
+
+-- A GameTooltip stand-in that records its lines, and a reader that strips the status colors.
+local function hover(object)
+    local tt = { lines = {} }
+    function tt:AddLine(text) self.lines[#self.lines + 1] = text end
+    object.OnTooltipShow(tt)
+    return tt.lines
+end
+
+local function plain(lines)
+    local out = {}
+    for i, l in ipairs(lines) do out[i] = (l:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
+    return out
+end
+
+local function assertLines(got, want, what)
+    assertEqual(#got, #want, what .. ": line count (" .. table.concat(got, " / ") .. ")")
+    for i = 1, #want do assertEqual(got[i], want[i], what .. ": line " .. i) end
+end
+
+test("launcher: the tooltip reads title, status, lock, test mode, then the two click hints", function()
+    -- The fresh-login shape: enabled, unlocked, test mode off. Every line is the library's, drawn
+    -- from this descriptor, and nothing is drawn twice.
+    -- red under: no isLocked / isTestMode (lines missing), no leftClickLabel ("Left-click: Toggle"),
+    -- no version (a bare title), or an onTooltipShow drawing a title or hint of its own.
+    local _, _, object = launched()
+    assertLines(plain(hover(object)), {
+        "Ka0s WhatGroup  v1.4.0",
+        "Enabled: Yes",
+        "Locked: No",
+        "Test mode: Off",
+        "Left-click: Toggle group popup",
+        "Right-click: Open settings",
+    }, "fresh login")
+end)
+
+test("launcher: Locked and Test mode are read on every hover, from the rows' own stores", function()
+    -- Never cached: the tooltip must agree with the Master controls checkboxes the moment they
+    -- move. Lock frame is the profile's `locked`; Test mode is the session's `state.testMode`.
+    -- red under: an accessor reading anything but those two stores, or a value captured at load.
+    local NS, _, object = launched()
+    local H = NS.addon.Settings.Helpers
+    H.Set("locked", true)
+    H.Set("state.testMode", true)
+    local lines = hover(object)
+    assertLines(plain(lines), {
+        "Ka0s WhatGroup  v1.4.0",
+        "Enabled: Yes",
+        "Locked: Yes",
+        "Test mode: On",
+        "Left-click: Toggle group popup",
+        "Right-click: Open settings",
+    }, "locked, test mode on")
+    assertTrue(lines[3]:find("|cFF00FF00", 1, true) ~= nil, "Yes is green")
+    H.Set("locked", false)
+    H.Set("state.testMode", false)
+    local again = plain(hover(object))
+    assertEqual(again[3], "Locked: No", "the next hover sees the unlock")
+    assertEqual(again[4], "Test mode: Off", "and test mode ending")
+end)
+
+test("launcher: while disabled the tooltip still draws, and the left hint points at /wg enable",
+function()
+    -- The owner's ruling: the button always answers a hover, including while the addon is off,
+    -- which is when the player most needs to ask. The left hint mirrors the library's gate: the
+    -- click would refuse, so the hint says how to turn it back on. The command comes out of the
+    -- Slash dispatcher's own DisabledLine, so this addon passes no `slash`.
+    -- red under: the tooltip gated on isEnabled, or a disabledLine that does not name /wg enable.
+    local NS, _, object = launched()
+    NS.addon.Settings.Helpers.Set("enabled", false)
+    local lines = hover(object)
+    assertLines(plain(lines), {
+        "Ka0s WhatGroup  v1.4.0",
+        "Enabled: No",
+        "Locked: No",
+        "Test mode: Off",
+        "Left-click: disabled \226\128\148 /wg enable",
+        "Right-click: Open settings",
+    }, "disabled")
+    assertTrue(lines[2]:find("|cFFFF0000", 1, true) ~= nil, "No is red")
+end)
+
+test("launcher: the tooltip's version is the TOC's, not the in-code constant", function()
+    -- slash-commands-§3's rule, reached through NS.Version: a packaged addon whose TOC can be read
+    -- never reports the constant somebody forgot to edit.
+    -- red under: `version = WhatGroup.VERSION`, or a version captured at file load.
+    local _, mock = T.enableAddon{ mock = function(m) m.metadata.Version = "9.8.7" end }
+    assertEqual(plain(hover(mock.ldbObjects[NAME]))[1], "Ka0s WhatGroup  v9.8.7")
+end)
+
+test("launcher: the left-click label is localized, and there is no host tooltip hook", function()
+    -- The label routes through NS.L (localization-§3), keyed in locales/enUS.lua; and the descriptor
+    -- passes no onTooltipShow, because every line this addon has to say is one the library draws
+    -- (a hook drawing a title or a click hint is anti-pattern #89).
+    -- red under: a bare literal label, a missing locale row, or an onTooltipShow in the descriptor.
+    local src = readFile("core/LauncherSetup.lua")
+    assertTrue(src:find('leftClickLabel%s*=%s*L%["Toggle group popup"%]') ~= nil,
+        "leftClickLabel goes through the locale")
+    assertTrue(readFile("locales/enUS.lua"):find('L%["Toggle group popup"%]%s*=') ~= nil,
+        "and the locale carries the row")
+    assertNil(src:find("\n%s*onTooltipShow%s*="), "no host tooltip hook")
+end)
+
+-- ---------------------------------------------------------------------------
 -- The visibility row (launcher-§3)
 -- ---------------------------------------------------------------------------
 

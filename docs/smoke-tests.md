@@ -952,6 +952,12 @@ honest state of this section is unrun, and it is recorded that way rather than a
    row — wearing the same logo, whose left and right clicks do exactly what the minimap button's do,
    because it is the same object. Its own show/hide is the display's business, not ours; there is
    deliberately no addon setting for it.
+9. **Hover it** (`launcher-§1`, the library's status tooltip). **Expected**, top to bottom:
+   `Ka0s WhatGroup  v<the TOC version>`, `Enabled: Yes` (green), `Locked: No`, `Test mode: Off`,
+   `Left-click: Toggle group popup`, `Right-click: Open settings`, and nothing drawn twice. Tick
+   **Lock frame** and **Test mode** on Master controls and hover again: `Locked: Yes`,
+   `Test mode: On`. Then `/wg disable` and hover: the tooltip still shows, `Enabled: No` in red and
+   `Left-click: disabled — /wg enable`. `/wg enable` afterwards.
 
 ## 13. Quick reference checklist
 

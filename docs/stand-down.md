@@ -89,6 +89,11 @@ does not reach it; a rung-(c) left-click opens the settings panel and nothing el
 that one is unchanged. **Right-click still opens the panel, in either state** — the ruling narrows
 the *slash* surface and a mouse click is not a slash command.
 
+**The hover says so first** (Launcher minor 3, `launcher-§1`). The tooltip still draws while the
+addon is disabled: `Enabled: No` in red, and the left-click hint becomes
+`Left-click: disabled — /wg enable`, the command read out of the same `DisabledLine()` the click
+prints. `Right-click: Open settings` does not change.
+
 ## The slash surface is unchanged
 
 Every reserved verb answers while the addon is off and the bare `/wg` opens the panel; only this

@@ -646,7 +646,7 @@ badge and any count quoted in the docs must agree with it.
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
 
-### test_launcher.lua (24)
+### test_launcher.lua (29)
 
 - launcher: it registers at login, and the broker object IS the minimap button's
 - launcher: the object is a launcher, named for the FOLDER, wearing this addon's logo
@@ -660,6 +660,11 @@ badge and any count quoted in the docs must agree with it.
 - launcher: a LEFT-click dismissal ends test mode, as the Close button does
 - launcher: a disabled left-click prints the dispatcher's line and does not toggle
 - launcher: RIGHT-click opens the settings panel
+- launcher: the tooltip reads title, status, lock, test mode, then the two click hints
+- launcher: Locked and Test mode are read on every hover, from the rows' own stores
+- launcher: while disabled the tooltip still draws, and the left hint points at /wg enable
+- launcher: the tooltip's version is the TOC's, not the in-code constant
+- launcher: the left-click label is localized, and there is no host tooltip hook
 - launcher: the Minimap button row is stored, global, and LibDBIcon's OWN hide key
 - launcher: the row's get/set invert, and the button follows immediately
 - launcher: the row's CLI path reads in its own sense
@@ -889,7 +894,7 @@ badge and any count quoted in the docs must agree with it.
 | test_frame_secure.lua | 7 |
 | test_panel.lua | 54 |
 | test_testmode.lua | 23 |
-| test_launcher.lua | 24 |
+| test_launcher.lua | 29 |
 | test_lifecycle.lua | 46 |
 | test_debuglog.lua | 49 |
 | test_docmap.lua | 1 |
@@ -901,4 +906,4 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **775** |
+| **Total** | **780** |

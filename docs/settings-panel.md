@@ -484,6 +484,14 @@ what it chooses to show and already offers the player a per-plugin toggle, so an
 from a display would be solving the display's problem in a second settings row the player has to
 find first.
 
+**The button's hover tooltip reads the panel, never a copy of it** (`launcher-§1`,
+`LibKa0s-Launcher-1.0` minor 3). The library draws it in every state, disabled included:
+`Enabled` answers from the *Enable WhatGroup* row's latch, `Locked` from the *Lock frame* row's
+profile `locked`, and `Test mode` from the *Test mode* row's session `state.testMode`, each asked on
+every hover, so ticking a row here changes the next hover. The left-click hint is
+`Toggle group popup` (rung (a)), or `disabled — /wg enable` while the addon is off; the right-click
+hint is always `Open settings`.
+
 ## Adding a setting
 
 One row to `Schema`. The UI, CLI, defaults, and reset surfaces all follow automatically. See [common-tasks.md](./common-tasks.md#add-a-setting) for the recipe. A row that belongs to the **Master controls** block is the exception: that block is options-ui-§15's canonical set and is not extended by hand — a new master control is a change to `LibKa0s`'s composer, not to this addon.
