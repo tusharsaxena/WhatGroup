@@ -974,7 +974,7 @@ For a fast pre-release pass, run at minimum:
 - [ ] section 5.5a — `/wg disable` + `/wg enable`, then Logout: no taint; the details link works enabled and does nothing disabled
 - [ ] section 10 — no `SCREAMING_SNAKE` string on any page, in the console, or in chat
 - [ ] sections 11.5 / 11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
-- [ ] sections 12.1 / 12.4 — marks on the console title bar, and a mark **beside** the footer Close word
+- [ ] sections 12.1 / 12.4 — marks on the console title bar, and the footer Close as the bare word with no mark beside it
 - [ ] section 12a — the tab strip's labels, selection and band height survive three passes
 - [ ] section 12c — the minimap button draws the logo, toggles the popup, right-clicks to Settings, and survives a profile switch hidden
 - [ ] section 12b — the non-English-client pass, which is also the only login § 7a will get
