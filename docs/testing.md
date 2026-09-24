@@ -76,23 +76,25 @@ argument, and that the DebugLog descriptor passes `addonName` beside `name`.
 Both are invisible in game except by comparison: the factory receives no name,
 builds no texture path, and draws a perfectly good button.
 
-`test_surface_parity` is the degradation gate. Each of the six adopted seams
+`test_surface_parity` is the degradation gate. Each of the eight adopted seams
 with a degradation arm carries a hand-written stub for the install where `libs/LibKa0s` is missing, and
 a stub is a second implementation of somebody else's surface — so it drifts the
 moment the library grows a member the addon starts calling, staying green on the
-live path and raising on exactly the path the stub exists for. The seven cases
+live path and raising on exactly the path the stub exists for. The nine cases
 compare the two halves as a **set**, and both halves come from a real load: the
 degraded arm loads the addon with the library's files omitted, never by
 hand-stubbing the member under test.
 
-Five of the seven name their live half rather than rebuilding it —
+Seven of the nine name their live half rather than rebuilding it —
 `assertSurfaceParity(stub, "LibKa0s-Options-1.0")` — which compares only the
 surface's public members, so the library's own `__`-prefixed internals are the
 kit's business rather than a hand-kept exemption list that grows on every
-re-vendor. Where that name resolves is registered in `tests/run.lua`: three of the
+re-vendor. Where that name resolves is registered in `tests/run.lua`: five of the
 stubs mirror an **instance**, what `lib:New(descriptor)` returned, and not the
-library table `LibStub` answers for the same major. The fourth, Compat's reader
-arm, mirrors the library table itself, because `core/Compat.lua` wires the
+library table `LibStub` answers for the same major. Those are DebugLog, Slash
+and the Options helpers, plus Launcher (`core/LauncherSetup.lua`) and Lifecycle
+(`core/LifecycleSetup.lua`), each of which publishes the instance its descriptor
+built. The sixth, Compat's reader arm, mirrors the library table itself, because `core/Compat.lua` wires the
 library's members onto `NS.Compat` and builds no instance; its row is the live
 load's `LibStub("LibKa0s-Compat-1.0", true)`. Core keeps the two-table form
 because it is not a major's surface at all — `core/CoreSetup.lua` hangs its

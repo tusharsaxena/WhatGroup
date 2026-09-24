@@ -50,7 +50,7 @@ end
 -- factories rather than a built addon, so nothing is auto-wired and every by-name case in
 -- tests/test_surface_parity.lua fails outright with "no surface source is registered" — which is
 -- the kit's deliberate bargain, an unresolvable name reddens rather than silently passing. And even
--- if a LibStub were reachable it would be the wrong answer: all three of this addon's
+-- if a LibStub were reachable it would be the wrong answer: five of this addon's
 -- library-backed stubs mirror an INSTANCE — what `lib:New(descriptor)` returned — and
 -- "LibKa0s-Options-1.0" resolves to the four-member library table (LAYOUT, New,
 -- PatchAlwaysShowScrollbar, STRINGS), not to the surface settings/Panel.lua calls.
