@@ -33,7 +33,7 @@ local assertNil    = T.assertNil
 local NAME = "WhatGroup"
 
 -- ---------------------------------------------------------------------------
--- Surveys — all five read THROUGH the mock, never through the addon
+-- Surveys — every one reads THROUGH the mock, never through the addon
 -- ---------------------------------------------------------------------------
 
 --- The registration set as a sorted array of stable keys, so two snapshots compare as text rather
@@ -58,8 +58,9 @@ end
 --- falsifiable in the useful direction: a registry that only ever grew would report a perfectly
 --- torn-down addon as still watching everything.
 ---
---- modules/Frame.lua makes two of these, both PLAYER_REGEN_ENABLED and both for deferred protected
---- work, and a suite that surveyed only AceEvent would miss both.
+--- modules/Frame.lua makes NONE since its two combat-end replays moved onto a queue the addon's own
+--- AceEvent PLAYER_REGEN_ENABLED handler drains (WHATGROUP-A-08). The survey stays as the regression
+--- guard: a raw registration brought back would be invisible to an AceEvent-only survey.
 local function rawRegs(mock)
     local out = {}
     for _, f in ipairs(mock.frames) do
@@ -71,8 +72,15 @@ local function rawRegs(mock)
     return out
 end
 
---- THE WHOLE REGISTRATION SET: AceEvent, message and bucket registrations from the kit's survey,
---- plus this repo's raw frame registrations. Nothing here is a handler return value.
+--- THE WHOLE REGISTRATION SET: AceEvent, message and bucket registrations and the EventRegistry
+--- callbacks from the kit's survey, plus this repo's raw frame registrations. Nothing here is a
+--- handler return value.
+---
+--- The chat link's click route is an `EventRegistry:RegisterCallback("SetItemRef", …, owner)`. It
+--- has a real unregister, so slash-commands-§7's hooksecurefunc carve-out does not cover it: a
+--- stood-down addon must hold no callback there. The kit's registry (revision 26) reports each
+--- live owner as a `{ kind = "callback", event, owner }` row, so it reads `callback:SetItemRef`
+--- here, once per owner: a callback that stacked a second owner would show up twice.
 local function regNames(mock)
     local out = {}
     for _, r in ipairs(mock.__registrations()) do out[#out + 1] = r.kind .. ":" .. r.event end
@@ -124,9 +132,9 @@ test("disabled 1: enabled, the addon holds a NON-EMPTY registration set", functi
     local R_on = regNames(mock)
     assertTrue(#R_on > 0, "the enabled addon watches something: " .. joined(R_on))
     assertEqual(joined(R_on),
-        "event:GROUP_ROSTER_UPDATE, event:LFG_LIST_APPLICATION_STATUS_UPDATED, "
+        "callback:SetItemRef, event:GROUP_ROSTER_UPDATE, event:LFG_LIST_APPLICATION_STATUS_UPDATED, "
         .. "event:PLAYER_REGEN_DISABLED, event:PLAYER_REGEN_ENABLED",
-        "and these four are what it watches")
+        "and these four events plus the chat-link callback are what it watches")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -139,6 +147,7 @@ test("disabled 3: the registration set is EMPTY, by count and by name", function
     -- passing its own test.
     -- red under: drop the four UnregisterEvent calls in core/WhatGroup.lua's NS.StandDown; the
     -- addon still ignores every event and this case still fails, which is the point.
+    -- red under: dropping the EventRegistry:UnregisterCallback in NS.StandDown
     local NS, mock = up()
     switchOff(NS)
     local R_off = regNames(mock)
@@ -156,6 +165,30 @@ function()
     NS.addon:OnSlashCommand("disable")
     assertEqual(#regNames(mock), 0, "the verb stands the addon down too")
     assertTrue(NS.Lifecycle:IsHeld(NS.HOLD_DISABLED), "through the same named hold")
+end)
+
+test("disabled: no raw frame registration exists at any point, in combat or out", function()
+    -- Both combat-end replays in modules/Frame.lua -- the first show deferred past combat and the
+    -- teleport configure deferred past combat -- wait in its combat-end queue, which the addon's own
+    -- AceEvent PLAYER_REGEN_ENABLED handler drains. Nothing is left for a private frame to watch, so
+    -- the raw survey reads empty enabled, mid-defer and after; it stays as the regression guard.
+    -- red under: a frame:RegisterEvent in modules/Frame.lua
+    local NS, mock = up()
+    assertEqual(joined(rawRegs(mock)), "", "enabled, out of combat")
+    NS.addon.pendingInfo = { title = "Stonevault", leaderName = "L", fullName = "F",
+                             shortName = "", playstyleString = "", generalPlaystyle = 0 }
+    mock.combat = true
+    NS.addon:ShowFrame()          -- never built: the first show is deferred
+    assertEqual(joined(rawRegs(mock)), "", "a combat first-show defer")
+    mock.combat = false
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    assertTrue(mock.frames["WhatGroupFrame"]:IsShown(), "the deferred show landed")
+    mock.combat = true
+    NS.addon:ShowFrame()          -- shown, so the fields refill and the teleport configure defers
+    assertEqual(joined(rawRegs(mock)), "", "a combat teleport defer")
+    mock.combat = false
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    assertEqual(joined(rawRegs(mock)), "", "after combat")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -341,7 +374,7 @@ end)
 
 test("disabled 7: each FEATURE verb answers exactly one refusal line and reaches no write seam",
 function()
-    -- This addon TAKES §2's SHOULD, and there are two verbs in scope: `show` and `test`, the two
+    -- This addon TAKES slash-commands-§2's SHOULD, and there are two verbs in scope: `show` and `test`, the two
     -- that put the popup on screen. Pinned so the choice cannot drift silently -- an addon that
     -- declined the SHOULD would assert the opposite here, and either is conformant.
     --
@@ -378,28 +411,35 @@ end)
 -- 8. The launcher (launcher-§2, slash-commands-§7)
 -- ---------------------------------------------------------------------------
 
-test("disabled 8: left-click is refused with no write and no frame; right-click opens the panel",
+test("disabled 8: left-click opens the panel; right-click's menu grays every feature entry",
 function()
-    -- WhatGroup is on rung (a): the left button drives the primary window, which is a feature. The
-    -- rung-(c) carve-out does not reach it -- a rung-(c) left-click opens the panel and nothing
-    -- else, which is why that one is unchanged and this one is not.
-    -- red under: dropping the NS.IsStoodDown guard from core/LauncherSetup.lua's onClick.
+    -- launcher-§2 (standard v2.67.0, LibKa0s-Launcher-1.0 minor 4): neither button is refused
+    -- while disabled. The left opens the settings panel, which is setup. The right opens the
+    -- options menu, where Enabled stays live -- it is how the addon comes back -- and Locked, Test
+    -- mode and Show window are grayed, because each drives a feature. Neither click writes.
+    -- red under: an isEnabled that does not read the latch, or a host gate on either button.
     local NS, mock = up()
     switchOff(NS)
     local object = mock.ldbObjects[NAME]
     assertTrue(object ~= nil, "the broker object survives the stand-down")
 
     mock.__resetSvWrites()
-    local mark, shown = #mock.prints, #visibleFrames(mock)
-    object.OnClick(nil, "LeftButton")
-    assertEqual(#mock.prints - mark, 1, "one refusal line, and nothing else")
-    assertTrue(mock.prints[#mock.prints]:find("WhatGroup is disabled", 1, true) ~= nil)
+    local mark, shown, opened = #mock.prints, #visibleFrames(mock), #mock.openedTo
+    object.OnClick(mock.UIParent, "LeftButton")
+    assertEqual(#mock.openedTo, opened + 1, "left-click opens the panel, in either state")
+    assertEqual(#mock.prints - mark, 0, "and prints no refusal")
+
+    object.OnClick(mock.UIParent, "RightButton")
+    local menu = mock.menu.last
+    assertTrue(menu ~= nil, "right-click opens the options menu")
+    assertTrue(menu:Find("Enabled").enabled, "Enabled stays live")
+    for _, entry in ipairs({ "Locked", "Test mode", "Show window" }) do
+        assertFalse(menu:Find(entry).enabled, entry .. " is grayed while disabled")
+        menu:Click(entry)
+    end
     assertEqual(#mock.__svWrites(), 0, "a click on a disabled addon writes NOTHING")
     assertEqual(#visibleFrames(mock), shown, "and shows nothing")
-
-    local opened = #mock.openedTo
-    object.OnClick(nil, "RightButton")
-    assertEqual(#mock.openedTo, opened + 1, "right-click still opens the panel, in either state")
+    assertFalse(helpers(NS).Get("state.testMode"), "test mode never started")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -407,13 +447,17 @@ end)
 -- ---------------------------------------------------------------------------
 
 test("disabled 9: re-enabling restores the registration set exactly", function()
-    -- red under: rebuilding from a snapshot taken on the way down, or forgetting one of the four.
+    -- red under: rebuilding from a snapshot taken on the way down, forgetting one of the four, or
+    -- not re-registering the chat-link callback in NS.StandUp.
     local NS, mock = up()
-    local R_on = regKeys(mock)
+    local R_on, N_on = regKeys(mock), regNames(mock)
+    assertTrue(joined(N_on):find("callback:SetItemRef", 1, true) ~= nil, "the callback is in the set")
     switchOff(NS)
     assertEqual(#regKeys(mock), 0)
+    assertEqual(#regNames(mock), 0)
     switchOn(NS)
     assertEqual(joined(regKeys(mock)), joined(R_on), "the same set, not a subset and not a superset")
+    assertEqual(joined(regNames(mock)), joined(N_on), "callback:SetItemRef included, exactly once")
 end)
 
 test("disabled 9: a setting changed WHILE DISABLED is what the rebuild reflects", function()
@@ -426,7 +470,7 @@ test("disabled 9: a setting changed WHILE DISABLED is what the rebuild reflects"
     NS.addon:OnSlashCommand("set visibility never")
     assertEqual(helpers(NS).Get("visibility"), "never")
     switchOn(NS)
-    assertEqual(#regKeys(mock), 4, "it stood back up")
+    assertEqual(#regKeys(mock), 5, "it stood back up")
     NS.addon.pendingInfo = { title = "Stonevault", leaderName = "L", fullName = "F",
                              shortName = "", playstyleString = "", generalPlaystyle = 0 }
     NS.addon:ShowFrame()
@@ -457,7 +501,7 @@ function()
     assertTrue(NS.Lifecycle:IsHeld(NS.HOLD_DISABLED))
 
     switchOn(NS)
-    assertEqual(#regKeys(mock), 4, "and only the LAST release stands it up")
+    assertEqual(#regKeys(mock), 5, "and only the LAST release stands it up")
 end)
 
 test("disabled 10: the other order — disabled first, perf released last", function()
@@ -473,7 +517,7 @@ test("disabled 10: the other order — disabled first, perf released last", func
     assertEqual(joined(NS.Lifecycle:Holds()), "perf", "and it is the only one left")
 
     NS.Lifecycle:Release(NS.HOLD_PERF)
-    assertEqual(#regKeys(mock), 4, "now it stands up")
+    assertEqual(#regKeys(mock), 5, "now it stands up")
     assertEqual(#NS.Lifecycle:Holds(), 0)
 end)
 
@@ -525,7 +569,7 @@ test("disabled: a profile switch that flips `enabled` is re-evaluated, both ways
 
     NS.addon.db:SetProfile("Default")
     assertTrue(NS.addon.Settings.Helpers.Get("enabled"), "the default profile is enabled")
-    assertEqual(#regKeys(mock), 4, "so the switch brought it back up")
+    assertEqual(#regKeys(mock), 5, "so the switch brought it back up")
 end)
 
 -- ---------------------------------------------------------------------------

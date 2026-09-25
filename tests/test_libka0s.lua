@@ -282,11 +282,15 @@ test("options: the host's data seams survived the move onto the instance", funct
     local NS = T.enableAddon()
     local H = NS.addon.Settings.Helpers
     for _, member in ipairs({
-        "Get", "RawSet", "Set", "FindSchema", "ValidateSchema", "ApplyDefault",
+        "Get", "Set", "FindSchema", "ValidateSchema", "ApplyDefault",
         "RestoreAllDefaults", "RefreshAll", "InlineButton", "BuildMainContent",
     }) do
         assertEqual(type(H[member]), "function", "lost the host member " .. member)
     end
+    -- RE-PINNED AT ADOPTION (LibKa0s docs/api/Schema/version-2-docs.md, Adoption notes: skip flags
+    -- and side-effect-free writers stay in the host that has them; this one had no caller left).
+    -- RawSet left with the host seam when WhatGroup#22 moved it onto LibKa0s-Schema-1.0.
+    assertNil(H.RawSet, "the side-effect-free writer is gone")
     for _, member in ipairs({
         "CreatePanel", "EnsureScroll", "ClearScroll", "Section", "AddSpacer", "AttachTooltip",
         "RenderField", "RenderRows", "RenderSchema", "SessionCheckbox", "SetRenderer",
@@ -625,39 +629,70 @@ test("degraded: the STORED profile is the same shape with the library absent", f
     sameShape(b, a, "")
 end)
 
--- Written before the LibKa0s-Schema-1.0 adoption attempt (docs/revendor/2026-09-23-v1.55.0), as the
--- characterization of a path that attempt would move -- and these two are what stopped it: the
--- attempt turned both red and was rolled back (issue #22). On a library-absent load the Master controls
--- block is not composed (the hollow composer, options-ui-§1), so `enabled` and `state.testMode` have
--- NO schema row -- and the host verbs still write both through Helpers.Set, because slash-commands-§1
--- keeps host verbs working on a degraded install. A seam that refuses a path with no row (the
--- library's JC-2 reading) turns both verbs into no-ops here, and nothing else in the suite would say.
+-- Written before the LibKa0s-Schema-1.0 adoption (WhatGroup#22) as the characterization of a path
+-- the adoption moves, and REWRITTEN by it to the owner's ruling. On a library-absent load the
+-- Master controls block is not composed (the hollow composer, options-ui-§1), so `enabled` and
+-- `state.testMode` have NO schema row, and the schema seam -- the library's, or
+-- settings/SchemaSetup.lua's host stub -- refuses a path no row declares. WhatGroup passes no
+-- `writeThrough` list: that is options-ui-§1's route (b), the SHOULD deviation recorded in
+-- docs/ARCHITECTURE.md. So the verbs say they are unavailable, in one line through L, raise no Lua
+-- error, write nothing and acknowledge nothing.
 --
--- red under: Helpers.Set refusing a path the schema does not carry.
-test("degraded: `/wg disable` and `/wg enable` still write the stored switch (slash-commands-§1)",
-function()
+-- red under: the pre-adoption seam, whose RawSet wrote the row-less path; or a verb that acks a
+-- write that did not land.
+local ABSENT = " is unavailable: the LibKa0s library did not load."
+
+test("degraded: `/wg disable` and `/wg enable` print the library-absent line and write nothing "
+     .. "(options-ui-§1, WhatGroup#22)", function()
     local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
     NS.addon:OnInitialize()
     NS.addon:OnEnable()
     assertNil(NS.addon.Settings.Helpers.FindSchema("enabled"), "the composed row is absent here")
-    NS.addon:OnSlashCommand("disable")
-    assertEqual(NS.addon.db.profile.enabled, false, "the stored switch moved")
-    assertTrue(mock.prints[#mock.prints]:find("enabled = false", 1, true) ~= nil,
-        "and the ack re-reads it")
-    NS.addon:OnSlashCommand("enable")
-    assertEqual(NS.addon.db.profile.enabled, true)
+    for _, verb in ipairs({ "disable", "enable" }) do
+        local ok, err = pcall(NS.addon.OnSlashCommand, NS.addon, verb)
+        assertTrue(ok, "/wg " .. verb .. " raised: " .. tostring(err))
+        local last = mock.prints[#mock.prints] or ""
+        local want = "/wg " .. verb .. ABSENT
+        assertEqual(last:sub(-#want), want, "the library-absent line names the verb")
+        assertEqual(NS.addon.db.profile.enabled, true, "the stored switch did not move")
+    end
 end)
 
-test("degraded: `/wg test on` and `off` still move test mode (slash-commands-§1)", function()
-    local NS = T.newAddon{ skip = NO_LIBKA0S }
+test("degraded: `/wg test on|off` print the library-absent line and move nothing", function()
+    local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
     NS.addon:OnInitialize()
     NS.addon:OnEnable()
-    local H = NS.addon.Settings.Helpers
-    assertNil(H.FindSchema("state.testMode"), "the composed row is absent here")
-    NS.addon:OnSlashCommand("test on")
-    assertEqual(H.Get("state.testMode"), true)
-    NS.addon:OnSlashCommand("test off")
-    assertEqual(H.Get("state.testMode"), false)
+    assertNil(NS.addon.Settings.Helpers.FindSchema("state.testMode"), "the composed row is absent here")
+    for _, verb in ipairs({ "test on", "test off", "test" }) do
+        local ok, err = pcall(NS.addon.OnSlashCommand, NS.addon, verb)
+        assertTrue(ok, "/wg " .. verb .. " raised: " .. tostring(err))
+        local last = mock.prints[#mock.prints] or ""
+        local want = "/wg test" .. ABSENT
+        assertEqual(last:sub(-#want), want, "the library-absent line names /wg test")
+        assertTrue(NS.State.testMode ~= true, "test mode did not start")
+        assertNil(mock.frames["WhatGroupFrame"], "the popup was not built")
+    end
+end)
+
+-- options-ui-§1 keeps the global reset real in the stub. On this path H IS Settings.Helpers, the
+-- table settings/Schema.lua already hung the host's RestoreAllDefaults on, so a stub that assigns
+-- its own no-op wipes the real reset -- and both entry points (the direct call and `/wg resetall`'s
+-- popup OnAccept body) then print success over an untouched profile.
+--
+-- red under: the stub assigning a no-op RestoreAllDefaults
+test("degraded: Reset all settings still resets the profile (options-ui-§1)", function()
+    local NS, env = T.newAddon{ skip = NO_LIBKA0S }
+    NS.addon:OnInitialize()
+    NS.addon:OnEnable()
+    NS.addon.db.profile.notify.delay = 7
+    NS.addon.Settings.Helpers.RestoreAllDefaults()
+    assertEqual(NS.addon.db.profile.notify.delay, NS.C.notify.delay, "the direct call resets")
+
+    -- And `/wg resetall` through the popup body, the path a user actually takes.
+    NS.addon.db.profile.notify.delay = 7
+    NS.addon:OnSlashCommand("resetall")
+    env.StaticPopupDialogs["WHATGROUP_RESET_ALL"].OnAccept()
+    assertEqual(NS.addon.db.profile.notify.delay, NS.C.notify.delay, "the popup body resets")
 end)
 
 test("degraded: the settings stub carries no widget maker and no layout constant", function()
@@ -731,6 +766,52 @@ test("degraded: `/wg debug on` still moves the flag and explains the missing win
                 "and each explains the absence through the shared cause clause")
         end
     end
+end)
+
+-- ---------------------------------------------------------------------------
+-- The refusal line — one spelling (slash-commands-§7)
+-- ---------------------------------------------------------------------------
+
+test("libka0s: no seam re-spells the refusal line (slash-commands-§7)", function()
+    -- The disabled line has ONE shape collection-wide, and the library owns it. The only copy this
+    -- addon may hold is the degraded Slash stub's DISABLED_LINE_FORMAT constant, which exists
+    -- because there is no library to ask on that path, and which the next case pins to the
+    -- library's bytes. Any other literal is a second spelling that drifts the day the library's
+    -- wording improves. Comments are stripped first: prose ABOUT the line is not a copy of it.
+    -- red under: the launcher's old `or "Ka0s WhatGroup is disabled."` fallback, or a stub that
+    -- writes the sentence out in its DisabledLine body.
+    local offenders = {}
+    for _, rel in ipairs(SEAM_FILES) do
+        if rel:match("^core/") or rel:match("^settings/") then
+            local n = 0
+            for line in (readFile(rel) or ""):gmatch("([^\n]*)\n?") do
+                n = n + 1
+                local code = line:gsub("%-%-.*$", "")
+                if code:find("is disabled", 1, true)
+                    and not code:match("^%s*local%s+DISABLED_LINE_FORMAT%s*=") then
+                    offenders[#offenders + 1] = rel .. ":" .. n
+                end
+            end
+        end
+    end
+    assertEqual(table.concat(offenders, ", "), "", "the refusal line is spelled outside the constant")
+end)
+
+test("degraded: the Slash stub's DisabledLine uses the library's DISABLED_LINE_FORMAT bytes",
+function()
+    -- The stub cannot ask the library (it is absent), so it carries a byte copy of
+    -- libs/LibKa0s/Slash.lua's DISABLED_LINE_FORMAT and publishes it as `__disabledLineFormat` — a
+    -- `__` key, so Kit.publicMembers skips it and surface parity is unaffected. The copy is pinned
+    -- against the LIVE library's constant through the kit's by-name read, which reaches the
+    -- lib-level member through the LibStub fallback tests/run.lua hands Kit.expose.
+    -- red under: a stub that does not publish the constant, or whose bytes drift from the library's.
+    local NS = T.newAddon{ skip = NO_LIBKA0S }
+    local Sl = NS.SlashCommands
+    T.assertLibraryConstant(Sl.__disabledLineFormat, "LibKa0s-Slash-1.0", "DISABLED_LINE_FORMAT")
+    assertEqual(Sl:DisabledLine(), Sl.__disabledLineFormat:format("Ka0s WhatGroup", "/wg enable"),
+        "DisabledLine is built from the constant")
+    -- And it is the same sentence the library-backed dispatcher answers.
+    assertEqual(Sl:DisabledLine(), T.newAddon().SlashCommands:DisabledLine())
 end)
 
 test("libka0s: the Master controls hook is keyed off the library's constant, not a copy of it",
@@ -857,4 +938,41 @@ test("libka0s: Options reads no descriptor L (tripwire)", function()
     local widgets = readFile("libs/LibKa0s/OptionsWidgets.lua")
     assertTrue(widgets ~= nil, "the vendored OptionsWidgets.lua is readable")
     assertNil(widgets:match("d%.L"), "OptionsWidgets.lua now reads a descriptor L")
+end)
+
+-- ---------------------------------------------------------------------------
+-- The locale table holds only keys something reads (localization-§3)
+-- ---------------------------------------------------------------------------
+--
+-- locales/enUS.lua's header says a key with no L[...] reader is a defect: it tells a translator a
+-- surface is covered when it is not. This is the check that makes the sentence true. Each defined
+-- key's source literal, quotes and escapes included, must appear inside an L[...] read somewhere in
+-- the addon's own core/, modules/ or settings/ source. Matching the literal rather than the decoded
+-- string keeps it honest about spelling: a read that writes the em dash one way and a definition
+-- that writes it another are two keys, and the fall-back metatable would hide the mismatch.
+
+test("locale: every key enUS.lua defines has a reader", function()
+    local locale = readFile("locales/enUS.lua")
+    assertTrue(locale ~= nil, "locales/enUS.lua is readable")
+    local readers = {}
+    for _, path in ipairs(SEAM_FILES) do
+        local p = path:gsub("\\", "/")
+        if p:match("^core/") or p:match("^modules/") or p:match("^settings/") then
+            local src = readFile(path)
+            assertTrue(src ~= nil, path .. " is in the TOC load list but could not be read")
+            readers[#readers + 1] = src
+        end
+    end
+    assertTrue(#readers >= 10, "the reader sweep covered the addon's source, not an empty list")
+    local body = table.concat(readers, "\n")
+    local defined, orphans = 0, {}
+    for line in (locale .. "\n"):gmatch("([^\n]*)\n") do
+        local key = line:match('^L%[(".-")%]%s*=')
+        if key then
+            defined = defined + 1
+            if not body:find("L[" .. key .. "]", 1, true) then orphans[#orphans + 1] = key end
+        end
+    end
+    assertTrue(defined >= 30, "the locale table was walked, not an empty one")
+    assertEqual(#orphans, 0, "enUS.lua keys with no L[...] reader: " .. table.concat(orphans, ", "))
 end)

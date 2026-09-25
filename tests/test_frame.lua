@@ -619,33 +619,34 @@ test("frame: a first show in combat defers the build and says so", function()
 end)
 
 test("frame: leaving combat builds the deferred popup", function()
-    local NS, _, mock = T.bootAddon()
+    -- The replay rides the addon's own AceEvent PLAYER_REGEN_ENABLED handler (OnCombatStateChanged
+    -- drains modules/Frame.lua's combat-end queue), not a private frame's OnEvent.
+    -- red under: a first-show defer parked on a raw frame:RegisterEvent wait frame.
+    local NS, _, mock = T.enableAddon()
     mock.combat = true
     NS.addon.pendingInfo = pending()
     NS.addon:ShowFrame()
-    local waitFrame = mock.frames[#mock.frames]
-    assertTrue(waitFrame:IsEventRegistered("PLAYER_REGEN_ENABLED"))
+    assertTrue(NS.addon._frameBuildQueued, "the build is queued for combat end")
     mock.combat = false
-    waitFrame.__fire("OnEvent", "PLAYER_REGEN_ENABLED")
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
     assertTrue(popup(mock) ~= nil, "the popup builds once combat ends")
     assertTrue(popup(mock):IsShown())
     assertNil(NS.addon._frameBuildQueued, "the queue flag is released")
 end)
 
 test("frame: the deferred show restores a pendingInfo cleared during the wait", function()
-    local NS, _, mock = T.bootAddon()
+    local NS, _, mock = T.enableAddon()
     mock.combat = true
     NS.addon.pendingInfo = pending({ title = "Group Before Combat" })
     NS.addon:ShowFrame()
-    local waitFrame = mock.frames[#mock.frames]
     NS.addon:WipeCapture()        -- e.g. group-leave lands mid-combat
     mock.combat = false
-    waitFrame.__fire("OnEvent", "PLAYER_REGEN_ENABLED")
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
     assertEqual(fields(mock).group:GetText(), "Group Before Combat")
 end)
 
-test("frame: repeated in-combat shows queue exactly one wait frame", function()
-    local NS, _, mock = T.bootAddon()
+test("frame: repeated in-combat shows queue exactly one deferred show", function()
+    local NS, _, mock = T.enableAddon()
     mock.combat = true
     NS.addon.pendingInfo = pending()
     NS.addon:ShowFrame()
@@ -653,6 +654,10 @@ test("frame: repeated in-combat shows queue exactly one wait frame", function()
     NS.addon:ShowFrame()
     NS.addon:ShowFrame()
     assertEqual(#mock.frames, afterFirst, "the _frameBuildQueued guard holds")
+    mock.combat = false
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    assertTrue(popup(mock):IsShown(), "the one queued show lands at combat end")
+    assertNil(NS.addon._frameBuildQueued)
 end)
 
 test("frame: a show requested in combat is deferred, not forced", function()
@@ -662,7 +667,7 @@ test("frame: a show requested in combat is deferred, not forced", function()
     -- ancestor changes a protected child's visibility. The mock modeled only the Hide half, so
     -- this case passed while the client refused the call.
     -- red under: a ShowFrame that only defers the BUILD.
-    local NS, _, mock = T.bootAddon()
+    local NS, _, mock = T.enableAddon()
     NS.addon.pendingInfo = pending()
     NS.addon:ShowFrame()          -- build out of combat
     popup(mock):Hide()
@@ -673,11 +678,7 @@ test("frame: a show requested in combat is deferred, not forced", function()
 
     mock.combat = false
     mock.fireCTimers()
-    for _, fr in ipairs(mock.frames) do
-        if fr.__events and fr.__events["PLAYER_REGEN_ENABLED"] and fr.__scripts.OnEvent then
-            fr.__scripts.OnEvent(fr, "PLAYER_REGEN_ENABLED")
-        end
-    end
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
     assertTrue(popup(mock):IsShown(), "the deferred show has to land when combat ends")
 end)
 
@@ -699,7 +700,7 @@ test("frame: a popup held at alpha 0 comes back in combat without a Show", funct
 end)
 
 test("frame: reconfiguring the teleport button in combat stashes and replays it", function()
-    local NS, _, mock = T.bootAddon()
+    local NS, _, mock = T.enableAddon()
     mock.spellNames[445269] = "Path of the Stonevault"
     mock.knownSpells[445269] = true
     NS.TeleportSpells[2652] = 445269
@@ -710,9 +711,9 @@ test("frame: reconfiguring the teleport button in combat stashes and replays it"
     local btn = teleportBtn(mock)
     assertNil(btn:GetAttribute("type"),
         "secure attribute writes are dropped during combat, not attempted")
-    -- The popup frame itself carries the replay; firing regen re-runs Configure.
+    -- The combat-end queue carries the replay; the addon's own regen handler drains it.
     mock.combat = false
-    popup(mock).__fire("OnEvent", "PLAYER_REGEN_ENABLED")
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
     assertEqual(btn:GetAttribute("macrotext"), "/cast Path of the Stonevault")
 end)
 

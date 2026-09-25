@@ -255,7 +255,7 @@ NS.addon:ApplyFrameVisibility(false)
 
 -- 5. A group capture arriving: the popup repopulated from a fresh info table and shown. This is the
 --    addon's busiest single act, and it happens once per group join.
-local shown = measure("showFrameRepeat", 500, function()
+measure("showFrameRepeat", 500, function()
     NS.addon.pendingInfo = INFO
     NS.addon:ShowFrame()
 end)
@@ -289,7 +289,9 @@ local CEILINGS = {
     formatDurationShort = ceil(formatShort),
     combatGateSteady    = 24,
     combatGateFlipping  = ceil(gateFlip),
-    showFrameRepeat     = ceil(shown),
+    -- Pinned, not derived: ceil(shown) comes from the same run and can never trip. Measured
+    -- 1744.5 on 2026-09-24, after the teleport handlers moved to file scope (WHATGROUP-R-16).
+    showFrameRepeat     = 1745 + 24,
     applyScale          = ceil(applyScale),
     applyAlpha          = ceil(applyAlpha),
 }

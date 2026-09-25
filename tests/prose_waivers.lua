@@ -1,7 +1,7 @@
 -- tests/prose_waivers.lua -- the per-file, per-word waivers the kit's prose gate reads
--- (tests/_kit/test_prose.lua, localization-5).
+-- (tests/_kit/test_prose.lua, localization-§5).
 --
--- A waiver is localization-5's MAY for a British spelling that is not this repository's English to
+-- A waiver is localization-§5's MAY for a British spelling that is not this repository's English to
 -- correct, under its three MUSTs: per file AND per word, never per file alone; the reason written
 -- beside it; and it waives, it never extends -- nothing here adds to BRITISH or removes from
 -- ALLOWED, which stay the section's alone. The kit skips this file by name, so a reason may name the

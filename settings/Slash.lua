@@ -70,13 +70,13 @@ local COMMANDS = {
 }
 
 -- ---------------------------------------------------------------------------
--- The disabled gate (slash-commands-§2, §7) — THE LIBRARY'S, NOT THIS FILE'S
+-- The disabled gate (slash-commands-§2, slash-commands-§7) — THE LIBRARY'S, NOT THIS FILE'S
 -- ---------------------------------------------------------------------------
 --
 -- A DISABLED ADDON REFUSES A FEATURE VERB RATHER THAN ACTING ON IT, on one tagged line naming
 -- `/wg enable` and nothing else. Two of this addon's thirteen verbs drive features — `show` and
 -- `test`, the two that put the popup on screen — which is enough for a silent `/wg show` to read
--- as a bug, so this addon takes §2's SHOULD.
+-- as a bug, so this addon takes slash-commands-§2's SHOULD.
 --
 -- EVERYTHING ELSE ANSWERS NORMALLY, and that is a ruling rather than a default. The standard
 -- narrowed the disabled surface to `enable` and `help` at v2.56.0 and REVERSED it at v2.57.0: the
@@ -125,6 +125,13 @@ if not lib then
     -- help row renders plainly and says so.
     local function unavailable() NS.Print(CLI_MISSING) end
 
+    -- A BYTE COPY of libs/LibKa0s/Slash.lua's `lib.DISABLED_LINE_FORMAT` (:84), and the only place
+    -- this addon may spell the refusal line (slash-commands-§7). It is a copy because this is the
+    -- branch where the library is absent and there is nothing to ask; it is pinned to the live
+    -- library's bytes by tests/test_libka0s.lua through Kit.assertLibraryConstant, so a library-side
+    -- rewording reddens here instead of leaving two sentences in the collection.
+    local DISABLED_LINE_FORMAT = "%s is disabled \226\128\148 enable it with |cFFFFFF00%s|r"
+
     Sl = {
         OnSlash = function(_, msg)
             local raw = trim(msg)
@@ -161,13 +168,15 @@ if not lib then
             return out
         end,
         HelpHeader      = function() return "v" .. NS.Version() .. " slash commands" end,
-        -- The launcher's left click calls this on every install, so the degraded shape has to
-        -- answer it too. Same sentence, same shape, built from the same two pieces the library
-        -- builds it from — there is no lib here to ask, and a click on a disabled addon's minimap
-        -- button is not the place to discover that.
+        -- A member of the library instance, so the degraded shape answers it too (the surface
+        -- parity tests/test_surface_parity.lua pins). Same sentence, built from the same format
+        -- and the same two pieces the library builds it from — there is no lib here to ask.
         DisabledLine    = function()
-            return "Ka0s WhatGroup is disabled \226\128\148 enable it with |cFFFFFF00/wg enable|r"
+            return DISABLED_LINE_FORMAT:format("Ka0s WhatGroup", "/wg enable")
         end,
+        -- Published for the byte pin above. A `__` key sits outside Kit.publicMembers, so the
+        -- surface-parity case against the library instance is unaffected.
+        __disabledLineFormat = DISABLED_LINE_FORMAT,
         CliList         = unavailable,
         CliGet          = unavailable,
         CliSet          = unavailable,
@@ -227,13 +236,15 @@ Sl = lib:New({
     -- rather than a string keeps the banner reading the manifest rather than a load-time copy.
     version = NS.Version,
 
-    -- The single write seam again — the same functions settings/OptionsSetup.lua hands the options
-    -- module, so a CLI change and a checkbox click take one path (slash-commands-§5).
-    get          = function(path) local H = helpers(); return H and H.Get(path) end,
-    set          = function(path, value) local H = helpers(); if H then H.Set(path, value) end end,
-    findRow      = function(path) local H = helpers(); return H and H.FindSchema(path) end,
+    -- The single write seam again — the schema runtime's members, the same ones
+    -- settings/OptionsSetup.lua hands the options module, so a CLI change and a checkbox click take
+    -- one path (slash-commands-§5). Bound as VALUES: `set = S.Set` answers `false, err` on a
+    -- refusal, and CliSet prints the seam's own refusal rather than a success line.
+    get          = NS.SchemaRuntime.Get,
+    set          = NS.SchemaRuntime.Set,
+    findRow      = NS.SchemaRuntime.FindRow,
     allRows      = function() return WhatGroup.Settings.Schema end,
-    applyDefault = function(row) local H = helpers(); if H then H.ApplyDefault(row) end end,
+    applyDefault = NS.SchemaRuntime.ApplyDefault,
 
     -- `list` groups by the schema's own `section`, which is what it has always grouped by; the
     -- library's default would have used `row.page`, which these rows do not carry.
@@ -277,11 +288,23 @@ end
 -- button also runs.
 local TEST_MODE_PATH = "state.testMode"
 
+-- THE LIBRARY-ABSENT LINE (options-ui-§1 route (b); the owner's ruling on WhatGroup#22). The rows
+-- `enable`, `disable` and `test` write are composed by LibKa0s (options-ui-§15), so a load without
+-- it has no row for them, and the schema seam refuses a path no row declares. WhatGroup passes the
+-- seam no `writeThrough` list, so these verbs say they are unavailable instead: no Lua error, no
+-- write, no ack. The SHOULD deviation is recorded in docs/ARCHITECTURE.md.
+local function libraryAbsent(verb)
+    NS.Print(L["%s is unavailable: the LibKa0s library did not load."]:format(verb))
+end
+
 function runTest(rest)
     local sub = (rest or ""):match("^(%S+)")
     sub = sub and sub:lower() or ""
     if sub == "notify" then return WhatGroup:RunTest() end
     local H = helpers()
+    if (sub == "" or sub == "on" or sub == "off") and not H.FindSchema(TEST_MODE_PATH) then
+        return libraryAbsent("/wg test")
+    end
     if sub == "" then
         H.Set(TEST_MODE_PATH, not H.Get(TEST_MODE_PATH))
     elseif sub == "on" or sub == "off" then
@@ -294,9 +317,10 @@ function runTest(rest)
 end
 
 -- ON THE ADDON, not a file-local, because `/wg config` is no longer the only caller: the launcher's
--- RIGHT click opens the panel on every addon in the collection, and its LEFT click does on rung
--- (c) (launcher-§2). core/LauncherSetup.lua reaches this rather than keeping a second copy of the
--- ladder below, so a change to how the panel opens reaches both surfaces.
+-- LEFT click opens the panel on every addon in the collection (launcher-§2, standard v2.67.0), and
+-- its right click does where the client has no context-menu API. core/LauncherSetup.lua reaches
+-- this rather than keeping a second copy of the ladder below, so a change to how the panel opens
+-- reaches both surfaces.
 function WhatGroup:OpenSettings()
     -- Settings registration normally happens at login (OnEnable), so the panel is already in the
     -- AddOns list by the time the player runs this. This call is an idempotent fallback that also
@@ -310,7 +334,7 @@ function WhatGroup:OpenSettings()
     end
     -- The combat refusal and the sidebar-tree unfold both live inside OpenOptionsPanel
     -- (options-ui-§2). The gate belongs THERE rather than in this dispatcher so every caller is
-    -- refused — this verb, a /run script, the launcher's right click.
+    -- refused — this verb, a /run script, the launcher's left click.
     H.OpenOptionsPanel()
 end
 
@@ -351,10 +375,13 @@ function runConfig() WhatGroup:OpenSettings() end
 function runEnabled(on)
     local H = helpers()
     if not (H and H.Set) then return NS.Print(CLI_MISSING) end
-    H.Set(ENABLED_PATH, on)
+    local row = H.FindSchema(ENABLED_PATH)
+    if not row then return libraryAbsent(on and "/wg enable" or "/wg disable") end
+    -- Never ack a write that did not land: a refusal prints the seam's own words instead.
+    local ok, err = H.Set(ENABLED_PATH, on)
+    if ok == false then return NS.Print(tostring(err)) end
     local value = H.Get(ENABLED_PATH)
-    local row   = H.FindSchema and H.FindSchema(ENABLED_PATH)
-    if lib and row then
+    if lib then
         return NS.Print(lib.FormatKV(row.path, lib.FormatValue(row, value)))
     end
     NS.Print(ENABLED_PATH .. " = " .. tostring(value))
@@ -425,6 +452,24 @@ function runDebug(rest)
         NS.Print("       /wg debug on|off (enable/disable logging)")
     end
 end
+
+-- ---------------------------------------------------------------------------
+-- The launcher's options menu (launcher-§2, standard v2.67.0; LibKa0s-Launcher-1.0 minor 4)
+-- ---------------------------------------------------------------------------
+--
+-- The minimap button's right-click menu toggles through the addon's OWN verb bodies, so its
+-- refusals, combat rules and chat acks are the ones the player gets from typing the command.
+-- core/LauncherSetup.lua reaches these three methods; they are ON THE ADDON because the bodies
+-- they wrap are file-locals here, and a second copy of any of them would be anti-pattern #81.
+--
+--   SlashEnabled(on)      runEnabled -- the one body `/wg enable` and `/wg disable` both call.
+--   SlashToggleTestMode() runTest("") -- bare `/wg test`, the toggle form.
+--   SlashToggleLock()     `/wg set locked toggle`. There is no `/wg lock` verb: the lock is a
+--                         checkbox here (slash-commands-§8 MAY), so its CLI form is the schema
+--                         verb over the Lock frame row's own path, through the same seam.
+function WhatGroup:SlashEnabled(on) runEnabled(on and true or false) end
+function WhatGroup:SlashToggleTestMode() runTest("") end
+function WhatGroup:SlashToggleLock() Sl:CliSet("locked toggle") end
 
 -- AceConsole registers both chat commands (core/WhatGroup.lua's OnInitialize); the library
 -- registers none of its own, which is what keeps every verb's output flowing through the tagged

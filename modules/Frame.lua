@@ -32,6 +32,11 @@ local yGap         = -18
 -- by the time those functions execute.
 local f, fields, ConfigureTeleportButton
 
+-- What deferTeleportUntilCombatEnds stashes for a configure with NO capture. The replay runs only
+-- `if pending`, so a plain nil stash would read as "nothing owed" and drop the configure that hides
+-- the secure button and clears its action; this sentinel carries "no capture" through the stash.
+local NO_CAPTURE = {}
+
 -- TEST MODE's placeholder capture (options-ui-§15, preview-mode), and nil exactly while test mode is
 -- off. A record of its own rather than a write to `pendingInfo`, so a real capture the player is
 -- still holding survives a round of placing the popup. Every reader of "what does the popup show"
@@ -142,12 +147,24 @@ function WhatGroup:ApplyFrameScale()
     f:SetScale(masterScale())
 end
 
+-- The soft-hidden state (hidePopup, below): declared here, above ApplyFrameAlpha, because the
+-- opacity write has to know about it.
+local softHidden  = false   -- alpha-0 stand-in for a Hide the client refused
+local pendingHide = false   -- a real Hide owed once the lockdown lifts
+
 -- NOT refused in combat: opacity moves nothing, so the secure child's position is untouched and
 -- the change can land while the player is fighting — which is the one time an alpha setting is
 -- actually being judged.
+--
+-- But a SOFT-HIDDEN popup stays at alpha 0 until something really shows it (WHATGROUP-R-02).
+-- preparePopup re-applies the opacity before ShowFrame asks the gate, and an alpha write from the
+-- panel or `/wg set alpha` lands mid-fight; either one restoring masterAlpha() on a popup the gate
+-- or the Close button put away would put it back on screen while onScreen() says it is gone, so
+-- the launcher toggle and Escape could not close it. showPopup and hidePopup's real route both
+-- clear softHidden before calling this, so they still get the master alpha.
 function WhatGroup:ApplyFrameAlpha()
     if not f then return end
-    f:SetAlpha(masterAlpha())
+    f:SetAlpha(softHidden and 0 or masterAlpha())
 end
 
 -- Is the popup allowed on screen right now? `always` and anything unrecognized (a hand-edited
@@ -194,16 +211,15 @@ end
 -- What that costs, per value, because it is not uniform:
 --   * `inCombat`   — hides when combat ENDS. InCombatLockdown() is already false on that edge, so
 --                    the hide is legal and the gate is honored exactly.
---   * `outOfCombat` — would hide when combat STARTS, which is inside the lockdown and refused. The
---                    popup therefore STAYS UP for the fight and the gate is honored late, at
---                    PLAYER_REGEN_ENABLED. There is no way to do better while the secure child
---                    exists; the only real alternative is to stop parenting it to f, which costs a
+--   * `outOfCombat` — would hide when combat STARTS, which is inside the lockdown and refused. On
+--                    that entering edge hidePopup SOFT-hides it instead: the popup goes to alpha 0
+--                    (invisible, though still shown) and owes the real Hide, which lands at
+--                    PLAYER_REGEN_ENABLED when ApplyFrameVisibility settles `pendingHide`. The only
+--                    real alternative is to stop parenting the secure child to f, which costs a
 --                    floating orphan button the client will equally refuse to hide.
--- Attempting it anyway is strictly worse than deferring: the frame does not hide either way, and the
--- player additionally gets a red error naming this addon.
---
--- f:Show() on an already-built frame is not a secure write — the secure work is buildFrame's, and it
--- has already happened by the time f exists. Only the hide direction is constrained.
+-- Calling f:Hide() anyway is strictly worse than the soft route: the frame does not hide, and the
+-- player additionally gets a red error naming this addon. Show is protected the same way (see
+-- showPopup), so the re-show in combat is only ever the alpha coming back.
 --
 -- The re-show is gated on there being a capture to render: a "No data" popup appearing the moment
 -- the player pulls is worse than no popup at all. It is deliberately NOT gated on the caller, so
@@ -224,12 +240,33 @@ end
 -- lockdown lifts: alpha 0 is invisible, not absent, so the title bar still drags and the teleport
 -- button still takes a click it cannot act on — a teleport cannot be cast in combat anyway. That
 -- residue is exactly why `pendingHide` exists and why the soft state is never a resting one.
-local softHidden  = false   -- alpha-0 stand-in for a Hide the client refused
-local pendingHide = false   -- a real Hide owed once the lockdown lifts
+-- `softHidden` and `pendingHide` are declared above ApplyFrameAlpha, which reads the first.
 
--- The first-show-in-combat defer's frame (ShowFrame, far below). At file scope so NS.FrameStandDown
--- can unregister it; nil until a show is actually deferred.
-local buildWaitFrame
+-- THE COMBAT-END QUEUE: protected work refused under lockdown, replayed once it lifts. No private
+-- frame watches PLAYER_REGEN_ENABLED for it (events-frames-taint-§1); core/WhatGroup.lua's
+-- OnCombatStateChanged drains it first thing on that edge, through the addon's own AceEvent
+-- registration, and NS.FrameStandDown wipes it. One slot per key, so queueing again REPLACES the
+-- replay rather than stacking a second, and the drain walks a fixed key list: an empty queue costs
+-- two table reads and allocates nothing (perf combatGateSteady).
+local combatEndQueue = {}
+local COMBAT_END_ORDER = { "teleport", "firstShow" }
+
+function NS.FrameQueueForCombatEnd(key, fn)
+    combatEndQueue[key] = fn
+end
+
+-- The slot is cleared BEFORE its replay runs, so a replay that has to queue again (it cannot at
+-- combat end, but the seam does not rely on that) lands in a fresh slot rather than being wiped.
+function NS.FrameDrainCombatEnd()
+    for i = 1, #COMBAT_END_ORDER do
+        local key = COMBAT_END_ORDER[i]
+        local fn = combatEndQueue[key]
+        if fn then
+            combatEndQueue[key] = nil
+            fn()
+        end
+    end
+end
 
 -- The ESC proxy: the name in UISpecialFrames, standing in for the popup's own (buildEscapeProxy
 -- below). Unprotected, so its Show and Hide are legal in combat, and kept SHOWN exactly while the
@@ -309,9 +346,10 @@ end
 local gateWithheld = false
 
 -- THE PLAYER PUT THE POPUP AWAY. One body, because there are three of them now: the Close button,
--- the ESC proxy, and the launcher's left click (WhatGroup:ToggleFrame below). All three mean the
--- same three things -- take it off screen, tell the gate not to bring it back on the next combat
--- edge, and end test mode so the checkbox does not read ticked over a popup that is gone.
+-- the ESC proxy, and the launcher menu's Show window entry (WhatGroup:ToggleFrame below). All
+-- three mean the same three things -- take it off screen, tell the gate not to bring it back on
+-- the next combat edge, and end test mode so the checkbox does not read ticked over a popup that
+-- is gone.
 --
 -- `gateWithheld` is set HERE rather than left to f's OnHide, because in combat hidePopup takes the
 -- alpha route and no OnHide fires. Declared below gateWithheld and above every caller.
@@ -382,25 +420,34 @@ local function stopCooldownTicker()
     end
 end
 
--- Secure-button attribute writes (`type`, `macrotext`) and Show/Hide are protected while in
--- combat — silently dropped, not erroring. Stash the info, queue a re-run on combat-end, and tell
--- the caller to bail. The button retains its prior visual state until PLAYER_REGEN_ENABLED fires;
--- at that point we Configure with the most recently-stashed info.
---
--- Returns true when the work was deferred, so the caller's guard reads as one line.
--- Resolves everything the button's appearance depends on, in one place, and returns nil when this
--- activity has no teleport at all — the caller's cue to clear the button rather than paint it.
---
--- A learned teleport that is still recharging is its own state (WG-31). The player owns the spell,
--- so "not learned" would be a lie and hiding the icon would be worse; it renders like the unlearned
--- state but says why, and the swipe shows the wait draining. `remaining` is only asked of a spell
--- the player actually has: an unlearned one has no meaningful cooldown, and answering with one
--- answers a question nobody asked.
--- The note beneath the button: three states, one line of text, and the only place the cooldown
--- countdown lives.
+-- The teleport button's three script handlers, defined once (WHATGROUP-R-16). Each configure
+-- writes the spell onto the button (`__wgSpellID`, `__wgSpellName`) and re-passes these same
+-- functions, so reopening the popup allocates no closures. They read the spell off `self`.
+local function onTeleportEnter(self)
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetSpellByID(self.__wgSpellID)
+    GameTooltip:Show()
+end
+
+local function onTeleportLeave() GameTooltip:Hide() end
+
+-- Material-effect trace (debug-logging-§10): log the actual press. The button registers the down
+-- edge as well as the up (see RegisterForClicks in buildFrame), so the `down` check is what keeps
+-- one press to one line. PreClick is non-secure work that runs alongside the secure /cast, so it
+-- is taint-free even in combat. The args go to NS.Debug unformatted: the sink formats them only
+-- when debug is on.
+local function onTeleportPreClick(self, mouseButton, down)
+    if down then
+        NS.Debug("Frame", "teleport button pressed \226\134\146 /cast %s (spellID=%s, button=%s)",
+            self.__wgSpellName, self.__wgSpellID, mouseButton)
+    end
+end
+
 -- Arms or disarms the click. Everything here is protected-frame work, which is why the caller
 -- has already established it is out of combat.
 local function applyTeleportAction(btn, spellID, spellName, known, ready)
+    -- Before any SetScript: the shared handlers read the spell off the button.
+    btn.__wgSpellID, btn.__wgSpellName = spellID, spellName
     if ready and spellName then
         -- Secure-handler macro path: clicking runs `/cast <SpellName>`
         -- through Blizzard's secure action system, side-stepping the
@@ -408,25 +455,9 @@ local function applyTeleportAction(btn, spellID, spellName, known, ready)
         btn:SetAttribute("type", "macro")
         btn:SetAttribute("macrotext", "/cast " .. spellName)
         btn:EnableMouse(true)
-        btn:SetScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetSpellByID(spellID)
-            GameTooltip:Show()
-        end)
-        btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        -- Material-effect trace (debug-logging-§10): log the actual press.
-        -- The button registers the down edge only (see RegisterForClicks in buildFrame), so
-        -- one press is one line. The `down` check stays as a guard rather than a filter: it
-        -- costs nothing and keeps the trace honest if the registration is ever widened again.
-        -- PreClick is non-secure work that runs alongside the secure /cast, so it's taint-free
-        -- even in combat.
-        btn:SetScript("PreClick", function(_, mouseButton, down)
-            if down then
-                NS.Debug("Frame", "teleport button pressed \226\134\146 /cast "
-                    .. spellName .. " (spellID=" .. tostring(spellID)
-                    .. ", button=" .. tostring(mouseButton) .. ")")
-            end
-        end)
+        btn:SetScript("OnEnter", onTeleportEnter)
+        btn:SetScript("OnLeave", onTeleportLeave)
+        btn:SetScript("PreClick", onTeleportPreClick)
     else
         -- Clearing the attributes IS the disable: the button still takes the click, the
         -- secure handler finds no action to run, and nothing is cast. Calling :Disable() would
@@ -441,12 +472,8 @@ local function applyTeleportAction(btn, spellID, spellName, known, ready)
         -- the note beside the button already says so.
         if known then
             btn:EnableMouse(true)
-            btn:SetScript("OnEnter", function(self)
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetSpellByID(spellID)
-                GameTooltip:Show()
-            end)
-            btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+            btn:SetScript("OnEnter", onTeleportEnter)
+            btn:SetScript("OnLeave", onTeleportLeave)
         else
             btn:EnableMouse(false)
             btn:SetScript("OnEnter", nil)
@@ -455,6 +482,8 @@ local function applyTeleportAction(btn, spellID, spellName, known, ready)
     end
 end
 
+-- The note beneath the button: three states, one line of text, and the only place the cooldown
+-- countdown lives.
 local function applyTeleportNote(spellID, known, remaining, info)
     local note = fields.teleportNote
     local function renderNote(secondsLeft)
@@ -499,12 +528,18 @@ local function applyTeleportNote(spellID, known, remaining, info)
     end
 end
 
+-- Resolves everything the button's appearance depends on, in one place, and returns nil when this
+-- activity has no teleport at all — the caller's cue to clear the button rather than paint it.
+--
+-- A learned teleport that is still recharging is its own state (WG-31). The player owns the spell,
+-- so "not learned" would be a lie and hiding the icon would be worse; it renders like the unlearned
+-- state but says why, and the swipe shows the wait draining. `remaining` is only asked of a spell
+-- the player actually has: an unlearned one has no meaningful cooldown, and answering with one
+-- answers a question nobody asked.
 local function resolveTeleportState(info)
     local spellID, known = WhatGroup:GetTeleportSpell(info and info.activityID, info and info.mapID)
-    NS.Debug("Frame", "teleport spellID=" .. tostring(spellID)
-        .. " known=" .. tostring(known)
-        .. " (activity=" .. tostring(info and info.activityID)
-        .. " map=" .. tostring(info and info.mapID) .. ")")
+    NS.Debug("Frame", "teleport spellID=%s known=%s (activity=%s map=%s)", spellID, known,
+        info and info.activityID, info and info.mapID)
     if not spellID then return nil end
 
     local remaining = known and NS.Compat.GetSpellCooldownRemaining(spellID) or 0
@@ -523,20 +558,27 @@ local function resolveTeleportState(info)
     }
 end
 
+-- The teleport configure's combat-end replay. It reads the stash when it RUNS, not when it was
+-- queued, so the most recent capture of the combat window is the one configured.
+local function replayTeleport()
+    local pending = f._pendingTeleportInfo
+    f._pendingTeleportInfo = nil
+    if pending then
+        ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon,
+            pending ~= NO_CAPTURE and pending or nil)
+    end
+end
+
+-- Secure-button attribute writes (`type`, `macrotext`) and Show/Hide are protected while in
+-- combat — silently dropped, not erroring. Stash the info, queue a re-run on combat-end, and tell
+-- the caller to bail. The button retains its prior visual state until PLAYER_REGEN_ENABLED fires;
+-- at that point we Configure with the most recently-stashed info.
+--
+-- Returns true when the work was deferred, so the caller's guard reads as one line.
 local function deferTeleportUntilCombatEnds(info)
     if not InCombatLockdown() then return false end
-    f._pendingTeleportInfo = info
-    f:RegisterEvent("PLAYER_REGEN_ENABLED")
-    f:SetScript("OnEvent", function(self, ev)
-        if ev ~= "PLAYER_REGEN_ENABLED" then return end
-        self:UnregisterEvent("PLAYER_REGEN_ENABLED")
-        self:SetScript("OnEvent", nil)
-        local pending = self._pendingTeleportInfo
-        self._pendingTeleportInfo = nil
-        if pending then
-            ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, pending)
-        end
-    end)
+    f._pendingTeleportInfo = (info == nil) and NO_CAPTURE or info
+    NS.FrameQueueForCombatEnd("teleport", replayTeleport)
     return true
 end
 
@@ -605,7 +647,7 @@ local function buildFrame()
     -- menu. By now f:IsShown() is false, so the proxy's OnHide sees the popup off screen and stops.
     f:SetScript("OnHide", function(self)
         gateWithheld = false
-        stopCooldownTicker(self)
+        stopCooldownTicker()
         if escProxy then escProxy:Hide() end
     end)
 
@@ -745,11 +787,11 @@ local function buildFrame()
     local teleportIcon = teleportBtn:CreateTexture(nil, "ARTWORK")
     teleportIcon:SetAllPoints()
 
-    -- The swipe is the ONLY live element in this popup, and it is live without costing the addon
-    -- an OnUpdate or a repeating timer: the Cooldown widget animates engine-side once armed. That
-    -- distinction is load-bearing — zero Lua-side repeat is the condition LIBKA0S-15 (issue #7) rests on for
-    -- declining LibKa0s-Perf (docs/performance.md). The numbers are hidden because at 24px they
-    -- are unreadable, and the note beside the button carries the figure instead.
+    -- The swipe has no Lua-side repeat: the Cooldown widget animates engine-side once armed, so it
+    -- costs the addon no OnUpdate and no timer of its own. The note's countdown beside the button
+    -- is the one repeating thing in the addon, the ratified cooldown ticker (see stopCooldownTicker
+    -- above; the reasoning is in docs/performance.md and the performance-§12 register row). The
+    -- numbers are hidden because at 24px they are unreadable, and the note carries the figure.
     local teleportSwipe = CreateFrame("Cooldown", nil, teleportBtn, "CooldownFrameTemplate")
     teleportSwipe:SetAllPoints()
     teleportSwipe:SetHideCountdownNumbers(true)
@@ -849,7 +891,11 @@ local function PopulateFields()
         fields.type:SetText(noData)
         fields.leader:SetText(noData)
         fields.playstyle:SetText("|cff888888—|r")
-        fields.teleportBtn:Hide()
+        -- Through the configure, never a bare Hide: the button is a SecureActionButtonTemplate, and
+        -- a popup soft-hidden at alpha 0 is still shown, so a reopen in combat reaches this branch
+        -- inside the lockdown. The configure defers itself there and, out of combat, clears the
+        -- secure action and hides. The note is a plain FontString, so its Hide is always legal.
+        ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, nil)
         fields.teleportNote:Hide()
         return
     end
@@ -887,9 +933,11 @@ local function preparePopup()
     WhatGroup:ApplyFrameScale()
     WhatGroup:ApplyFrameAlpha()
     local info = shownInfo()
-    NS.Debug("Frame", info
-        and ('popup shown "' .. tostring(info.title) .. '" map=' .. tostring(info.mapID))
-        or "popup shown (no pendingInfo → 'No data' fallbacks)")
+    if info then
+        NS.Debug("Frame", 'popup shown "%s" map=%s', info.title, info.mapID)
+    else
+        NS.Debug("Frame", "popup shown (no pendingInfo → 'No data' fallbacks)")
+    end
     PopulateFields()
 end
 
@@ -941,11 +989,11 @@ function endTestMode(why)
     previewInfo = nil
     hidePopup()
     gateWithheld = false
-    -- Not in combat: with no real capture PopulateFields hides the secure teleport button, which the
-    -- client refuses under lockdown. A popup ended by combat is soft-hidden, and the next show
-    -- refills it anyway.
+    -- Not in combat: the refill is owed by the next show anyway, since a popup ended by combat is
+    -- soft-hidden. The secure button's protected Hide is no longer the reason -- with no real
+    -- capture PopulateFields routes it through ConfigureTeleportButton, which defers it itself.
     if fields and not InCombatLockdown() then PopulateFields() end
-    NS.Debug("Test", "test mode off (%s)", tostring(why))
+    NS.Debug("Test", "test mode off (%s)", why)
     return true
 end
 
@@ -976,6 +1024,16 @@ function WhatGroup:EndTestModeForCombat()
     end
 end
 
+-- The first-show defer's combat-end replay (ShowFrame, below). It restores the stashed pendingInfo
+-- only if it was cleared (e.g. group-leave) during the wait window: the player's intent was to see
+-- *this* group's popup.
+local function replayFirstShow()
+    WhatGroup._frameBuildQueued = nil
+    WhatGroup.pendingInfo = WhatGroup.pendingInfo or WhatGroup._deferredShowInfo
+    WhatGroup._deferredShowInfo = nil
+    WhatGroup:ShowFrame()
+end
+
 -- Public API
 function WhatGroup:ShowFrame()
     -- A real show takes the popup from test mode: whatever called this wants the real capture on it.
@@ -996,13 +1054,6 @@ function WhatGroup:ShowFrame()
         NS.Debug("Frame", "popup suppressed: visibility = never")
         return
     end
-    -- First-show-in-combat defer: buildFrame creates a
-    -- SecureActionButtonTemplate button and inserts into UISpecialFrames;
-    -- both operations are protected. If we're in combat AND the popup
-    -- has never been built, queue the build on PLAYER_REGEN_ENABLED and
-    -- print a chat hint. Once buildFrame has run once, subsequent calls
-    -- are safe in combat (only the secure-button reconfigure, handled
-    -- by ConfigureTeleportButton's own combat guard, is at risk).
     -- REFUSED IN COMBAT, and it is the show that is refused now, not only the build. Building
     -- creates the secure button and the UISpecialFrames entry, both protected; showing changes a
     -- protected frame's visibility through its ancestor, equally protected. `/wg test` mid-fight
@@ -1017,25 +1068,10 @@ function WhatGroup:ShowFrame()
         end
         if not WhatGroup._frameBuildQueued then
             WhatGroup._frameBuildQueued = true
-            local pending = WhatGroup.pendingInfo
-            -- FILE-SCOPE, not a closure local, since the stand-down landed. A frame created and
-            -- registered inside this branch is unreachable from anywhere else, so a disabled addon
-            -- would have kept watching PLAYER_REGEN_ENABLED on a frame nothing could unregister --
-            -- exactly the survivor slash-commands-§7 exists to catch. One handle, replaced rather
-            -- than stacked, because `_frameBuildQueued` already forbids a second.
-            buildWaitFrame = buildWaitFrame or CreateFrame("Frame")
-            local waitFrame = buildWaitFrame
-            waitFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-            waitFrame:SetScript("OnEvent", function(wf)
-                wf:UnregisterAllEvents()
-                wf:SetScript("OnEvent", nil)
-                WhatGroup._frameBuildQueued = nil
-                -- Restore the captured pendingInfo only if it was
-                -- cleared (e.g. group-leave) during the wait window;
-                -- the user's intent was to see *this* group's popup.
-                WhatGroup.pendingInfo = WhatGroup.pendingInfo or pending
-                WhatGroup:ShowFrame()
-            end)
+            -- Stashed on the addon rather than closed over, so NS.FrameStandDown can drop it along
+            -- with the queued replay; `_frameBuildQueued` forbids a second queueing.
+            WhatGroup._deferredShowInfo = WhatGroup.pendingInfo
+            NS.FrameQueueForCombatEnd("firstShow", replayFirstShow)
         end
         return
     end
@@ -1047,16 +1083,17 @@ function WhatGroup:ShowFrame()
         -- re-show arm is allowed to act on. Without this, `Only in combat` would show once on the
         -- next pull and never again — the request would be forgotten the moment it was refused.
         gateWithheld = true
-        NS.Debug("Frame", "popup built but not shown: visibility = "
-            .. tostring(self.db and self.db.profile and self.db.profile.visibility))
+        NS.Debug("Frame", "popup built but not shown: visibility = %s",
+            self.db and self.db.profile and self.db.profile.visibility)
         return
     end
     showPopup()
 end
 
--- THE LAUNCHER'S LEFT CLICK (launcher-§2 rung (a)). The popup IS this addon's primary window, so
--- the minimap button and the broker row toggle it -- core/LauncherSetup.lua passes this as the
--- descriptor's `onClick` and nothing else calls it.
+-- THE LAUNCHER MENU'S "Show window" ENTRY (launcher-§2, standard v2.67.0). The popup IS this
+-- addon's primary window, so the options menu on the minimap button and the broker row toggles it
+-- -- core/LauncherSetup.lua passes this as the descriptor's `toggleWindow`, beside
+-- WhatGroup:IsFrameOnScreen below as `isWindowShown`, and nothing else calls it.
 --
 -- It is a TOGGLE over the two seams that already exist, not a third way to move the popup: the
 -- open arm is ShowFrame, with its visibility gate, its combat defer and its test-mode handover
@@ -1069,8 +1106,8 @@ end
 --
 -- With no capture and no test mode the popup opens on its "No data" fallbacks, which is the honest
 -- answer to "show me this addon's window" and is what makes the toggle symmetric. `/wg show` still
--- refuses that case with its hint, because a verb the player typed can say why; a minimap click
--- has nowhere to say it but the window itself.
+-- refuses that case with its hint, because a verb the player typed can say why; a menu click has
+-- nowhere to say it but the window itself.
 ---@return boolean shown  whether the popup is on screen after the click
 function WhatGroup:ToggleFrame()
     if onScreen() then
@@ -1079,6 +1116,13 @@ function WhatGroup:ToggleFrame()
     end
     self:ShowFrame()
     return onScreen()
+end
+
+-- Whether the popup is ON SCREEN, for the launcher menu's Show window checkmark: the same
+-- `onScreen()` ToggleFrame branches on, so the checkmark and the click it predicts cannot disagree.
+---@return boolean
+function WhatGroup:IsFrameOnScreen()
+    return onScreen() and true or false
 end
 
 -- ---------------------------------------------------------------------------
@@ -1109,18 +1153,12 @@ function NS.FrameStandDown()
     gateWithheld = false
     if escProxy then escProxy:Hide() end
 
-    -- The two RAW frame registrations this file makes, both PLAYER_REGEN_ENABLED and both for
-    -- deferred protected work that a disabled addon is no longer going to do. Unregistered rather
-    -- than gated: they can be, so slash-commands-§7 says they must be.
-    if f then
-        f:UnregisterEvent("PLAYER_REGEN_ENABLED")
-        f:SetScript("OnEvent", nil)
-        f._pendingTeleportInfo = nil
-    end
-    if buildWaitFrame then
-        buildWaitFrame:UnregisterAllEvents()
-        buildWaitFrame:SetScript("OnEvent", nil)
-    end
+    -- The combat-end queue, and the stashes its two replays read: deferred protected work that a
+    -- disabled addon is no longer going to do. Dropped rather than left to a drain, because a
+    -- re-enable before the lockdown lifts re-registers the handler that drains it.
+    wipe(combatEndQueue)
+    if f then f._pendingTeleportInfo = nil end
+    WhatGroup._deferredShowInfo = nil
     WhatGroup._frameBuildQueued = nil
 end
 

@@ -13,9 +13,9 @@ local test, assertEqual, assertTrue, assertNil, fail =
 
 local VENDORED = "Interface\\AddOns\\WhatGroup\\libs\\LibKa0s\\media\\"
 
--- Every icon name this addon's own source hands to NS.Icon. One entry today — the mark beside the
--- popup's footer Close button — and the list is the thing to extend when a second appears, so the
--- cross-check below keeps covering all of them rather than the first one written.
+-- Every icon name this addon's own source hands to NS.Icon. None does today: the mark beside the
+-- popup's footer Close button was removed. "close" stays as the seam's probe, and this list is the
+-- thing to extend when an addon-drawn icon returns, so the cross-check below covers all of them.
 local DRAWN = { "close" }
 
 -- The library files that ARE the payload, for the degraded case. Core.lua absent means every other

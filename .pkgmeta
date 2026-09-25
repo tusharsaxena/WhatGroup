@@ -14,9 +14,9 @@ ignore:
   - .pkgmeta    # packager configuration: consumed before the zip is built, of no use inside it
   # Agent tooling, and untracked here — `git ls-files .claude` returns nothing,
   # so no packager clone has ever carried it and this line changes no downloaded
-  # byte. It stays because packaging.md:28 MUSTs every root dot-entry present in
+  # byte. It stays because packaging MUSTs every root dot-entry present in
   # the repo be named or justified, tracked or not.
-  - .claude     # untracked; listed under packaging.md:28
+  - .claude     # untracked; listed under packaging
   # Tracked, and the only entries here that change a download. Three screenshots,
   # 880K, project-page art the CurseForge CDN already serves. CLAUDE.md and
   # DEPENDENCIES.md are developer documentation; README.md and LICENSE stay,
@@ -24,6 +24,7 @@ ignore:
   - media/screenshots
   - CLAUDE.md
   - DEPENDENCIES.md
+  # layout-§4: the editable .png is committed but excluded from the package by this ignore.
   # Only the .tga logo is loadable at runtime; WoW cannot read .png or .jpg at all. The master .png
   # and the .jpg render exist for the project page and for regenerating the .tga, so shipping them
   # would add megabytes to every download for files the client physically cannot use.

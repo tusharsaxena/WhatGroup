@@ -58,7 +58,7 @@ label like **Enable WhatGroup** honest about which addon it is turning off.
 The suites, in run order: `test_harness`, `test_libka0s`,
 `test_surface_parity`, `test_mediasetup`, `test_envsetup`, `test_util`,
 `test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
-`test_capture`, `test_notify`, `test_frame`, `test_panel`, `test_testmode`,
+`test_capture`, `test_notify`, `test_frame`, `test_frame_secure`, `test_panel`, `test_testmode`,
 `test_launcher`, `test_lifecycle`,
 `test_debuglog`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
 `test_register`, `test_disabled`, `test_vendor_sync`. Three more run last and arrive with the
@@ -76,27 +76,34 @@ argument, and that the DebugLog descriptor passes `addonName` beside `name`.
 Both are invisible in game except by comparison: the factory receives no name,
 builds no texture path, and draws a perfectly good button.
 
-`test_surface_parity` is the degradation gate. Each of the five adopted seams
+`test_surface_parity` is the degradation gate. Each of the eight adopted seams
 with a degradation arm carries a hand-written stub for the install where `libs/LibKa0s` is missing, and
 a stub is a second implementation of somebody else's surface — so it drifts the
 moment the library grows a member the addon starts calling, staying green on the
-live path and raising on exactly the path the stub exists for. The five cases
+live path and raising on exactly the path the stub exists for. The nine cases
 compare the two halves as a **set**, and both halves come from a real load: the
 degraded arm loads the addon with the library's files omitted, never by
 hand-stubbing the member under test.
 
-Four of the five name their live half rather than rebuilding it —
+Seven of the nine name their live half rather than rebuilding it —
 `assertSurfaceParity(stub, "LibKa0s-Options-1.0")` — which compares only the
 surface's public members, so the library's own `__`-prefixed internals are the
 kit's business rather than a hand-kept exemption list that grows on every
-re-vendor. Where that name resolves is registered in `tests/run.lua`: three of the
+re-vendor. Where that name resolves is registered in `tests/run.lua`: five of the
 stubs mirror an **instance**, what `lib:New(descriptor)` returned, and not the
-library table `LibStub` answers for the same major. The fourth, Compat's reader
-arm, mirrors the library table itself, because `core/Compat.lua` wires the
+library table `LibStub` answers for the same major. Those are DebugLog, Slash
+and the Options helpers, plus Launcher (`core/LauncherSetup.lua`) and Lifecycle
+(`core/LifecycleSetup.lua`), each of which publishes the instance its descriptor
+built. The sixth, Compat's reader arm, mirrors the library table itself, because `core/Compat.lua` wires the
 library's members onto `NS.Compat` and builds no instance; its row is the live
 load's `LibStub("LibKa0s-Compat-1.0", true)`. Core keeps the two-table form
 because it is not a major's surface at all — `core/CoreSetup.lua` hangs its
-members on `NS` itself, so there is no name to look one up under. A member that
+members on `NS` itself, so there is no name to look one up under. Schema has
+two cases (WhatGroup#22): `settings/SchemaSetup.lua`'s `HostSchemaStub` stands
+in for the library table, so it is compared by name against the live
+`LibStub("LibKa0s-Schema-1.0", true)` row with `STRINGS` ignored, and the
+instance it builds is compared with the two-table form against a full load's
+`NS.SchemaRuntime`, because the instance surface is in no member manifest. A member that
 is live-only on purpose is named in the case's `ignore` list with the rule that
 makes it so, because a deliberate omission and a bug otherwise read identically.
 
@@ -106,11 +113,13 @@ string resolved against a catalog in **another repo**, and a rename on either
 side answers nil, which draws nothing and raises nothing. The library's own behavior is tested where it lives — this addon keeps
 no duplicate of those cases (testing-§8).
 
-`test_launcher` is the launcher's suite (`launcher-§1`..`§4`). Three of its cases
+`test_launcher` is the launcher's suite (`launcher-§1` to `launcher-§4`). Three of its cases
 cannot be replaced by anything else: that the two registrations really are ONE
 object (two objects with two `OnClick`s would pass a behavioral assertion and
-still be anti-pattern #81), that the LEFT click drives the addon's real popup
-seam rather than a copy of it, and that the icon file on disk is an
+still be anti-pattern #81), that each right-click menu entry runs the addon's
+real verb body rather than a copy of it (the menu is driven through
+`tests/mock_menu.lua`, a `MenuUtil` fake modeled on LibKa0s's own and installed
+on every build by `tests/wow_mock.lua`), and that the icon file on disk is an
 **uncompressed 32-bit TGA at 128×128** — read out of the header bytes, because a
 wrong format there draws nothing and raises nothing, in the client and in every
 other gate alike. `tests/wow_mock.lua` carries LibDataBroker and LibDBIcon fakes,
@@ -119,7 +128,8 @@ degradation cases clear them through the loader's `mock` option, which is how a
 host with neither is shown not to raise.
 
 Coverage extends past pure logic into the UI and event layers — the popup's
-field rendering and secure-teleport-button states (`test_frame`), the settings
+field rendering and secure-teleport-button states (`test_frame`, with the combat reopen of a
+soft-hidden popup in `test_frame_secure`), the settings
 panel's deferred build and widget write-back (`test_panel`), the delayed
 join-notify pipeline (`test_notify`), and the event/hook wiring
 (`test_lifecycle`). What genuinely **cannot** be reproduced headlessly stays in
@@ -172,9 +182,11 @@ It runs `LinkUtil.ProcessLink` first and returns on Handled. Only an unhandled
 link falls through to the ItemRef tooltip, or to `HandleModifiedItemClick` when
 `mock.modifiedClick` is set, and each fallthrough is recorded in
 `mock.itemRefFallthrough`. `hooksecurefunc` post-hooks run after the body
-returns. The `addon` link type's handler re-raises the click through an
-`EventRegistry` that keeps the client's one-callback-per-owner rule and logs every
-registration in `mock.eventRegistryLog`. Suites click with the link the
+returns. The `addon` link type's handler re-raises the click through
+`EventRegistry`, read at click time. That registry is the kit's (revision 26):
+it keeps the client's one-callback-per-owner rule and reports each live
+callback as a `callback` row in `mock.__registrations()`, which is how the
+stand-down suite sees one left behind. Suites click with the link the
 notification actually printed. Firing a recorded post-hook by hand skips the
 body that stood between the click and the addon in the 2026-09-12 report, and
 every case passed while the link did nothing in the client.
@@ -268,7 +280,8 @@ than the tag this addon has taken.
 Between a library release and the re-vendor that carries it they disagree, and that disagreement is
 the normal state rather than a defect. The same goes for untagged commits the library lands after
 the tag it released. As this is written the two agree: [`CLAUDE.md`](../CLAUDE.md) names
-**v1.47.0**, which is `../LibKa0s`'s HEAD, so all four commands report nothing. Read a non-empty pair here as *the library has
+**v1.58.0**, and `../LibKa0s`'s HEAD sits past that tag only by commits outside the two payload
+folders, so all four commands report nothing. Read a non-empty pair here as *the library has
 moved past the tag this addon took* — a newer release, or post-tag follow-ups — not as a fault.
 Re-vendoring to quiet them would be the actual mistake: it would pull an untested library state for
 the sake of a clean diff.
@@ -313,8 +326,9 @@ naming `CLAUDE.md`.
 ## Lint scope
 
 `luacheck`'s 0/0 is **scoped by `.luacheckrc`'s `exclude_files`**, not
-repo-wide: `libs/`, `tests/_kit/`, `_dev/` and the frozen audit/review bundles
-are excluded. **The rest of `tests/` is linted** — the suites, `run.lua`,
+repo-wide: `libs/`, `tests/_kit/`, `_dev/` and the frozen audit, review and
+re-vendor bundles (`docs/audits/`, `docs/reviews/`, `docs/revendor/`) are
+excluded. **The rest of `tests/` is linted** — the suites, `run.lua`,
 `loader.lua` and `wow_mock.lua` are this addon's code and are held to the same
 gate as `core/`, and a run that reports fewer than the full file count is a run
 that has stopped checking half the Lua in the repo. `tests/_kit/` is the one
@@ -336,8 +350,7 @@ fix — it is a finding for `../LibKa0s`.
 
 `exclude_files` narrows **which files** the run reads. The other half of "is 0/0
 a fact about the code?" is **which findings** the config throws away, and
-`tests/test_lintconfig.lua` is the four cases that hold it honest (lint.md,
-`M4-11`):
+`tests/test_lintconfig.lua` holds it honest (lint, `M4-11`), in six cases:
 
 | Case | Red when |
 |---|---|
@@ -345,6 +358,8 @@ a fact about the code?" is **which findings** the config throws away, and
 | no warning class is switched off wholesale | `unused_args = false` and eight relatives — a blanket spelled as a switch |
 | every `files[…]` ignore is narrowed | a stanza keyed on a **directory** whose entry names no variable |
 | no bare inline `-- luacheck: ignore` | the directive appears in any tracked `.lua` with no code after it |
+| `exclude_files` carries the frozen stores | `docs/audits/`, `docs/reviews/` or `docs/revendor/` is dropped |
+| `read_globals` grants no unread global | any of `GetSpellInfo`, `GetSpellTexture`, `GetSpellCooldown`, `CastSpellByID`, `SettingsPanel`, `date` returns |
 
 It reads `.luacheckrc` **as Lua**, under a sandbox that auto-creates tables the
 way luacheck's own loader does, so it inspects the table luacheck obeys rather

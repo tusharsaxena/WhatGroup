@@ -185,7 +185,7 @@ cp -r ../LibKa0s/testkit/. tests/_kit/
 - **Run the vendor gate afterwards** — all four diffs in [testing.md](./testing.md) — because nothing else can see a stale copy: the library's suite passes against the library and this addon's passes against a stale copy that still works, so both repos stay green while they diverge (anti-patterns #45).
 - **Move the `CLAUDE.md` provenance line in the same commit**, so "which LibKa0s does this ship?" stays answerable without grepping a minor constant out of every vendored library file.
 
-After either refresh, run the [Lib-refresh smoke](./smoke-tests.md#8-lib-refresh-smoke--2-min) section — and after a LibKa0s one, §9 and §11 as well.
+After either refresh, run the [Lib-refresh smoke](./smoke-tests.md#8-lib-refresh-smoke--2-min) section — and after a LibKa0s one, smoke sections 9 and 11 as well.
 
 ## Bump the Interface version
 
@@ -267,7 +267,7 @@ like the main popup, in a monospace font — **not** the chat frame. This is the
 standard's requirement for any addon that ships a main window (debug-logging-§7);
 the console is `LibKa0s-DebugLog-1.0`'s, wired in `core/DebugLogSetup.lua`. Each line is
 `HH:MM:SS | [Tag] message`. Full
-detail in [debug.md](./debug.md).
+detail in [debug-content.md](./debug-content.md).
 
 `NS.State.debug` is session-only (default off, never persisted, off again on the
 next login). Logging and the window are independent — capture runs even with the

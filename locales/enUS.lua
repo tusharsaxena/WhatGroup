@@ -17,15 +17,19 @@
 -- Blizzard's strings, not the addon's, so they stay on the Blizzard side.
 --
 -- SCOPE: the player-facing surfaces route through L — the join notification,
--- the popup dialog, the help header + command descriptions, the disabled-addon
--- refusal (slash-commands-§2), and the reset confirmation. Slash-CLI diagnostics ("unknown command", "Usage: …",
--- "Settings layer not ready yet", "debug logging ON/OFF") are deliberately
--- NOT routed: they are developer/power-user feedback for the `/wg`
--- command line, not chrome a translator would localize. Keeping them out
--- keeps this table focused on the strings a player actually reads. So are the
--- library's own strings (the "Defaults" button, the combat-refusal notice):
--- LibKa0s-Options-1.0 authors those, and a copy here would be a second source
--- of truth that drifts.
+-- the popup dialog, the command descriptions, the library-absent line that
+-- `/wg enable`, `/wg disable` and `/wg test` print when LibKa0s did not load,
+-- and the reset confirmation. Slash-CLI diagnostics ("unknown command",
+-- "Usage: …", "debug logging ON/OFF") are deliberately NOT routed: they are
+-- developer/power-user feedback for the `/wg` command line, not chrome a
+-- translator would localize. Keeping them out keeps this table focused on the
+-- strings a player actually reads. So are the library's own strings: the
+-- "Defaults" button and the combat-refusal notice (LibKa0s-Options-1.0), the
+-- launcher tooltip's frame of words (LibKa0s-Launcher-1.0's lib.STRINGS), and
+-- the help header and the disabled-addon refusal (slash-commands-§2), which is
+-- LibKa0s-Slash-1.0's DISABLED_LINE_FORMAT built by Sl:DisabledLine (the
+-- degraded stub in settings/Slash.lua prints the same bytes). LibKa0s authors
+-- those, and a copy here would be a second source of truth that drifts.
 --
 -- That partial routing is a RATIFIED deviation from localization-§3's routing
 -- SHOULD, not an oversight — see `## Documented deviations` in
@@ -116,18 +120,18 @@ L["Reset every setting to defaults"] = "Reset every setting to defaults"
 L["Open/close the debug window — `/wg debug on|off` toggles logging"] =
     "Open/close the debug window — `/wg debug on|off` toggles logging"
 
--- The disabled gate (slash-commands-§2). One tagged line, naming the verb that undoes the
--- state. It routes through L where the CLI diagnostics beside it deliberately do not, because
--- this one is chrome a PLAYER reads rather than feedback for the command line.
-L["WhatGroup is disabled — |cffFFFF00/wg enable|r turns it back on"] =
-    "WhatGroup is disabled — |cffFFFF00/wg enable|r turns it back on"
-
 -- Slash / hint messages
 L["No group info available. Use |cffFFFF00/wg test|r to preview."] =
     "No group info available. Use |cffFFFF00/wg test|r to preview."
 L["Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."] =
     "Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."
 L["Popup deferred until combat ends."] = "Popup deferred until combat ends."
+
+-- The library-absent line (options-ui-§1 route (b), the owner's ruling on WhatGroup#22). On a load
+-- without LibKa0s the Master controls rows are not composed, so `/wg enable`, `/wg disable` and
+-- `/wg test` have no row to write; each says so, naming itself. One sentence, one placeholder.
+L["%s is unavailable: the LibKa0s library did not load."] =
+    "%s is unavailable: the LibKa0s library did not load."
 
 -- Test mode (modules/Frame.lua)
 L["Test mode on — the popup shows sample group info. Drag its title bar to place it."] =

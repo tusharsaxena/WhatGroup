@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-727%2F727_passing-green)
+![Tests](https://img.shields.io/badge/Tests-787%2F787_passing-green)
 
 WhatGroup remembers what group you signed up for via the Group Finder tool. Once you get accepted to a group, shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who is leading, and the playstyle.
 
@@ -28,7 +28,7 @@ The popup is six rows: group, instance, type, leader, playstyle, and the telepor
 
 Three tabs hold the tailoring. Six toggles on the **Chat** tab decide what the join summary contains — instance, type, leader, playstyle, the link, the teleport spell — and **Print to Chat** turns the message off entirely; the mirror of that is **Open Automatically** under **Popup**, which skips the window and leaves you the chat line, with **Width** and **Height** beside it. The **Master controls** tab is the one every Ka0s addon shares, so "how do I turn this off, make it smaller, put it back" is always in the same place: **Enable WhatGroup**, **General visibility** (always, only in combat, only out of combat, or never), **Master scale**, **Master alpha**, **Lock frame** for when you keep nudging the window by accident, **Debug console**, **Minimap button**, **Test mode**, and then **Reset position** and **Reset all settings**. Every row of every tab, and where each one is stored, is written up in [docs/settings-panel.md](docs/settings-panel.md#the-tab-strip).
 
-There is a minimap button too, wearing the addon's own logo: **left-click opens the popup** and clicking again puts it away, **right-click opens Settings**. The same entry turns up in Titan Panel, ElvUI data texts or any other broker display you run — it is one button shown in two places, not two. Untick **Minimap button** on the **Master controls** tab to hide it; that choice is remembered per installation, so switching profiles will not move your buttons around and **Reset all settings** will not bring a hidden one back.
+There is a minimap button too, wearing the addon's own logo: **left-click opens Settings**, and **right-click opens a small menu** of checkboxes — **Enabled**, **Locked** (the popup's Lock frame), **Test mode** and **Show window** (the group popup) — each doing exactly what its slash command does. While the addon is switched off, Enabled is the one you can click; the rest are grayed with a note to enable the addon first. Hover the button and the tooltip says where things stand — **Enabled**, **Locked** and **Test mode** — and it still answers while the addon is switched off. The same entry turns up in Titan Panel, ElvUI data texts or any other broker display you run — it is one button shown in two places, not two. Untick **Minimap button** on the **Master controls** tab to hide it; that choice is remembered per installation, so switching profiles will not move your buttons around and **Reset all settings** will not bring a hidden one back.
 
 All of it is reachable from chat as well. `/wg config` opens the panel, `/wg enable` and `/wg disable` turn the addon off and on again without opening anything, `/wg test` flips test mode (`on` and `off` set it), `/wg list` dumps every setting and its value, `/wg get` and `/wg set` read and write one by path (switches take `on`, `off` or `toggle`), `/wg reset path` restores one and `/wg resetall` restores the lot behind a confirmation, and `/wg version` prints the build you are running. When something misbehaves, `/wg debug on` starts logging and `/wg debug` opens the window holding it.
 
@@ -38,14 +38,14 @@ Everything else is configuration, and it lives in two places: the **Ka0s WhatGro
 
 Click **Apply** in the Premade Group Finder and WhatGroup quietly writes down what the tile said. Applications queue, so four in flight at once do not confuse it — the details waiting for you when an invite lands are the ones belonging to the group you actually joined. Then the chat message prints and the popup opens, instantly by default, or after the pause you set under **Chat → Notification Delay** if you would rather let the zone-in settle first.
 
-The group info does not outlive the session. It is dropped the moment you leave the group, which is exactly why `/wg show` stops answering then. Your settings persist, and so do the places you dragged the two windows to. The machinery is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+The group info does not outlive the session. It is dropped the moment you leave the group, which is why `/wg show` stops answering then. Your settings persist, and so does the place you dragged the popup to. The machinery is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## FAQ
 
 | Question | Answer |
 |---|---|
 | Does this work for cross-realm or cross-faction groups? | Yes. WhatGroup reads whatever the group finder shows it, so realm, faction and category don't matter. |
-| Is anything saved between sessions? | Your settings, plus where you've dragged the popup and debug windows. The group info itself is session-only. It clears the moment you leave the group, so `/wg show` only works while you're still in it. |
+| Is anything saved between sessions? | Your settings, plus the place you dragged the popup to. The debug console's position isn't saved. The group info itself is session-only. It clears the moment you leave the group, so `/wg show` only works while you're still in it. |
 | How do I preview the popup without joining a real group? | `/wg test notify`, or the **Test** button in Settings. Both run the full message and popup on sample data, once. To keep the popup up while you move it, type `/wg test` or tick **Test mode** on the **Master controls** tab. |
 | Can I delay the message and popup instead of getting them instantly? | Yes. They appear instantly by default; set a pause under **Chat → Notification Delay** (0-10 seconds). |
 | What is the **Debug console**, and how do I turn on debug logging? | `/wg debug` opens the on-screen window; `/wg debug on` starts logging into it, `off` stops it. Logging is session-only and starts off after every login. The **Debug console** checkbox only shows or hides the window; it doesn't turn logging on. |

@@ -84,7 +84,10 @@ end
 -- Options_HorizontalDivider atlas, spell icons). Branding art, analogous to the TOC IconTexture; no
 -- Blizzard asset could substitute. options-ui-§5 mandates a logo here, so this is a deviation from
 -- the addon's own Blizzard-default-only baseline, not from the standard.
-local MAIN_LOGO_TEXTURE   = "Interface\\AddOns\\WhatGroup\\media\\logos\\whatgroup.logo.tga"
+-- Built from the folder this copy loaded from, as core/LauncherSetup.lua builds the icon, so a copy
+-- installed under another folder name still finds its own logo (library-stack-§8).
+local MAIN_LOGO_TEXTURE   = ("Interface\\AddOns\\%s\\media\\logos\\%s.logo.tga")
+    :format(addonName, addonName:lower())
 -- The landing page's own constants (options-ui-§8 lists these as the host's, because the body is).
 local MAIN_LOGO_SIZE      = 300
 local MAIN_GAP_AFTER_LOGO = 8
@@ -186,21 +189,21 @@ end
 -- The Master controls tab (options-ui-§15)
 -- ---------------------------------------------------------------------------
 --
--- COMPOSED, NOT WRITTEN. `Helpers.MasterControls` emits the canonical ten-control block — enable,
--- general visibility, master scale, master alpha, lock frame, debug console, minimap button, test
--- mode, and the closing reset pair — from this one declaration, so the tab every player looks at
--- first is the same tab in all eleven addons and no addon can drift by editing a row. Composed HERE rather than in
--- settings/Schema.lua because the composer is a member of the LibKa0s instance, and the instance
--- does not exist until settings/OptionsSetup.lua has run — which is the file immediately before
--- this one in the TOC.
+-- COMPOSED, NOT WRITTEN. `Helpers.MasterControls` emits the canonical Master controls block —
+-- enable, general visibility, master scale, master alpha, lock frame, debug console, minimap
+-- button, test mode, and the closing reset pair — from this one declaration, so the tab every
+-- player looks at first is the same tab in every Ka0s addon and no addon can drift by editing a
+-- row. Composed HERE rather than in settings/Schema.lua because the composer is a member of the
+-- LibKa0s instance, and the instance does not exist until settings/OptionsSetup.lua has run —
+-- which is the file immediately before this one in the TOC.
 --
 -- WhatGroup is NOT frameless: modules/Frame.lua's popup is SetMovable(true) and drag-persisted
 -- (WG-26), so all four frame rows apply and all four are wired there.
 --
 -- `defaults` is passed for every leaf so the composer stores THIS addon's values, and
 -- `debugConsolePath` is the collection's verbatim `state.debugConsole` — a path
--- settings/Schema.lua's SESSION table intercepts in front of db.profile, which is what keeps the
--- console session-only now that it is a schema row (WG-12).
+-- settings/Schema.lua's SESSION table gives its own get/set, which is what keeps the console
+-- session-only now that it is a schema row (WG-12).
 local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{
     prefix           = "",
     page             = "general",
@@ -216,9 +219,9 @@ local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{
     -- line below Lock frame / Debug console, opening it, with Test mode pairing beside it. Verbatim
     -- and unprefixed like the two paths above, and for a sharper reason -- the table it names is
     -- LibDBIcon's own and lives in the GLOBAL store, outside this block's profile prefix entirely.
-    -- settings/Schema.lua's GLOBAL table routes it, and inverts it: the row says SHOWN, the stored
-    -- key says hidden.
-    minimapPath      = "global.minimap.hide",
+    -- settings/Schema.lua's GLOBAL table routes it, and inverts it: the path and the row say SHOWN
+    -- (launcher-§3, standard v2.65.0), the stored key `db.global.minimap.hide` says hidden.
+    minimapPath      = "global.minimap.shown",
     -- The popup's test mode (options-ui-§15, LibKa0s v1.37.0): a session-only `Test mode` row on its
     -- own line below Lock frame / Debug console. Verbatim, like the console path, and bound the same
     -- way -- settings/Schema.lua's SESSION table routes it to modules/Frame.lua.
@@ -281,8 +284,8 @@ local TEST_MODE_TOOLTIP = "Show the popup with sample group info, so you can dra
     .. "without joining a group. It stays up until you untick this, close the popup, or combat starts."
 
 for _, row in ipairs(MASTER_ROWS) do
-    -- One section for the whole block: `/wg list` groups by section, and these eight are one
-    -- subject however they are stored.
+    -- One section for the whole block: `/wg list` groups by section, and the whole composed block is
+    -- one subject however they are stored.
     row.section  = "general"
     row.onChange = MASTER_HOOKS[row.path]
     if row.path == "state.testMode" then row.tooltip = TEST_MODE_TOOLTIP end
@@ -291,10 +294,11 @@ end
 -- HEAD OF THE ARRAY, because RenderTabbedSchema partitions by `group` in DECLARATION order and
 -- options-ui-§15 requires this tab to be the FIRST one. Spliced rather than declared in
 -- settings/Schema.lua for the load-order reason above; the rows are ordinary schema rows from the
--- moment they land here.
-for i = #MASTER_ROWS, 1, -1 do
-    table.insert(Settings.Schema, 1, MASTER_ROWS[i])
-end
+-- moment they land here. The session and global rows first get their own get/set
+-- (Settings.StampClosureRows), and the splice goes through the schema runtime so its path index
+-- sees them (LibKa0s-Schema-1.0's AddRows, a head insert at 1).
+Settings.StampClosureRows(MASTER_ROWS)
+NS.SchemaRuntime.AddRows(MASTER_ROWS, 1)
 
 -- ---------------------------------------------------------------------------
 -- The General page
@@ -310,7 +314,7 @@ end
 -- tab's rows.
 --
 -- The Test button follows the tab its group ended up on. It was keyed to "General", and General is
--- the Master controls tab now: `enabled` became one of options-ui-§15's canonical nine and
+-- the Master controls tab now: `enabled` became one of options-ui-§15's canonical rows and
 -- `notify.delay` moved to Chat, which is where this button's own tooltip already said it belonged
 -- -- previewing the chat-output toggles. It is NOT folded into the Master controls button pair: a
 -- 160px left-aligned action is not one of that block's two resets.
@@ -384,10 +388,6 @@ local function buildGeneralPage(parentCategory)
     end)
 
     local sub = _G.Settings.RegisterCanvasLayoutSubcategory(parentCategory, ctx.panel, "General")
-    WhatGroup._settingsCategory = sub
-    -- The parent handle, for anything that wants to reason about the tree. The panel-OPEN path goes
-    -- through Helpers.OpenOptionsPanel, which holds its own.
-    WhatGroup._parentSettingsCategory = parentCategory
     return sub
 end
 
@@ -406,8 +406,11 @@ Helpers.RegisterOptionsPage("general", "General", buildGeneralPage)
 --
 -- Deliberately NOT combat-gated (options-ui-§9): registration never taints, and eager registration
 -- at load is a MUST. Only panel *open* is combat-gated, and that gate lives inside the library's
--- `OpenOptionsPanel` so every caller inherits it. A guard here only meant that a `/reload` taken in
--- combat left WhatGroup missing from the Settings → AddOns list until the next login.
+-- `OpenOptionsPanel` so every caller inherits it. The category still registers at login with no
+-- user action; in combat the library parks it and lands it at combat end (LibKa0s Options minor
+-- 24 replays it on PLAYER_REGEN_ENABLED), so the flag below is set either way and no second call
+-- is needed. A guard here only meant that a `/reload` taken in combat left WhatGroup missing from
+-- the Settings → AddOns list until the next login.
 
 function Settings.Register()
     if WhatGroup._settingsRegistered or not _G.Settings
@@ -418,7 +421,8 @@ function Settings.Register()
 
     -- Resolves AceGUI, runs the schema validation, registers the main canvas with its landing-page
     -- renderer, then runs every registered page builder. Idempotent in its own right; the flag
-    -- below makes the second (`runConfig`) call a cheap no-op.
+    -- below makes the second (`runConfig`) call a cheap no-op. Under InCombatLockdown() the
+    -- library parks this and replays it itself at PLAYER_REGEN_ENABLED.
     Helpers.CreateOptionsPanel()
 
     WhatGroup._settingsRegistered = true

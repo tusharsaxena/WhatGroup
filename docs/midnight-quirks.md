@@ -35,14 +35,15 @@ WhatGroup follows this — see [settings-panel.md](./settings-panel.md#settingsr
 ## `Settings.OpenToCategory` requires the integer ID
 
 ```lua
-Settings.OpenToCategory(self._settingsCategory:GetID())  -- correct
+local category = Settings.RegisterCanvasLayoutCategory(panel, "Ka0s WhatGroup")
+Settings.OpenToCategory(category:GetID())                  -- correct
 Settings.OpenToCategory("Ka0s WhatGroup > General")        -- WRONG (not a valid form)
-Settings.OpenToCategory(self._settingsCategory)            -- WRONG (object, not ID)
+Settings.OpenToCategory(category)                          -- WRONG (object, not ID)
 ```
 
 `category:GetID()` returns the auto-assigned integer ID. **Do not overwrite `category.ID` with a string.** Doing so silently breaks the lookup and `OpenToCategory` becomes a no-op.
 
-WhatGroup's `/wg config` goes through `Helpers.OpenOptionsPanel()` — `LibKa0s-Options-1.0`'s member since the adoption, holding the main category's own ID rather than reading either of the handles `settings/Panel.lua` records. It calls `Settings.OpenToCategory` against the **parent** and then reaches into `SettingsPanel:GetCategoryList():GetCategoryEntry(parent):SetExpanded(true)` — the path the expand-arrow click handler itself uses — so the subcategory tree comes up unfolded. That whole traversal is wrapped in `pcall` because `CategoryList` / `GetCategoryEntry` / the `CategoryEntry:SetExpanded` shape are private Blizzard internals that can shift between patches; if any link goes missing the panel still opens, just without auto-unfold. The slash command also refuses to open during `InCombatLockdown()` — the Settings UI uses secure templates and opening it mid-combat can taint other addons' secure handlers.
+WhatGroup's `/wg config` goes through `Helpers.OpenOptionsPanel()` — `LibKa0s-Options-1.0`'s member since the adoption, holding the main category's own ID; `settings/Panel.lua` keeps no category handle of its own. It calls `Settings.OpenToCategory` against the **parent** and then reaches into `SettingsPanel:GetCategoryList():GetCategoryEntry(parent):SetExpanded(true)` — the path the expand-arrow click handler itself uses — so the subcategory tree comes up unfolded. That whole traversal is wrapped in `pcall` because `CategoryList` / `GetCategoryEntry` / the `CategoryEntry:SetExpanded` shape are private Blizzard internals that can shift between patches; if any link goes missing the panel still opens, just without auto-unfold. The slash command also refuses to open during `InCombatLockdown()` — the Settings UI uses secure templates and opening it mid-combat can taint other addons' secure handlers.
 
 ## Lazy AceGUI panel build
 
@@ -156,7 +157,7 @@ In WhatGroup's case, two boot-time operations taint:
 
 The fix for both: **defer them to actual user demand.** `modules/Frame.lua`'s entire setup (popup creation, secure button creation, `UISpecialFrames` registration) is wrapped in a `buildFrame()` function called only on the first `WhatGroup:ShowFrame()`.
 
-> **Settings registration is NOT one of these.** An earlier revision also listed `Settings.RegisterCanvasLayoutCategory` + `RegisterAddOnCategory` as a boot-taint source and deferred `Settings.Register()` to first `/wg config`. That was a misdiagnosis — a confound with the AceHook `RawHook` / `SecureHook` closures that were the actual hook-taint culprit (since removed; see the hook table above). Every other Ka0s addon (AbsorbTracker, KickCD, LootHistory, ConsumableMaster) registers its canvas Settings category at login with no taint, so WhatGroup now registers in `OnEnable` too — the panel appears in Settings → AddOns at login. The panel's widget bodies still build lazily on first `OnShow` (Panel.lua), so no AceGUI frame is created inside a secure-execute chain.
+> **Settings registration is NOT one of these.** An earlier revision also listed `Settings.RegisterCanvasLayoutCategory` + `RegisterAddOnCategory` as a boot-taint source and deferred `Settings.Register()` to first `/wg config`. That was a misdiagnosis — a confound with the AceHook `RawHook` / `SecureHook` closures that were the actual hook-taint culprit (since removed; see the hook table above). Every other Ka0s addon (AbsorbTracker, KickCD, LootHistory, ConsumableMaster) registers its canvas Settings category at login with no taint, so WhatGroup now registers in `OnEnable` too — the panel appears in Settings → AddOns at login. The category still registers at login with no user action; in combat (a `/reload` taken mid-pull) the library parks it and lands it at combat end, without a second `/wg config`. The panel's widget bodies still build lazily on first `OnShow` (Panel.lua), so no AceGUI frame is created inside a secure-execute chain.
 
 At PLAYER_LOGIN the addon now adds nothing to Blizzard's secure surface, GameMenu's `InitButtons` runs in a clean context during boot, and Logout works correctly. Any taint the addon does generate later (on first popup show) is contained to a session where the player has actively used the addon — and even then, GameMenu's button closures were already built with the clean context they captured at boot.
 
@@ -179,6 +180,10 @@ local texID = NS.Compat.GetSpellTexture(spellID) or 134400
 ```
 
 `134400` is widely used as a "dynamic / unknown spell" sentinel across Blizzard's UI. Not load-bearing — any other placeholder fileID would work — but it's the convention.
+
+## An unknown event name raises at registration
+
+The client raises `Attempt to register unknown event "<NAME>"` when an addon registers a name it does not know, and a patch that retires an event makes a formerly good name unknown. `registerFeatureEvents` runs first in `OnEnable`, so a bare `self:RegisterEvent` there would lose the settings category, the minimap button and the disable latch to one retired name. The four registrations go through `NS.SafeRegisterEvent` (LibKa0s-Core minor 8, bound in `core/CoreSetup.lua`) instead, and the trade is a probe before each one. `C_EventUtils.IsEventValid` is asked first when the client has it, and that answer decides without the name ever reaching AceEvent. On a client without it the library registers the name on a private frame under `pcall` and unregisters it at once, and the registration on the addon itself is `pcall`ed as well, so a retail raise on an unknown name is caught rather than propagated. A refused name is not retried and not printed: it is appended once to the session-only `NS.RejectedEvents`, and the `[Init]` line `/wg debug on` writes (`, rejected events: <names>`) is the only record of it. With the library missing, the degraded stub keeps only the `pcall` and the append.
 
 ## Pattern reference
 

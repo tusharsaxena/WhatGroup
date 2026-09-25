@@ -68,6 +68,23 @@ difference — taint is not a test failure — so it is checked here.
 action failed because of an AddOn" or `ADDON_ACTION_FORBIDDEN`. Step 3 is § 1.3 run after a reset has
 touched the table, and is the step that actually catches a leak.
 
+### 1.5 Settings category — a `/reload` taken in combat lands it at combat end
+
+`Settings.Register()` runs at `OnEnable` whether or not you are in combat. In combat,
+`LibKa0s-Options-1.0` (minor 24) parks the registration and replays it itself on
+`PLAYER_REGEN_ENABLED`, so the category still registers with no user action, only later.
+`tests/test_panel.lua` pins the park and the replay headlessly; what it cannot see is Blizzard's
+Settings list and the taint.
+
+1. Pull a target dummy and stay in combat. `/reload` while still in combat.
+2. Still in combat, open **Settings → AddOns**.
+3. Leave combat, then look at **Settings → AddOns** again. Do not run `/wg config`.
+4. Press **ESC** and click **Logout**, then cancel at the confirmation.
+
+**Expected:** at step 2 **Ka0s WhatGroup** is missing from the list. At step 3 it is there, with
+its **General** subcategory, and no second `/wg config` was needed. No step raises a Lua error,
+"Interface action failed because of an AddOn" or `ADDON_ACTION_FORBIDDEN`.
+
 ---
 
 ## 2. Slash commands smoke (~3 min)
@@ -100,6 +117,7 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.16 | `/wg version` | Prints `[WG] v<version>` on its own line, matching the TOC `## Version` (WG-29). |
 | 2.17 | `/wg help` | The header line ends with `…/wg)` — **no** trailing colon (WG-19) — and lists a `/wg version` row. |
 | 2.18 | Move the popup (`/wg test notify`, drag it) and the debug console (`/wg debug`, drag it), then `/reload` and reopen each | Each window reopens at the spot you left it, not re-centered (WG-26). |
+| 2.19 | Library-absent verbs (options-ui-§1 route (b), WhatGroup#22): with the addon closed, rename `Interface/AddOns/WhatGroup/libs/LibKa0s`, log in, then run `/wg disable`, `/wg enable` and `/wg test on` | Each prints `[WG] <verb> is unavailable: the LibKa0s library did not load.` (e.g. `/wg disable is unavailable: …`), with **no** Lua error, and nothing moves: the addon stays enabled and no popup opens. Restore the folder name and `/reload`. Library present, the same verbs, the Master controls checkboxes and `/wg set notify.delay 3` behave as in 2.6 / 2.10a, with one `[Set]` line per write under `/wg debug on`. |
 
 ---
 
@@ -577,9 +595,11 @@ route that replaces `/wg test notify`'s old master-switch bypass.
 
 5. Still disabled: **left-click the minimap button**, then **right-click** it.
 
-**Expected:** the left click prints the same one `[WG]` line naming `/wg enable` and does nothing
-else — no popup. The right click opens the settings panel, exactly as it does when the addon is
-running. The button itself stays on the minimap in either state.
+**Expected:** the left click opens the settings panel, exactly as it does when the addon is
+running, and prints nothing. The right click opens the options menu: **Enabled** unticked and
+clickable; **Locked**, **Test mode** and **Show window** grayed, each reading
+`(enable the addon first)`, and clicking one does nothing. The button itself stays on the minimap
+in either state.
 
 6. Still disabled: type a misspelling, `/wg shwo`.
 
@@ -591,6 +611,30 @@ them their spelling was fine.
 
 **Expected:** the verb acts immediately, with no reload in between, and the popup honors any
 setting you changed while the addon was off.
+
+### 5.5a The chat-link callback comes and goes with the switch — no taint (CRITICAL)
+
+The details link's `EventRegistry` `"SetItemRef"` callback is registered at file load for taint
+reasons, then **unregistered** by `NS.StandDown` and registered again by `NS.StandUp`
+(slash-commands-§7, anti-pattern #85). This step proves the re-registration after login does not
+taint GameMenu, and that the callback really goes away.
+
+1. `/wg disable`, then `/wg enable`.
+2. **Game Menu → Logout**, then cancel the countdown.
+
+**Expected:** no `ADDON_ACTION_FORBIDDEN` or `ADDON_ACTION_BLOCKED` naming WhatGroup, and Logout
+starts normally.
+
+3. Join a group through LFG (or `/wg test notify`) and click the chat line's **view details** link.
+
+**Expected:** the popup opens.
+
+4. `/wg disable` again and click that same (now old) link.
+
+**Expected:** nothing happens — no popup, no stale-link hint, no error.
+
+If step 2 shows the taint, the re-registration is the cause: revert it and record a
+slash-commands-§7 row under `docs/ARCHITECTURE.md` → `## Documented deviations` instead.
 
 ---
 
@@ -736,12 +780,12 @@ section exists.
 | 12.1 | `/wg debug` | The console title bar's three right-hand controls are **small square marks, not words**: copy, clear and close, drawn in the same gray as every other Ka0s window's and turning red under the pointer. **A regression looks like the words `Copy` and `Clear` beside a multiplication sign `×`** — that is the library falling back, and it means `addonName` stopped being passed in the descriptor at `core/DebugLogSetup.lua`. |
 | 12.2 | With the console open, click the copy control | The copy window opens, and **its** close control is the same square mark. A `×` here alone means the copy window is being built without the folder name while the console is not — the two come from the same descriptor key, so they should never disagree. |
 | 12.3 | Read the log text | Monospace, with the `HH:MM:SS \| [tag] …` columns aligned. It is the **library's** JetBrains Mono now, at `libs/LibKa0s/media/fonts/`, not a copy under this addon's `media/`. A proportional face here means `NS.MediaFont` answered nil and the `STANDARD_TEXT_FONT` fallback caught it — readable, and wrong. |
-| 12.4 | `/wg test notify`, then look at the popup's footer | The **Close** button keeps its word and gains a small close mark to its left, the pair centered together. The word must not disappear: this is a wide action button, not a title-bar target. If the mark is missing and the word is centered on its own, `NS.Icon("close")` answered nil and the button correctly fell back to what it always drew. |
+| 12.4 | `/wg test notify`, then look at the popup's footer | The **Close** button is the word `Close` alone, centered, with no mark beside it. The mark was removed on 2026-08-25, and the `standalone-windows` row in docs/ARCHITECTURE.md's `## Documented deviations` records why. A mark beside the word means something draws `NS.Icon("close")` again, and the deviation row needs revisiting. |
 | 12.5 | Settings → any Ka0s addon's font dropdown | `JetBrains Mono` appears in the list. It is registered by `Media.RegisterLSM(addonName)` at file load, once, pointing at one set of bytes — so **every** Ka0s addon offering the dropdown shows the same entry rather than several that merely share a name. |
 | 12.6 | Open a second Ka0s addon's debug console beside this one | The two title bars are indistinguishable: same marks, same size, same pitch, same gray. Any difference between them is the defect this whole section is for. |
 
 **After renaming `libs/LibKa0s` away (section 9), re-check 12.1 and 12.4:** the console's controls go
-back to `Copy`, `Clear` and `×`, and the footer button back to the plain word `Close`. That is
+back to `Copy`, `Clear` and `×`, and the footer button is still the plain word `Close`. That is
 correct — the art is inside the payload that is missing. What must **not** happen is a blank control,
 an error, or a console that refuses to open.
 
@@ -787,16 +831,16 @@ a client at the time. Step 5 below is where it gets run.
 group:
 
 - **`info.fullName`** and **`info.shortName`** from `C_LFGList.GetActivityInfoTable`
-  (`core/Compat.lua:136-141`, stored at `core/WhatGroup.lua:491`, drawn at `modules/Frame.lua:859`
-  and in the chat summary at `core/WhatGroup.lua:696` and `:699`). German activity names are materially longer
+  (`core/Compat.lua:136-141`, stored at `core/WhatGroup.lua:509`, drawn at `modules/Frame.lua:902`
+  and in the chat summary at `core/WhatGroup.lua:714` and `:717`). German activity names are materially longer
   than English ones.
 - **`info.playstyleString`**, which the server renders in the player's language, preferred over the
-  enum lookup by `Labels.GetPlaystyleLabel` (`core/WhatGroup.lua:644-649`).
+  enum lookup by `Labels.GetPlaystyleLabel` (`core/WhatGroup.lua:662-667`).
 - **`GROUP_FINDER_GENERAL_PLAYSTYLE1` … `4`**, read into `Labels.PLAYSTYLE` at **file load time**
-  (`core/WhatGroup.lua:617-622`). A global that is nil at load leaves that label nil for the whole
+  (`core/WhatGroup.lua:635-640`). A global that is nil at load leaves that label nil for the whole
   session — there is no second read.
 - **`Compat.GetSpellName`** (`core/Compat.lua:27-38`), whose return goes straight into the teleport
-  button's `/cast` macrotext (`modules/Frame.lua:409`, built at `:521`). Casting by name only works
+  button's `/cast` macrotext (`modules/Frame.lua:447`, built at `:559`). Casting by name only works
   when the name is the client's own, which is what makes this locale-independent by construction —
   and is therefore worth confirming rather than assuming.
 
@@ -805,7 +849,7 @@ English on every client. That is the addon's scope and not a defect. § 10 (the 
 that they render as prose rather than as keys, and it is unrelated to this section.
 
 **`/wg test notify` will not do for most of this.** Its fixture spells the activity name out in English
-(`core/WhatGroup.lua:1075`), so on a German client it is *expected* to show English. Use a real group
+(`core/WhatGroup.lua:1098`), so on a German client it is *expected* to show English. Use a real group
 for steps 1 to 3.
 
 1. **A real application, with a real German activity name.** Apply to a group through the LFG UI
@@ -814,7 +858,7 @@ for steps 1 to 3.
    field shows a short name or the group-type label, and the **Playstyle** row shows the server's
    own wording. No field shows `Unknown` where the client plainly has a name.
    **Fail:** `Unknown` in the Instance row — `fullName` came back empty on this locale and the
-   `activityName` fallback at `core/WhatGroup.lua:491` did not cover it. Also fail: a name that
+   `activityName` fallback at `core/WhatGroup.lua:509` did not cover it. Also fail: a name that
    renders as mojibake or `?` glyphs, which is the text not surviving the trip to the font.
 2. **Field width.** Read the popup with that longer name in it, and check the chat summary line too.
    **Expected:** the name fits its row or is truncated cleanly at the field's edge.
@@ -882,7 +926,7 @@ honest state of this section is unrun, and it is recorded that way rather than a
 
 ## 12c. The launcher — one button, two surfaces (~4 min)
 
-`launcher-§1`/`§2`/`§3`. Headless cases pin the wiring; what needs a client is that the icon actually
+`launcher-§1`, `launcher-§2`, `launcher-§3`. Headless cases pin the wiring; what needs a client is that the icon actually
 **draws** (a wrong TGA format draws nothing and raises nothing) and that the clicks land.
 
 1. **The AddOns list.** Esc → AddOns (or the addon list in Settings). **Expected:** the WhatGroup row
@@ -890,10 +934,21 @@ honest state of this section is unrun, and it is recorded that way rather than a
 2. **The button.** Look at the minimap. **Expected:** a round button wearing the same logo. If it
    draws as a blank/green square, the `.tga` is the wrong format — regenerate it with layout-§4's
    recipe; the format is asserted headlessly, so this should never be the failure.
-3. **Left-click it.** **Expected:** the group popup opens (on "No data" if you have no capture yet).
-   **Left-click again:** it closes. No error, no taint line.
-4. **Right-click it.** **Expected:** the Settings panel opens on the landing page — the same place
-   `/wg config` lands. Right-click while the popup is open: the panel opens and the popup stays.
+3. **Left-click it.** **Expected:** the Settings panel opens on the landing page — the same place
+   `/wg config` lands. Left-click while the popup is open: the panel opens and the popup stays.
+4. **Right-click it.** **Expected:** a context menu titled **Ka0s WhatGroup** with four checkboxes,
+   in this order: **Enabled** (ticked), **Locked**, **Test mode**, **Show window**. Then, one at a
+   time, reopening the menu between clicks:
+   - **Show window**: the group popup opens (on "No data" if you have no capture yet); the next
+     open shows it ticked, and clicking it again closes the popup.
+   - **Test mode**: the popup comes up on the sample group and chat says what `/wg test` says;
+     the *Test mode* checkbox on Master controls follows. Click again to end it.
+   - **Locked**: chat prints `locked = true`, exactly as `/wg set locked toggle` does, and the
+     popup's title bar no longer drags. Click again to unlock.
+   - **Enabled**: chat prints what `/wg disable` prints and the addon stands down; reopen the
+     menu — the other three are grayed with `(enable the addon first)`. Click **Enabled** again
+     to switch it back on.
+   No error and no taint line at any step.
 5. **Drag it** around the minimap, then `/reload`. **Expected:** it comes back where you left it
    (that is LibDBIcon's `minimapPos`, in `db.global.minimap`).
 6. **Untick Minimap button** on the **Master controls** tab. **Expected:** the button disappears
@@ -907,9 +962,16 @@ honest state of this section is unrun, and it is recorded that way rather than a
 8. **A broker display** (Titan Panel, ElvUI data texts, Bazooka), if you run one: **Expected:** one
    entry labeled exactly **`Ka0s WhatGroup`** — the brand name in plain text (`launcher-§1`), so it
    files beside the rest of the collection rather than under `W`; no color escapes anywhere in the
-   row — wearing the same logo, whose left and right clicks do exactly what the minimap button's do,
+   row — wearing the same logo, whose left click and right-click menu do exactly what the minimap
+   button's do,
    because it is the same object. Its own show/hide is the display's business, not ours; there is
    deliberately no addon setting for it.
+9. **Hover it** (`launcher-§1`, the library's status tooltip). **Expected**, top to bottom:
+   `Ka0s WhatGroup  v<the TOC version>`, `Enabled: Yes` (green), `Locked: No`, `Test mode: Off`,
+   `Left-click: Open settings`, `Right-click: Options menu`, and nothing drawn twice. Tick
+   **Lock frame** and **Test mode** on Master controls and hover again: `Locked: Yes`,
+   `Test mode: On`. Then `/wg disable` and hover: the tooltip still shows, `Enabled: No` in red,
+   with the same two click hints. `/wg enable` afterwards.
 
 ## 13. Quick reference checklist
 
@@ -918,6 +980,7 @@ For a fast pre-release pass, run at minimum:
 - [ ] section 1.3 — ESC → Logout after `/reload`
 - [ ] section 1.3 — ESC → Logout after `/wg test notify`
 - [ ] section 1.3 — ESC → Logout after `/wg config`
+- [ ] section 1.5 — `/reload` in combat: WhatGroup appears in Settings → AddOns at combat end, no Logout taint
 - [ ] sections 2.1, 2.10, 2.12, 2.13 — `/wg help`, `/wg test notify`, `/wg config`, `/wg reset`
 - [ ] section 3.4 — Defaults button confirm flow
 - [ ] section 3.8 — the visibility gate follows a combat transition, in both directions, with no taint line
@@ -928,11 +991,12 @@ For a fast pre-release pass, run at minimum:
 - [ ] section 4.1b — Teleport not learned: the note says so, and never says cooldown
 - [ ] section 5.1 — One real LFG apply → join
 - [ ] section 5.1a — that join's details link opens the popup, by click and by shift-click
+- [ ] section 5.5a — `/wg disable` + `/wg enable`, then Logout: no taint; the details link works enabled and does nothing disabled
 - [ ] section 10 — no `SCREAMING_SNAKE` string on any page, in the console, or in chat
 - [ ] sections 11.5 / 11.6 — `/wg resetall` confirms, and a bare `/wg reset` does not reset
-- [ ] sections 12.1 / 12.4 — marks on the console title bar, and a mark **beside** the footer Close word
+- [ ] sections 12.1 / 12.4 — marks on the console title bar, and the footer Close as the bare word with no mark beside it
 - [ ] section 12a — the tab strip's labels, selection and band height survive three passes
-- [ ] section 12c — the minimap button draws the logo, toggles the popup, right-clicks to Settings, and survives a profile switch hidden
+- [ ] section 12c — the minimap button draws the logo, left-clicks to Settings, right-clicks to the four-entry options menu, and survives a profile switch hidden
 - [ ] section 12b — the non-English-client pass, which is also the only login § 7a will get
 
 Run section 9 (degraded install), section 12 (shared art), section 12a (the pooled tab strip) and the rest of section 11 after a LibKa0s re-vendor or any change to the six seam files.

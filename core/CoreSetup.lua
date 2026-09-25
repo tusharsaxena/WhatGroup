@@ -98,6 +98,27 @@ if not lib then
         frame:SetBackdropBorderColor(unpack(NS.SKIN.border))
     end
     function NS.MakeCloseButton() return nil end
+
+    -- The pcalled event registration (events-frames-taint-§1), degraded to the one-rung body
+    -- LibKa0s docs/api/Core/version-8-docs.md "Degradation" prescribes: the pcall and the
+    -- once-only rejected-list append, no C_EventUtils front gate and no probe frame. A stub is the
+    -- path for a missing library, not a second implementation, and the pcall alone is what keeps
+    -- one bad name from taking OnEnable down. It inherits AceEvent's first-registrant blind spot.
+    --
+    -- ONLY SafeRegisterEvent is published, on both branches, and not its two siblings: WhatGroup
+    -- registers no unit events and walks no event list, and tests/test_surface_parity.lua's Core
+    -- case compares the namespace live against degraded, so a member neither branch publishes
+    -- needs no stub.
+    function NS.SafeRegisterEvent(target, event, handler, rejected)
+        local ok = pcall(target.RegisterEvent, target, event, handler)
+        if not ok and type(rejected) == "table" then
+            for i = 1, #rejected do
+                if rejected[i] == event then return false end
+            end
+            rejected[#rejected + 1] = event
+        end
+        return ok
+    end
     return
 end
 
@@ -106,6 +127,13 @@ end
 -- same implementation.
 NS.IsConcatSafe = lib.IsConcatSafe
 NS.SafeToString = lib.SafeToString
+
+-- The collection's one pcalled event registration (Core minor 8, events-frames-taint-§1): the
+-- C_EventUtils.IsEventValid front gate, then a private probe frame, then a pcall on the target. A
+-- refused name is appended once to the caller's list and never raises. A bind, like the two
+-- above; core/WhatGroup.lua's registerFeatureEvents is the one caller. Only this member of the
+-- three is published -- see the degraded branch for why.
+NS.SafeRegisterEvent = lib.SafeRegisterEvent
 
 -- The window chrome seam (standalone-windows). `NS.SKIN` is the library's table, not a copy, and
 -- `ApplySkin` takes an OPTIONAL override rather than the caller's own backdrop — the old

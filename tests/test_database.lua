@@ -24,9 +24,59 @@ end)
 
 local assertTrue = T.assertTrue
 
-test("database: BuildDefaults seeds global.schemaVersion from NS.SCHEMA_VERSION", function()
+-- The declared default is the PRE-VERSIONING 0, never NS.SCHEMA_VERSION. AceDB's removeDefaults
+-- strips a stored value equal to its default at logout, so a default equal to the current version
+-- never reaches the SavedVariables file, and the first real bump would read the new default back as
+-- the stored version and skip its own step.
+test("database: defaults declare global.schemaVersion 0 (savedvariables-§1)", function()
     local NS = T.newAddon()
-    assertEqual(NS.addon.Settings.BuildDefaults().global.schemaVersion, NS.SCHEMA_VERSION)
+    assertEqual(NS.addon.Settings.BuildDefaults().global.schemaVersion, 0)
+end)
+
+-- Mirrors AceDB's logout strip (removeDefaults, AceDB-3.0.lua:134-178, run from :425) on the raw
+-- SavedVariables table for the one key this case is about. The kit's AceDB fake strips a profile
+-- on SetProfile but never models logout, so the case does it by hand.
+local function logoutStrip(NS, sv)
+    local declared = NS.addon.Settings.BuildDefaults().global.schemaVersion
+    if sv.global.schemaVersion == declared then sv.global.schemaVersion = nil end
+end
+
+-- Re-boot from a saved table with a version bump and its step in place before OnInitialize runs,
+-- the way the next release would load an existing user's file. The loader wipes _G.WhatGroupDB
+-- as it builds, so the saved table is handed back after the build and before the init.
+local function rebootWithStep(sv, version, steps)
+    local NS = T.newAddon()
+    _G.WhatGroupDB = sv
+    NS.SCHEMA_VERSION = version
+    for v, fn in pairs(steps) do NS.MIGRATIONS[v] = fn end
+    NS.addon:OnInitialize()
+    return NS
+end
+
+-- red under: the default equal to NS.SCHEMA_VERSION
+test("database: the stamp survives AceDB's logout strip, so the first real migration runs", function()
+    local first = T.bootAddon()
+    local sv = _G.WhatGroupDB
+    logoutStrip(first, sv)
+    assertEqual(sv.global.schemaVersion, 1, "the stamp the runner wrote must outlive the logout strip")
+
+    local NS = rebootWithStep(sv, 2, { [2] = function(db) db.global.__stepRan = true end })
+    assertTrue(NS.addon.db.global.__stepRan == true, "the 1 -> 2 step must run for an existing user")
+    assertEqual(NS.addon.db.global.schemaVersion, 2)
+end)
+
+test("database: a raising step leaves the stamp at the last completed version", function()
+    local NS = T.bootAddon()
+    local g = NS.addon.db.global
+    g.schemaVersion = 0
+    NS.SCHEMA_VERSION = 3
+    local ranThird = false
+    NS.MIGRATIONS[2] = function() error("step 2 failed") end
+    NS.MIGRATIONS[3] = function() ranThird = true end
+    local ok = pcall(function() NS.addon:RunMigrations() end)
+    assertTrue(not ok, "a raising step propagates rather than being swallowed")
+    assertEqual(g.schemaVersion, 1, "the stamp advances only past a step that returned")
+    assertTrue(not ranThird, "no later step runs past a failed one")
 end)
 
 test("database: RunMigrations before the db exists is a no-op", function()

@@ -9,7 +9,7 @@ test("settings: BuildDefaults threads profile + global defaults", function()
     assertEqual(d.profile.notify.delay, 0)
     assertEqual(d.profile.notify.enabled, true)
     assertEqual(d.profile.frame.autoShow, true)
-    assertEqual(d.global.schemaVersion, 1)
+    assertEqual(d.global.schemaVersion, 0)
 end)
 
 test("settings: defaults source from NS.C (defaults/Profile.lua, WG-24)", function()
@@ -266,7 +266,11 @@ test("settings: BuildDefaults is a fresh table each call", function()
 end)
 
 -- ---------------------------------------------------------------------------
--- Get / Set / RawSet
+-- Get / Set
+--
+-- The seam is LibKa0s-Schema-1.0's since WhatGroup#22. The cases below marked RE-PINNED AT ADOPTION
+-- pin the behavior that changed on purpose, each naming the bullet of LibKa0s docs/api/Schema/version-2-docs.md, Adoption notes
+-- that sanctions it; before the adoption each asserted the host seam's old answer.
 -- ---------------------------------------------------------------------------
 
 test("settings: Get returns nil before the db exists", function()
@@ -280,11 +284,19 @@ test("settings: Set before the db exists is a harmless no-op", function()
     assertTrue(ok)
 end)
 
+-- RE-PINNED AT ADOPTION (Adoption notes, "Behavior that changes for some hosts": an unknown path is
+-- refused rather than stored). The write still materializes the intermediates of a path a row
+-- declares; a path no row declares is refused and creates nothing.
 test("settings: a write creates the intermediate tables it walks through", function()
     local NS = T.bootAddon()
     local H = NS.addon.Settings.Helpers
-    H.Set("deep.nested.value", 7)
-    assertEqual(NS.addon.db.profile.deep.nested.value, 7)
+    NS.addon.db.profile.notify = nil
+    assertTrue(H.Set("notify.delay", 7))
+    assertEqual(NS.addon.db.profile.notify.delay, 7, "the missing parent was created")
+    local ok, err = H.Set("deep.nested.value", 7)
+    assertFalse(ok, "a path no row declares is refused")
+    assertEqual(err, "Setting not found: deep.nested.value")
+    assertNil(NS.addon.db.profile.deep, "and nothing was materialized for it")
 end)
 
 -- savedvariables-§2 — A READ DOES NOT WRITE. The write path above still
@@ -307,37 +319,49 @@ test("settings: Resolve replaces a non-table intermediate", function()
     assertEqual(NS.addon.db.profile.notify.delay, 2)
 end)
 
-test("settings: RawSet writes without firing onChange", function()
+-- RE-PINNED AT ADOPTION (Adoption notes: every single-consumer write semantic stays in the host
+-- that has it, in front of the seam; this host had no caller left for its side-effect-free write).
+-- There is no RawSet: every write is the seam's, and runs the row's onChange.
+test("settings: there is no RawSet; a write to `enabled` always runs its onChange", function()
     local NS = T.bootAddon()
-    NS.addon.pendingInfo = { title = "in flight" }
-    NS.addon.Settings.Helpers.RawSet("enabled", false)
+    NS.addon:OnEnable()
+    assertNil(NS.addon.Settings.Helpers.RawSet, "the side-effect-free writer is gone")
+    NS.addon.Settings.Helpers.Set("enabled", false)
     assertEqual(NS.addon.db.profile.enabled, false)
-    assertTrue(NS.addon.pendingInfo ~= nil, "the master-switch side effect is skipped")
+    assertTrue(NS.IsStoodDown(), "the master switch's onChange took the disabled hold")
 end)
 
-test("settings: Set skipOnChange suppresses the side effect", function()
+-- RE-PINNED AT ADOPTION (Adoption notes: skip flags stay in the host, and this host's are gone).
+-- The seam's third argument is an instance id, so an options table there suppresses nothing.
+test("settings: Set takes no skipOnChange option", function()
     local NS = T.bootAddon()
-    NS.addon.pendingInfo = { title = "in flight" }
+    NS.addon:OnEnable()
     NS.addon.Settings.Helpers.Set("enabled", false, { skipOnChange = true })
-    assertTrue(NS.addon.pendingInfo ~= nil)
+    assertTrue(NS.IsStoodDown(), "the onChange ran anyway")
 end)
 
-test("settings: a throwing onChange is caught and reported, not propagated", function()
-    local NS, _, mock = T.bootAddon()
-    local S = NS.addon.Settings.Schema
-    S[#S + 1] = { section = "x", group = "X", path = "boom", type = "bool",
-                  label = "b", default = false,
-                  onChange = function() error("onChange exploded") end }
-    local ok = pcall(function() NS.addon.Settings.Helpers.Set("boom", true) end)
-    assertTrue(ok, "a broken onChange must not break the write")
-    assertEqual(NS.addon.Settings.Helpers.Get("boom"), true, "the value still landed")
-    assertTrue(mock.prints[#mock.prints]:find("onChange for boom failed", 1, true) ~= nil)
-end)
-
-test("settings: Set on a path with no schema row still writes", function()
+-- RE-PINNED AT ADOPTION (Adoption notes, "Behavior that changes for some hosts": a raising onChange
+-- propagates rather than being caught). The value is stored before the reaction runs, so the
+-- error never claims less than happened.
+test("settings: a throwing onChange propagates, after the value landed", function()
     local NS = T.bootAddon()
-    NS.addon.Settings.Helpers.Set("adhoc", 5)
-    assertEqual(NS.addon.Settings.Helpers.Get("adhoc"), 5)
+    NS.SchemaRuntime.AddRows({ { section = "x", group = "X", path = "boom", type = "bool",
+                                 label = "b", default = false,
+                                 onChange = function() error("onChange exploded", 0) end } })
+    local ok, err = pcall(NS.addon.Settings.Helpers.Set, "boom", true)
+    assertFalse(ok, "the onChange's error reaches the caller")
+    assertEqual(err, "onChange exploded")
+    assertEqual(NS.addon.Settings.Helpers.Get("boom"), true, "the value still landed")
+end)
+
+-- RE-PINNED AT ADOPTION (Adoption notes, "Behavior that changes for some hosts": an unknown path is
+-- refused rather than stored; JC-2).
+test("settings: Set on a path with no schema row is refused and stores nothing", function()
+    local NS = T.bootAddon()
+    local ok, err = NS.addon.Settings.Helpers.Set("adhoc", 5)
+    assertFalse(ok)
+    assertEqual(err, "Setting not found: adhoc")
+    assertNil(NS.addon.db.profile.adhoc, "nothing stored")
 end)
 
 test("settings: FindSchema matches on the exact path", function()
@@ -424,18 +448,29 @@ test("settings: a hidden page is not refreshed — it is flagged dirty (options-
     assertTrue(ctx._dirty, "it is marked dirty instead, to re-render on its next show")
 end)
 
-test("settings: Set skipRefresh suppresses the widget re-sync", function()
+-- RE-PINNED AT ADOPTION (Adoption notes: skip flags stay in the host, and this host's are gone).
+-- Every write through the seam announces, and the announce is the refresh.
+test("settings: every Set re-syncs the widgets once; there is no skipRefresh", function()
     local NS, _, _, runs = probedPanel()
     NS.addon.Settings.Helpers.Set("notify.delay", 1, { skipRefresh = true })
-    assertEqual(runs.n, 0)
+    assertEqual(runs.n, 1, "the option is not read")
     NS.addon.Settings.Helpers.Set("notify.delay", 2)
-    assertEqual(runs.n, 1)
+    assertEqual(runs.n, 2)
 end)
 
-test("settings: RestoreAllDefaults refreshes once, not once per row", function()
+-- RE-PINNED AT ADOPTION (Adoption notes: skip flags stay in the host, and this host's are gone).
+-- The profile rows are still reset wholesale and reconciled ONCE by the OnProfileReset handler, not
+-- once per row. The sessionOnly sweep after it writes through the seam, whose announce refreshes
+-- once per session row: two extra refreshes, bounded by the session rows, not the schema.
+test("settings: RestoreAllDefaults refreshes once, plus once per session-only row", function()
     local NS, _, _, runs = probedPanel()
+    local session = 0
+    for _, def in ipairs(NS.addon.Settings.Schema) do
+        if def.sessionOnly then session = session + 1 end
+    end
+    assertEqual(session, 2, "the console and test mode")
     NS.addon.Settings.Helpers.RestoreAllDefaults()
-    assertEqual(runs.n, 1, "one reconcile after the loop, not N")
+    assertEqual(runs.n, 1 + session, "one reconcile for the profile, one per session row")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -571,7 +606,7 @@ end)
 -- which opens the fourth line with Test mode beside it (options-ui-§15, launcher-§3). It is the
 -- one row of the block stored OUTSIDE db.profile.
 local MASTER = { "enabled", "visibility", "scale", "alpha", "locked", "state.debugConsole",
-                 "global.minimap.hide", "state.testMode" }
+                 "global.minimap.shown", "state.testMode" }
 
 test("settings: the Master controls block is the FIRST group, in canonical order", function()
     -- The whole point of the composer is that eleven addons cannot drift into eleven orders, so the
@@ -682,7 +717,7 @@ function()
 end)
 
 -- ---------------------------------------------------------------------------
--- The rules that hold for every row on every page (options-ui-§13 / §17)
+-- The rules that hold for every row on every page (options-ui-§13, options-ui-§17)
 -- ---------------------------------------------------------------------------
 
 test("settings: every row on every page carries a `group`", function()

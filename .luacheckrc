@@ -10,13 +10,14 @@ codes = true
 -- library's testkit/, linted in LibKa0s as source, and linting the copy too would report every
 -- finding twice while letting the copy drift green as the original went red -- the one state
 -- tests/test_vendor_sync.lua exists to make impossible. Everything else under tests/ is ours and is
--- linted (lint.md). Under docs/ only the FROZEN evidence bundles are excluded; a blanket docs/
--- exclude would silently drop any Lua a future doc directory carries out of the gate. _dev/ is the
--- scratch directory .pkgmeta:12 already reserves, listed here so the two config files agree about
--- it whether or not it exists today.
-exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "_dev/", "tests/_kit/" }
+-- linted (lint). Under docs/ only the FROZEN bundle stores are excluded -- the audit, review and
+-- re-vendor bundles (docs/revendor/, as the lint template has it), each written once and never
+-- edited after; a blanket docs/ exclude would silently drop any Lua a future doc directory carries
+-- out of the gate. _dev/ is the scratch directory .pkgmeta:12 already reserves, listed here so the
+-- two config files agree about it whether or not it exists today.
+exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "docs/revendor/", "_dev/", "tests/_kit/" }
 
--- NO TOP-LEVEL `ignore`, and none is coming back (lint.md, `M4-11`). This file carried
+-- NO TOP-LEVEL `ignore`, and none is coming back (lint, `M4-11`). This file carried
 -- `ignore = { "211/addonName", "212", "542" }` until `M4c-04`. All three codes named something
 -- real, but a top-level ignore reaches all 41 files, so it silenced them in every file that has no
 -- business producing them too. Removing the three lines reported TWENTY-FOUR findings, and FIFTEEN
@@ -36,7 +37,9 @@ globals = {
 
 -- The WoW API surface the addon reads. Compat.lua owns the version-variant
 -- spell / LFG calls and the addon chat-link detection (LinkTypes, EventRegistry);
--- the rest are frame, settings, timer, and combat APIs.
+-- the rest are frame, settings, timer, and combat APIs. The legacy spell globals
+-- are read by LibKa0s-Compat-1.0, not here, so they are not granted
+-- (tests/test_lintconfig.lua holds the six removed names out).
 read_globals = {
   "_G",
   "LibStub", "hooksecurefunc", "EventRegistry", "LinkTypes",
@@ -44,14 +47,14 @@ read_globals = {
   "InCombatLockdown", "IsInGroup",
   "C_Timer", "C_AddOns", "GetAddOnMetadata",
   "C_Spell", "C_SpellBook", "C_LFGList",
-  "IsSpellKnown", "GetSpellInfo", "GetSpellTexture", "GetSpellCooldown", "CastSpellByID",
+  "IsSpellKnown",
   "GetTime",
   "Enum",
   "GROUP_FINDER_GENERAL_PLAYSTYLE1", "GROUP_FINDER_GENERAL_PLAYSTYLE2",
   "GROUP_FINDER_GENERAL_PLAYSTYLE3", "GROUP_FINDER_GENERAL_PLAYSTYLE4",
-  "Settings", "SettingsPanel", "StaticPopup_Show",
+  "Settings", "StaticPopup_Show",
   "GameTooltip", "YES", "NO",
-  "wipe", "tinsert", "date",
+  "wipe", "tinsert",
 }
 
 -- The harness publishes its exposed table under a per-repo global, written at tests/run.lua:75 and
@@ -71,7 +74,7 @@ files["tests/"] = {
 }
 
 -- ---------------------------------------------------------------------------
--- The narrowed 212s (lint.md, `M4c-04`)
+-- The narrowed 212s (lint, `M4c-04`)
 -- ---------------------------------------------------------------------------
 --
 -- Every stanza below names ONE file, and every entry inside it names the code AND the variable, in
@@ -102,7 +105,7 @@ files["core/WhatGroup.lua"] = {
 -- upvalue rather than through the addon table, so the receiver is unused -- but the method form is
 -- load-bearing at the call sites, not decoration. Two of them are reached through a PROBE of the
 -- member on the addon table before the colon call -- settings/Schema.lua:263 (`if
--- WhatGroup.ApplyFrameSize then`) and core/WhatGroup.lua:906 (`if not self.ApplyFrameVisibility
+-- WhatGroup.ApplyFrameSize then`) and core/WhatGroup.lua:924 (`if not self.ApplyFrameVisibility
 -- then return end`) -- which is how a settings row and a combat-edge handler survive
 -- modules/Frame.lua failing to load. A plain local would have nothing for those probes to find.
 files["modules/Frame.lua"] = {

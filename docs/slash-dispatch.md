@@ -4,14 +4,14 @@
 
 ## Registration
 
-Both names are registered through `AceConsole-3.0:RegisterChatCommand` in `OnInitialize` (`core/WhatGroup.lua:280`):
+Both names are registered through `AceConsole-3.0:RegisterChatCommand` in `OnInitialize` (`core/WhatGroup.lua:289`):
 
 ```lua
 self:RegisterChatCommand("wg",        "OnSlashCommand")
 self:RegisterChatCommand("whatgroup", "OnSlashCommand")
 ```
 
-`WhatGroup:OnSlashCommand` (`settings/Slash.lua:432`) hands the raw input straight to `Sl:OnSlash`. The library deliberately registers no chat command of its own — AceConsole stays the single registrar, so every verb's output keeps flowing through the tagged printer (slash-commands-§1).
+`WhatGroup:OnSlashCommand` (`settings/Slash.lua:449`) hands the raw input straight to `Sl:OnSlash`. The library deliberately registers no chat command of its own — AceConsole stays the single registrar, so every verb's output keeps flowing through the tagged printer (slash-commands-§1).
 
 ## Case-preserving parse
 
@@ -85,17 +85,17 @@ Library verbs delegate to the instance; host verbs are the file-local functions 
 | `/wg help` | `Sl:PrintHelp` (library) | Print the header + every command row. |
 | `/wg show` | `runShow` (host), behind the disabled gate | **Refused while `enabled` is false**, on one line naming `/wg enable`. Otherwise: open the popup if `pendingInfo` is set, ending test mode first if it is on. Otherwise print a hint pointing at `/wg test`. |
 | `/wg test` / `/wg test on\|off` / `/wg test notify` | `runTest(rest)` (host), behind the disabled gate | **Refused while `enabled` is false**, in all three forms; the panel's Test button is the surviving preview route. Otherwise: **Test mode.** Bare `/wg test` toggles the popup's test mode and `/wg test on\|off` sets it, by writing the `state.testMode` session row through `Helpers.Set`, the setter the Master controls **Test mode** checkbox uses. So the box follows, and a start in combat is refused by `startTestMode` with one gray line, `cannot start test mode during combat` (options-ui-§15). (The checkbox itself is refused in combat by the library's lock before this setter runs.) `/wg test notify` is the one-shot check: `WhatGroup:RunTest()` injects synthetic `pendingInfo` (Mythic+ Windrunner Spire) and runs `ShowNotification()` + `ShowFrame()` once, ending test mode if it is on. The panel's Test button runs the same method. Any other word prints a three-line usage. |
-| `/wg config` | `runConfig` → `WhatGroup:OpenSettings` (host) → `Helpers.OpenOptionsPanel` (library) | Calls the idempotent `Settings.Register()` fallback, then hands off. The body sits on the addon rather than in a file-local because the launcher's **right click** opens the panel through the same one (launcher-§2). The combat refusal and the sidebar unfold both live inside `OpenOptionsPanel`, not in this dispatcher, so *every* caller is refused — the verb, a `/run` script, a future internal caller (options-ui-§2 / WG-25). Under `InCombatLockdown()` it prints the canonical gray notice *"cannot open settings during combat — Blizzard's category-switch is protected"* and returns; no defer-replay. Otherwise it opens the addon category and expands the subcategory tree so General — whose first tab is **Master controls** — is one click away. |
-| `/wg enable` / `/wg disable` | `runEnabled(on)` (host) | The reserved pair (slash-commands-§2). **Aliases**, not a second switch: both write the `enabled` row — the Master controls *Enable WhatGroup* checkbox's own stored path — through the same `Helpers.Set`, so the row's `onChange` (the off-flip capture wipe) runs whichever surface the player used and the `[Set]` trace logs once. They hold no state of their own. The ack is the CLI's own `key = value` line, re-read from the store rather than echoed. `/wg set enabled true` is the same write by its long name. |
+| `/wg config` | `runConfig` → `WhatGroup:OpenSettings` (host) → `Helpers.OpenOptionsPanel` (library) | Calls the idempotent `Settings.Register()` fallback, then hands off. The body sits on the addon rather than in a file-local because the launcher's **left click** opens the panel through the same one (launcher-§2, standard v2.67.0); its right click reaches it only as the fallback on a client with no `MenuUtil`. The combat refusal and the sidebar unfold both live inside `OpenOptionsPanel`, not in this dispatcher, so *every* caller is refused — the verb, a `/run` script, a future internal caller (options-ui-§2 / WG-25). Under `InCombatLockdown()` it prints the canonical gray notice *"cannot open settings during combat — Blizzard's category-switch is protected"* and returns; no defer-replay. Otherwise it opens the addon category and expands the subcategory tree so General — whose first tab is **Master controls** — is one click away. |
+| `/wg enable` / `/wg disable` | `runEnabled(on)` (host) | The reserved pair (slash-commands-§2). **Aliases**, not a second switch: both write the `enabled` row — the Master controls *Enable WhatGroup* checkbox's own stored path — through the same `Helpers.Set`, so the row's `onChange` (the off-flip capture wipe) runs whichever surface the player used and the `[Set]` trace logs once. They hold no state of their own. The ack is the CLI's own `key = value` line, re-read from the store rather than echoed, and it is printed only for a write that landed: a refusal from the seam prints the seam's own words instead. `/wg set enabled true` is the same write by its long name. On a library-absent load there is no `enabled` row, and each verb prints `/wg enable is unavailable: the LibKa0s library did not load.` (or `/wg disable …`) and writes nothing — see *When the library is absent*. |
 | `/wg version` | `Sl:CliVersion` (library) | Print `[WG] v<version>` on its own line (slash-commands-§3 / WG-29), through the host's `version` seam. |
 | `/wg list` | `Sl:CliList` (library) | Green `Available settings` header, then rows grouped in **declaration order** under azure `[section]` headings — the descriptor's `groupKey` returns `row.section`, because these rows carry no `page` field the library's default would have read. Each row is `lib.FormatKV`: gold path, white value. |
 | `/wg get <path>` | `Sl:CliGet` (library) | `findRow` (→ `Helpers.FindSchema`) then the same `FormatKV` echo, so `key = value` reads identically to `/wg list` and the `/wg set` echo. Number rows render through the row's `fmt` (e.g. `"%.1fs"` → `1.5s`). Prints `Setting not found: <path>` for unknown paths, and `Usage: /wg get <path>` for none. |
-| `/wg set <path> <value>` | `Sl:CliSet` (library) | Type-aware parse (see the adapter below), then `Helpers.Set(path, value)` — the orchestrated single write-path that writes the value, fires the row's `onChange` and refreshes panel widgets. The echo **re-reads** the stored value rather than repeating what was parsed, so a clamped number is visible. Usage line is `Usage: /wg set <path> <value>  (try /wg list)`. |
+| `/wg set <path> <value>` | `Sl:CliSet` (library) | Type-aware parse (see the adapter below), then the descriptor's `set`, bound to the schema runtime's `Set` (`NS.SchemaRuntime`, `LibKa0s-Schema-1.0`) — the single write-path that refuses a path no row declares, writes the value, fires the row's `onChange` and refreshes panel widgets. A refusal is printed in the seam's own words, never as a success echo. The echo **re-reads** the stored value rather than repeating what was parsed, so a clamped number is visible. Usage line is `Usage: /wg set <path> <value>  (try /wg list)`. |
 | `/wg reset <path>` | `runReset` (host) → `Sl:CliReset` (library) | Reset **one** row to its default via `Helpers.ApplyDefault`, no confirmation, and echo the restored value. A bare `/wg reset` prints the deprecation notice below instead. |
 | `/wg resetall` | `runResetAll` (host) → `StaticPopup_Show("WHATGROUP_RESET_ALL")` → `Helpers.RestoreAllDefaults()` | Show a confirm popup; on accept, `db:ResetProfile()` (which empties the profile in place, merges the defaults back and fires `OnProfileReset`), then restore the `sessionOnly` rows by hand, because a profile reset cannot reach storage that is not the db (options-ui-§12). The *Reset all settings* button on the **Master controls** tab is a third entry point onto the same body. With no `StaticPopup_Show` or `Settings.EnsureResetPopup` (headless) it calls `Helpers.RestoreAllDefaults()` directly, unconfirmed. Per-row `onChange` is skipped — the default baseline is already the reconciled state. The Defaults button in the General sub-page header (and Blizzard's own footer control, which the library forwards to it) shows the same popup, so all paths share one OnAccept body. |
-| `/wg debug` / `/wg debug on\|off` | `runDebug` (host) | Bare `/wg debug` **toggles the on-screen debug console window** (`NS.DebugLog:Toggle()`), state untouched; `/wg debug on\|off` sets the session-only `NS.State.debug` flag through the single `NS.DebugLog:SetEnabled` seam (color-coded chat ack + `[Debug] logging enabled/disabled` console line). The FLAG is off on every login, never persisted, and **not** a schema row (WG-12), so there's no `/wg set debug`. The **Debug console** checkbox on the Master controls tab is *not* a second toggle for it — it is a `sessionOnly` schema row on the path `state.debugConsole` that shows/hides the console **window** only, routed to `NS.DebugLog`'s own get/set by `settings/Schema.lua`'s `SESSION` table so it never reaches `db.profile`. Debug output (`NS.Debug(tag, …)`) renders in the console, not chat — see [debug.md](./debug.md). |
+| `/wg debug` / `/wg debug on\|off` | `runDebug` (host) | Bare `/wg debug` **toggles the on-screen debug console window** (`NS.DebugLog:Toggle()`), state untouched; `/wg debug on\|off` sets the session-only `NS.State.debug` flag through the single `NS.DebugLog:SetEnabled` seam (color-coded chat ack + `[Debug] logging enabled/disabled` console line). The FLAG is off on every login, never persisted, and **not** a schema row (WG-12), so there's no `/wg set debug`. The **Debug console** checkbox on the Master controls tab is *not* a second toggle for it — it is a `sessionOnly` schema row on the path `state.debugConsole` that shows/hides the console **window** only, routed to `NS.DebugLog`'s own get/set by `settings/Schema.lua`'s `SESSION` table so it never reaches `db.profile`. Debug output (`NS.Debug(tag, …)`) renders in the console, not chat — see [debug-content.md](./debug-content.md). |
 
-`Helpers.RestoreAllDefaults` deliberately **overrides** the library member of the same name (`settings/OptionsSetup.lua:287-300`, [LIBKA0S-08](https://github.com/tusharsaxena/WhatGroup/issues/10)): the library's is row-by-row over every row, with no profile reset and no confirmation. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched.
+`Helpers.RestoreAllDefaults` deliberately **overrides** the library member of the same name (`settings/OptionsSetup.lua:287-303`, [LIBKA0S-08](https://github.com/tusharsaxena/WhatGroup/issues/10)): the library's is row-by-row over every row, with no profile reset and no confirmation. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched.
 
 ## The dispatcher survives the disabled state, and so does every reserved verb
 
@@ -107,7 +107,7 @@ Nothing unregisters `/wg`, empties `COMMANDS` or tears the dispatcher down on th
 chat commands are registered in `OnInitialize` and the settings category in `OnEnable`, and both
 are **setup**, not features — they come up on load in either state and stay up. What the off-flip
 *does* do is take the latch's `disabled` hold, which unregisters every event, cancels every timer
-and takes the popup off screen ([the stand-down](./ARCHITECTURE.md#the-stand-down)). **The addon is
+and takes the popup off screen ([the stand-down](./stand-down.md)). **The addon is
 inert; its command surface is not the addon.**
 
 **Every reserved verb answers while the addon is off** — `help`, `config`, `version`, `enable`,
@@ -166,8 +166,16 @@ Two consequences of where the gate now sits are worth naming, because both were 
   list. It is a statement about the index, some of whose rows are this addon's own feature verbs.
 
 The wording lives in exactly one place — `lib.DISABLED_LINE_FORMAT`, built by `Sl:DisabledLine()` —
-and **MUST NOT** be re-spelled host-side. `core/LauncherSetup.lua`'s refused left-click calls that
-same member rather than writing the sentence again.
+and **MUST NOT** be re-spelled host-side. The launcher prints no refusal at all since
+`LibKa0s-Launcher-1.0` minor 4: its left click opens the settings panel in either state, and its
+options menu grays every entry but Enabled while `isEnabled` answers false, so a disabled feature
+is never clicked and there is no second sentence to keep in step. The menu's entries run this
+file's own verb bodies (`WhatGroup:SlashEnabled`, `SlashToggleLock`, `SlashToggleTestMode`), so an
+entry's ack is the verb's. The one
+host copy is the degraded Slash stub's `DISABLED_LINE_FORMAT` in `settings/Slash.lua`, a byte copy
+for the path where there is no library to ask; the stub publishes it as `__disabledLineFormat` and
+`tests/test_libka0s.lua` pins it to the library's bytes with `Kit.assertLibraryConstant`, while a
+sibling case fails any other `is disabled` literal in `core/` or `settings/`.
 
 **`/wg test notify` changed behavior with this.** It used to bypass the master switch deliberately,
 so a preview still ran with the addon disabled, and `tests/test_lifecycle.lua` pinned that. `test`
@@ -203,6 +211,8 @@ Plain, never `NS.L`: the library resolves overrides with `rawget`, but a metatab
 
 ## When the library is absent
 
+**The composed-row verbs say they are unavailable** (`options-ui-§1` route (b), the owner's ruling on [WhatGroup#22](https://github.com/tusharsaxena/WhatGroup/issues/22)). The rows `enable`, `disable` and `test` write — `enabled` and `state.testMode` — are composed by `LibKa0s-Options-1.0`, so a library-absent load has no row for them, and the schema seam (`settings/SchemaSetup.lua`'s stub) refuses a row-less path. No `writeThrough` list is passed, so `/wg enable`, `/wg disable`, `/wg test`, `/wg test on` and `/wg test off` each print `<verb> is unavailable: the LibKa0s library did not load.` (one `L` key, one placeholder) with no Lua error, no write and no ack. `/wg test notify` is unaffected. The deviation from route (a) is a row in [ARCHITECTURE.md](./ARCHITECTURE.md)'s `## Documented deviations`.
+
 `/wg` is registered unconditionally, so something has to answer it. If `LibKa0s-Slash-1.0` is missing, `settings/Slash.lua` installs a small stand-in `Sl`: the host verbs never went to the library and keep working, dispatch and a plain help index still render, a bare `/wg` still runs the `config` row as the library's dispatcher does, and every schema verb (`list`, `get`, `set`, and `/wg reset <path>`) prints one honest line naming the missing library — `NS.LIBKA0S_MISSING` plus *"so the settings CLI is unavailable."* `/wg resetall` is host-owned and never delegated to `CliResetAll`, so it still confirms and wipes; it prints that line only when `Helpers.RestoreAllDefaults` itself is missing. Nothing in that branch re-implements a row formatter, the `key = value` shape or the parser (slash-commands-§1).
 
 ## Why `/wg test notify` and the Test button share `WhatGroup:RunTest()`
@@ -223,7 +233,7 @@ So `/wg test notify` and the panel button stay in lockstep with zero risk of dri
 
 ## `/wg test` is the test mode
 
-Every Ka0s addon's `/<slash> test` is its test mode, switched by the same state as the Master controls **Test mode** checkbox (options-ui-§15). Here that state is the `sessionOnly` schema row `state.testMode`, and `runTest` writes it through `Helpers.Set` — bare toggles, `on|off` sets — so the verb and the checkbox cannot disagree: the box follows the verb, the verb gets the checkbox's combat refusal, and the `[Set]` trace logs either way. The schema CLI reaches the same row (`/wg set state.testMode on`, `/wg get state.testMode`) along the same path, not a second one. The one-shot flow the verb used to run lives on as `/wg test notify`.
+Every Ka0s addon's `/<slash> test` is its test mode, switched by the same state as the Master controls **Test mode** checkbox (options-ui-§15). Here that state is the `sessionOnly` schema row `state.testMode`, and `runTest` writes it through `Helpers.Set` (the schema runtime's `Set`) — bare toggles, `on|off` sets — so the verb and the checkbox cannot disagree: the box follows the verb, the verb gets the checkbox's combat refusal, and the `[Set]` trace logs either way. The schema CLI reaches the same row (`/wg set state.testMode on`, `/wg get state.testMode`) along the same path, not a second one. The one-shot flow the verb used to run lives on as `/wg test notify`.
 
 ## Adding a command
 

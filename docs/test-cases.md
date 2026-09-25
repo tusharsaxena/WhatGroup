@@ -6,7 +6,7 @@ badge and any count quoted in the docs must agree with it.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
-### test_harness.lua (12)
+### test_harness.lua (17)
 
 - harness: the runner is on the shared kit and reports its revision
 - harness: the addon's load list is DERIVED from the TOC, in TOC order (testing-§9)
@@ -20,8 +20,13 @@ badge and any count quoted in the docs must agree with it.
 - harness: UnregisterAllEvents silences what the dispatcher reaches
 - harness: a registration naming a method the addon lacks is refused
 - harness: the addon's AceTimer handles are the kit's, on the kit's queue
+- events: one retired event name does not abort OnEnable
+- events: one retired event name does not abort OnEnable on a client without C_EventUtils
+- events: the [Init] summary carries no rejected clause when every name registered
+- degraded: the Core stub's SafeRegisterEvent survives a bad name
+- events: a stand-up after a rejection records the name once
 
-### test_libka0s.lua (50)
+### test_libka0s.lua (54)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
@@ -62,24 +67,32 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the console stub copies NO library formatter
 - degraded: every HAND-WRITTEN schema row survives the options library's absence (options-ui-§1)
 - degraded: the STORED profile is the same shape with the library absent
-- degraded: `/wg disable` and `/wg enable` still write the stored switch (slash-commands-§1)
-- degraded: `/wg test on` and `off` still move test mode (slash-commands-§1)
+- degraded: `/wg disable` and `/wg enable` print the library-absent line and write nothing (options-ui-§1, WhatGroup#22)
+- degraded: `/wg test on|off` print the library-absent line and move nothing
+- degraded: Reset all settings still resets the profile (options-ui-§1)
 - degraded: the settings stub carries no widget maker and no layout constant
 - degraded: the settings panel explains itself once at load and once per config
 - degraded: a bare /wg runs `config`, as the library's dispatcher does
 - degraded: `/wg debug on` still moves the flag and explains the missing window ONCE
+- libka0s: no seam re-spells the refusal line (slash-commands-§7)
+- degraded: the Slash stub's DisabledLine uses the library's DISABLED_LINE_FORMAT bytes
 - libka0s: the Master controls hook is keyed off the library's constant, not a copy of it
 - libka0s: the L-trap matcher flags the table and the `or` spelling, not the `and` one
 - libka0s: no seam file hands a descriptor this addon's locale table (the L trap)
 - libka0s: Core has no STRINGS and reads no descriptor L (tripwire)
 - libka0s: Options reads no descriptor L (tripwire)
+- locale: every key enUS.lua defines has a reader
 
-### test_surface_parity.lua (5)
+### test_surface_parity.lua (9)
 
 - parity: the Core seam's whole namespace surface survives the library's absence
 - parity: the DebugLog stub carries the whole live surface
 - parity: the Slash stub carries the whole live surface
 - parity: the Options helpers stub carries the whole live surface
+- parity: the Schema host stub's instance carries the whole live instance surface
+- parity: the Schema host stub carries the library's own members
+- parity: the Launcher stub carries the whole live surface
+- parity: the Lifecycle stub carries the whole live surface
 - parity: the Compat reader arm carries every library member the addon wires
 
 ### test_mediasetup.lua (11)
@@ -186,12 +199,14 @@ badge and any count quoted in the docs must agree with it.
 - compat: GetSpellTexture hands back one value when the client answers two
 - compat degraded: with LibKa0s absent the spell readers answer the library's absent values
 
-### test_database.lua (9)
+### test_database.lua (11)
 
 - database: fresh DB lands at schemaVersion 1
 - database: RunMigrations is idempotent
 - database: RunMigrations re-seeds a missing schemaVersion
-- database: BuildDefaults seeds global.schemaVersion from NS.SCHEMA_VERSION
+- database: defaults declare global.schemaVersion 0 (savedvariables-§1)
+- database: the stamp survives AceDB's logout strip, so the first real migration runs
+- database: a raising step leaves the stamp at the last completed version
 - database: RunMigrations before the db exists is a no-op
 - database: an older saved DB is stepped up to the current version
 - database: a version move is logged, a no-op migration is silent (debug-logging-§8)
@@ -227,18 +242,18 @@ badge and any count quoted in the docs must agree with it.
 - settings: a write creates the intermediate tables it walks through
 - settings: Get on an unknown deep path returns nil and creates no table
 - settings: Resolve replaces a non-table intermediate
-- settings: RawSet writes without firing onChange
-- settings: Set skipOnChange suppresses the side effect
-- settings: a throwing onChange is caught and reported, not propagated
-- settings: Set on a path with no schema row still writes
+- settings: there is no RawSet; a write to `enabled` always runs its onChange
+- settings: Set takes no skipOnChange option
+- settings: a throwing onChange propagates, after the value landed
+- settings: Set on a path with no schema row is refused and stores nothing
 - settings: FindSchema matches on the exact path
 - settings: RestoreAllDefaults restores every schema row
 - settings: RestoreAllDefaults leaves db.global untouched
 - settings: RefreshAll runs every refresher on the open page, in registration order
 - settings: a throwing refresher does not abort the sweep
 - settings: a hidden page is not refreshed — it is flagged dirty (options-ui-§11)
-- settings: Set skipRefresh suppresses the widget re-sync
-- settings: RestoreAllDefaults refreshes once, not once per row
+- settings: every Set re-syncs the widgets once; there is no skipRefresh
+- settings: RestoreAllDefaults refreshes once, plus once per session-only row
 - settings: EnsureResetPopup is idempotent
 - settings: the reset dialog is a blocking, escapable confirmation
 - settings: accepting the reset dialog acknowledges in chat
@@ -356,7 +371,7 @@ badge and any count quoted in the docs must agree with it.
 - teleport: the Midnight season 2 rows match the spellbook-verified IDs
 - teleport: Siege of Boralus offers the spellbook-verified spell first
 
-### test_capture.lua (32)
+### test_capture.lua (35)
 
 - capture: inviteaccepted prefers FRESH when both have mapID
 - capture: inviteaccepted falls back to QUEUED when fresh lacks mapID
@@ -387,6 +402,9 @@ badge and any count quoted in the docs must agree with it.
 - capture: two outstanding applications pair to their own search results
 - capture: a declined application drops its queued capture
 - capture: a canceled application drops its unanswered capture
+- capture: a timedout application drops its capture
+- capture: an invitedeclined application drops its capture
+- capture: a failed application drops its capture
 - capture: a search field holding false takes the default, not the false
 - capture: an activity field holding false takes the default, not the false
 - capture: a stored zero survives the defaults, because 0 is truthy in Lua
@@ -485,7 +503,7 @@ badge and any count quoted in the docs must agree with it.
 - frame: a first show in combat defers the build and says so
 - frame: leaving combat builds the deferred popup
 - frame: the deferred show restores a pendingInfo cleared during the wait
-- frame: repeated in-combat shows queue exactly one wait frame
+- frame: repeated in-combat shows queue exactly one deferred show
 - frame: a show requested in combat is deferred, not forced
 - frame: a popup held at alpha 0 comes back in combat without a Show
 - frame: reconfiguring the teleport button in combat stashes and replays it
@@ -535,13 +553,23 @@ badge and any count quoted in the docs must agree with it.
 - frame: PLAYER_REGEN_DISABLED is answered from the event, not from a lockdown flag that has not flipped
 - frame: a combat transition with no popup built is a no-op, not an error
 
-### test_panel.lua (53)
+### test_frame_secure.lua (7)
+
+- frame: reopening a soft-hidden popup in combat with no capture never Hides the secure button
+- frame: a deferred no-capture configure is replayed, not dropped
+- frame: a gate-declined reopen in combat leaves a soft-hidden popup at alpha 0, and the launcher still closes it
+- frame: an alpha write while soft-hidden does not reveal the popup
+- frame: a real show after the soft hide restores the master alpha
+- frame: a stand-down in combat drops a queued first show and a queued teleport configure
+- frame: reconfiguring the teleport button reuses the same three script handlers
+
+### test_panel.lua (54)
 
 - panel: OnEnable registers the parent category and the General subcategory
 - panel: the parent category is added to the AddOns list
 - panel: Register is idempotent — a second call registers nothing more
-- panel: registering during combat still registers (options-ui-§9)
-- panel: a login taken in combat needs no second registration
+- panel: a registration taken in combat is parked and lands at PLAYER_REGEN_ENABLED, with no second host call
+- panel: a login taken in combat is parked and lands at combat end, with no second registration
 - panel: registration validates the schema
 - panel: both panels start hidden
 - panel: registration creates no AceGUI widgets
@@ -588,6 +616,7 @@ badge and any count quoted in the docs must agree with it.
 - panel: the landing page lists one row per slash command
 - panel: the landing page shows the TOC Notes line
 - panel: the landing page renders the Slash Commands heading and the logo
+- panel: the landing logo path is built from the folder this copy loaded from
 - panel: the landing page adds logo, notes, heading and command rows in that order
 - panel: a dirty landing page re-renders in place instead of stacking a second copy
 
@@ -617,7 +646,7 @@ badge and any count quoted in the docs must agree with it.
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
 
-### test_launcher.lua (21)
+### test_launcher.lua (36)
 
 - launcher: it registers at login, and the broker object IS the minimap button's
 - launcher: the object is a launcher, named for the FOLDER, wearing this addon's logo
@@ -627,11 +656,26 @@ badge and any count quoted in the docs must agree with it.
 - launcher: Register is idempotent -- a second call builds no second button
 - launcher: the icon file exists and is an uncompressed 32-bit TGA
 - launcher: the TOC's IconTexture is the same file the object wears
-- launcher: LEFT-click toggles the group popup, through the addon's own seam
-- launcher: a LEFT-click dismissal ends test mode, as the Close button does
-- launcher: RIGHT-click opens the settings panel
+- launcher: LEFT-click opens the settings panel, and never the popup
+- launcher: LEFT-click opens the panel while disabled too, with no refusal line
+- launcher: RIGHT-click opens a menu titled with the label, with all four entries in order
+- launcher: the Enabled entry runs the /wg disable|enable body, ack and all
+- launcher: the Locked entry runs `/wg set locked toggle`, the Lock frame row's write
+- launcher: the Test mode entry runs the bare /wg test body
+- launcher: the Show window entry toggles the group popup through WhatGroup:ToggleFrame
+- launcher: a Show window dismissal ends test mode, as the Close button does
+- launcher: while disabled only Enabled is live; the rest are grayed and call nothing
+- launcher: with no MenuUtil the right click falls back to the settings panel
+- launcher: the descriptor passes the four pairs to the verbs' seams, and no retired field
+- launcher: the tooltip reads title, status, lock, test mode, then the two click hints
+- launcher: Locked and Test mode are read on every hover, from the rows' own stores
+- launcher: while disabled the tooltip still draws, with the same two click hints
+- launcher: the tooltip's version is the TOC's, not the in-code constant
+- launcher: there is no host tooltip hook, and the retired label's locale row is gone
 - launcher: the Minimap button row is stored, global, and LibDBIcon's OWN hide key
 - launcher: the row's get/set invert, and the button follows immediately
+- launcher: the row's CLI path reads in its own sense
+- launcher: a legacy store with hide = true reads not-shown, and nothing moves
 - launcher: a button the player hid survives Reset all settings (options-ui-§12)
 - launcher: a button the player hid survives the General page's Defaults button
 - launcher: a button the player hid survives the Master controls reset button
@@ -639,9 +683,9 @@ badge and any count quoted in the docs must agree with it.
 - launcher: an install with neither broker library loads, and says so once
 - launcher: with no LibDBIcon the broker plugin still registers
 - launcher: the row still stores with no broker library at all
-- launcher: with LibKa0s absent the seam still answers every member
+- launcher: with LibKa0s absent the seam answers honestly and the store still moves
 
-### test_lifecycle.lua (45)
+### test_lifecycle.lua (46)
 
 - lifecycle: the addon exposes no public global (WG-01)
 - lifecycle: NS IS the addon object (AceAddon mixes into the namespace)
@@ -663,6 +707,7 @@ badge and any count quoted in the docs must agree with it.
 - chat link: another addon's addon: link is not ours
 - chat link: an item link goes to the ItemRef tooltip, not to us
 - chat link: the SetItemRef callback registers at file load, exactly once
+- lifecycle: disable drops the SetItemRef callback and enable restores exactly one
 - chat link: degraded (no EventRegistry) falls back to the WhatGroup: link and the post-hook
 - chat link: degraded (no LinkTypes.AddOn) falls back to the WhatGroup: link and the post-hook
 - chat link: the degraded post-hook ignores links that aren't ours
@@ -677,7 +722,7 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: InitSummary is safe before the db exists
 - lifecycle: /wg config opens the parent settings category
 - lifecycle: /wg config is refused during combat (options-ui-§2)
-- lifecycle: a login taken in combat still registers the panel
+- lifecycle: a login taken in combat registers the panel at combat end
 - lifecycle: /wg test notify injects a synthetic capture and runs the full flow
 - lifecycle: /wg test notify refuses while the master switch is off
 - lifecycle: the panel Test button previews while the addon is disabled
@@ -689,7 +734,7 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: /wg resetall asks for confirmation rather than resetting outright
 - lifecycle: /wg resetall and the Defaults button share one OnAccept body
 
-### test_debuglog.lua (34)
+### test_debuglog.lua (49)
 
 - debuglog: FONT_MONO points at the library payload's JetBrains Mono TTF
 - debuglog: the console renders in the vendored TTF when the client can fetch it
@@ -725,16 +770,33 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: a profile copy logs one [Set] copied line naming the source (debug-logging-§10)
 - debuglog: InitSummary leads with the debug-logging-§5 identity fields, then runtime state
 - debuglog: enable ack is color-coded green/red matching the header (debug-logging-§5)
+- debuglog: pin — a vanished search result logs the [Capture] nil line
+- debuglog: pin — an apply logs the [Apply] captured line
+- debuglog: pin — every application status logs the [LFG] appID/status line
+- debuglog: pin — an accepted invite with a capture logs the [Invite] line naming it
+- debuglog: pin — an accepted invite with no capture logs the [Invite] no-capture line
+- debuglog: pin — a roster transition logs the [Roster] line
+- debuglog: pin — the details link logs the [ChatLink] click line
+- debuglog: pin — an accepted invite with nothing pending logs the [Notify] skip line
+- debuglog: pin — a scheduled join notify logs the [Notify] scheduling line
+- debuglog: pin — a wipe with a reason and something in flight logs the [Capture] wiped line
+- debuglog: pin — /wg test notify logs the [Test] injection line
+- debuglog: pin — showing a capture logs the [Frame] popup-shown and teleport lines
+- debuglog: pin — showing with no capture logs the [Frame] fallback and nil teleport lines
+- debuglog: pin — a show the visibility gate withholds logs the [Frame] not-shown line
+- debuglog: pin — unticking test mode logs the [Test] off line with its reason
 
 ### test_docmap.lua (1)
 
 - docmap: every Tier 2 row agrees with what docs/ holds
 
-### test_lintconfig.lua (4)
+### test_lintconfig.lua (6)
 
 - lintconfig: .luacheckrc sets no top-level ignore
 - lintconfig: .luacheckrc switches no warning class off wholesale
 - lintconfig: every files[...] ignore is narrowed to a file or a name
+- lint: exclude_files carries the template's frozen stores
+- lint: read_globals grants no removed or unread global
 - lintconfig: no source file carries a bare inline luacheck ignore
 
 ### test_doc_structure.lua (8)
@@ -750,19 +812,20 @@ badge and any count quoted in the docs must agree with it.
 
 ### test_register.lua (1)
 
-- every deviation id the register cites is assigned by a bundle in docs/audits/
+- every evidence id the register cites is assigned by its bundle in docs/audits/ or docs/reviews/
 
-### test_disabled.lua (17)
+### test_disabled.lua (18)
 
 - disabled 1: enabled, the addon holds a NON-EMPTY registration set
 - disabled 3: the registration set is EMPTY, by count and by name
 - disabled 3: the write seam is the route — the checkbox and the verb reach the same latch
+- disabled: no raw frame registration exists at any point, in combat or out
 - disabled 4: no timer, ticker or OnUpdate survives, and none is armed afterwards
 - disabled 5: every frame shown while enabled is hidden, and the show ladder answers no
 - disabled 6: firing every event it used to watch writes nothing, says nothing, shows nothing
 - disabled 7: every reserved verb answers normally, and the bare /wg opens the panel
 - disabled 7: each FEATURE verb answers exactly one refusal line and reaches no write seam
-- disabled 8: left-click is refused with no write and no frame; right-click opens the panel
+- disabled 8: left-click opens the panel; right-click's menu grays every feature entry
 - disabled 9: re-enabling restores the registration set exactly
 - disabled 9: a setting changed WHILE DISABLED is what the rebuild reflects
 - disabled 10: releasing the perf hold does NOT resurrect an addon `disabled` still holds down
@@ -781,12 +844,12 @@ badge and any count quoted in the docs must agree with it.
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
-- eol: .gitattributes is line-endings-5's canonical body for this repo kind
+- eol: .gitattributes is line-endings-§5's canonical body for this repo kind
 
 ### test_prose.lua (15)
 
-- prose: no authored file carries a British spelling from localization-5's published list
-- prose: the gate carries localization-5's two lists whole, and nothing of its own
+- prose: no authored file carries a British spelling from localization-§5's published list
+- prose: the gate carries localization-§5's two lists whole, and nothing of its own
 - prose self-test: the carve-out suppresses the named generated folder, and only it
 - prose self-test: a path the carve-out does not name is not covered by one that looks like it
 - prose self-test: a carve-out that is not a set of path strings is a failure, not a silence
@@ -805,7 +868,7 @@ badge and any count quoted in the docs must agree with it.
 
 - layoutcap: every authored file over the 1500-line cap is named in the census
 - layoutcap: no census row outlives the breach it records
-- layoutcap: every over-cap census row carries one of layout-1's three terminal states
+- layoutcap: every over-cap census row carries one of layout-§1's three terminal states
 - layoutcap: the census and the exempt set agree about which paths were exempted
 - layoutcap: an empty census is written as a result rather than left standing empty
 - layoutcap self-test: the parser reads the census nested under the register, and stops there
@@ -821,32 +884,33 @@ badge and any count quoted in the docs must agree with it.
 
 | Suite | Cases |
 |-------|------:|
-| test_harness.lua | 12 |
-| test_libka0s.lua | 50 |
-| test_surface_parity.lua | 5 |
+| test_harness.lua | 17 |
+| test_libka0s.lua | 54 |
+| test_surface_parity.lua | 9 |
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
 | test_util.lua | 31 |
 | test_compat.lua | 42 |
-| test_database.lua | 9 |
+| test_database.lua | 11 |
 | test_settings.lua | 56 |
 | test_slash.lua | 59 |
 | test_labels.lua | 34 |
-| test_capture.lua | 32 |
+| test_capture.lua | 35 |
 | test_notify.lua | 48 |
 | test_frame.lua | 90 |
-| test_panel.lua | 53 |
+| test_frame_secure.lua | 7 |
+| test_panel.lua | 54 |
 | test_testmode.lua | 23 |
-| test_launcher.lua | 21 |
-| test_lifecycle.lua | 45 |
-| test_debuglog.lua | 34 |
+| test_launcher.lua | 36 |
+| test_lifecycle.lua | 46 |
+| test_debuglog.lua | 49 |
 | test_docmap.lua | 1 |
-| test_lintconfig.lua | 4 |
+| test_lintconfig.lua | 6 |
 | test_doc_structure.lua | 8 |
 | test_register.lua | 1 |
-| test_disabled.lua | 17 |
+| test_disabled.lua | 18 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| **Total** | **727** |
+| **Total** | **787** |

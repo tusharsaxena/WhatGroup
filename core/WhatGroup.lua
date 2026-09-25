@@ -1,5 +1,5 @@
 -- core/WhatGroup.lua
--- AceAddon shell, event handling, group-info capture, slash dispatch.
+-- AceAddon shell, event handling, group-info capture. Slash dispatch lives in settings/Slash.lua.
 --
 -- Settings layer lives in settings/Schema.lua (schema + helpers) and
 -- settings/Panel.lua (canvas panel). Frame UI lives in modules/Frame.lua. All persistent
@@ -16,9 +16,9 @@
 -- mixes its methods (RegisterChatCommand / RegisterEvent / db / …) directly
 -- INTO `NS`, so `NS` IS the addon object and `NS.addon` aliases it. Earlier
 -- files have already hung their fields on this same table — locales/enUS.lua
--- (NS.L; the `# Locales` section now precedes `# Core`, WG-14), core/Util.lua
--- (NS.Util / NS.SafeToString / NS.Windows), Compat (NS.Compat), Database
--- (NS:RunMigrations) — and NewAddon preserves them. L strings are still
+-- (NS.L; the `# Locales` section now precedes `# Core`, WG-14), core/CoreSetup.lua
+-- (NS.Util / NS.SafeToString), core/Util.lua (NS.Windows / NS.FormatDuration), Compat
+-- (NS.Compat), Database (NS:RunMigrations) — and NewAddon preserves them. L strings are still
 -- referenced as NS.L[...] at runtime, never captured at file scope here.
 --
 -- No `_G.WhatGroup` — the addon exposes no public global (WG-01). Downstream
@@ -40,8 +40,14 @@ WhatGroup.VERSION = "1.4.0"
 NS.State = NS.State or {}
 NS.State.debug = false
 
+-- Every event name the client refused at registration, in refusal order, each once. Session-only
+-- and never persisted: it describes this client build, and the next patch may answer differently.
+-- Filled by registerFeatureEvents through NS.SafeRegisterEvent; read by InitSummary, which is the
+-- only place the player sees it (events-frames-taint-§1).
+NS.RejectedEvents = {}
+
 -- Single shared chat prefix (slash-commands-§4). NS.PREFIX is the one source of
--- truth; the secret-safe printer (core/Util.lua) prepends it to every line.
+-- truth; the secret-safe printer (core/CoreSetup.lua) prepends it to every line.
 NS.PREFIX = "|cff00FFFF[WG]|r"
 
 -- Both subscriptions below are installed at file-load (NOT in OnEnable):
@@ -93,10 +99,11 @@ local DETAILS_LINK       = ADDON_LINK_TYPE and (ADDON_LINK_TYPE .. ":" .. DETAIL
 local DETAILS_LINK_PREFIX = (ADDON_LINK_TYPE and (ADDON_LINK_TYPE .. ":") or "") .. "WhatGroup:"
 
 local function onDetailsLinkClick(linkArg)
-    -- The `hooksecurefunc("SetItemRef", …)` fallback route below has no un-hook, so the body gates
-    -- itself (slash-commands-§7's one sanctioned exception). The EventRegistry route shares the
-    -- gate rather than carrying its own: one answer, one place. A disabled addon prints no notify
-    -- line, so this link is a leftover from before the switch was flipped.
+    -- This gate serves ONLY the `hooksecurefunc("SetItemRef", …)` fallback route below: a post-hook
+    -- has no un-hook, so its body gates itself (slash-commands-§7's one sanctioned exception). The
+    -- EventRegistry route has a real unregister and is really unregistered -- NS.StandDown drops it
+    -- and NS.StandUp puts it back -- so it never reaches here while disabled (anti-pattern #85).
+    -- A disabled addon prints no notify line, so a link clicked then is a leftover from before.
     if NS.IsStoodDown() then return end
     if type(linkArg) ~= "string" then return end
     if linkArg:sub(1, #DETAILS_LINK_PREFIX) ~= DETAILS_LINK_PREFIX then return end
@@ -105,10 +112,18 @@ local function onDetailsLinkClick(linkArg)
     end
 end
 
+-- Called at file load (the taint reason above still holds) and again by NS.StandUp. The owner is the
+-- addon object, so a repeat call replaces the callback rather than stacking a second one.
+local function registerLinkCallback()
+    if ADDON_LINK_TYPE then
+        EventRegistry:RegisterCallback("SetItemRef", function(_, linkArg)
+            onDetailsLinkClick(linkArg)
+        end, WhatGroup)
+    end
+end
+
 if ADDON_LINK_TYPE then
-    EventRegistry:RegisterCallback("SetItemRef", function(_, linkArg)
-        onDetailsLinkClick(linkArg)
-    end, WhatGroup)
+    registerLinkCallback()
 else
     hooksecurefunc("SetItemRef", onDetailsLinkClick)
 end
@@ -126,7 +141,7 @@ local wasInGroup          = false
 local notifiedFor         = nil  -- pendingInfo identity that already fired notify+popup
 
 -- Single secret-safe chat seam (slash-commands-§4, WG-22). Every user-facing
--- line funnels through NS.Util.print (core/Util.lua), which prepends NS.PREFIX
+-- line funnels through NS.Util.print (core/CoreSetup.lua), which prepends NS.PREFIX
 -- and stringifies each arg via NS.SafeToString — so a combat-protected value
 -- can never raise in the chat path. `p` is the file-local alias for the many
 -- call sites; NS.Print / _print expose the same one seam to other files
@@ -213,8 +228,7 @@ end
 -- copy has landed in the ACTIVE profile. A method rather than a closure, so a test can call it with
 -- those real arguments directly (since kit revision 18 the AceDB mock passes the source as well).
 function WhatGroup:OnProfileCopied(_, _, source)
-    NS.Debug("Set", "copied profile '%s' \226\134\146 '%s'", tostring(source),
-             tostring(self.db:GetCurrentProfile()))
+    NS.Debug("Set", "copied profile '%s' \226\134\146 '%s'", source, self.db:GetCurrentProfile())
     reloadProfile(self)
 end
 
@@ -255,7 +269,7 @@ function WhatGroup:OnInitialize()
         -- because a reset driven straight at the db (AceDBOptions, a /run) is the same act. N is the
         -- rows whose stored value the reset changed. Helpers.RestoreAllDefaults counts them just
         -- before it resets and hands the count over; a reset from anywhere else has no such count,
-        -- and §10 lets the line omit it.
+        -- and debug-logging-§10 lets the line omit it.
         local function logReset()
             local S = NS.Settings
             local name = self.db:GetCurrentProfile()
@@ -286,20 +300,27 @@ end
 -- diverge on the first event added after the second one was written, and the divergence would show
 -- up as an addon that works until the player toggles it off and on again.
 --
--- Hooks are NOT here: the apply post-hook and the chat-link callback are installed at file load
--- (top of this file) for taint reasons, and `hooksecurefunc` has no un-hook -- so those two gate
--- their own bodies on NS.IsStoodDown() instead, which is slash-commands-§7's one sanctioned
--- exception and is not generalizable to anything that has a real unregister.
+-- Hooks are NOT here: the apply post-hook and the chat-link route are installed at file load (top of
+-- this file) for taint reasons. The two `hooksecurefunc` post-hooks (ApplyToGroup, and SetItemRef
+-- on a degraded client) have no un-hook, so they gate their own bodies on NS.IsStoodDown() --
+-- slash-commands-§7's one sanctioned exception. The EventRegistry chat-link callback has a real
+-- unregister, so it does not take that exception: NS.StandDown unregisters it and NS.StandUp calls
+-- registerLinkCallback() to put it back.
+--
+-- EACH CALL COSTS ONLY ITSELF (events-frames-taint-§1). The client raises on a name it does not
+-- know, and this function runs first in OnEnable: one event retired by a patch would otherwise take
+-- the settings category, the launcher and the latch down with it. NS.SafeRegisterEvent
+-- (core/CoreSetup.lua) refuses the name instead and records it once in NS.RejectedEvents.
 local function registerFeatureEvents(self)
-    self:RegisterEvent("GROUP_ROSTER_UPDATE")
-    self:RegisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
+    NS.SafeRegisterEvent(self, "GROUP_ROSTER_UPDATE", nil, NS.RejectedEvents)
+    NS.SafeRegisterEvent(self, "LFG_LIST_APPLICATION_STATUS_UPDATED", nil, NS.RejectedEvents)
     -- The popup's `visibility` setting has two combat-dependent values, and combat state changes
     -- without the player touching the panel — so the gate needs an event, not just an onChange.
     -- Both edges route to ONE handler because the answer is a single re-evaluation either way;
     -- which edge it is comes from the event name (see modules/Frame.lua's visibilityAllows).
     -- Registered here and never in OnInitialize, like the two above.
-    self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnCombatStateChanged")
-    self:RegisterEvent("PLAYER_REGEN_ENABLED",  "OnCombatStateChanged")
+    NS.SafeRegisterEvent(self, "PLAYER_REGEN_DISABLED", "OnCombatStateChanged", NS.RejectedEvents)
+    NS.SafeRegisterEvent(self, "PLAYER_REGEN_ENABLED",  "OnCombatStateChanged", NS.RejectedEvents)
     wasInGroup = IsInGroup() and true or false
 end
 
@@ -312,8 +333,9 @@ end
 -- only route in either direction: there is no bare stand-up anywhere, because a resume that stood
 -- the addon up would resurrect it under a player who had disabled it mid-capture.
 --
--- WHAT GOES DOWN: all four event registrations actually UNREGISTERED -- not gated, because a
--- handler that early-returns still costs the dispatch on every GROUP_ROSTER_UPDATE in a raid --
+-- WHAT GOES DOWN: all four event registrations and the EventRegistry "SetItemRef" chat-link
+-- callback actually UNREGISTERED -- not gated, because a handler that early-returns still costs the
+-- dispatch on every GROUP_ROSTER_UPDATE in a raid --
 -- the notify timer and the cooldown ticker canceled, the capture state wiped, and the popup off
 -- screen with the show ladder answering no AT THE SOURCE so a combat edge cannot bring it back.
 --
@@ -332,13 +354,16 @@ function NS.StandDown()
     self:UnregisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
     self:UnregisterEvent("PLAYER_REGEN_DISABLED")
     self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+    -- The chat-link callback has a real unregister, so it is dropped, not gated (anti-pattern #85).
+    -- The degraded client's SetItemRef post-hook cannot be, and gates itself in onDetailsLinkClick.
+    if ADDON_LINK_TYPE and EventRegistry then EventRegistry:UnregisterCallback("SetItemRef", WhatGroup) end
 
     -- Cancels the notify timer and drops pendingInfo, the two things that would otherwise wake up
     -- or be rendered after the addon was switched off. It is not a SavedVariables write: every
     -- table it touches is session-only.
     self:WipeCapture("addon stood down")
 
-    -- The popup, the ESC proxy, the cooldown ticker and the deferred-teleport frame event.
+    -- The popup, the ESC proxy, the cooldown ticker and the combat-end queue.
     if NS.FrameStandDown then NS.FrameStandDown() end
 
     -- Owed a protected Hide. This is the one registration slash-commands-§7 permits a disabled
@@ -365,6 +390,7 @@ function NS.StandUp()
     -- rebinding PLAYER_REGEN_ENABLED on top of the stand-down's own handler.
     self:UnregisterEvent("PLAYER_REGEN_ENABLED")
     registerFeatureEvents(self)
+    registerLinkCallback()
     if self.ApplyFrameVisibility then self:ApplyFrameVisibility() end
 end
 
@@ -382,8 +408,10 @@ function WhatGroup:OnEnable()
     -- OnShow (Panel.lua), so no AceGUI frame is created inside a secure-execute
     -- chain. Register() is idempotent (the `_settingsRegistered` guard), so
     -- runConfig's call becomes a harmless no-op fallback. Registration is not
-    -- combat-gated (options-ui-§9), so a `/reload` taken in combat still lands the
-    -- category in the list — only panel *open* is refused under lockdown.
+    -- combat-gated here (options-ui-§9): the category still registers at login
+    -- with no user action, and in combat the library parks it and lands it at
+    -- combat end, with no second `/wg config`. Only panel *open* is refused
+    -- under lockdown.
     if self.Settings and self.Settings.Register then
         self.Settings.Register()
     end
@@ -410,6 +438,14 @@ function WhatGroup:OnEnable()
     -- point where it is both current and visible — see InitSummary below.
 end
 
+-- The event names the client refused this session, as a trailing clause, or nothing at all: the
+-- summary is byte-identical to its old shape whenever every registration succeeded.
+local function rejectedClause()
+    local rejected = NS.RejectedEvents
+    if not rejected or #rejected == 0 then return "" end
+    return ", rejected events: " .. table.concat(rejected, ", ")
+end
+
 -- One-line [Init] session summary (debug-logging-§5 MUST / debug-logging-§8 boot-summary):
 -- addon name + version, schema/DB version, active AceDB profile. A pure builder
 -- — the DebugLog:SetEnabled seam calls it and appends the line via raw D:Add on
@@ -429,7 +465,7 @@ function WhatGroup:InitSummary()
         tostring(pr.notify and pr.notify.delay),
         tostring(not (pr.frame and pr.frame.autoShow == false)),
         tostring(IsInGroup() and true or false),
-        tostring(self.pendingInfo ~= nil))
+        tostring(self.pendingInfo ~= nil)) .. rejectedClause()
 end
 
 -- ---------------------------------------------------------------------------
@@ -503,7 +539,7 @@ end
 function WhatGroup:CaptureGroupInfo(searchResultID)
     local info = C_LFGList.GetSearchResultInfo(searchResultID)
     if not info then
-        NS.Debug("Capture", "GetSearchResultInfo returned nil for id=" .. tostring(searchResultID))
+        NS.Debug("Capture", "GetSearchResultInfo returned nil for id=%s", searchResultID)
         return
     end
 
@@ -535,7 +571,7 @@ end
 -- undocumented behavior a patch could decouple at any time.
 --
 -- The appID path stays as the fallback rather than being deleted: it is what
--- shipped and is known to work at retail 120000-120007, so if
+-- shipped and is known to work on the 12.0 retail builds, so if
 -- GetApplicationInfo is missing, raises, or yields nothing usable, capture
 -- degrades to the old behavior instead of going dark. Both returns shapes are
 -- accepted — the multi-return form (id, appStatus, …) and a table, in case a
@@ -763,10 +799,8 @@ function WhatGroup:OnApplyToGroup(searchResultID)
     local captured = self:CaptureGroupInfo(searchResultID)
     if captured then
         capturesByResult[searchResultID] = captured
-        NS.Debug("Apply", 'id=%s captured "%s" (activity=%s map=%s m+=%s)',
-            tostring(searchResultID), tostring(captured.title),
-            tostring(captured.activityID), tostring(captured.mapID),
-            tostring(captured.isMythicPlus))
+        NS.Debug("Apply", 'id=%s captured "%s" (activity=%s map=%s m+=%s)', searchResultID,
+            captured.title, captured.activityID, captured.mapID, captured.isMythicPlus)
     end
 end
 
@@ -783,7 +817,7 @@ end
 -- text, the mouse button and the chat frame the client also passes were carried into this
 -- signature and never read.
 function WhatGroup:OnSetItemRef()
-    NS.Debug("ChatLink", "clicked hasPending=" .. tostring(self.pendingInfo ~= nil))
+    NS.Debug("ChatLink", "clicked hasPending=%s", self.pendingInfo ~= nil)
     -- pendingInfo is session-only (cleared on group-leave or /reload).
     -- A click on a stale chat link from a previous session would
     -- otherwise open an empty "No data" popup; print a one-line hint.
@@ -815,7 +849,7 @@ function WhatGroup:_TryFireJoinNotify(reason)
         -- Only log "no pendingInfo" from the inviteaccepted path —
         -- ROSTER transitions hit this constantly and just clutter chat.
         if reason == "inviteaccepted" then
-            NS.Debug("Notify", "skip: no pendingInfo (" .. reason .. ")")
+            NS.Debug("Notify", "skip: no pendingInfo (%s)", reason)
         end
         return
     end
@@ -829,7 +863,7 @@ function WhatGroup:_TryFireJoinNotify(reason)
     -- Cancel any still-pending notify before scheduling a fresh one so a rapid
     -- re-fire can't leave two timers racing to the same popup.
     if self.notifyTimer then self:CancelTimer(self.notifyTimer) end
-    NS.Debug("Notify", "scheduling in " .. tostring(delay) .. "s (" .. reason .. ")")
+    NS.Debug("Notify", "scheduling in %ss (%s)", delay, reason)
     -- WG-17 (library-stack-§1): the one-shot notify delay runs through
     -- AceTimer-3.0 (the mandated timer lib). The handle is stashed in
     -- self.notifyTimer and canceled by WipeCapture (group-leave, master-switch
@@ -882,7 +916,7 @@ function WhatGroup:WipeCapture(reason)
     wipe(capturesByResult)
     wipe(pendingApplications)
     if reason and hadInFlight then
-        NS.Debug("Capture", "wiped (" .. reason .. ")")
+        NS.Debug("Capture", "wiped (%s)", reason)
     end
 end
 
@@ -903,6 +937,11 @@ function WhatGroup:OnCombatStateChanged(event)
     if event == "PLAYER_REGEN_DISABLED" and self.EndTestModeForCombat then
         self:EndTestModeForCombat()
     end
+    -- The lockdown has lifted: replay the protected work modules/Frame.lua queued during it (a
+    -- deferred teleport configure, a deferred first show) before the gate is asked, so the gate
+    -- sees the popup as it now is. Two table reads when nothing is queued. OnDisabledCombatEnded
+    -- does not drain: the stand-down has already dropped the queue.
+    if event == "PLAYER_REGEN_ENABLED" and NS.FrameDrainCombatEnd then NS.FrameDrainCombatEnd() end
     if not self.ApplyFrameVisibility then return end
     self:ApplyFrameVisibility(event == "PLAYER_REGEN_DISABLED")
 end
@@ -913,9 +952,8 @@ function WhatGroup:GROUP_ROSTER_UPDATE()
     -- change (talents, specs, auras on some patches) and floods chat.
     -- Only log on a transition or when there's pendingInfo to clear.
     if inGroup ~= wasInGroup or (not inGroup and self.pendingInfo) then
-        NS.Debug("Roster", "inGroup=" .. tostring(inGroup)
-            .. " wasInGroup=" .. tostring(wasInGroup)
-            .. " hasPending=" .. tostring(self.pendingInfo ~= nil))
+        NS.Debug("Roster", "inGroup=%s wasInGroup=%s hasPending=%s", inGroup, wasInGroup,
+            self.pendingInfo ~= nil)
     end
 
     if inGroup and not wasInGroup then
@@ -928,16 +966,23 @@ function WhatGroup:GROUP_ROSTER_UPDATE()
     end
 end
 
--- Statuses that end an application with no invite behind them. Blizzard sends the bare
--- "declined" only sometimes — a full or delisted group carries its reason in the status
--- string, and those are the declines a player actually meets — so all three spellings are
--- here. Without this arm a dead application's capture stayed in the tables until the next
--- group-leave and could be handed to a later invite (WG-R-07).
+-- Every status that ends an application with no joined group behind it. Blizzard sends the bare
+-- "declined" only sometimes — a full or delisted group carries its reason in the status string,
+-- and those are the declines a player actually meets — so all three spellings are here. The last
+-- three end it from the other side: the application expired unanswered ("timedout"), the player
+-- turned the invite down ("invitedeclined"), or the server refused it ("failed"). The spellings
+-- are the ones Blizzard_GroupFinder's LFGList.lua switches on when it labels a search entry
+-- (LFG_LIST_APP_TIMED_OUT, LFG_LIST_APP_INVITE_DECLINED); smoke S-008 records them in-client.
+-- Without this arm a dead application's capture stayed in the tables until the next group-leave
+-- and could be handed to a later invite (WG-R-07, WHATGROUP-R-12).
 local APPLICATION_ENDED = {
     declined          = true,
     declined_full     = true,
     declined_delisted = true,
     cancelled         = true,
+    timedout          = true,
+    invitedeclined    = true,
+    failed            = true,
 }
 
 -- The two short status arms live out here rather than inline. The handler is the file's most
@@ -970,7 +1015,7 @@ local function dropApplication(self, appID, newStatus)
 end
 
 function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
-    NS.Debug("LFG", "appID=" .. tostring(appID) .. " status=" .. tostring(newStatus))
+    NS.Debug("LFG", "appID=%s status=%s", appID, newStatus)
     if newStatus == "applied" then
         pairApplication(self, appID)
     elseif APPLICATION_ENDED[newStatus] then
@@ -1019,11 +1064,10 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
         notifiedFor      = nil  -- new pendingInfo identity → eligible to fire again
 
         if final then
-            NS.Debug("Invite", 'accepted appID=%s → "%s" map=%s (source=%s)',
-                tostring(appID), tostring(final.title), tostring(final.mapID),
-                tostring(source))
+            NS.Debug("Invite", 'accepted appID=%s → "%s" map=%s (source=%s)', appID, final.title,
+                final.mapID, source)
         else
-            NS.Debug("Invite", "accepted appID=" .. tostring(appID) .. " → no capture")
+            NS.Debug("Invite", "accepted appID=%s → no capture", appID)
         end
 
         wipe(capturesByResult)
@@ -1093,7 +1137,7 @@ end
 -- ShowFrame ends test mode if it is on, so the two never overlap.
 function WhatGroup:RunTest()
     self.pendingInfo = self:SampleInfo()
-    NS.Debug("Test", 'synthetic capture injected "' .. tostring(self.pendingInfo.title) .. '"')
+    NS.Debug("Test", 'synthetic capture injected "%s"', self.pendingInfo.title)
     self:ShowNotification()
     self:ShowFrame()
 end

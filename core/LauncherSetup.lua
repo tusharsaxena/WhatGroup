@@ -3,24 +3,24 @@
 -- ONE LibDataBroker object, registered twice: LibDBIcon draws the minimap button from it and any
 -- broker display that is installed draws its row from the very same object. One OnClick, one icon,
 -- one identity. Two objects with two click handlers is the same feature written twice and is
--- anti-pattern #81 — which is the whole reason this is a five-field descriptor here and a module
--- in the library rather than sixty lines in every addon.
+-- anti-pattern #81 — which is the whole reason this is a descriptor here and a module in the
+-- library rather than sixty lines in every addon.
 --
 -- ── WHAT IS OURS ─────────────────────────────────────────────────────────────────────────────
 --
--- The folder name, the logo, what the LEFT button does, and how the settings panel opens. The
--- library owns the rest: the object, both registrations, the click dispatch, the right-click rule
--- and the two LibStub lookups.
+-- The folder name, the logo, how the settings panel opens, and the state-and-toggle pairs for the
+-- options menu. The library owns the rest: the object, both registrations, the click dispatch,
+-- the tooltip, the menu, when an entry is grayed, and the two LibStub lookups.
 --
--- ── THE RUNG ─────────────────────────────────────────────────────────────────────────────────
+-- ── THE TWO BUTTONS (launcher-§2, standard v2.67.0; LibKa0s-Launcher-1.0 minor 4) ─────────────
 --
--- WhatGroup is on rung (a) of launcher-§2 (the standard's ADDONS.md records it): it has a PRIMARY
--- WINDOW — the group popup — so LEFT-click toggles that window, through the same
--- `WhatGroup:ToggleFrame` seam the Close button and ESC already close it with. The launcher holds
--- no state of its own about whether the popup is up; it asks the module that owns it.
---
--- RIGHT-click opens the settings panel, on every addon in the collection, and that is the
--- library's own rule rather than a line here.
+-- LEFT-click opens the settings panel, on every addon in the collection, in either state. RIGHT-
+-- click opens the client's context menu with one checkbox per toggle the addon has. WhatGroup has
+-- all four (the standard's ADDONS.md records them): Enabled, Locked, Test mode, and Show window —
+-- its primary window is the group popup. Each toggle is the SAME body its slash verb runs, so a
+-- menu click is refused, acknowledged and combat-guarded exactly as the typed command is; while
+-- the addon is disabled the library grays every entry but Enabled. The launcher holds no state of
+-- its own; it asks the module that owns each one.
 --
 -- ── WHY REGISTER IS NOT CALLED HERE ──────────────────────────────────────────────────────────
 --
@@ -132,37 +132,76 @@ NS.Launcher = lib:New({
     -- A FUNCTION, not the table: see the header. The library calls it once, at Register.
     minimap = minimapStore,
 
-    -- RIGHT-click always, and LEFT-click on rung (c) — which this addon is not on. The same body
-    -- `/wg config` runs, reached through the addon rather than copied: the combat refusal and the
-    -- idempotent category registration both live inside it (settings/Slash.lua).
+    -- LEFT-click, always, in either state; and RIGHT-click too where the client has no context-menu
+    -- API. The same body `/wg config` runs, reached through the addon rather than copied: the
+    -- combat refusal and the idempotent category registration both live inside it
+    -- (settings/Slash.lua).
     openSettings = function() NS.addon:OpenSettings() end,
 
-    -- THE LEFT CLICK, AND ITS PRESENCE IS THE RUNG (launcher-§2). The group popup is the primary
-    -- window, so it toggles. Resolved at click time because modules/Frame.lua loads after this file.
+    -- ── THE OPTIONS MENU (right-click) ──────────────────────────────────────────────────────
     --
-    -- GATED ON THE STAND-DOWN LATCH (slash-commands-@7). The left button drives the primary window,
-    -- which is a FEATURE, so a disabled addon must refuse it rather than toggle a popup the player
-    -- switched off. The right click is not gated: opening the settings panel is how the player
-    -- turns the addon back on. The refusal is the dispatcher's own line, asked rather than
-    -- respelled, so the launcher and `/wg show` say one sentence between them.
-    onClick = function()
-        if NS.IsStoodDown and NS.IsStoodDown() then
-            local Sl = NS.SlashCommands
-            return NS.Print(Sl and Sl.DisabledLine and Sl:DisabledLine()
-                or "Ka0s WhatGroup is disabled.")
-        end
-        NS.addon:ToggleFrame()
-    end,
+    -- Four accessor-and-toggle pairs, each toggle the verb's own body (settings/Slash.lua's
+    -- `SlashEnabled` / `SlashToggleLock` / `SlashToggleTestMode`, and modules/Frame.lua's
+    -- `ToggleFrame`). Every one is resolved at click time: NS.IsStoodDown, settings/Slash.lua and
+    -- modules/Frame.lua all load after this file. The accessors are asked on every hover and every
+    -- menu open, never cached.
+
+    -- ENABLED. The latch, not `db.profile.enabled`, so the perf hold and the disabled hold give the
+    -- menu, the tooltip and the CLI one answer (slash-commands-§7). While it answers false the
+    -- library grays the other three entries. setEnabled is `/wg enable` / `/wg disable`'s body.
+    isEnabled  = function() return not NS.IsStoodDown() end,
+    setEnabled = function(on) NS.addon:SlashEnabled(on) end,
 
     print = function(line) NS.Print(line) end,
     debug = function(tag, message) NS.Debug(tag, message) end,
 
+    -- ── THE STATUS TOOLTIP (launcher-§1, LibKa0s-Launcher-1.0 minor 3) ──────────────────────
+    --
+    -- The LIBRARY draws it, on every hover and while the addon is disabled too: the label and
+    -- version, `Enabled` (from `isEnabled` above), `Locked` and `Test mode` where the descriptor
+    -- passes them, then the two click hints. These fields only answer its questions, each asked
+    -- on every show and never cached, so the tooltip cannot disagree with the settings panel.
+    --
+    -- The version is the TOC's, through NS.Version (slash-commands-§3's ladder, the same one
+    -- `/wg version` prints). NS.Version answers "?" when nothing is readable; the title then
+    -- drops the version rather than print `v?`.
+    version = function()
+        local v = NS.Version()
+        return v ~= "?" and v or nil
+    end,
+
+    -- WhatGroup HAS both states, so both lines and both menu entries: the popup's Lock frame row
+    -- is the profile's `locked` (modules/Frame.lua reads it at drag time), and its session-only
+    -- Test mode is NS.State.testMode (modules/Frame.lua owns it). The same stores the two
+    -- Master-controls checkboxes read, so the tooltip, the menu and the panel say one thing.
+    --
+    -- LOCKED has no `/wg lock` verb (slash-commands-§8 MAY: the lock is a checkbox here), so its
+    -- toggle is the row's CLI form, `/wg set locked toggle`. TEST MODE's is bare `/wg test`.
+    isLocked       = function()
+        local db = NS.addon and NS.addon.db
+        return (db and db.profile and db.profile.locked) and true or false
+    end,
+    toggleLock     = function() NS.addon:SlashToggleLock() end,
+    isTestMode     = function() return (NS.State and NS.State.testMode) and true or false end,
+    toggleTestMode = function() NS.addon:SlashToggleTestMode() end,
+
+    -- SHOW WINDOW: the group popup is the primary window. The checkmark reads whether it is ON
+    -- SCREEN (a popup soft-hidden at alpha 0 in combat is not), and the toggle is the seam the
+    -- Close button and ESC close it with, so a menu close ends test mode as they do.
+    isWindowShown = function() return NS.addon:IsFrameOnScreen() end,
+    toggleWindow  = function() NS.addon:ToggleFrame() end,
+
     -- Deliberately NOT passed:
-    --   onTooltipShow — the button's tooltip is the library's default, which names the addon and
-    --                   says what each button does. This addon has no live value to put there: the
-    --                   popup's contents are a capture, not a number, and a tooltip that read
-    --                   "no group" most of the time would be worse than the two click hints.
-    --   L             — nothing here is translated yet, and NS.L answers every key with the key
-    --                   itself (anti-patterns #2), so handing it over would render the launcher's
-    --                   own reports as NO_BROKER / NO_ICON.
+    --   onTooltipShow -- since minor 3 it APPENDS the addon's own lines inside the library's
+    --                   block. This addon has no live value to add: the popup's contents are a
+    --                   capture, not a number, and a line reading "no group" most of the time is
+    --                   noise. A hook drawing a title, status or click hint would draw a second
+    --                   copy of the library's (anti-pattern #89).
+    --   L             -- the library's own words (`Enabled`, the click hints, the menu entries,
+    --                   the reports) stay the library's English, like every other LibKa0s string
+    --                   this addon shows (the ratified partial-routing deviation,
+    --                   docs/ARCHITECTURE.md). This descriptor has no string of its own.
+    --   onClick, leftClickLabel, disabledLine, slash -- retired by Launcher minor 4 and ignored
+    --                   if passed (launcher-§5 calls a leftover dead configuration). The popup's
+    --                   toggle is the Show window entry above; there is no disabled refusal.
 })

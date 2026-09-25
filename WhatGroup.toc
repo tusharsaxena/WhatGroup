@@ -38,7 +38,10 @@ core\CoreSetup.lua
 # MediaSetup here and not later: core\WhatGroup.lua resolves NS.FONT_MONO from
 # NS.MediaFont at load, so this slot is load-bearing, not conventional.
 core\MediaSetup.lua
+# NS.Windows and NS.FormatDuration; reads nothing at load, so this slot is conventional.
 core\Util.lua
+# Before core\WhatGroup.lua: it calls NS.Compat.AddOnLinkType() at file scope
+# (core/WhatGroup.lua:93) to choose the chat-link route. Load-bearing.
 core\Compat.lua
 # The LibKa0s-Env seam. After Compat, and before settings\Panel.lua and settings\Slash.lua,
 # the two files that read the TOC. Nothing here resolves at load beyond the LibStub lookup and
@@ -46,7 +49,7 @@ core\Compat.lua
 core\EnvSetup.lua
 core\Database.lua
 core\WhatGroup.lua
-# After core\WhatGroup.lua, which assigns NS.FONT_MONO at load (core/WhatGroup.lua:167). The
+# After core\WhatGroup.lua, which assigns NS.FONT_MONO at load (core/WhatGroup.lua:182). The
 # LibKa0s-DebugLog :New here runs at file scope (core/DebugLogSetup.lua:120) and the library
 # validates `font` as a string, so above that line the console is built from nil. Load-bearing.
 core\DebugLogSetup.lua
@@ -62,7 +65,7 @@ core\LifecycleSetup.lua
 
 # Defaults (data tables; conventional apart from the annotated line)
 # Before settings\Schema.lua: this file publishes NS.C, which Schema takes as a file-scope upvalue
-# (settings/Schema.lua:27) and dereferences in every add{} at load. Load-bearing.
+# (settings/Schema.lua:29) and dereferences in every add{} at load. Load-bearing.
 defaults\Profile.lua
 defaults\TeleportSpells.lua
 
@@ -70,15 +73,19 @@ defaults\TeleportSpells.lua
 # above this group, and no later file reads anything of Frame's at load)
 modules\Frame.lua
 
-# Settings (conventional WITHIN the group apart from the two annotated lines; the group as a whole
+# Settings (conventional WITHIN the group apart from the three annotated lines; the group as a whole
 # must follow # Core, because settings\Slash.lua:116 builds CLI_MISSING from NS.LIBKA0S_MISSING at
 # file scope and core\CoreSetup.lua:34 publishes it)
-# Before settings\Panel.lua: this file creates Settings.Schema, which Panel splices its master rows
-# into at file scope (settings/Panel.lua:295). Load-bearing.
+# Directly above settings\Schema.lua: this file publishes Settings.SchemaLib (LibKa0s-Schema-1.0,
+# or the host's degradation stub), and Schema.lua calls its :New at file scope
+# (settings/Schema.lua:407). Above it that member does not exist yet. Load-bearing.
+settings\SchemaSetup.lua
+# Before settings\Panel.lua: this file creates Settings.Schema and its runtime NS.SchemaRuntime,
+# which Panel splices its master rows into at file scope (settings/Panel.lua:301). Load-bearing.
 settings\Schema.lua
 # Before settings\Panel.lua: this file publishes the LibKa0s-Options instance as Settings.Helpers
-# (settings/OptionsSetup.lua:300), and Panel calls Helpers.MasterControls at file scope
-# (settings/Panel.lua:204). Above it that member does not exist yet. Load-bearing.
+# (settings/OptionsSetup.lua:303), and Panel calls Helpers.MasterControls at file scope
+# (settings/Panel.lua:207). Above it that member does not exist yet. Load-bearing.
 settings\OptionsSetup.lua
 settings\Panel.lua
 settings\Slash.lua

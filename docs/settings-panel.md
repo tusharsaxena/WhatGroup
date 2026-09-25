@@ -40,7 +40,7 @@ The schema is settings-only — the action buttons (Reset position / Reset all s
 }
 ```
 
-**`sessionOnly`** is what keeps the debug console and the popup's test mode off SavedVariables, though both are schema rows. `settings/Schema.lua` holds a `SESSION` table keyed by path; `Helpers.Get` and `Helpers.RawSet` consult it **in front of** `Resolve`, so a session path never reaches `db.profile` from any caller — the panel checkbox, `/wg set`, `ApplyDefault` and the reset sweep all funnel through those two functions. `BuildDefaults` skips such a row outright, and `RestoreAllDefaults` restores it row by row because `db:ResetProfile()` cannot reach it (options-ui-§12). The console's pair is `NS.DebugLog:ConsoleCheckbox()`'s, unchanged from when the checkbox was drawn by hand; test mode's is `WhatGroup:TestModeCheckbox()`, in `modules/Frame.lua`, which owns the popup.
+**`sessionOnly`** is what keeps the debug console and the popup's test mode off SavedVariables, though both are schema rows. `settings/Schema.lua` holds a `SESSION` table keyed by path, and `Settings.StampClosureRows` gives each composed session row its own `get` / `set` from it before `settings/Panel.lua` adds the block to the schema. The schema runtime reads and writes a row that carries both through them, never through `db.profile`, so a session path never reaches the db from any caller — the panel checkbox, `/wg set`, `ApplyDefault` and the reset sweep all funnel through that one seam. `BuildDefaults` skips such a row outright, and `RestoreAllDefaults` restores it row by row because `db:ResetProfile()` cannot reach it (options-ui-§12). The console's pair is `NS.DebugLog:ConsoleCheckbox()`'s, unchanged from when the checkbox was drawn by hand; test mode's is `WhatGroup:TestModeCheckbox()`, in `modules/Frame.lua`, which owns the popup.
 
 Number rows render as a slider that **commits on release** — the library's maker writes from `OnMouseUp`, snapping to `step` relative to `min`. Its opt-in live-commit path (`row.commitOn = "change"`, throttled through the descriptor's `scheduleTimer`) is not used here: nothing in this addon previews a delay while you drag it, and no `scheduleTimer` is passed.
 
@@ -50,7 +50,7 @@ Non-setting affordances live outside the schema. `Helpers.RenderTabbedSchema(ctx
 
 - **`afterGroup`** — `{ [groupName] = function(ctx) ... end }`. Fires once per render, after the named group's last schema row is flushed, so the widget starts on a fresh line *below* the grid. Two entries now:
   - **`[Helpers.MASTER_GROUP]`** — the composer's own tail, drawing options-ui-§15's closing **button pair**: *Reset position* (this addon is not frameless) and *Reset all settings*. The group name **is** the hook key, so a hand-typed copy of it detaches the hook the moment the library renames the group — silently, because `afterGroup` fires per group and a hook that matches nothing simply never runs. The key is therefore `Helpers.MASTER_GROUP`, the constant `OptionsCompose.lua` publishes and stamps onto the rows themselves. It is added after the constructor, under an `if`, because the library-less stub carries the composer functions and none of their published data (`options-ui-§1`) — and on that path there are no Master controls rows to hook, so no entry is the right answer rather than a fallback spelling.
-  - **`["Chat"]`** — the **Test** button (`Helpers.InlineButton` → `WhatGroup:RunTest()`). It followed the tab its group ended up on: "General" is the Master controls tab now, and the button's own tooltip already said it previews the chat-output toggles. It is deliberately **not** folded into the reset pair — a 160-px left-aligned action is not one of §15's two resets.
+  - **`["Chat"]`** — the **Test** button (`Helpers.InlineButton` → `WhatGroup:RunTest()`). It followed the tab its group ended up on: "General" is the Master controls tab now, and the button's own tooltip already said it previews the chat-output toggles. It is deliberately **not** folded into the reset pair — a 160-px left-aligned action is not one of options-ui-§15's two resets.
 
 There is **no `pairWith` table any more.** It carried exactly one entry — a bespoke `SessionCheckbox` drawing the Debug console beside **Enable** — and options-ui-§15 makes that console a canonical row of the Master controls block instead. The console itself is untouched: same window, same `NS.DebugLog:ConsoleCheckbox()` `get`/`set`, reached now through `settings/Schema.lua`'s `SESSION` table rather than through a hook.
 
@@ -83,23 +83,22 @@ end
 
 ## Helpers
 
-**`Settings.Helpers` *is* the `LibKa0s-Options-1.0` instance.** `settings/Schema.lua` runs first and hangs its data seams (`Get` / `Set` / `RawSet` / `FindSchema` / `ValidateSchema` / `ApplyDefault` / `RestoreAllDefaults` / `RefreshAll`) on a plain table; `settings/OptionsSetup.lua` then calls `lib:New(...)`, copies those members **onto the instance**, and publishes the instance as `Settings.Helpers`. So one table answers both halves, and `Helpers.X` resolves to the library's `X` unless this addon supplied one.
+**`Settings.Helpers` *is* the `LibKa0s-Options-1.0` instance.** `settings/Schema.lua` runs first and hangs its data seams (`Get` / `Set` / `FindSchema` / `ValidateSchema` / `ApplyDefault` / `RestoreAllDefaults` / `RefreshAll`) on a plain table; `settings/OptionsSetup.lua` then calls `lib:New(...)`, copies those members **onto the instance**, and publishes the instance as `Settings.Helpers`. So one table answers both halves, and `Helpers.X` resolves to the library's `X` unless this addon supplied one.
 
 The direction matters. Copying the library's members onto the host's table would look equivalent and is not: `RenderRows` resolves `RenderField` from the instance at call time, so a test that swapped a member on a copy-across table would be spying on a function nobody calls. `settings/Schema.lua`'s file-local `Helpers` upvalue still points at the pre-move table — harmless, because the members are the same function objects and no state lives on either table.
 
 The copy is unconditional, and the one collision is deliberate: **`Helpers.RestoreAllDefaults` overrides the library's member of the same name** ([`LIBKA0S-08`](https://github.com/tusharsaxena/WhatGroup/issues/10)). Copying only where the instance was nil silently handed every caller the library's row-by-row form, and the suite said so. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched — nothing calls it today, because this addon's Defaults button is confirmation-gated and goes through the popup instead.
 
-All schema reads and writes go through a private `Resolve(path, create)` helper that walks dotted paths into `db.profile` and returns `(parent, key)` so the caller can read `parent[key]` or write `parent[key] = value`. **A read does not write** (savedvariables-§2): `create` is what separates the two callers. `Helpers.RawSet` passes `true`, so a write may materialize the intermediate tables it walks through; `Helpers.Get` passes no flag and gets `(nil, nil)` for a path whose parents do not exist, rather than growing `db.profile` one empty table per segment and round-tripping the junk into SavedVariables. Public callers go through `Helpers.Get` / `Helpers.Set`.
+**The schema runtime.** All schema reads and writes go through ONE `LibKa0s-Schema-1.0` instance, `NS.SchemaRuntime`, built at file scope in `settings/Schema.lua` over the live `Schema` array (held by reference) with `resolveRoot` = `db.profile`, `announce` = `RefreshAll`, the `NS.Debug` sink gated on `NS.State.debug`, and `resetExempt = { ['global.minimap.shown'] = true }`. `Helpers.Get` / `Set` / `FindSchema` / `ApplyDefault` **are** its `Get` / `Set` / `FindRow` / `ApplyDefault`, and the Options and Slash descriptors bind the same members as values. `settings/SchemaSetup.lua` loads directly above and decides which library that `:New` runs on: `LibKa0s-Schema-1.0`, or on an install without it `HostSchemaStub`, the write-completing and log-silent degradation stub the library's Schema version-2 doc describes (a deliberate, documented duplication). **A read does not write** (savedvariables-§2): `Get` on a path whose parents do not exist answers nil without creating anything, while a write materializes the intermediate tables it walks through. **No `writeThrough` list** is passed to either (WhatGroup#22): on a library-absent load the composed `enabled` and `state.testMode` have no row, and the verbs that write them print the library-absent line instead (`options-ui-§1` route (b), a documented deviation).
 
 | Helper | Purpose |
 |---|---|
-| `Helpers.Get(path)` | Resolve dotted path; read. A `sessionOnly` path is intercepted by the `SESSION` table before `Resolve` sees it. When `Resolve` cannot reach a parent table — `db.profile` not built yet, an empty path, or an intermediate segment that does not exist — it debug-logs `[Schema] Get: no path -> <path>` and returns nil **without creating anything**. A *typo'd* leaf under a real parent still reads as a silent nil; `ValidateSchema` is the seam that catches a bad `path`. |
-| `Helpers.RawSet(path, value)` | Side-effect-free write — resolve dotted path, write, return. No `onChange`, no `RefreshAll`. Reserved for callers that genuinely need raw writes (none today); prefer `Helpers.Set` for everything else. |
-| `Helpers.Set(path, value, opts)` | **Orchestrated single write-path.** Calls `RawSet`, logs one `[Set] <path> = <value>` console line (the canonical settings-change trace, debug-logging-§10), then runs the row's `onChange` (in pcall), then runs `RefreshAll`. Every caller — the CLI (`/wg set`), the library's widget makers via the descriptor's `set`, `ApplyDefault`, `RestoreAllDefaults` — routes through here so the side effects can't drift out of sync. It is two-argument by construction from the library's side: the third parameter is an options table the library never passes. `opts.skipOnChange`, `opts.skipRefresh`, and `opts.skipLog` are escape hatches; `RestoreAllDefaults` uses all three — `skipRefresh` (no per-row refresh; `OnProfileReset`'s handler does the single reconcile), `skipLog` (no per-row `[Set]`, so the `OnProfileReset` handler's one `[Set] reset profile …` line stands for the whole reset, debug-logging-§10), and `skipOnChange` (the default baseline is already reconciled, so per-row side effects are neither needed nor fired). The seam is also muted inside the `Settings.Bulk` bracket, the descriptor's `bulkBegin` / `bulkEnd` around the library's `RestoreDefaults` / `RestoreAllDefaults`. It is wired defensively, because neither of those is on a live path here. While bracketed, the seam tallies only the writes that change a stored value, and the outermost close logs one `[Set] reset <scope>: N rows` line from that tally. It logs nothing when the act reset the profile, or when a profile reset fired inside the bracket, because the `OnProfileReset` handler's line stands for the act. A write that raises is not counted: the tally is taken only after `RawSet` returns. An act that ends in an error still logs its one line, with ` (stopped by an error)` appended. |
-| `Helpers.FindSchema(path)` | linear scan of `Schema` for `def.path == path` |
-| `Helpers.ValidateSchema()` | walk Schema and chat-print errors for missing `path`, unknown `type`, non-string `section`/`group`/`label`. Non-fatal. Runs once, as the descriptor's `validate`, before the page builders. |
-| `Helpers.ApplyDefault(row)` | Restore one row: `Helpers.Set(row.path, deepcopy(row.default))`. The single-row reset therefore takes the same write path a `/wg set` does — same `[Set]` line, same `onChange`, same refresh. Reached from `/wg reset <path>`, as the slash descriptor's `applyDefault`. It is also the options descriptor's `applyDefault` — the seam the library's `RestoreDefaults` / `RestoreAllDefaults` would call — but neither of those verbs is on a live path here (see below). |
-| `Helpers.RestoreAllDefaults()` | **A profile reset** (`options-ui-§12`), and the same act as AceDBOptions' own Reset Profile. **1.** `db:ResetProfile()` — AceDB empties the active profile **in place** (so anything holding `db.profile` keeps the live table), merges the defaults back, and fires `OnProfileReset`, which `core/WhatGroup.lua` answers by re-running the migrations and refreshing every open panel. That is what drops an orphaned key a key-by-key overwrite would leave behind — a value from a removed or renamed row, or one hand-edited into SavedVariables — and it is the one mechanism that can restore a stored **array**, which a row walk can never address. **2.** Each `sessionOnly` row is then restored by hand with `{ skipRefresh, skipLog, skipOnChange }`, because a profile reset cannot reach storage that is not the db; for the debug console that means the window closes. The reset logs **one** line, `[Set] reset profile '<name>' to defaults (N rows)` (debug-logging-§10), and it comes from the `OnProfileReset` handler rather than from here: the profile-event handler logs a wholesale replacement, and no per-row onChange runs for it. What this function adds is N. Before calling `db:ResetProfile()` it counts the profile rows whose stored value differs from the default, which are the rows the reset actually changes, and the handler takes that count through `Settings.ConsumeResetCount`. The count is cleared on both exits. If `db:ResetProfile()` raises before the handler runs, this function logs the one line itself, without a count and with ` (stopped by an error)` appended, then re-raises. **No `RefreshAll` here** — `OnProfileReset`'s handler is the single post-reset reconcile, and calling it again would refresh twice for one action. `db.global` (`schemaVersion` and the popup's saved position) is left untouched: a profile reset is not a downgrade. Caller (`StaticPopup` OnAccept, `/wg resetall`) handles confirmation. Overrides the library member of the same name. |
+| `Helpers.Get(path)` | The runtime's `Get`. A row that carries a `get` (the stamped session and global rows) answers through it; everything else is read from `db.profile`. `db.profile` not built yet, an empty path, or an intermediate segment that does not exist reads nil **without creating anything**. A *typo'd* path reads as a silent nil; `ValidateSchema` is the seam that catches a bad `path`. |
+| `Helpers.Set(path, value)` | **The single write-path**, the runtime's `Set`, in the library's contract order: refuse a path no row declares (`false, "Setting not found: <path>"`, nothing stored), store (a copy, or through the row's own `set`), log one `[Set] <path> = <value>` console line (the canonical settings-change trace, debug-logging-§10), run the row's `onChange` (a raising `onChange` propagates, after the value landed), then `announce` → `RefreshAll`. Answers `true` on success. Every caller — the CLI (`/wg set`), the library's widget makers via the descriptor's `set`, `ApplyDefault`, `RestoreAllDefaults`' session sweep, the host verbs — routes through here so the side effects can't drift out of sync. There is no raw writer and no skip option. The seam's per-row line is muted inside the bulk bracket (`Settings.Bulk`, the runtime's `BulkBegin` / `BulkEnd`, and the descriptor's `bulkBegin` / `bulkEnd` around the library's `RestoreDefaults` / `RestoreAllDefaults`), wired defensively because neither of those is on a live path here. While bracketed, the runtime tallies only the writes whose read-back moved, and the outermost close logs one `[Set] reset <scope>: N rows` line. It logs nothing when the act reset the profile, or when a profile reset fired inside the bracket, because the `OnProfileReset` handler's line stands for the act. A write that raises is not counted. An act that ends in an error still logs its one line, with ` (stopped by an error)` appended. |
+| `Helpers.FindSchema(path)` | The runtime's `FindRow`: the indexed row for `path` (first registered wins on a duplicate), or nil. |
+| `Helpers.ValidateSchema()` | The runtime's `Validate` (a non-table row, a missing `path`, an unknown `type` of bool/number/string, a missing `group`, a duplicate path) plus this addon's own check of `section` and `label`, the counts summed. Chat-prints each error; non-fatal. Runs once, as the descriptor's `validate`, before the page builders. |
+| `Helpers.ApplyDefault(row)` | The runtime's `ApplyDefault`: `Set(row.path, copy of row.default)`, so the single-row reset takes the same write path a `/wg set` does — same `[Set]` line, same `onChange`, same refresh. A row with no default is not restored, and the minimap row is vetoed while a bracket is open (`resetExempt`). Reached from `/wg reset <path>`, as the slash descriptor's `applyDefault`. It is also the options descriptor's `applyDefault` — the seam the library's `RestoreDefaults` / `RestoreAllDefaults` would call — but neither of those verbs is on a live path here (see below). |
+| `Helpers.RestoreAllDefaults()` | **A profile reset** (`options-ui-§12`), and the same act as AceDBOptions' own Reset Profile. **1.** `db:ResetProfile()` — AceDB empties the active profile **in place** (so anything holding `db.profile` keeps the live table), merges the defaults back, and fires `OnProfileReset`, which `core/WhatGroup.lua` answers by re-running the migrations and refreshing every open panel. That is what drops an orphaned key a key-by-key overwrite would leave behind — a value from a removed or renamed row, or one hand-edited into SavedVariables — and it is the one mechanism that can restore a stored **array**, which a row walk can never address. **2.** Each `sessionOnly` row is then restored through the runtime's `ApplyDefault`, inside one `BulkRun('reset', 'profile', …)` bracket marked as a profile reset (so no per-row `[Set]` line and no bracket line), because a profile reset cannot reach storage that is not the db; for the debug console that means the window closes. Each of those writes refreshes once through `announce`. The reset logs **one** line, `[Set] reset profile '<name>' to defaults (N rows)` (debug-logging-§10), and it comes from the `OnProfileReset` handler rather than from here: the profile-event handler logs a wholesale replacement, and no per-row onChange runs for it. What this function adds is N, through the runtime's `ResetCounted`: before `db:ResetProfile()` runs it counts the stored rows (the global minimap row excluded) whose value differs from the default, which are the rows the reset actually changes, and the handler takes that count through `Settings.ConsumeResetCount`. The count is cleared on both exits. If `db:ResetProfile()` raises before the handler runs, this function logs the one line itself, without a count and with ` (stopped by an error)` appended, then re-raises. **No `RefreshAll` of its own** — `OnProfileReset`'s handler is the single post-reset reconcile for the profile rows; the only other refreshes are the session sweep's, one per session row. `db.global` (`schemaVersion` and the popup's saved position) is left untouched: a profile reset is not a downgrade. Caller (`StaticPopup` OnAccept, `/wg resetall`) handles confirmation. Overrides the library member of the same name. |
 | `Helpers.RefreshAll()` | The host's refresh *name*, kept because the write seam above calls it on every `Set` and the seam file loads first. `settings/OptionsSetup.lua` redefines it as a one-liner onto `RefreshScalars` — writing a value does not change which rows exist, so a rebuild per checkbox click would be waste. What survives in `settings/Schema.lua` is the degraded path: with no panels, a reset must still not raise. |
 
 ### Two refresh tiers
@@ -136,9 +135,10 @@ Default *values* live in `defaults/Profile.lua` as the nested `NS.C` table (the 
 
 ```lua
 function Settings.BuildDefaults()
-    -- global seeds schemaVersion (WG-08) and the windows table (WG-26)
+    -- global declares schemaVersion 0 (pre-versioning, so the stamp survives AceDB's
+    -- logout strip; see schema.md) and the windows table (WG-26)
     local out = { profile = deepcopy(C),
-                  global = { schemaVersion = NS.SCHEMA_VERSION or 1, windows = {} } }
+                  global = { schemaVersion = 0, windows = {}, minimap = { hide = false } } }
     for _, def in ipairs(Schema) do
         if def.path and not def.sessionOnly then
             -- split def.path on "." into segments
@@ -241,7 +241,7 @@ See [midnight-quirks.md](./midnight-quirks.md#lazy-acegui-panel-build) for the b
 
 Idempotent (`WhatGroup._settingsRegistered` guard), and thin: it delegates to `Helpers.CreateOptionsPanel()`, which resolves AceGUI, runs the descriptor's `validate` (this addon's `ValidateSchema` — chat-prints typos, non-fatal), registers the main canvas with its landing-page renderer, then drains the page-builder queue. The General page put itself in that queue at file load with `Helpers.RegisterOptionsPage("general", "General", buildGeneralPage)`. Each builder is `pcall`'d separately, so one raising page can't leave a half-registered tree with nothing naming the culprit. `CreateOptionsPanel` is idempotent in its own right — a second call would otherwise register a second Blizzard category and permanently double the refresh fan-out.
 
-**Not combat-guarded** (`options-ui-§9`). Registering a canvas Settings category never taints, and eager registration at load is a MUST — so `Settings.Register()` runs whether or not the player is in combat. It carried an `InCombatLockdown()` early-return until 2026-08-05, and the cost was real: a `/reload` taken mid-pull left WhatGroup out of the Settings → AddOns list for the rest of that session, since `runConfig`'s fallback call only fires if the player thinks to run `/wg config`. Opening is a different question and is refused separately, inside `Helpers.OpenOptionsPanel` — the *open* path drives Blizzard's protected category switch; the registration path does not.
+**Not combat-guarded** (`options-ui-§9`). Registering a canvas Settings category never taints, and eager registration at load is a MUST — so `Settings.Register()` runs whether or not the player is in combat. The category still registers at login with no user action; in combat the library parks it and lands it at combat end (`LibKa0s-Options-1.0` minor 24 replays the parked registration on `PLAYER_REGEN_ENABLED` and then lets go of the event), so `_settingsRegistered` is set either way and nothing has to call `Register()` a second time. It carried an `InCombatLockdown()` early-return until 2026-08-05, and the cost was real: a `/reload` taken mid-pull left WhatGroup out of the Settings → AddOns list for the rest of that session, since `runConfig`'s fallback call only fires if the player thinks to run `/wg config`. Opening is a different question and is refused separately, inside `Helpers.OpenOptionsPanel` — the *open* path drives Blizzard's protected category switch; the registration path does not.
 
 **Called at login** — from `OnEnable` (PLAYER_LOGIN), so the panel is in the Settings → AddOns list from the moment the player logs in, and again as an idempotent no-op from `runConfig`. This matches every other Ka0s addon: registering a canvas Settings category at login is taint-safe. (An earlier revision deferred this to first `/wg config`, believing the registration tainted GameMenu — a misdiagnosis confounded with the since-removed AceHook closures; see [midnight-quirks.md](./midnight-quirks.md).) WhatGroup's genuine boot-taint sources — the secure teleport button and `UISpecialFrames` insert — stay deferred in `modules/Frame.lua`.
 
@@ -257,7 +257,7 @@ Both pages share the same header layout (gold title + tinted divider) and the sa
 
 Defaults button → `panel.defaultsOnClick` → `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreAllDefaults()`. `/wg resetall` shows the same popup, and the Settings window's own footer Defaults control forwards through `panel.OnDefault` to the same handler, so all three share one OnAccept body.
 
-`WhatGroup._parentSettingsCategory` and `WhatGroup._settingsCategory` (the General subcategory) are the two handles the page build records; the open path does not use them. `/wg config` calls `Helpers.OpenOptionsPanel()`, which holds the main category's own ID, refuses under `InCombatLockdown()` — the gate lives *there* so every caller is refused, not just this verb — opens the parent, and then unfolds the sidebar tree by reaching into the same path the expand-arrow click handler uses:
+`/wg config` calls `Helpers.OpenOptionsPanel()`, which holds the main category's own ID, refuses under `InCombatLockdown()` — the gate lives *there* so every caller is refused, not just this verb — opens the parent, and then unfolds the sidebar tree by reaching into the same path the expand-arrow click handler uses:
 
 ```lua
 Settings.OpenToCategory(mainCategoryID)
@@ -311,7 +311,7 @@ profile = {
   },
 }
 global = {
-  schemaVersion = 1,   -- seeded here; read by NS:RunMigrations (Database.lua)
+  schemaVersion = 0,   -- declared 0 here; NS:RunMigrations (Database.lua) stamps 1
   windows = {          -- persisted standalone-window geometry (WG-26); each entry
     -- [name] = { point, relPoint, x, y }   written on drag-stop, restored on show
   },
@@ -322,7 +322,15 @@ global = {
 }
 ```
 
-There is **no `debug` key and no `state` table** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). The Master controls tab's "Debug console" checkbox is a schema row on the path `state.debugConsole`, but it is `sessionOnly`: `settings/Schema.lua`'s `SESSION` table intercepts that path in front of `Resolve`, `BuildDefaults` skips it, and the toggle drives the console *window's* visibility only — neither a profile key nor the debug logging flag. The **Test mode** checkbox (`state.testMode`) takes the same route to `modules/Frame.lua`'s session flag, `NS.State.testMode`. Capture / pending state (`capturesByResult`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [data-flow.md](./data-flow.md#state) for why.
+There is **no `debug` key and no `state` table** — debug is session-only runtime state (`NS.State.debug`), off on every login, never persisted (WG-12). The Master controls tab's "Debug console" checkbox is a schema row on the path `state.debugConsole`, but it is `sessionOnly`: `settings/Schema.lua`'s `SESSION` table gives that row its own `get` / `set`, `BuildDefaults` skips it, and the toggle drives the console *window's* visibility only — neither a profile key nor the debug logging flag. The **Test mode** checkbox (`state.testMode`) takes the same route to `modules/Frame.lua`'s session flag, `NS.State.testMode`. Capture / pending state (`capturesByResult`, `pendingApplications`, `pendingInfo`, `wasInGroup`) is likewise **session-only** and never touches SavedVariables. See [data-flow.md](./data-flow.md#state) for why.
+
+## Pages
+
+One row per settings subcategory page (documentation-§3, options-ui-§5). WhatGroup registers one; the landing page above it is the parent category, not a subcategory, and its body is described under [Landing page body](#landing-page-body). The tabs belong to the page → tab → row tree below, starting at [The tab strip](#the-tab-strip).
+
+| Page | Covers |
+|---|---|
+| **General** | Every setting WhatGroup has, on three tabs: **Master controls** (enable, visibility, scale, alpha, lock, debug console, minimap button, test mode, and the reset buttons), **Chat** (when the join summary fires and which lines it prints, plus the Test button) and **Popup** (whether the group-info window opens by itself, and its size). |
 
 ## The tab strip
 
@@ -330,7 +338,7 @@ The page is **tabbed** (`options-ui-§13`). `LibKa0s-Options-1.0`'s `RenderTabbe
 
 | # | Tab | Rows | Subgroups | What it is for |
 |---|---|---|---|---|
-| 1 | **Master controls** | 8 | — | options-ui-§15's canonical block, composed rather than written: enable, general visibility, master scale, master alpha, lock frame, debug console, minimap button, test mode — closed by the **Reset position | Reset all settings** button pair (`afterGroup`). It is the **first** tab, and the name is the literal §15 mandates. |
+| 1 | **Master controls** | 8 | — | options-ui-§15's canonical block, composed rather than written: enable, general visibility, master scale, master alpha, lock frame, debug console, minimap button, test mode — closed by the **Reset position | Reset all settings** button pair (`afterGroup`). It is the **first** tab, and the name is the literal options-ui-§15 mandates. |
 | 2 | **Chat** | 8 | `Timing`, `Text` | When the join summary fires (`notify.delay`) and what it says: the **Print to Chat** master and the six lines it can contain. Plus the **Test** button (`afterGroup`). |
 | 3 | **Popup** | 3 | `Behavior`, `Layout` | The group-info window: whether it opens by itself, and how big it is. |
 
@@ -354,9 +362,9 @@ Rows on the **Master controls** tab are emitted by `Helpers.MasterControls` and 
 | Master controls | general | `alpha` | number | 1 | (paired) | *Master alpha* (0–1, step 0.05, rendered as a percentage). `WhatGroup:ApplyFrameAlpha()`, **not** refused in combat: opacity moves nothing. |
 | Master controls | general | `locked` | bool | false | startsLine, (paired) | *Lock frame*. Read at drag time by the title bar's `OnMouseDown`, so it takes effect on the next mouse-down with nothing to apply. |
 | Master controls | general | `state.debugConsole` | bool | false | (paired) | *Debug console*, `sessionOnly`. Shows/hides the console **window**; never `db.profile`, never the logging flag (WG-12). |
-| Master controls | general | `global.minimap.hide` | bool | true (the ROW's sense: *shown*) | startsLine, (paired) | *Minimap button*, composed from `minimapPath` (compose minor 7). The one **global** row — see [The minimap button row](#the-minimap-button-row) below. |
+| Master controls | general | `global.minimap.shown` | bool | true (the ROW's sense: *shown*) | startsLine, (paired) | *Minimap button*, composed from `minimapPath` (compose minor 7). The one **global** row, stored at `db.global.minimap.hide` — see [The minimap button row](#the-minimap-button-row) below. |
 | Master controls | general | `state.testMode` | bool | false | (paired) | *Test mode*, `sessionOnly`, composed from `testModePath`; the tooltip is overridden in `settings/Panel.lua`. `/wg test` drives the same row (bare toggles, `on\|off` sets). Ticked, the popup shows sample group info (`WhatGroup:SampleInfo()`) from a record of its own, never `pendingInfo`, whatever `frame.autoShow` and `visibility` say; `locked` still applies to dragging. Refused in combat: a click on the box is refused by the library's combat lock (its one gray `COMBAT_LOCKED_NOTICE` line; the row's set never runs), and `/wg test` by the host's own `startTestMode` guard (one gray line, `cannot start test mode during combat`). Ends on untick, on Close / ESC, on an explicit show (`/wg show`, `/wg test notify`, the chat link), on *Reset all settings* (the declared `default = false`), and at `PLAYER_REGEN_DISABLED` with `Test mode off — combat started`. The join popup does not end it: that capture waits. Never `db.profile`. |
-| Chat | notify | `notify.delay` | number | 0 | subgroup `Timing`, solo | Seconds (0–10, step 0.5) between joining and notifying **and** showing the popup. Default 0 = immediately; raise it to let the zone-in settle. Not one of §15's canonical nine, so it moved off the first tab to the one named for the notification it delays. |
+| Chat | notify | `notify.delay` | number | 0 | subgroup `Timing`, solo | Seconds (0–10, step 0.5) between joining and notifying **and** showing the popup. Default 0 = immediately; raise it to let the zone-in settle. Not one of options-ui-§15's canonical nine, so it moved off the first tab to the one named for the notification it delays. |
 | Chat | notify | `notify.enabled` | bool | true | subgroup `Text`, solo | Print the chat summary on group join. The master for the six rows under it. |
 | Chat | notify | `notify.showInstance` | bool | true | subgroup `Text`, (paired) | Include the Instance line in chat. |
 | Chat | notify | `notify.showType` | bool | true | subgroup `Text`, (paired) | Include the Type line in chat. |
@@ -412,10 +420,11 @@ only row in this addon whose storage is neither `db.profile` nor a session flag.
 it are deliberate and none is local taste:
 
 **It is stored at `db.global.minimap.hide` — LibDBIcon's OWN table, in the GLOBAL store.** The
-library is handed that same table at `Register` (`core/LauncherSetup.lua`) and writes `hide` itself
-when the player uses the button's right-click menu, and `minimapPos` when they drag it. A second key
-beside it — `minimap.show`, `showMinimapIcon` — would be a copy of one state that a library also
-writes, and the day the two disagree the button and the checkbox disagree (anti-pattern #81). The
+library is handed that same table at `Register` (`core/LauncherSetup.lua`), reads `hide` from it
+whenever it places the button, and writes `minimapPos` itself when the player drags it. `hide` is
+written only through this row's seam (it writes the key, then `NS.Launcher:SetShown` writes the same
+value); the button's right-click options menu (Launcher minor 4) never touches it. A second key beside it — `minimap.show`, `showMinimapIcon` — would be a copy of the one
+state the library reads, and the day the two disagree the button and the checkbox disagree (anti-pattern #81). The
 scope is global because a minimap button belongs to the **installation**, not to a profile: a
 profile switch must not move the player's buttons, and profile-scoped the row would ride every
 profile copy besides.
@@ -450,10 +459,15 @@ the button, and one of those cases is what would say so.
 
 **The row's sense is SHOWN and the stored key says HIDDEN, so its get/set invert.** That inversion is
 the host's, not the library's, and it lives at the single write seam (`options-ui-§1`) rather than at
-a call site: `settings/Schema.lua`'s `GLOBAL` table intercepts the path in front of `Resolve`, the
-way `SESSION` intercepts `state.debugConsole` and `state.testMode`. Because every surface — the
-checkbox, `/wg get`, `/wg set`, `/wg reset`, `Reset all settings` — funnels through `Helpers.Get` /
-`Helpers.Set`, a routing decision made once there is one the other surfaces cannot get wrong.
+a call site. **The path reads in the row's sense too** (launcher-§3, standard v2.65.0): the row is
+declared at `global.minimap.shown`, which is also its CLI name, so `/wg get global.minimap.shown`
+answers `true` while the button is visible. Nothing is written or declared at `shown` — it names the
+row, and the store stays `db.global.minimap.hide`, so an existing `hide = true` reads as
+`shown = false` with no migration. The old `global.minimap.hide` path is not an alias and answers
+`Setting not found` like any path no row declares. At the write seam, the row carries its own `get` / `set` from `settings/Schema.lua`'s `GLOBAL` table,
+the way `SESSION` supplies `state.debugConsole`'s and `state.testMode`'s. Because every surface — the
+checkbox, `/wg get`, `/wg set`, `/wg reset`, `Reset all settings` — funnels through the schema runtime's `Get` /
+`Set`, a routing decision made once there is one the other surfaces cannot get wrong.
 
 **The `set` also calls `NS.Launcher:SetShown`**, so the button follows the checkbox immediately
 rather than at the next reload. The seam writes `hide` itself first and only then asks the launcher
@@ -462,7 +476,7 @@ to act, which is what keeps the player's choice stored on an install with no Lib
 The default — `minimap = { hide = false }` — is declared in `Settings.BuildDefaults` beside
 `schemaVersion` and `windows`, not in `defaults/Profile.lua` (`NS.C` is the *profile* defaults table)
 and not through the row's own `default`, which `BuildDefaults` deliberately skips for a global row:
-threading it through the profile walk would write a `profile.global.minimap.hide` branch nothing
+threading it through the profile walk would write a `profile.global.minimap.shown` branch nothing
 reads. That declared default is what materializes the table `architecture-§5` requires to exist
 before LibDBIcon writes into it.
 
@@ -470,6 +484,27 @@ The **broker object has no row of its own**, deliberately (`launcher-§1`): a br
 what it chooses to show and already offers the player a per-plugin toggle, so an addon hiding itself
 from a display would be solving the display's problem in a second settings row the player has to
 find first.
+
+**The button's hover tooltip reads the panel, never a copy of it** (`launcher-§1`,
+`LibKa0s-Launcher-1.0` minor 3). The library draws it in every state, disabled included:
+`Enabled` answers from the *Enable WhatGroup* row's latch, `Locked` from the *Lock frame* row's
+profile `locked`, and `Test mode` from the *Test mode* row's session `state.testMode`, each asked on
+every hover, so ticking a row here changes the next hover. The two click hints are fixed since
+Launcher minor 4: `Left-click: Open settings` and `Right-click: Options menu`, in either state.
+
+**The button's right-click menu toggles through the same rows** (`launcher-§2`, standard v2.67.0,
+`LibKa0s-Launcher-1.0` minor 4). Left-click opens this panel. Right-click opens the client's context
+menu with four checkboxes, each ticked from the row it mirrors and each running the body its verb
+runs, so the row, the verb and the menu entry write one value through one seam:
+
+| Menu entry | Mirrors | Toggles through | Grayed while disabled |
+|---|---|---|---|
+| Enabled | *Enable WhatGroup* (`enabled`, via the latch) | `WhatGroup:SlashEnabled` — the `/wg enable` / `/wg disable` body | no |
+| Locked | *Lock frame* (`locked`) | `WhatGroup:SlashToggleLock` — `/wg set locked toggle` (no `/wg lock` verb) | yes |
+| Test mode | *Test mode* (`state.testMode`) | `WhatGroup:SlashToggleTestMode` — bare `/wg test` | yes |
+| Show window | the group popup, on screen | `WhatGroup:ToggleFrame` — the Close button's and ESC's seam | yes |
+
+A grayed entry reads `<entry> (enable the addon first)` and calls nothing.
 
 ## Adding a setting
 

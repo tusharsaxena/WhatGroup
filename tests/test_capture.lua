@@ -443,6 +443,42 @@ test("capture: a canceled application drops its unanswered capture", function()
     assertNil(addon.pendingInfo, "a canceled application leaves nothing behind")
 end)
 
+-- The three other statuses that end an application with no joined group (WHATGROUP-R-12). Each
+-- one is applied, reaches its terminal status, and is then hit by a stray accept for the same id:
+-- with the listing gone the fresh fetch is nil, so anything that surfaces came out of the
+-- pending table the terminal status should have emptied.
+local function endedApplicationDropsCapture(status)
+    local NS, _, mock = T.bootAddon()
+    local addon = NS.addon
+    mock.searchResults[10] = baseInfo({ name = "Ended", activityIDs = { 500 } })
+    mock.activities[500] = { fullName = "A", mapID = 111 }
+    mock.applications[100] = 10
+
+    addon:OnApplyToGroup(10)
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "applied")
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, status)
+
+    mock.searchResults[10] = nil
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+
+    assertNil(addon.pendingInfo, "a " .. status .. " application leaves nothing behind")
+end
+
+-- red under: timedout missing from APPLICATION_ENDED
+test("capture: a timedout application drops its capture", function()
+    endedApplicationDropsCapture("timedout")
+end)
+
+-- red under: invitedeclined missing from APPLICATION_ENDED
+test("capture: an invitedeclined application drops its capture", function()
+    endedApplicationDropsCapture("invitedeclined")
+end)
+
+-- red under: failed missing from APPLICATION_ENDED
+test("capture: a failed application drops its capture", function()
+    endedApplicationDropsCapture("failed")
+end)
+
 -- ---------------------------------------------------------------------------
 -- Behavior pin (CCN split): the defaults are `or`, not `== nil`
 -- ---------------------------------------------------------------------------
