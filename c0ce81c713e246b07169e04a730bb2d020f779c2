@@ -1,0 +1,1 @@
+clean: CaptureSnapshot/FrameSnapshot are read-only copies that never build the popup; 9 new tests fail with the source reverted (785/9 failed in a scratch clone); gate re-run 796 passed 0 failed 1 skipped, luacheck 0/0, lizard -C 15 clean, max 1422 lines, CRLF kept
