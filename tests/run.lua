@@ -140,6 +140,7 @@ Kit.run{
         "test_frame_secure",
         "test_panel",
         "test_testmode",
+        "test_snapshot",
         "test_launcher",
         "test_lifecycle",
         "test_debuglog",

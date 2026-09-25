@@ -1162,6 +1162,30 @@ function NS.FrameStandDown()
     WhatGroup._frameBuildQueued = nil
 end
 
+-- READ-ONLY SNAPSHOT of the popup's file-locals for the diagnostics report (debug-logging-§14). It
+-- reads and never builds: building creates the secure teleport button, which a dump must not do,
+-- so an unbuilt popup answers `built = false` and nothing else about the frame. Fresh tables only.
+function NS.FrameSnapshot()
+    local queue = {}
+    for i = 1, #COMBAT_END_ORDER do
+        if combatEndQueue[COMBAT_END_ORDER[i]] then queue[#queue + 1] = COMBAT_END_ORDER[i] end
+    end
+    return {
+        built            = f ~= nil,
+        shown            = (f and f:IsShown()) and true or false,
+        onScreen         = onScreen() and true or false,
+        softHidden       = softHidden,
+        pendingHide      = pendingHide,
+        gateWithheld     = gateWithheld,
+        testMode         = previewInfo ~= nil,
+        combatQueue      = queue,
+        teleportDeferred = (f and f._pendingTeleportInfo ~= nil) or false,
+        cooldownTicking  = cooldownTimer ~= nil,
+        escProxyShown    = (escProxy and escProxy:IsShown()) and true or false,
+        point            = f and NS.Windows.PointOf(f) or nil,
+    }
+end
+
 --- Is a real Hide still owed to the next legal combat edge?
 ---
 --- Asked by the stand-down, and it is the only thing that can justify a disabled addon keeping an

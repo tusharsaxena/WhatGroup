@@ -646,6 +646,18 @@ badge and any count quoted in the docs must agree with it.
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
 
+### test_snapshot.lua (9)
+
+- snapshot: a fresh session reports empty capture tables
+- snapshot: an apply shows under byResult, and applied moves it to applications
+- snapshot: the capture copy is deep, so a report cannot mutate a capture
+- snapshot: notified is true only for the pendingInfo notify fired for
+- snapshot: the frame accessor reports not built, and never builds the popup
+- snapshot: a shown popup reports built, shown, on screen and its live point
+- snapshot: a first show in combat reports the queued replay
+- snapshot: a hide in combat reports soft-hidden with a Hide owed
+- snapshot: the frame copy is fresh, so a report cannot edit the queue
+
 ### test_launcher.lua (36)
 
 - launcher: it registers at login, and the broker object IS the minimap button's
@@ -905,6 +917,7 @@ badge and any count quoted in the docs must agree with it.
 | test_frame_secure.lua | 7 |
 | test_panel.lua | 54 |
 | test_testmode.lua | 23 |
+| test_snapshot.lua | 9 |
 | test_launcher.lua | 36 |
 | test_lifecycle.lua | 46 |
 | test_debuglog.lua | 49 |
@@ -918,4 +931,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 1 |
-| **Total** | **788** |
+| **Total** | **797** |
