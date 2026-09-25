@@ -40,6 +40,9 @@ local LIBKA0S = {
     -- file of the XML, so this list carries it or the XML-order check fails.
     "libs/LibKa0s/WidgetsDragHandle.lua",
     "libs/LibKa0s/DebugLog.lua",
+    -- New in LibKa0s v1.60.0: DebugLog's second file, the diagnostics report (debug-logging-§14).
+    -- It attaches to the DebugLog shell, so it loads right after it, as the XML has it.
+    "libs/LibKa0s/DebugLogDiagnostics.lua",
     "libs/LibKa0s/Slash.lua",
     "libs/LibKa0s/Launcher.lua",
     "libs/LibKa0s/Options.lua",

@@ -111,7 +111,7 @@ and takes the popup off screen ([the stand-down](./stand-down.md)). **The addon 
 inert; its command surface is not the addon.**
 
 **Every reserved verb answers while the addon is off** — `help`, `config`, `version`, `enable`,
-`disable`, `debug`, `perf`, `get`, `set`, `list`, `reset`, `resetall` — and the bare `/wg` opens the
+`disable`, `debug`, `perf`, `diagnostics`, `get`, `set`, `list`, `reset`, `resetall` — and the bare `/wg` opens the
 settings panel exactly as it does when the addon is running.
 
 That sentence is a **ruling rather than a default**, and the round trip behind it is worth knowing.
@@ -121,9 +121,9 @@ refusal instead of opening the panel — the one surface a player uses to switch
 A rule that hides the off switch has mistaken which half of the pair it protects. The reasoning for
 the restored set is that a player must be able to **read and repair settings** and **reach the
 panel** while the addon is off, which is exactly when they are likeliest to need to, and **`enable`
-above all**. `debug` and `perf` are diagnostics rather than features: the usual reason to reach for
-either is that the addon is misbehaving. `perf` is reserved-but-unregistered here
-([LIBKA0S-15](https://github.com/tusharsaxena/WhatGroup/issues/7)), and a live verb with no
+above all**. `debug`, `perf` and `diagnostics` are diagnostics rather than features: the usual reason to reach for
+any of them is that the addon is misbehaving. `perf` is reserved-but-unregistered here
+([LIBKA0S-15](https://github.com/tusharsaxena/WhatGroup/issues/7)), `diagnostics` has no `COMMANDS` row yet, and a live verb with no
 `COMMANDS` row still gets the one line rather than the index — it is a real verb, not a typo.
 
 ### ...and a feature verb refuses instead of acting
@@ -151,7 +151,7 @@ descriptor fields and nothing else:
   gives the LDB object as `label`. One brand spelling per addon, not a second one invented for a
   message.
 
-`liveVerbs` is deliberately **not** passed: the library's default *is* the standard's twelve, and
+`liveVerbs` is deliberately **not** passed: the library's default *is* the standard's thirteen, and
 passing a copy would be this addon's own opinion about which verbs a player may use on an addon they
 have switched off — the opinion v2.57.0 settled.
 

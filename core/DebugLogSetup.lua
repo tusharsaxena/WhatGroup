@@ -112,6 +112,22 @@ if not lib then
                 set     = function() sayOnWindow() end,
             }
         end,
+        -- The diagnostics report (debug-logging-§14) is built by the library, so a load without
+        -- it has no report to write. It says so on the collection's library-absent line, the one
+        -- settings/Slash.lua's feature verbs already use, writes nothing and returns 0.
+        -- BuildDiagnostics and DebugVerb are carried for the DebugLog parity case: an empty report,
+        -- and "not a word I route", so the host's own `debug` fallback still answers.
+        RunDiagnostics  = function()
+            if NS.Print and NS.L then
+                NS.Print(NS.L["%s is unavailable: the LibKa0s library did not load."]
+                    :format("/wg diagnostics"))
+            end
+            return 0
+        end,
+        BuildDiagnostics = function()
+            return { lines = {}, dropped = 0, capped = false, capsHit = false }
+        end,
+        DebugVerb       = function() return false end,
     }
     NS.Debug = NS.DebugLog.Debug
     return
