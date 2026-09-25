@@ -469,10 +469,11 @@ local FEATURE_VERBS = { "show", "test" }
 
 -- The verbs that keep answering, named here the way settings/Slash.lua names them: the standard's
 -- list, not this addon's subset. `perf` is absent from COMMANDS (LIBKA0S-15) and is checked as a
--- non-row rather than run.
+-- non-row rather than run. `diagnostics` joined the library's list at Slash minor 16 (LibKa0s
+-- v1.60.0, debug-logging-§14).
 local LIVE_VERBS = {
     "help", "config", "version", "enable", "disable", "debug",
-    "get", "set", "list", "reset", "resetall",
+    "get", "set", "list", "reset", "resetall", "diagnostics",
 }
 
 local function disabled()
@@ -558,7 +559,10 @@ test("slash: every verb is either on the live list or refuses — there is no th
         end
     end
     assertEqual(refused, #FEATURE_VERBS, "show and test, and nothing else, refuse today")
-    assertEqual(allowed, #LIVE_VERBS, "and every live verb is a row — `perf` aside")
+    -- `diagnostics` is on the live list and not yet a row: the report and its COMMANDS row are
+    -- DR-WG-03's, so for now eleven of the twelve live verbs are rows.
+    assertEqual(allowed, #LIVE_VERBS - 1,
+        "and every live verb is a row — `perf` aside, and `diagnostics` until its row lands")
 
     -- The one that matters most: the way back is on the live list, so the pair is never one-way.
     NS.addon:OnSlashCommand("enable")

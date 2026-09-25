@@ -280,8 +280,7 @@ than the tag this addon has taken.
 Between a library release and the re-vendor that carries it they disagree, and that disagreement is
 the normal state rather than a defect. The same goes for untagged commits the library lands after
 the tag it released. As this is written the two agree: [`CLAUDE.md`](../CLAUDE.md) names
-**v1.58.0**, and `../LibKa0s`'s HEAD sits past that tag only by commits outside the two payload
-folders, so all four commands report nothing. Read a non-empty pair here as *the library has
+**v1.60.0**, and `../LibKa0s`'s HEAD is that tag's commit, so all four commands report nothing. Read a non-empty pair here as *the library has
 moved past the tag this addon took* — a newer release, or post-tag follow-ups — not as a fault.
 Re-vendoring to quiet them would be the actual mistake: it would pull an untested library state for
 the sake of a clean diff.

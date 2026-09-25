@@ -164,5 +164,9 @@ Kit.run{
         -- 1500-line cap, held to the census under docs/ARCHITECTURE.md's deviations register.
         -- No Kit.layoutCap opts: the census is in the default hub and nothing here is generated.
         { name = "test_layout_cap", dir = "tests/_kit/" },
+        -- The diagnostics-dump contract (debug-logging-§14), new in kit revision 27, runs against
+        -- this addon's own dispatcher through Kit.diagnostics. Until the report lands that table
+        -- is unset, and the suite registers one declared skip naming the rule.
+        { name = "test_diagnostics_contract", dir = "tests/_kit/" },
     },
 }
