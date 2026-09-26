@@ -32,6 +32,7 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 | Run | Commit | Tree | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20260926-160442`](20260926-160442/) | `54ef2f1` | clean | 1.4.0 | 0/0 | 54 | 823/0/823 | pass | 12141 | 1589 | 6.7 | 1.8 | 15 | 0 | **green** |
 | [`20260924-111851`](20260924-111851/) | `011b39c` | clean | 1.4.0 | 0/0 | 50 | 775/0/775 | pass | 11285 | 1471 | 6.7 | 1.8 | 13 | 0 | **green** |
 | [`20260916-184548`](20260916-184548/) | unknown | unknown | 1.4.0 | 0/0 | 45 | 667/0/667 | pass | 9903 | 1298 | 6.7 | 1.8 | 15 | 0 | **green** |
 | [`20260916-094455`](20260916-094455/) | unknown | unknown | 1.4.0 | 0/0 | 42 | 632/0/632 | skip | 9129 | 1199 | 6.8 | 1.8 | 15 | 0 | **green** |
@@ -48,18 +49,18 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 ## Test suite
 
-**775 cases** — 775 passed, 0 failed, 0 skipped. The generated inventory
-[`20260924-111851/test-cases.md`](20260924-111851/test-cases.md) is the authority on which cases existed at this run;
+**823 cases** — 823 passed, 0 failed, 0 skipped. The generated inventory
+[`20260926-160442/test-cases.md`](20260926-160442/test-cases.md) is the authority on which cases existed at this run;
 `docs/test-cases.md` is that same list at HEAD.
 
-Moved **667 → 775** since the previous run.
+Moved **775 → 823** since the previous run.
 
 No case reported a `skip`, so passed and total agree and nothing in this row claims coverage
 that was not exercised.
 
 ## Lint
 
-**0 warnings / 0 errors over 50 files** (`luacheck .`).
+**0 warnings / 0 errors over 54 files** (`luacheck .`).
 
 Read that figure with its scope attached: `.luacheckrc` excludes 6 path(s) from it — `libs/`, `docs/audits/`, `docs/reviews/`, `docs/revendor/`, `_dev/`, `tests/_kit/` —
 so nothing under them is in the count above. A `0/0` that never moves is partly a statement about
@@ -69,25 +70,25 @@ to whoever thinks to open `.luacheckrc`.
 ## Perf
 
 **8 scenarios** from `tests/perf.lua`; the measurements are in
-[`20260924-111851/perf.json`](20260924-111851/perf.json).
+[`20260926-160442/perf.json`](20260926-160442/perf.json).
 
 | `scenario` | `iters` | `ms/iter` | `api/iter` | `bytes/iter` |
 |---|---|---|---|---|
-| `cooldownTick` | 2000 | 0.00194 | 2.0 | 240.4 |
-| `formatDurationLong` | 2000 | 0.00048 | 0.0 | 34.5 |
-| `formatDurationShort` | 2000 | 0.00040 | 0.0 | 0.8 |
-| `combatGateSteady` | 2000 | 0.00019 | 0.0 | 0.0 |
-| `combatGateFlipping` | 2000 | 0.00603 | 7.0 | 1000.0 |
-| `showFrameRepeat` | 500 | 0.01243 | 18.0 | 1744.1 |
-| `applyScale` | 500 | 0.00029 | 1.0 | 0.0 |
-| `applyAlpha` | 500 | 0.00022 | 1.0 | 0.0 |
+| `cooldownTick` | 2000 | 0.00296 | 2.0 | 240.4 |
+| `formatDurationLong` | 2000 | 0.00084 | 0.0 | 34.5 |
+| `formatDurationShort` | 2000 | 0.00072 | 0.0 | 0.8 |
+| `combatGateSteady` | 2000 | 0.00042 | 0.0 | 0.0 |
+| `combatGateFlipping` | 2000 | 0.00930 | 7.0 | 1000.0 |
+| `showFrameRepeat` | 500 | 0.02691 | 18.0 | 1744.1 |
+| `applyScale` | 500 | 0.00047 | 1.0 | 0.0 |
+| `applyAlpha` | 500 | 0.00044 | 1.0 | 0.0 |
 
 `perf` never fails a run and never blocks a commit — it is recorded, read and compared, not
 thresholded (`performance-§9`). It does gate the **tag** (`automated-tests-§3`).
 
 ## Complexity watch list
 
-Current as of [`20260924-111851`](20260924-111851/) — **this run's measurement, not its diff.** Max CCN **13** across 1471
+Current as of [`20260926-160442`](20260926-160442/) — **this run's measurement, not its diff.** Max CCN **15** across 1589
 functions, **0** of them warned on; 3 file(s) in the 1000–1500 band and 0 over the 1500 cap
 (`layout-§1`).
 
@@ -105,8 +106,8 @@ cell is this file saying something crossed and nobody has ruled on it yet.
 
 | Band | File | LOC | Disposition |
 |---|---|---|---|
-| 1000–1500 (on notice) | `core/WhatGroup.lua` | 1143 | **Accepted, with a trigger — new to the band.** First recorded here at 1143 (it was 1099 when the 2026-09-23 review found it undispositioned, `WHATGROUP-R-14`; the stand-down, combat-end replay and status-handler work of that plan's WG-01..WG-29 added the rest). Length, not tangle: 45 functions at avg CCN 4.6, the worst the capture-status handler `WhatGroup@1017-1085` at CCN 13, none warned. No seam is split along today — the file is the AceAddon shell plus the capture pipeline it drives. **Re-check at 1450**, or on the first function in the file above CCN 15, whichever comes first; at 1450 the answer is a split (capture pipeline out of the shell), not another carry. |
-| 1000–1500 (on notice) | `modules/Frame.lua` | 1173 | **Accepted, with a trigger — re-stated.** 1063 at `20260916-184548`, 1173 here (+110, the teleport-deferral, soft-hide alpha and combat-end replay work of the 2026-09-23 plan). Shape unchanged: small local functions plus one long flat builder (`buildFrame@618-882`, CCN 2 over 265 lines); the file's worst function is CCN 13 (`WhatGroup@1037-1090`), none warned. The previous 1250 trigger is superseded by the plan's single **re-check at 1450** (`WHATGROUP-R-14`), or when `buildFrame` is peeled out, whichever comes first. No release run has carried it, so `automated-tests-§4`'s three-release shelf life has not begun to run. |
+| 1000–1500 (on notice) | `core/WhatGroup.lua` | 1161 | **Accepted, with a trigger — carried.** First recorded at 1143 in `20260924-111851` (it was 1099 when the 2026-09-23 review found it undispositioned, `WHATGROUP-R-14`; the stand-down, combat-end replay and status-handler work of that plan's WG-01..WG-29 added the rest); 1161 at `20260926-160442` (+18, `c0ce81c` DR-WG-02's read-only capture snapshot accessor). Length, not tangle: 47 functions at avg CCN 4.5, the worst the capture-status handler `WhatGroup@1035-1103` at CCN 13, none warned. No seam is split along today — the file is the AceAddon shell plus the capture pipeline it drives. **Re-check at 1450**, or on the first function in the file above CCN 15, whichever comes first; at 1450 the answer is a split (capture pipeline out of the shell), not another carry. |
+| 1000–1500 (on notice) | `modules/Frame.lua` | 1206 | **Accepted, with a trigger — re-stated.** 1063 at `20260916-184548`, 1173 at `20260924-111851` (+110, the teleport-deferral, soft-hide alpha and combat-end replay work of the 2026-09-23 plan), 1206 at `20260926-160442` (+33: `c0ce81c` DR-WG-02's `NS.FrameSnapshot` +24, `1ee4b86` M6-WG's launcher-click change +9 net). Shape unchanged: small local functions plus one long flat builder (`buildFrame@619-883`, CCN 2 over 265 lines). The file's worst function is now `NS.FrameSnapshot@1168-1187` at **CCN 15 — at the threshold, not over it, not warned**: a 20-line read-only table constructor whose score is `and`/`or` boolean coercion (dense guarding), not control flow; one more coerced field would warn, so a new field goes through a helper rather than another `and ... or false`. The previous 1250 trigger is superseded by the plan's single **re-check at 1450** (`WHATGROUP-R-14`), or when `buildFrame` is peeled out, whichever comes first. No release run has carried it, so `automated-tests-§4`'s three-release shelf life has not begun to run. |
 | 1000–1500 (on notice) | `tests/test_frame.lua` | 1422 | **Accepted, with a trigger — the ruling stands.** 1421 at `20260916-184548`, 1422 here (+1); the 108 cases the plan added landed in other suites, `test_frame_secure.lua` (7 new) among them rather than here. Still a flat list of 90 independent cases (100 lizard functions counting helper closures, avg CCN 1.3), so the length is case count. **Re-check at 1450** (`WHATGROUP-R-14`): at that point the file splits along module seams (visibility, teleport, test mode) the way `test_frame_secure.lua` already split off the secure cases — the 1500 cap is not waited for. One release run (`bed07dd`, Release 1.4.0) has carried it, one of three against `automated-tests-§4`'s shelf life. |
 
 `lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
