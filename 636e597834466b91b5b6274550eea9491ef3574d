@@ -1,0 +1,1 @@
+fixed: docs accurate against code and library apart from debug.md's claim that any long line wraps at 200 chars (only list/joined lines do), corrected in DR-WG-05R; gate re-run green (823/0, luacheck 0/0, lizard clean, max 1422 lines); CRLF kept
