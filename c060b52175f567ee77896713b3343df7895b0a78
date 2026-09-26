@@ -1,0 +1,1 @@
+clean: DR-WG-04 README ## Reporting a bug matches STD-17 verbatim with /wg (no destination, no link), STD-18 row present, both new doc tests fail on the old README and pass on the new; gate re-run 823/0 failed, luacheck 0/0, lizard -C 15 -w rc 0
