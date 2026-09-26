@@ -99,3 +99,8 @@ Bugs, feature requests and outstanding work are all tracked at [https://github.c
 | 1.2.0 | 2026-05-03 | - Added the Settings panel and the `/wg` slash commands.<br>- Added a teleport button to the popup, grayed out until you learn the spell.<br>- Fixed a logout error, stale notification timers, and the wrong teleport spell and playstyle showing on real group joins. |
 | 1.1.0 | 2026-04-24 | - Updated for a new game patch. |
 | 1.0.0 | 2026-03-19 | - Initial release: a chat message and popup whenever you join a group through the Premade Group Finder. |
+
+## Credits
+
+The debug console uses [JetBrains Mono](https://www.jetbrains.com/lp/mono/), licensed under the SIL
+Open Font License 1.1. It ships inside the bundled LibKa0s payload, with its license text beside it.
