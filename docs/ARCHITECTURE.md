@@ -386,4 +386,4 @@ A `WG-NN` or `WG-A-NN` id in a **Why** cell is a deviation an audit filed and re
 
 The `layout-§1` census: every authored `.lua` file this repository tracks that is over the 1500-line cap, with its terminal state. Vendored code (`libs/`, `tests/_kit/`) is out of scope, and this repository has no generated data to carve out.
 
-Nothing is over the cap today. Measured 2026-09-24 with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l | sort -n`: the largest authored file is `tests/test_frame.lua` at 1422 lines, then `modules/Frame.lua` at 1173 and `core/WhatGroup.lua` at 1143. `tests/_kit/test_layout_cap.lua` holds this census to the tree on every run.
+Nothing is over the cap today. Measured 2026-09-26 with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l | sort -n`: the largest authored file is `tests/test_frame.lua` at 1422 lines, then `modules/Frame.lua` at 1211 and `core/WhatGroup.lua` at 1161. `tests/_kit/test_layout_cap.lua` holds this census to the tree on every run.

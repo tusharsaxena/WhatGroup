@@ -647,7 +647,7 @@ badge and any count quoted in the docs must agree with it.
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
 
-### test_snapshot.lua (10)
+### test_snapshot.lua (9)
 
 - snapshot: a fresh session reports empty capture tables
 - snapshot: an apply shows under byResult, and applied moves it to applications
@@ -658,7 +658,6 @@ badge and any count quoted in the docs must agree with it.
 - snapshot: a first show in combat reports the queued replay
 - snapshot: a hide in combat reports soft-hidden with a Hide owed
 - snapshot: the frame copy is fresh, so a report cannot edit the queue
-- snapshot: every coerced frame flag is a strict boolean, built or not
 
 ### test_diagnostics.lua (18)
 
@@ -947,7 +946,7 @@ badge and any count quoted in the docs must agree with it.
 | test_frame_secure.lua | 7 |
 | test_panel.lua | 54 |
 | test_testmode.lua | 23 |
-| test_snapshot.lua | 10 |
+| test_snapshot.lua | 9 |
 | test_diagnostics.lua | 18 |
 | test_launcher.lua | 36 |
 | test_lifecycle.lua | 46 |
@@ -962,4 +961,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **824** |
+| **Total** | **823** |

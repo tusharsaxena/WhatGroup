@@ -149,3 +149,22 @@ test("snapshot: the frame copy is fresh, so a report cannot edit the queue", fun
     assertEqual(#again.combatQueue, 1)
     assertEqual(again.combatQueue[1], "firstShow")
 end)
+
+test("snapshot: every coerced frame flag is a strict boolean, built or not", function()
+    -- Pins the `and true or false` coercions before WG-ATS-01 moves them: a nil where the report
+    -- expects false would print as a missing field. red under: a flag that leaks the frame or nil.
+    local flags = { "built", "shown", "onScreen", "testMode", "teleportDeferred",
+                    "cooldownTicking", "escProxyShown" }
+    local NS = T.bootAddon()
+    local s = NS.FrameSnapshot()
+    for _, k in ipairs(flags) do
+        assertEqual(type(s[k]), "boolean", "unbuilt " .. k)
+        assertFalse(s[k], "unbuilt " .. k)
+    end
+    NS.addon.pendingInfo = NS.addon:SampleInfo()
+    NS.addon:ShowFrame()
+    s = NS.FrameSnapshot()
+    for _, k in ipairs(flags) do assertEqual(type(s[k]), "boolean", "shown " .. k) end
+    assertTrue(s.escProxyShown, "a shown popup shows its Escape proxy")
+    assertFalse(s.teleportDeferred)
+end)

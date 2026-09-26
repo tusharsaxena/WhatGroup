@@ -1162,6 +1162,11 @@ function NS.FrameStandDown()
     WhatGroup._frameBuildQueued = nil
 end
 
+-- A possibly-unbuilt frame's IsShown() as a strict boolean: nil frame is false, never nil.
+local function isShownFlag(frame)
+    return (frame and frame:IsShown()) and true or false
+end
+
 -- READ-ONLY SNAPSHOT of the popup's file-locals for the diagnostics report (debug-logging-§14). It
 -- reads and never builds: building creates the secure teleport button, which a dump must not do,
 -- so an unbuilt popup answers `built = false` and nothing else about the frame. Fresh tables only.
@@ -1172,7 +1177,7 @@ function NS.FrameSnapshot()
     end
     return {
         built            = f ~= nil,
-        shown            = (f and f:IsShown()) and true or false,
+        shown            = isShownFlag(f),
         onScreen         = onScreen() and true or false,
         softHidden       = softHidden,
         pendingHide      = pendingHide,
@@ -1181,7 +1186,7 @@ function NS.FrameSnapshot()
         combatQueue      = queue,
         teleportDeferred = (f and f._pendingTeleportInfo ~= nil) or false,
         cooldownTicking  = cooldownTimer ~= nil,
-        escProxyShown    = (escProxy and escProxy:IsShown()) and true or false,
+        escProxyShown    = isShownFlag(escProxy),
         point            = f and NS.Windows.PointOf(f) or nil,
     }
 end
