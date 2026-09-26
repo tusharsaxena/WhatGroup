@@ -152,7 +152,8 @@ landing page renders exactly what the dispatcher runs.
 | `list` / `get` / `set` | library | The schema CLI, over the nineteen rows above (`/wg set state.testMode` reaches test mode too; `/wg test` is its verb) |
 | `reset` | host | Resets **one** path — `/wg reset <path>`, no confirmation ([`LIBKA0S-13`](https://github.com/tusharsaxena/WhatGroup/issues/8)) |
 | `resetall` | host | Resets the **active profile** to the shipped defaults — a profile reset, the same act as AceDBOptions' Reset Profile (`options-ui-§12`) — behind the shared `WHATGROUP_RESET_ALL` popup |
-| `debug` | host | Opens/closes the debug console; `on|off` toggles logging |
+| `debug` | host | Opens/closes the debug console; `on|off` toggles logging; `debug diagnostics` is the report's second form |
+| `diagnostics` | library report, host sections | Appends the diagnostics report (`debug-logging-§14`) to the debug console, sections from `modules/Diagnostics.lua`. On the live list, so it answers while the addon is disabled |
 
 `perf` stays a reserved verb (`slash-commands-§2`) and is deliberately not registered — see
 `## Documented deviations`. Detail: [docs/slash-dispatch.md](./slash-dispatch.md).
@@ -336,7 +337,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 
 | Doc | Status | Trigger |
 |---|---|---|
-| `slash-dispatch.md` | Present | 13 verbs in the command table |
+| `slash-dispatch.md` | Present | 14 verbs in the command table |
 | `midnight-quirks.md` | Present | LFG and group-API behavior the addon works around |
 | `debug.md` | Not applicable | No debug surface beyond the LibKa0s console: no debug verb, dump or window of the addon's own. The addon-owned debug content is the Tier 3 `debug-content.md` |
 | `message-bus.md` | Not applicable | Below the `architecture-§4` threshold: a shell plus one feature module, so no cross-module messages (see `## Message Bus`) |

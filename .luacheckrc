@@ -44,7 +44,7 @@ read_globals = {
   "_G",
   "LibStub", "hooksecurefunc", "EventRegistry", "LinkTypes",
   "CreateFrame", "UIParent", "UISpecialFrames",
-  "InCombatLockdown", "IsInGroup",
+  "InCombatLockdown", "IsInGroup", "IsInRaid", "GetNumGroupMembers",
   "C_Timer", "C_AddOns", "GetAddOnMetadata",
   "C_Spell", "C_SpellBook", "C_LFGList",
   "IsSpellKnown",

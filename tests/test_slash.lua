@@ -301,11 +301,22 @@ end)
 -- /wg debug
 -- ---------------------------------------------------------------------------
 
-test("slash: /wg debug with a bad subcommand prints both usage lines", function()
+test("slash: /wg debug with a bad subcommand prints all three usage lines", function()
     local NS, _, mock = T.bootAddon()
     local lines = capture(mock, function() NS.addon:OnSlashCommand("debug wat") end)
     assertTrue(anyLine(lines, "/wg debug        (toggle the debug window)"))
     assertTrue(anyLine(lines, "/wg debug on|off (enable/disable logging)"))
+    assertTrue(anyLine(lines, "/wg debug diagnostics (write the diagnostics report)"))
+end)
+
+test("slash: /wg debug diag is an unknown word: usage, and no report (debug-logging-§14)", function()
+    -- `diag` was never a WhatGroup word, and the standard rules out any short alias: it answers as
+    -- every other unknown word does. red under: a `diag` branch in runDebug.
+    local NS, _, mock = T.bootAddon()
+    local before = #NS.DebugLog.buffer
+    local lines = capture(mock, function() NS.addon:OnSlashCommand("debug diag") end)
+    assertTrue(anyLine(lines, "/wg debug diagnostics (write the diagnostics report)"))
+    assertEqual(#NS.DebugLog.buffer, before, "nothing was written to the console")
 end)
 
 test("slash: /wg debug (bare) toggles the console window's visibility", function()
@@ -559,10 +570,7 @@ test("slash: every verb is either on the live list or refuses — there is no th
         end
     end
     assertEqual(refused, #FEATURE_VERBS, "show and test, and nothing else, refuse today")
-    -- `diagnostics` is on the live list and not yet a row: the report and its COMMANDS row are
-    -- DR-WG-03's, so for now eleven of the twelve live verbs are rows.
-    assertEqual(allowed, #LIVE_VERBS - 1,
-        "and every live verb is a row — `perf` aside, and `diagnostics` until its row lands")
+    assertEqual(allowed, #LIVE_VERBS, "and every live verb is a row — `perf` aside")
 
     -- The one that matters most: the way back is on the live list, so the pair is never one-way.
     NS.addon:OnSlashCommand("enable")

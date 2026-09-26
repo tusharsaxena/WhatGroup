@@ -67,6 +67,12 @@ local COMMANDS = {
         function() runResetAll() end},
     {"debug",    L["Open/close the debug window — `/wg debug on|off` toggles logging"],
         function(rest) runDebug(rest) end},
+    -- The diagnostics dump (debug-logging-§14): one of exactly two forms, the other being
+    -- `/wg debug diagnostics`. Reserved and on the library's live list (Slash 16), so it answers
+    -- while the addon is disabled. The report itself is the library's; the sections are
+    -- modules/Diagnostics.lua's. Looked up at call time, like every NS member here.
+    {"diagnostics", L["Write the diagnostics report to the debug console"],
+        function() NS.DebugLog:RunDiagnostics() end},
 }
 
 -- ---------------------------------------------------------------------------
@@ -74,7 +80,7 @@ local COMMANDS = {
 -- ---------------------------------------------------------------------------
 --
 -- A DISABLED ADDON REFUSES A FEATURE VERB RATHER THAN ACTING ON IT, on one tagged line naming
--- `/wg enable` and nothing else. Two of this addon's thirteen verbs drive features — `show` and
+-- `/wg enable` and nothing else. Two of this addon's fourteen verbs drive features — `show` and
 -- `test`, the two that put the popup on screen — which is enough for a silent `/wg show` to read
 -- as a bug, so this addon takes slash-commands-§2's SHOULD.
 --
@@ -89,7 +95,7 @@ local COMMANDS = {
 --
 -- THIS FILE OWNS NONE OF THAT ANY MORE. It carried its own ALWAYS_LIVE table and its own refusal
 -- wording until today, wrapping every feature verb's handler as it built COMMANDS. Both are the
--- library's from Slash minor 13: `lib.LIVE_VERBS` is the standard's twelve reserved verbs and the
+-- library's from Slash minor 13: `lib.LIVE_VERBS` is the standard's thirteen reserved verbs and the
 -- gate sits after the COMMANDS lookup, which is what keeps a TYPO answering `unknown command`
 -- rather than "the addon is disabled" — a true sentence and the wrong answer, since it tells a
 -- player who mistyped that their spelling was fine. The wording lives in
@@ -432,6 +438,8 @@ function runResetAll()
     end
 end
 
+-- `/wg debug diagnostics` writes the diagnostics report (debug-logging-§14), tested FIRST and
+--                    case-insensitively. No other word runs it: `diag` is an unknown word.
 -- `/wg debug`        toggles the on-screen console WINDOW (logging state untouched).
 -- `/wg debug on|off` sets the session-only NS.State.debug flag through the single
 --                    DebugLog:SetEnabled seam, which owns the chat ack, the header label and the
@@ -443,13 +451,16 @@ function runDebug(rest)
     local DL = NS.DebugLog
     if not DL then return NS.Print("Debug console not ready yet") end
 
-    if sub == "on" or sub == "off" then
+    if sub == "diagnostics" then
+        DL:RunDiagnostics()
+    elseif sub == "on" or sub == "off" then
         DL:SetEnabled(sub == "on")
     elseif sub == "" then
         DL:Toggle()
     else
         NS.Print("Usage: /wg debug        (toggle the debug window)")
         NS.Print("       /wg debug on|off (enable/disable logging)")
+        NS.Print("       /wg debug diagnostics (write the diagnostics report)")
     end
 end
 
