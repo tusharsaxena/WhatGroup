@@ -103,6 +103,21 @@ _G.WHATGROUP_TEST = Kit.expose{
     LibStub     = surfaceMock.LibStub,
 }
 
+-- The diagnostics-dump contract's consumer facts (debug-logging-§14, kit revision 27). The kit case
+-- runs its seven cases through THIS addon's own dispatcher, so every case gets a fresh, fully enabled
+-- instance from `reset` and the other facts close over whichever instance is current. The stand-down
+-- goes through the same write seam the Master controls checkbox and `/wg disable` use, so
+-- "disabled" here is the real latch, not a flag the dispatcher never reads.
+local diagNS
+Kit.diagnostics = {
+    brand       = "Ka0s WhatGroup",
+    dispatch    = function(line) diagNS.addon:OnSlashCommand(line) end,
+    console     = function() return diagNS.DebugLog end,
+    setDebug    = function(on) diagNS.State.debug = on and true or false end,
+    setDisabled = function(off) diagNS.addon.Settings.Helpers.Set("enabled", not off) end,
+    reset       = function() diagNS = enableAddon() end,
+}
+
 -- Order is load-order-sensitive; keep it stable.
 --
 -- What holds this list honest is `Kit.assertSuiteInventory` (tests/_kit/framework.lua), which
@@ -140,6 +155,8 @@ Kit.run{
         "test_frame_secure",
         "test_panel",
         "test_testmode",
+        "test_snapshot",
+        "test_diagnostics",
         "test_launcher",
         "test_lifecycle",
         "test_debuglog",
@@ -165,8 +182,7 @@ Kit.run{
         -- No Kit.layoutCap opts: the census is in the default hub and nothing here is generated.
         { name = "test_layout_cap", dir = "tests/_kit/" },
         -- The diagnostics-dump contract (debug-logging-§14), new in kit revision 27, runs against
-        -- this addon's own dispatcher through Kit.diagnostics. Until the report lands that table
-        -- is unset, and the suite registers one declared skip naming the rule.
+        -- this addon's own dispatcher through Kit.diagnostics, set above.
         { name = "test_diagnostics_contract", dir = "tests/_kit/" },
     },
 }

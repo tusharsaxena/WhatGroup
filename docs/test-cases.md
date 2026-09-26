@@ -272,7 +272,7 @@ badge and any count quoted in the docs must agree with it.
 - settings: every row on every page carries a `group`
 - settings: every color row is followed by its class-color companion, and none is disabled
 
-### test_slash.lua (59)
+### test_slash.lua (60)
 
 - slash: COMMANDS has a standalone version verb (WG-29)
 - slash: /wg version prints [WG] v<version> on its own line (WG-29)
@@ -314,7 +314,8 @@ badge and any count quoted in the docs must agree with it.
 - slash: /wg set echoes the STORED value back, not the typed one
 - slash: /wg set with a missing value is rejected, not silently applied
 - slash: /wg set enabled false runs the master-switch onChange
-- slash: /wg debug with a bad subcommand prints both usage lines
+- slash: /wg debug with a bad subcommand prints all three usage lines
+- slash: /wg debug diag is an unknown word: usage, and no report (debug-logging-§14)
 - slash: /wg debug (bare) toggles the console window's visibility
 - slash: /wg debug on does not open the window
 - slash: /wg set writes an enum value from the row's own value set
@@ -646,6 +647,39 @@ badge and any count quoted in the docs must agree with it.
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
 
+### test_snapshot.lua (9)
+
+- snapshot: a fresh session reports empty capture tables
+- snapshot: an apply shows under byResult, and applied moves it to applications
+- snapshot: the capture copy is deep, so a report cannot mutate a capture
+- snapshot: notified is true only for the pendingInfo notify fired for
+- snapshot: the frame accessor reports not built, and never builds the popup
+- snapshot: a shown popup reports built, shown, on screen and its live point
+- snapshot: a first show in combat reports the queued replay
+- snapshot: a hide in combat reports soft-hidden with a Hide owed
+- snapshot: the frame copy is fresh, so a report cannot edit the queue
+
+### test_diagnostics.lua (18)
+
+- diagnostics: the host identity names schema, profile, enabled, stood-down, holds, test mode
+- diagnostics: always-print rows print at default, a changed row prints path = value (default)
+- diagnostics: stood down, the runtime sections say so and the header shows the hold
+- diagnostics: the report reads and never acts: no registration, hold, timer or save
+- diagnostics: registration health names every event and the chat-link route
+- diagnostics: the client's applications print beside the capture tables
+- diagnostics: pending info prints leader, voice chat and title, and the notify timer
+- diagnostics: teleport resolution names the spell, known flag, table entry and cooldown
+- diagnostics: an unreadable cooldown is named, never computed on
+- diagnostics: no pending group reads as such, not as an empty teleport
+- diagnostics: an unbuilt popup reads `not built`, and the report never builds it
+- diagnostics: a built popup prints its state, the saved point and the live point
+- diagnostics: the launcher line
+- diagnostics: a raising section costs exactly one line, and the report still ends
+- diagnostics: an over-cap report ends `truncated`, then the end marker
+- diagnostics: a secret-like pending value degrades in place instead of raising
+- diagnostics: one localized chat line names the count and Copy
+- diagnostics: without LibKa0s-DebugLog both forms print the library-absent line, writing nothing
+
 ### test_launcher.lua (36)
 
 - launcher: it registers at login, and the broker object IS the minimap button's
@@ -799,13 +833,14 @@ badge and any count quoted in the docs must agree with it.
 - lint: read_globals grants no removed or unread global
 - lintconfig: no source file carries a bare inline luacheck ignore
 
-### test_doc_structure.lua (8)
+### test_doc_structure.lua (9)
 
 - docs/ARCHITECTURE.md carries the ten sections documentation-§3 names
 - every mandated hub section that has a topic doc has spilled into it
 - every anchor pointing into docs/ARCHITECTURE.md resolves to a heading
 - the player-facing history has the ONE home documentation-§1 allows, and no second
 - README.md's top-level sections are the ones documentation-§1 names, in its order
+- README.md's Reporting a bug section is the standard's text with /wg, and links nowhere
 - the README's settings table is page-granular, not per-tab
 - every settings tab the README sends a player to exists in the schema
 - docs/smoke-tests.md carries a non-English-client section
@@ -880,9 +915,15 @@ badge and any count quoted in the docs must agree with it.
 - layoutcap self-test: a census that states nothing is told apart from one that states none
 - layoutcap self-test: the exempt set takes folders as well as paths
 
-### test_diagnostics_contract.lua (1)
+### test_diagnostics_contract.lua (7)
 
-- diagnostics contract: debug-logging-§14 (skipped: Kit.diagnostics is not set in the runner, so this repo's dispatcher is not wired to the shared contract yet. Every Ka0s addon owes debug-logging-§14's report; wire Kit.diagnostics once the report exists)
+- diagnostics contract: both forms run the report
+- diagnostics contract: the debug word is matched in any case
+- diagnostics contract: both markers carry the brand and the end counts the report
+- diagnostics contract: the report appends after what the console already holds
+- diagnostics contract: the report lands with logging off and leaves it off
+- diagnostics contract: both forms run while the addon is disabled
+- diagnostics contract: no other name runs the report
 
 ## Totals
 
@@ -897,7 +938,7 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 42 |
 | test_database.lua | 11 |
 | test_settings.lua | 56 |
-| test_slash.lua | 59 |
+| test_slash.lua | 60 |
 | test_labels.lua | 34 |
 | test_capture.lua | 35 |
 | test_notify.lua | 48 |
@@ -905,17 +946,19 @@ badge and any count quoted in the docs must agree with it.
 | test_frame_secure.lua | 7 |
 | test_panel.lua | 54 |
 | test_testmode.lua | 23 |
+| test_snapshot.lua | 9 |
+| test_diagnostics.lua | 18 |
 | test_launcher.lua | 36 |
 | test_lifecycle.lua | 46 |
 | test_debuglog.lua | 49 |
 | test_docmap.lua | 1 |
 | test_lintconfig.lua | 6 |
-| test_doc_structure.lua | 8 |
+| test_doc_structure.lua | 9 |
 | test_register.lua | 1 |
 | test_disabled.lua | 18 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| test_diagnostics_contract.lua | 1 |
-| **Total** | **788** |
+| test_diagnostics_contract.lua | 7 |
+| **Total** | **823** |

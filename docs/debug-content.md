@@ -2,15 +2,17 @@
 
 The on-screen debug console is **LibKa0s-DebugLog-1.0**, wired by `core/DebugLogSetup.lua` from a
 descriptor. The window, the line format, the buffer, the scrollbar and line counter, the copy and
-clear controls and the enable seam are all the library's, and the library documents them once:
-LibKa0s `docs/api/DebugLog/` (major `LibKa0s-DebugLog-1.0`, minor 14 at the vendored v1.60.0). This
+clear controls, the enable seam and the diagnostics report's frame are all the library's, and the
+library documents them once: LibKa0s `docs/api/DebugLog/` (major `LibKa0s-DebugLog-1.0`, minor 14 with
+its `DebugLogDiagnostics.lua` secondary file at the vendored v1.60.0, documented as version 14.1). This
 page does not restate any of it.
 
 What this page holds is the part only WhatGroup knows: what the descriptor hands the library, the
 tags this addon logs under, where the session flag lives, what `/wg debug` does, and how to add a
-line. It is a Tier 3 doc (see `ARCHITECTURE.md` → `## Documentation map`). The Tier 2 `debug.md`
-trigger (debug surfaces **beyond** the LibKa0s console) has not fired: WhatGroup ships no debug verb,
-dump or window of its own.
+line. It is a Tier 3 doc (see `ARCHITECTURE.md` → `## Documentation map`). The diagnostics report
+(`/wg diagnostics`, `debug-logging-§14`) is a debug surface beyond the console, so the Tier 2
+[debug.md](./debug.md) now ships beside this page and documents the report: its two forms, what it
+prints section by section, its caps and what it never does.
 
 ## What the descriptor supplies
 
@@ -41,10 +43,18 @@ dump or window of its own.
   (on enable, right after the `[Debug] logging enabled` bracket); only the addon knows what it says.
 - `onVisibilityChanged` — calls `Settings.Helpers.RefreshAll()` so the Master controls tab's console
   checkbox re-syncs when the window is closed with Esc or the `×`.
+- `brandName = "Ka0s WhatGroup"` — the full brand the diagnostics report's begin and end markers
+  carry, so a paste holding several addons' reports can be split.
+- `diagnostics` — a function that answers `NS.Diagnostics.Sections()`, read at **run** time, because
+  `modules/Diagnostics.lua` loads after this file. Its sections are [debug.md](./debug.md)'s subject.
+- `L` — a **plain** table holding one key, `DIAG_WRITTEN`, the report's chat line resolved through
+  `NS.L`. It is the one console string a player reads in chat, so it is the one this addon routes.
+  Never `NS.L` itself: its metatable answers every key with the key, and the console would render
+  `DEBUG_ON` in place of English. The library reads the table with `rawget`, so every other key keeps
+  the library's English.
 
-Deliberately **not** passed: `L` (this addon translates none of the console's strings, and a locale
-table with a key-returning metatable would render `DEBUG_ON` in place of English), and `skin` /
-`applySkin` / `makeCloseButton`, because the library's own default is the normative Ka0s window edge.
+Deliberately **not** passed: `skin` / `applySkin` / `makeCloseButton`, because the library's own
+default is the normative Ka0s window edge.
 
 **TOC slot: after `core/WhatGroup.lua`.** The library validates `name`, `title`, `font`, `isEnabled`
 and `setEnabled` at `:New` time, and both `NS.FONT_MONO` and `NS.State.debug` are defined in
@@ -118,8 +128,11 @@ and **one `[Set]` line per settings change at the single seam** (debug-logging-�
 
 Handled by `runDebug` in `settings/Slash.lua`:
 
+- `/wg debug diagnostics` — writes the diagnostics report (`D:RunDiagnostics()`). Tested **first**,
+  in any case; see [debug.md](./debug.md).
 - `/wg debug` — **toggles the console window** (`D:Toggle()`); logging state untouched.
 - `/wg debug on` / `/wg debug off` — set the session flag through `D:SetEnabled`.
+- Any other word — the three-line usage. `diag` is such a word: no short name runs the report.
 
 See [slash-dispatch.md](./slash-dispatch.md) for the dispatch table.
 
@@ -131,6 +144,9 @@ and still prints the color-coded ack. What is lost is the window, and the stub s
 point: enabling, asking for the window, and asking for the copy box each spend their own announce
 token, phrased as `NS.LIBKA0S_MISSING` plus the consequence. `ConsoleCheckbox()` still answers a
 well-formed spec whose tooltip carries the same sentence.
+
+The stub's `RunDiagnostics` prints `/wg diagnostics is unavailable: the LibKa0s library did not
+load.` on the collection's library-absent line, writes nothing and returns 0.
 
 The stub copies **no** formatter. Nothing in the addon calls them outside the library's own `Add`,
 and hand-transcribing them is the duplicate debug-logging-§3 and testing-§8 forbid.
@@ -159,4 +175,7 @@ bound bare, the frame globals and the composed window title are unchanged, the f
 addon's, `[Init]` is reached through the descriptor, and the degraded stub answers every member while
 copying no formatter.
 
-The in-game scrollbar and counter check is [smoke-tests.md](./smoke-tests.md) row 2.8b-i.
+The diagnostics report's cases are listed in [debug.md](./debug.md#where-else-this-is-pinned).
+
+The in-game scrollbar and counter checks are [smoke-tests.md](./smoke-tests.md) rows 2.8b-i and
+2.8b-ii (the counter pinning at 3000).

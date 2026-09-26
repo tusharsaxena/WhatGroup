@@ -140,6 +140,24 @@ local pendingApplications = {}   -- [appID] -> capturedInfo (set when "applied" 
 local wasInGroup          = false
 local notifiedFor         = nil  -- pendingInfo identity that already fired notify+popup
 
+-- READ-ONLY SNAPSHOT for the diagnostics report (debug-logging-§14), which has to set the client's
+-- view of the applications beside these file-locals. Copies all the way down: a capture is plain
+-- data, and a report holding the live table could mutate the very thing it is describing.
+local function copyPlain(t)
+    local out = {}
+    for k, v in pairs(t) do out[k] = type(v) == "table" and copyPlain(v) or v end
+    return out
+end
+
+function WhatGroup:CaptureSnapshot()
+    return {
+        byResult     = copyPlain(capturesByResult),
+        applications = copyPlain(pendingApplications),
+        wasInGroup   = wasInGroup,
+        notified     = notifiedFor ~= nil and notifiedFor == self.pendingInfo,
+    }
+end
+
 -- Single secret-safe chat seam (slash-commands-§4, WG-22). Every user-facing
 -- line funnels through NS.Util.print (core/CoreSetup.lua), which prepends NS.PREFIX
 -- and stringifies each arg via NS.SafeToString — so a combat-protected value

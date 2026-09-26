@@ -72,9 +72,12 @@ defaults\TeleportSpells.lua
 # Modules (conventional: modules\Frame.lua reads NS.addon and NS.L at file scope, both published
 # above this group, and no later file reads anything of Frame's at load)
 modules\Frame.lua
+# The sections of `/wg diagnostics` (debug-logging-§14). Conventional: core\DebugLogSetup.lua's
+# descriptor reads NS.Diagnostics at RUN time, and every read in the file is at call time.
+modules\Diagnostics.lua
 
 # Settings (conventional WITHIN the group apart from the three annotated lines; the group as a whole
-# must follow # Core, because settings\Slash.lua:116 builds CLI_MISSING from NS.LIBKA0S_MISSING at
+# must follow # Core, because settings\Slash.lua:122 builds CLI_MISSING from NS.LIBKA0S_MISSING at
 # file scope and core\CoreSetup.lua:34 publishes it)
 # Directly above settings\Schema.lua: this file publishes Settings.SchemaLib (LibKa0s-Schema-1.0,
 # or the host's degradation stub), and Schema.lua calls its :New at file scope

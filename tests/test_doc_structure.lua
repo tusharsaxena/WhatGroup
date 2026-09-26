@@ -78,6 +78,7 @@ local README_ORDER = {
     { pattern = "^How .+ works?$",              required = true,  name = "## How <it> works" },
     { pattern = "^FAQ$",                        required = false, name = "## FAQ" },
     { pattern = "^Troubleshooting$",            required = false, name = "## Troubleshooting" },
+    { pattern = "^Reporting a bug$",            required = true,  name = "## Reporting a bug" },
     { pattern = "^Issues and feature requests$",required = true,  name = "## Issues and feature requests" },
     { pattern = "^Version History$",            required = true,  name = "## Version History" },
     { pattern = "^Credits$",                    required = false, name = "## Credits" },
@@ -268,6 +269,29 @@ test("README.md's top-level sections are the ones documentation-§1 names, in it
         if entry.required and not seen[i] then absent[#absent + 1] = entry.name end
     end
     assertTrue(#absent == 0, README .. " is missing " .. table.concat(absent, ", "))
+end)
+
+-- debug-logging-§14's README half (documentation-§1 item 9): the section's body is the standard's
+-- text with this addon's slash, word for word. It names no destination and carries no link, so a
+-- player follows the same three steps whatever channel the bug report goes through.
+local REPORTING_A_BUG = table.concat({
+    "1. Type `/wg debug on` and reproduce the bug.",
+    "2. Type `/wg diagnostics`.",
+    "3. If the debug window isn't open, open it with `/wg debug`. Press **Copy**, copy the entire "
+        .. "output, and include it with your bug report.",
+    "",
+    "The report is added after the debug trace in the same window, so one copy carries both.",
+}, "\n")
+
+test("README.md's Reporting a bug section is the standard's text with /wg, and links nowhere", function()
+    local body = read(README)
+    local section = body:match("\n## Reporting a bug\n(.-)\n## ")
+    assertTrue(section ~= nil, README .. " has no `## Reporting a bug` section followed by another")
+    section = section:gsub("^%s+", ""):gsub("%s+$", "")
+    assertTrue(section == REPORTING_A_BUG, README .. "'s `## Reporting a bug` body differs from "
+        .. "documentation-§1 item 9; found:\n" .. section)
+    assertTrue(not section:find("](", 1, true) and not section:lower():find("github", 1, true),
+        README .. "'s `## Reporting a bug` names a destination or a link, which the standard forbids")
 end)
 
 test("the README's settings table is page-granular, not per-tab", function()

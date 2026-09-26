@@ -185,9 +185,20 @@ NS.DebugLog = lib:New({
         if H and H.RefreshAll then H.RefreshAll() end
     end,
 
-    -- No `L`: this addon translates none of the console's strings, so omitting the field is both
-    -- the common case and the safe one — a locale table here answers EVERY key with the key itself,
-    -- and the console would render DEBUG_ON / LINES / COPY_TITLE in place of English.
+    -- The diagnostics dump (debug-logging-§14). The FULL brand goes in both markers, so a paste
+    -- holding several addons' reports can be split. `diagnostics` is read at RUN time, because
+    -- modules/Diagnostics.lua loads after this file.
+    brandName   = "Ka0s WhatGroup",
+    diagnostics = function() return NS.Diagnostics and NS.Diagnostics.Sections() or {} end,
+
+    -- A PLAIN table with the one console string this addon routes through NS.L: the report's chat
+    -- line, which a player reads in chat (debug-logging-§14 localizes it; the report body is
+    -- English diagnostic text, like every trace line). Never NS.L itself -- its metatable answers
+    -- EVERY key with the key, and the console would render DEBUG_ON / LINES / COPY_TITLE in place
+    -- of English. The library reads this table with rawget, so every other key keeps its English.
+    L = {
+        DIAG_WRITTEN = NS.L["Diagnostic report written to the debug console: %d lines. Use Copy to share it."],
+    },
     --
     -- No `skin`, no `applySkin`, no `makeCloseButton` either, and that is a decision rather than an
     -- omission. As of Core minor 3 the library's own default draws the normative Ka0s window edge

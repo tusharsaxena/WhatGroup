@@ -343,6 +343,20 @@ test("disabled 7: every reserved verb answers normally, and the bare /wg opens t
     assertFalse(anyLine(lines("debug on"), REFUSAL), "debug is a diagnostic, not a feature")
     NS.addon:OnSlashCommand("debug off")
 
+    -- THE DIAGNOSTICS REPORT, BOTH FORMS (debug-logging-§14). A disabled addon is exactly the one a
+    -- player reports, so the report is on the live list and each form writes one.
+    -- red under: `diagnostics` dropped from the live set, or a runDebug that refuses while down.
+    local BEGIN = "[Diag] ==== Ka0s WhatGroup diagnostics begin ===="
+    local function reports()
+        local n = 0
+        for _, l in ipairs(NS.DebugLog.buffer) do if l:find(BEGIN, 1, true) then n = n + 1 end end
+        return n
+    end
+    assertFalse(anyLine(lines("diagnostics"), REFUSAL), "`diagnostics` is not refused")
+    assertEqual(reports(), 1, "and wrote a report")
+    assertFalse(anyLine(lines("debug diagnostics"), REFUSAL), "nor is `debug diagnostics`")
+    assertEqual(reports(), 2, "which wrote a second")
+
     -- `help` prints the index IN FULL -- the player has to be able to SEE `enable` in it -- with
     -- the one line under the header as a statement about the index rather than a refusal of help.
     local help = lines("help")

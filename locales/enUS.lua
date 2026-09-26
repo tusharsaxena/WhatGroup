@@ -119,6 +119,13 @@ L["Reset one setting to its default — `/wg reset <path>`"] =
 L["Reset every setting to defaults"] = "Reset every setting to defaults"
 L["Open/close the debug window — `/wg debug on|off` toggles logging"] =
     "Open/close the debug window — `/wg debug on|off` toggles logging"
+L["Write the diagnostics report to the debug console"] =
+    "Write the diagnostics report to the debug console"
+
+-- The diagnostics report's one chat line (debug-logging-§14). core/DebugLogSetup.lua hands it to the
+-- console through a PLAIN descriptor `L`, never this table, so it is the only console string routed here.
+L["Diagnostic report written to the debug console: %d lines. Use Copy to share it."] =
+    "Diagnostic report written to the debug console: %d lines. Use Copy to share it."
 
 -- Slash / hint messages
 L["No group info available. Use |cffFFFF00/wg test|r to preview."] =

@@ -103,7 +103,8 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.8 | `/wg debug` | **Opens the debug console window** (`Ka0s WhatGroup — Debug`, 700×344, monospace). Run again to close it. State is untouched — the header toggle still reads `Debug: OFF`. |
 | 2.8a | `/wg debug on` then `/wg debug off` | Each prints `[WG] debug logging ON`/`OFF` in chat with the state word **color-coded** (ON green `40ff40`, OFF red `ff4040`, matching the title-bar toggle) **and** appends a `[Debug] logging enabled`/`disabled` line inside the console. `on` also appends one `[Init]` line right after the bracket — `WhatGroup v<ver>, schema v1, profile '<name>'` followed by the current runtime state (`enabled`, `notify.delay`, `autoShow`, `inGroup`, `hasPending`). |
 | 2.8b | Click the `Debug: OFF`/`ON` toggle in the console title bar | Flips logging state (green ON / red OFF) with the same chat ack + console bracket line as `/wg debug on\|off`. `Copy` opens a highlight-ready plain-text buffer; `Clear` wipes both views. |
-| 2.8b-i | Scrollbar + line counter (debug-logging-§11) | The console has a **thin scrollbar** on the log's right edge and a **`N / 3000 lines`** counter in the bottom-right, in the log's monospace font. With debug on, spam lines (e.g. `/wg set notify.delay 1` a few times) until the log overflows: the counter climbs and the scrollbar thumb becomes draggable. **Drag the thumb** — the log scrolls; **mouse-wheel the log** — the thumb tracks it. Thumb **top = oldest**, **bottom = newest**. `Clear` resets the counter to `0 / 1500` and parks/grays the thumb. On a short (fitting) log the bar is still shown but inert. **First open must NOT error** — a blank `Debug: ON/OFF` header or dead ESC-to-close means the initial sync threw (anti-pattern #41). |
+| 2.8b-i | Scrollbar + line counter (debug-logging-§11) | The console has a **thin scrollbar** on the log's right edge and a **`N / 3000 lines`** counter in the bottom-right, in the log's monospace font. With debug on, spam lines (e.g. `/wg set notify.delay 1` a few times) until the log overflows: the counter climbs and the scrollbar thumb becomes draggable. **Drag the thumb** — the log scrolls; **mouse-wheel the log** — the thumb tracks it. Thumb **top = oldest**, **bottom = newest**. `Clear` resets the counter to `0 / 3000` and parks/grays the thumb. On a short (fitting) log the bar is still shown but inert. **First open must NOT error** — a blank `Debug: ON/OFF` header or dead ESC-to-close means the initial sync threw (anti-pattern #41). |
+| 2.8b-ii | The buffer cap (LibKa0s v1.60.0 raised it from 1500 to 3000) | With debug on, write well past 3000 lines: a quick way is `/wg diagnostics` run a hundred-odd times (a macro helps), since each report appends a few dozen lines. The counter climbs to **`3000 / 3000 lines`** and **pins** there, and the oldest lines drop off the top. **Copy** then opens without a noticeable hitch and holds exactly the newest 3000 lines, the last one the end marker of the latest report. `Clear` resets the counter to `0 / 3000`. |
 | 2.8c | With debug on: `/wg set notify.delay 3.0` | Console shows **one** `[Set] notify.delay = 3` line. Restore with `/wg set notify.delay 0` (another single `[Set]`). |
 | 2.8d | With debug on: `/wg set notify.delay 3`, then `/wg resetall` → **Yes**, then reopen the console with `/wg debug` | The reset closes the console, because reset-all restores the session-only console row, so reopen it to read the log. After the `[Set] notify.delay = 3` line, the console shows **one** `[Set] reset profile '<name>' to defaults (1 rows)` line (debug-logging-§10). There is **no** `[Set]` per row and **no** `[Reset]` line. The count is the rows the reset changed, so a second `/wg resetall` straight after reads `(0 rows)`. |
 | 2.9 | `/wg show` (no group, no pendingInfo) | Prints "No group info available. Use `/wg test` to preview." |
@@ -118,6 +119,62 @@ Every entry in `WhatGroup.COMMANDS` is exercised at least once.
 | 2.17 | `/wg help` | The header line ends with `…/wg)` — **no** trailing colon (WG-19) — and lists a `/wg version` row. |
 | 2.18 | Move the popup (`/wg test notify`, drag it) and the debug console (`/wg debug`, drag it), then `/reload` and reopen each | Each window reopens at the spot you left it, not re-centered (WG-26). |
 | 2.19 | Library-absent verbs (options-ui-§1 route (b), WhatGroup#22): with the addon closed, rename `Interface/AddOns/WhatGroup/libs/LibKa0s`, log in, then run `/wg disable`, `/wg enable` and `/wg test on` | Each prints `[WG] <verb> is unavailable: the LibKa0s library did not load.` (e.g. `/wg disable is unavailable: …`), with **no** Lua error, and nothing moves: the addon stays enabled and no popup opens. Restore the folder name and `/reload`. Library present, the same verbs, the Master controls checkboxes and `/wg set notify.delay 3` behave as in 2.6 / 2.10a, with one `[Set]` line per write under `/wg debug on`. |
+
+---
+
+## 2a. The diagnostics report (~5 min)
+
+`/wg diagnostics` writes a one-shot report of the addon's state into the debug console
+(debug-logging-§14). What each line means is in [debug.md](./debug.md); this section checks that it
+behaves in the client. Start from a `/reload` with the console closed.
+
+1. **Append, not clear.** `/wg debug on`, then `/wg test notify` and close the popup, so the console
+   holds a few `[Test]` and `[Frame]` lines. Run `/wg diagnostics`.
+
+   **Expected:** the console opens if it was closed. The trace lines are still there, **above** a
+   `[Diag] ==== Ka0s WhatGroup diagnostics begin ====` line. The sections follow in order (identity,
+   settings with its `[Set]` rows, registration, group, capture, pending, teleport, popup, launcher)
+   and the last line is `[Diag] ==== Ka0s WhatGroup diagnostics end: N line(s) ====`. Chat prints one
+   line: *Diagnostic report written to the debug console: N lines. Use Copy to share it.*, with the
+   same N. `enabled = true (true)`, `notify.enabled = true (true)` and `frame.autoShow = true (true)`
+   print even at their defaults. No `section <name> failed:` line anywhere.
+2. **Copy.** Press **Copy**, select all and paste into a text editor.
+
+   **Expected:** the paste holds the trace, then the begin marker, then the whole report down to the
+   end marker. No `|c`, `|r`, `|T` or `|H` escape anywhere in it.
+3. **Ungated, flag untouched.** `/wg debug off`, then `/wg diagnostics`.
+
+   **Expected:** a second full report lands under the first. The title bar still reads
+   `Debug: OFF` afterwards, and `/wg set notify.delay 2` then writes **no** `[Set]` line to the
+   console (restore with `/wg reset notify.delay`).
+4. **Both forms, the long alias, and no short one.** `/wg debug diagnostics`, `/whatgroup diagnostics`,
+   `/whatgroup debug diagnostics`, then `/wg diag` and `/wg debug diag`.
+
+   **Expected:** the first three each write the same report. `/wg diag` prints
+   `unknown command 'diag'` and the help index; `/wg debug diag` prints the three-line `debug` usage.
+   Neither of the last two writes a report.
+5. **While disabled.** `/wg disable`, then `/wg diagnostics` and `/wg debug diagnostics`.
+
+   **Expected:** both run; neither prints the disabled refusal that names `/wg enable`. The identity section
+   reads `enabled=false stoodDown=true` and names the `disabled` hold, and the capture section is the
+   one line `capture: stood down, runtime state released`. `/wg enable` afterwards.
+6. **The popup is never built by the report.** `/reload`, then `/wg diagnostics` before anything
+   opens the popup.
+
+   **Expected:** the popup section reads `popup: not built`, and nothing appears on screen. Then
+   `/wg test notify`, close it, and run the report again: the section now shows `built=true` and a
+   live point.
+7. **In combat.** Pull a target dummy, run `/wg diagnostics` mid-fight. Repeat with a pending group
+   whose Path-of teleport is on cooldown if you have one (after § 5.1).
+
+   **Expected:** no Lua error and no `ADDON_ACTION_BLOCKED`. The library header prints the combat
+   reads as `true`. A secret or unreadable value prints as `<secret>` or `unreadable`, and the teleport
+   line is either `teleport cooldown start=… duration=…` or `teleport cooldown unreadable`, never an
+   error.
+8. **The README steps.** `/reload`, close the console, then follow the README's `## Reporting a bug`
+   steps word for word.
+
+   **Expected:** every step works as written, and the one Copy holds the trace and the whole report.
 
 ---
 
@@ -715,6 +772,7 @@ The six seam files (`core/CoreSetup.lua`, `core/EnvSetup.lua`, `core/MediaSetup.
 6. `/wg debug on`
 7. `/wg debug`
 8. `/wg debug`
+9. `/wg diagnostics`, then `/wg debug diagnostics`
 
 **Expected:**
 
@@ -723,6 +781,9 @@ The six seam files (`core/CoreSetup.lua`, `core/EnvSetup.lua`, `core/MediaSetup.
 - Every notice is one line, tagged `[WG]`, and every one of them **starts with the same sentence**: *"The LibKa0s library is missing from this installation of Ka0s WhatGroup (expected in libs/LibKa0s)"*. Only the tail differs — `…; running on reduced built-in fallbacks.` from the printer, `…, so the settings panel is unavailable.` from steps 4/5, `…, so the debug console window is unavailable.` from steps 6–8, `…, so the settings CLI is unavailable.` from a schema verb.
 - **Counted, not glanced at:** the printer's notice appears **exactly once** for the whole session. The settings notice appears **twice** — once at login, once for the first `/wg config` — and **not** on the second `/wg config`. The console notice appears **twice** — once for `/wg debug on`, once for the first bare `/wg debug` — and not on the second.
 - `/wg debug on` still reports the flag flipping. The flag is this addon's; only the *window* is lost.
+- Step 9 is the other shape, the verb line of row 2.19: each form prints
+  `[WG] /wg diagnostics is unavailable: the LibKa0s library did not load.` once, writes nothing and
+  raises nothing.
 
 Rename the folder back and `/reload` before doing anything else.
 
@@ -733,7 +794,8 @@ Rename the folder back and `/reload` before doing anything else.
 Every module that takes an `L` override resolves the descriptor's table first. Hand one an addon-wide locale table — whose metatable answers every key with the key itself — and the library's own English is never reached, so the UI renders `CHECKBOX_LABEL`, `ERR_BOOL`, `LIST_HEADER` and friends. It fails for every string at once, and **only in game**: a synthesized value is still a string, so no headless case sees it. The source guard and the rendered assertions in `tests/test_libka0s.lua` are both blind to what the client actually draws.
 
 1. `/wg config` — read the landing page top to bottom, then the **General** page top to bottom — every tab in the strip, every widget label, every tooltip (hover each), the tab labels themselves and the **Defaults** button. There are no section headings any more; the strip carries those names.
-2. `/wg debug` — read the console: its title, the `Debug: ON`/`Debug: OFF` toggle, the `Copy` and `Clear` buttons, the `N / 3000 lines` counter. Click **Copy** and read that window's title too.
+2. `/wg debug` — read the console: its title, the `Debug: ON`/`Debug: OFF` toggle, the `Copy` and `Clear` buttons, the `N / 3000 lines` counter. Click **Copy** and read that window's title too. Then run
+   `/wg diagnostics` and read its chat line, the one console string this addon localizes.
 3. `/wg help`, then `/wg list`, then `/wg set notify.showLeader nonsense`.
 
 **Expected:** not one `SCREAMING_SNAKE_CASE` string anywhere. Every label is prose. If you see one, a descriptor was handed `NS.L`.
@@ -982,6 +1044,8 @@ For a fast pre-release pass, run at minimum:
 - [ ] section 1.3 — ESC → Logout after `/wg config`
 - [ ] section 1.5 — `/reload` in combat: WhatGroup appears in Settings → AddOns at combat end, no Logout taint
 - [ ] sections 2.1, 2.10, 2.12, 2.13 — `/wg help`, `/wg test notify`, `/wg config`, `/wg reset`
+- [ ] section 2a — `/wg diagnostics` appends after the trace, lands with logging off, runs while disabled, and never builds the popup
+- [ ] row 2.8b-ii — the counter pins at `3000 / 3000 lines` and Copy opens without a hitch
 - [ ] section 3.4 — Defaults button confirm flow
 - [ ] section 3.8 — the visibility gate follows a combat transition, in both directions, with no taint line
 - [ ] section 3.9 — Test mode shows the sample, unticks on Close / ESC, and ends on the pull with one line

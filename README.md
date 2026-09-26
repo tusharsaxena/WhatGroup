@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-787%2F788_passing-green)
+![Tests](https://img.shields.io/badge/Tests-823%2F823_passing-green)
 
 WhatGroup remembers what group you signed up for via the Group Finder tool. Once you get accepted to a group, shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who is leading, and the playstyle.
 
@@ -30,7 +30,7 @@ Three tabs hold the tailoring. Six toggles on the **Chat** tab decide what the j
 
 There is a minimap button too, wearing the addon's own logo: **left-click opens Settings**, and **right-click opens a small menu** of checkboxes — **Enabled**, **Locked** (the popup's Lock frame), **Test mode** and **Show window** (the group popup) — each doing exactly what its slash command does. While the addon is switched off, Enabled is the one you can click; the rest are grayed with a note to enable the addon first. Hover the button and the tooltip says where things stand — **Enabled**, **Locked** and **Test mode** — and it still answers while the addon is switched off. The same entry turns up in Titan Panel, ElvUI data texts or any other broker display you run — it is one button shown in two places, not two. Untick **Minimap button** on the **Master controls** tab to hide it; that choice is remembered per installation, so switching profiles will not move your buttons around and **Reset all settings** will not bring a hidden one back.
 
-All of it is reachable from chat as well. `/wg config` opens the panel, `/wg enable` and `/wg disable` turn the addon off and on again without opening anything, `/wg test` flips test mode (`on` and `off` set it), `/wg list` dumps every setting and its value, `/wg get` and `/wg set` read and write one by path (switches take `on`, `off` or `toggle`), `/wg reset path` restores one and `/wg resetall` restores the lot behind a confirmation, and `/wg version` prints the build you are running. When something misbehaves, `/wg debug on` starts logging and `/wg debug` opens the window holding it.
+All of it is reachable from chat as well. `/wg config` opens the panel, `/wg enable` and `/wg disable` turn the addon off and on again without opening anything, `/wg test` flips test mode (`on` and `off` set it), `/wg list` dumps every setting and its value, `/wg get` and `/wg set` read and write one by path (switches take `on`, `off` or `toggle`), `/wg reset path` restores one and `/wg resetall` restores the lot behind a confirmation, and `/wg version` prints the build you are running. When something misbehaves, `/wg debug on` starts logging and `/wg debug` opens the window holding it. `/wg diagnostics` adds a report on the addon's state to the same window, and [Reporting a bug](#reporting-a-bug) walks through the three steps for a bug report.
 
 Everything else is configuration, and it lives in two places: the **Ka0s WhatGroup** page in the game's Settings → AddOns list, and `/wg` (or `/whatgroup`), which opens that page. `/wg help` prints the full command list.
 
@@ -66,6 +66,15 @@ The group info does not outlive the session. It is dropped the moment you leave 
 | `/wg config` says "cannot open settings during combat" and nothing opens | The Blizzard settings panel can't be opened in combat. Leave combat and run it again. |
 | **Test mode** turned itself off | It ends when a fight starts, when you close the popup, and when you ask for the real one (`/wg show`, `/wg test notify`, or the chat link). It also won't start during combat. Joining a group while it's on doesn't end it; click the chat link to see that group. |
 | I ticked **Debug console** but no debug output shows up | That checkbox only shows or hides the window. Turn logging on with `/wg debug on`, or the **Debug: OFF** button inside the window itself. Logging always starts off after a login or `/reload`. |
+| Something looks wrong and I want to report it | Follow [Reporting a bug](#reporting-a-bug) below. |
+
+## Reporting a bug
+
+1. Type `/wg debug on` and reproduce the bug.
+2. Type `/wg diagnostics`.
+3. If the debug window isn't open, open it with `/wg debug`. Press **Copy**, copy the entire output, and include it with your bug report.
+
+The report is added after the debug trace in the same window, so one copy carries both.
 
 ## Issues and feature requests
 
