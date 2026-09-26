@@ -33,6 +33,7 @@ What stays this addon's is what is genuinely per-addon:
 | `tests/loader.lua` | the **isolated-instance** factory: one fresh mock environment and one fresh `NS` per call, over the kit's `Loader.makeEnv` and `Loader.tocFiles` |
 | `tests/wow_mock.lua` | a thin **extender** over `mock_base`, never a replacement |
 | `tests/test_*.lua` | the suites |
+| `tests/frame_fixture.lua` | the popup helpers `test_frame` and `test_frame_visibility` both use: a pending capture, the popup and its Close button, the drag handle, the ESC proxy and a simulated Escape. Not a suite; each of the two `dofile`s it |
 | `tests/prose_waivers.lua` | the kit prose gate's per-file, per-word waivers: tokens this repo does not own (Blizzard's LFG status, AceTimer's field name) |
 
 `tests/loader.lua` derives the addon's own load list **from the TOC**
@@ -58,7 +59,7 @@ label like **Enable WhatGroup** honest about which addon it is turning off.
 The suites, in run order: `test_harness`, `test_libka0s`,
 `test_surface_parity`, `test_mediasetup`, `test_envsetup`, `test_util`,
 `test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
-`test_capture`, `test_notify`, `test_frame`, `test_frame_secure`, `test_panel`, `test_testmode`,
+`test_capture`, `test_notify`, `test_frame`, `test_frame_visibility`, `test_frame_secure`, `test_panel`, `test_testmode`,
 `test_snapshot`, `test_diagnostics`, `test_launcher`, `test_lifecycle`,
 `test_debuglog`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
 `test_register`, `test_disabled`, `test_vendor_sync`. Four more run last and arrive with the
@@ -130,7 +131,8 @@ degradation cases clear them through the loader's `mock` option, which is how a
 host with neither is shown not to raise.
 
 Coverage extends past pure logic into the UI and event layers — the popup's
-field rendering and secure-teleport-button states (`test_frame`, with the combat reopen of a
+field rendering and secure-teleport-button states (`test_frame`, with the master controls, the visibility gate's
+combat transition and Escape in combat in `test_frame_visibility`, and the combat reopen of a
 soft-hidden popup in `test_frame_secure`), the settings
 panel's deferred build and widget write-back (`test_panel`), the delayed
 join-notify pipeline (`test_notify`), and the event/hook wiring

@@ -461,7 +461,7 @@ badge and any count quoted in the docs must agree with it.
 - notify: the Leader row still prints when leaderName is nil
 - notify: Playstyle and Teleport drop their rows while Leader keeps its own
 
-### test_frame.lua (90)
+### test_frame.lua (54)
 
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
@@ -517,6 +517,9 @@ badge and any count quoted in the docs must agree with it.
 - frame: a size hand-edited past the clamp is drawn at the nearest legal value
 - frame: a non-numeric stored size falls back to the shipped default
 - frame: a size change taken in combat is refused, and lands on the next open
+
+### test_frame_visibility.lua (36)
+
 - frame: the popup opens at the profile's master scale
 - frame: a scale change re-scales a popup that is already open
 - frame: a scale hand-edited past the clamp is drawn at the nearest legal value
@@ -943,7 +946,8 @@ badge and any count quoted in the docs must agree with it.
 | test_labels.lua | 34 |
 | test_capture.lua | 35 |
 | test_notify.lua | 48 |
-| test_frame.lua | 90 |
+| test_frame.lua | 54 |
+| test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_panel.lua | 54 |
 | test_testmode.lua | 23 |

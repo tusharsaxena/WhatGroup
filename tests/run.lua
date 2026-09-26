@@ -152,6 +152,7 @@ Kit.run{
         "test_capture",
         "test_notify",
         "test_frame",
+        "test_frame_visibility",
         "test_frame_secure",
         "test_panel",
         "test_testmode",
