@@ -11,7 +11,7 @@ self:RegisterChatCommand("wg",        "OnSlashCommand")
 self:RegisterChatCommand("whatgroup", "OnSlashCommand")
 ```
 
-`WhatGroup:OnSlashCommand` (`settings/Slash.lua:449`) hands the raw input straight to `Sl:OnSlash`. The library deliberately registers no chat command of its own — AceConsole stays the single registrar, so every verb's output keeps flowing through the tagged printer (slash-commands-§1).
+`WhatGroup:OnSlashCommand` (`settings/Slash.lua:488`) hands the raw input straight to `Sl:OnSlash`. The library deliberately registers no chat command of its own — AceConsole stays the single registrar, so every verb's output keeps flowing through the tagged printer (slash-commands-§1).
 
 ## Case-preserving parse
 
@@ -124,7 +124,7 @@ the restored set is that a player must be able to **read and repair settings** a
 panel** while the addon is off, which is exactly when they are likeliest to need to, and **`enable`
 above all**. `debug`, `perf` and `diagnostics` are diagnostics rather than features: the usual reason to reach for
 any of them is that the addon is misbehaving. `perf` is reserved-but-unregistered here
-([LIBKA0S-15](https://github.com/tusharsaxena/WhatGroup/issues/7)), `diagnostics` has no `COMMANDS` row yet, and a live verb with no
+([LIBKA0S-15](https://github.com/tusharsaxena/WhatGroup/issues/7)), and a live verb with no
 `COMMANDS` row still gets the one line rather than the index — it is a real verb, not a typo.
 
 ### ...and a feature verb refuses instead of acting

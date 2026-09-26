@@ -77,7 +77,7 @@ modules\Frame.lua
 modules\Diagnostics.lua
 
 # Settings (conventional WITHIN the group apart from the three annotated lines; the group as a whole
-# must follow # Core, because settings\Slash.lua:116 builds CLI_MISSING from NS.LIBKA0S_MISSING at
+# must follow # Core, because settings\Slash.lua:122 builds CLI_MISSING from NS.LIBKA0S_MISSING at
 # file scope and core\CoreSetup.lua:34 publishes it)
 # Directly above settings\Schema.lua: this file publishes Settings.SchemaLib (LibKa0s-Schema-1.0,
 # or the host's degradation stub), and Schema.lua calls its :New at file scope
