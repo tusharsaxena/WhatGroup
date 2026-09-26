@@ -46,8 +46,15 @@ local LIBKA0S = {
     "libs/LibKa0s/Slash.lua",
     "libs/LibKa0s/Launcher.lua",
     "libs/LibKa0s/Options.lua",
+    -- New in LibKa0s v1.62.0: four files peeled out of the Options major (OptionsRegistry out of
+    -- Options.lua, OptionsIds and OptionsIdList out of OptionsWidgets.lua, OptionsCombat out of
+    -- OptionsTabs.lua). Each attaches to the file before it, so they load where the XML has them.
+    "libs/LibKa0s/OptionsRegistry.lua",
     "libs/LibKa0s/OptionsWidgets.lua",
+    "libs/LibKa0s/OptionsIds.lua",
+    "libs/LibKa0s/OptionsIdList.lua",
     "libs/LibKa0s/OptionsTabs.lua",
+    "libs/LibKa0s/OptionsCombat.lua",
     "libs/LibKa0s/OptionsCompose.lua",
     "libs/LibKa0s/OptionsScroll.lua",
     "libs/LibKa0s/OptionsNav.lua",
