@@ -22,31 +22,24 @@ It tells you twice, on purpose. A moment after you join, a chat line appears wit
 
 ## Usage
 
-WhatGroup starts working as soon as it loads. You don't have to switch anything on. Apply to a group through the Premade Group Finder and join it, and the summary prints while the popup opens. That happens instantly, unless you've asked for a pause of up to ten seconds under **Chat**. If you join in the middle of a fight, the popup waits, tells you it's waiting, and opens the second you drop out of combat.
+WhatGroup starts working the moment it loads, and there's nothing to switch on. You won't see anything until you join a group. To preview it, type `/wg test` or tick **Test mode** on the **Master controls** tab. The popup opens with a sample group, and you drag it by its title bar to wherever you want it. **Lock frame** on the same tab stops it moving after that. `/wg test notify`, or the **Test** button on the **Chat** tab, plays the chat line and the popup once.
 
-The popup has six rows: group, instance, type, leader, playstyle and the teleport. That last one is the row people install this for. It's a real spell button, so clicking it casts. It stays grayed out until you've learned that dungeon's teleport, and goes gray again while the spell recharges, with the time left spelled out beside the icon and a cooldown swipe over it. If a dungeon has no teleport at all, the row is skipped. The chat line marks the same states with `(not learned)` and `(on cooldown)`.
+Joining a group through the Group Finder takes four steps.
 
-Drag the window by its title bar and it remembers where you left it. `ESC` or the Close button puts it away, and `/wg show` or the "view details" link brings it back, as long as you're still in the group.
+1. Apply. Find a group in the Premade Group Finder and click **Apply**. WhatGroup notes what the listing said at that moment, so you can have several applications out and it still knows which is which. Groups you join from a guild or party invite aren't covered, because there's no listing to read.
+2. Join, and read the summary. Accept the invite and a chat line with a cyan `[WG]` tag lists the instance, type, leader and playstyle. The popup opens with the same details. Both appear straight away unless you've set a pause under **Chat → Notification Delay**, and if you join mid-fight the popup waits until you're out of combat.
+3. Teleport. The popup's last row is the dungeon's teleport, and it's a real spell button, so clicking it casts. It stays gray until you've learned that teleport, and goes gray again while it recharges, with the time left beside it. A dungeon with no teleport skips the row.
+4. Close it, and bring it back. `ESC` or the **Close** button puts the popup away. `/wg show` or the "Click here to view details" link on the chat line opens it again, for as long as you're in the group. WhatGroup forgets the group once you leave.
 
-You can watch the whole thing without joining anything. `/wg test notify` runs it once on sample data, and so does the **Test** button on the **Chat** tab. To put the popup where you want it, type `/wg test` or tick **Test mode** on the **Master controls** tab. The popup comes up with a sample group and stays up while you drag it around. It goes away when you run `/wg test` again, untick the box, close the popup, or get into a fight.
+The **Chat** tab picks which lines the chat summary includes, and **Print to Chat** turns it off. **Open Automatically** on the **Popup** tab does the same for the window, and **Width** and **Height** sit beside it. The minimap button opens Settings on a left-click and a short menu on a right-click. Untick **Minimap button** on **Master controls** if you'd rather not have it.
 
-Three tabs hold the options. On the **Chat** tab, six toggles decide what the join summary contains: instance, type, leader, playstyle, the link and the teleport spell. **Print to Chat** turns the message off entirely. Its mirror is **Open Automatically** under **Popup**, which skips the window and leaves you the chat line. **Width** and **Height** sit next to it.
-
-The **Master controls** tab is the same in every Ka0s addon, so if you want to turn an addon off, make it smaller or put it back where it was, you always look in the same place. It has **Enable WhatGroup**, **General visibility** (always, only in combat, only out of combat, or never), **Master scale**, **Master alpha**, **Lock frame** for when you keep nudging the window by accident, **Debug console**, **Minimap button** and **Test mode**, then **Reset position** and **Reset all settings** at the end. [docs/settings-panel.md](docs/settings-panel.md#the-tab-strip) lists every row on every tab and where each one is stored.
-
-There's a minimap button too, with the addon's own logo on it. Left-click opens Settings. Right-click opens a small menu of checkboxes: **Enabled**, **Locked** (the popup's Lock frame), **Test mode** and **Show window** (the group popup). Each one does exactly what its slash command does. While the addon is switched off, Enabled is the only one you can click, and the rest are grayed out with a note telling you to enable the addon first. Hover over the button and the tooltip shows where things stand with **Enabled**, **Locked** and **Test mode**. It still answers while the addon is switched off.
-
-The same entry shows up in Titan Panel, ElvUI data texts or any other broker display you run. It's the same button as the one on the minimap, shown in a second place. To hide it, untick **Minimap button** on the **Master controls** tab. WhatGroup remembers that choice per installation, so switching profiles won't move your buttons around, and **Reset all settings** won't bring a hidden one back.
-
-You can do all of this from chat as well. `/wg config` opens the panel. `/wg enable` and `/wg disable` turn the addon on and off without opening anything. `/wg test` flips test mode, and `on` or `off` sets it. `/wg list` prints every setting with its value, and `/wg get` and `/wg set` read and write a single setting by path (switches take `on`, `off` or `toggle`). `/wg reset path` restores one setting, `/wg resetall` restores the lot after asking you to confirm, and `/wg version` prints the build you're running.
-
-When something misbehaves, `/wg debug on` starts logging and `/wg debug` opens the window that holds the log. `/wg diagnostics` adds a report on the addon's state to the same window. [Reporting a bug](#reporting-a-bug) has the three steps for a bug report.
-
-Everything else is configuration. It lives on the **Ka0s WhatGroup** page in the game's Settings → AddOns list, and `/wg` (or `/whatgroup`) opens that page for you. `/wg help` prints the full command list.
+Everything else is on the **Ka0s WhatGroup** page in Settings → AddOns, which `/wg` opens, and `/wg help` lists every command.
 
 ## How it works
 
-When you click **Apply** in the Premade Group Finder, WhatGroup writes down what the tile said. Applications queue, so having four in flight at once doesn't confuse it. When an invite lands, the details waiting for you belong to the group you actually joined. Then the chat message prints and the popup opens. By default that's instant. If you'd rather let the zone-in settle first, set a pause under **Chat → Notification Delay**.
+The Premade Group Finder is the game's list of player-made groups, and addons read it through Blizzard's `C_LFGList` functions. Those functions describe a listing (its name, activity, leader and playstyle) while it sits in your search results, so WhatGroup reads it the moment you click **Apply** rather than waiting until you've joined.
+
+Applications queue, so having four in flight at once doesn't confuse it. When an invite lands, WhatGroup matches it to the application it came from, and the details waiting for you belong to the group you actually joined. Then the chat message prints and the popup opens.
 
 The group info doesn't outlive the session. WhatGroup drops it the moment you leave the group, which is why `/wg show` stops answering then. Your settings persist, and so does the spot you dragged the popup to. If you want to see how it's built, read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

@@ -71,7 +71,7 @@ The first vararg is the addon's **folder** name, and it is spelled
 `core/LauncherSetup.lua`, `core/LifecycleSetup.lua`, `core/WhatGroup.lua`,
 `settings/Panel.lua` — all eight hand it to a
 vendored library that cannot infer which folder it was copied into) and `local _, NS = ...`
-in the eleven that do not. The `_` is not a style preference: a named local nothing
+in the twelve that do not. The `_` is not a style preference: a named local nothing
 reads is a `211` finding, and `M4c-04` took ten of them out of this tree rather
 than leave the blanket `ignore` that had been hiding them.
 
