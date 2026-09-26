@@ -833,13 +833,14 @@ badge and any count quoted in the docs must agree with it.
 - lint: read_globals grants no removed or unread global
 - lintconfig: no source file carries a bare inline luacheck ignore
 
-### test_doc_structure.lua (8)
+### test_doc_structure.lua (9)
 
 - docs/ARCHITECTURE.md carries the ten sections documentation-§3 names
 - every mandated hub section that has a topic doc has spilled into it
 - every anchor pointing into docs/ARCHITECTURE.md resolves to a heading
 - the player-facing history has the ONE home documentation-§1 allows, and no second
 - README.md's top-level sections are the ones documentation-§1 names, in its order
+- README.md's Reporting a bug section is the standard's text with /wg, and links nowhere
 - the README's settings table is page-granular, not per-tab
 - every settings tab the README sends a player to exists in the schema
 - docs/smoke-tests.md carries a non-English-client section
@@ -952,7 +953,7 @@ badge and any count quoted in the docs must agree with it.
 | test_debuglog.lua | 49 |
 | test_docmap.lua | 1 |
 | test_lintconfig.lua | 6 |
-| test_doc_structure.lua | 8 |
+| test_doc_structure.lua | 9 |
 | test_register.lua | 1 |
 | test_disabled.lua | 18 |
 | test_vendor_sync.lua | 3 |
@@ -960,4 +961,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **822** |
+| **Total** | **823** |
