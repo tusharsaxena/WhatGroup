@@ -1,0 +1,68 @@
+{
+  "addon": "WhatGroup",
+  "buckets": {
+    "applyAlpha": {
+      "apiPerIter": 1,
+      "bytesPerIter": 0,
+      "calls": 500,
+      "maxMs": 0.0002,
+      "totalMs": 0.1100
+    },
+    "applyScale": {
+      "apiPerIter": 1,
+      "bytesPerIter": 0,
+      "calls": 500,
+      "maxMs": 0.0003,
+      "totalMs": 0.1330
+    },
+    "combatGateFlipping": {
+      "apiPerIter": 7,
+      "bytesPerIter": 1000.0330,
+      "calls": 2000,
+      "maxMs": 0.0048,
+      "totalMs": 9.5090
+    },
+    "combatGateSteady": {
+      "apiPerIter": 0,
+      "bytesPerIter": 0,
+      "calls": 2000,
+      "maxMs": 0.0002,
+      "totalMs": 0.4210
+    },
+    "cooldownTick": {
+      "apiPerIter": 2,
+      "bytesPerIter": 240.4015,
+      "calls": 2000,
+      "maxMs": 0.0016,
+      "totalMs": 3.1810
+    },
+    "formatDurationLong": {
+      "apiPerIter": 0,
+      "bytesPerIter": 34.5310,
+      "calls": 2000,
+      "maxMs": 0.0005,
+      "totalMs": 1.0930
+    },
+    "formatDurationShort": {
+      "apiPerIter": 0,
+      "bytesPerIter": 0.8215,
+      "calls": 2000,
+      "maxMs": 0.0004,
+      "totalMs": 0.8070
+    },
+    "showFrameRepeat": {
+      "apiPerIter": 18,
+      "bytesPerIter": 1744.1320,
+      "calls": 500,
+      "maxMs": 0.0102,
+      "totalMs": 5.0800
+    }
+  },
+  "failures": [],
+  "interface": 0,
+  "label": "offline",
+  "schema": 1,
+  "source": "offline",
+  "timestamp": 1790431296,
+  "version": "1.4.0"
+}
