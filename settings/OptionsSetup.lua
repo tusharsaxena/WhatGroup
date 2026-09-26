@@ -142,6 +142,9 @@ if not lib then
     -- SelectTab, new at LibKa0s v1.36.0: reached only from a tab click on an already-rendered
     -- page. This addon does not adopt tab-scoped refresh, so the same inert no-op applies.
     H.SelectTab            = function() end
+    -- NavRail, new at LibKa0s v1.61.0 (OptionsNav minor 1): drawn only by a page render, and no
+    -- page here draws a rail, so the same inert no-op applies.
+    H.NavRail              = function() end
     H.SetRenderer          = function() end
     H.RegisterOptionsPage  = function() end
     H.RefreshAllPanels     = function() end

@@ -50,6 +50,7 @@ local LIBKA0S = {
     "libs/LibKa0s/OptionsTabs.lua",
     "libs/LibKa0s/OptionsCompose.lua",
     "libs/LibKa0s/OptionsScroll.lua",
+    "libs/LibKa0s/OptionsNav.lua",
     "libs/LibKa0s/Perf.lua",
     "libs/LibKa0s/PerfPanel.lua",
 }
