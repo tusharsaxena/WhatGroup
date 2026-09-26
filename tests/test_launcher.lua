@@ -413,7 +413,7 @@ test("launcher: the tooltip reads title, status, lock, test mode, then the two c
     -- onTooltipShow drawing a title or hint of its own.
     local _, _, object = launched()
     assertLines(plain(hover(object)), {
-        "Ka0s WhatGroup  v1.4.0",
+        "Ka0s WhatGroup  v1.5.0",
         "Enabled: Yes",
         "Locked: No",
         "Test mode: Off",
@@ -432,7 +432,7 @@ test("launcher: Locked and Test mode are read on every hover, from the rows' own
     H.Set("state.testMode", true)
     local lines = hover(object)
     assertLines(plain(lines), {
-        "Ka0s WhatGroup  v1.4.0",
+        "Ka0s WhatGroup  v1.5.0",
         "Enabled: Yes",
         "Locked: Yes",
         "Test mode: On",
@@ -458,7 +458,7 @@ function()
     NS.addon.Settings.Helpers.Set("enabled", false)
     local lines = hover(object)
     assertLines(plain(lines), {
-        "Ka0s WhatGroup  v1.4.0",
+        "Ka0s WhatGroup  v1.5.0",
         "Enabled: No",
         "Locked: No",
         "Test mode: Off",
