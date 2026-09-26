@@ -96,7 +96,8 @@ sections.
 - **Each list** (client applications, the two capture tables, rejected events) prints at most
   `lib.DIAG_MAX_PER_LIST` (40) entries and then `(+N more)`. The joined lines (the event
   registrations, the holds, the popup points and combat-end queue) are short fixed sets and carry
-  no cap. Any long line wraps at 200 characters onto indented continuation lines.
+  no cap. A list or joined line wraps at 200 characters onto indented continuation lines; every
+  other line prints whole, however long (a long group title, for one).
 - A capped report ends with `truncated: N line(s) omitted, per-list caps hit=yes|no`, then the end
   marker.
 
