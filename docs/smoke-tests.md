@@ -706,7 +706,7 @@ slash-commands-§7 row under `docs/ARCHITECTURE.md` → `## Documented deviation
 4. Log out completely, log back in on a **different character**.
 5. `/wg get notify.delay`
 
-**Expected:** Still `4.5s`. WhatGroup uses a single account-shared profile (`AceDB:New("WhatGroupDB", defaults, true)` — third arg `true`).
+**Expected:** Still `4.5s`, provided the second character is on the `Default` profile (the **Profiles** page names the current one). Every character starts on one shared `Default` profile (`AceDB:New("WhatGroupDB", defaults, true)` — third arg `true`); a character switched to a profile of its own on the Profiles page reads that profile's values instead. See [profiles.md](./profiles.md).
 
 6. `/wg set notify.delay 0` to restore the default.
 

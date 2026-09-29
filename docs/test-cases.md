@@ -624,7 +624,7 @@ badge and any count quoted in the docs must agree with it.
 - panel: the landing page adds logo, notes, heading and command rows in that order
 - panel: a dirty landing page re-renders in place instead of stacking a second copy
 
-### test_profiles.lua (11)
+### test_profiles.lua (12)
 
 - profiles: the page registers this db's AceDBOptions table, as the LAST subcategory
 - profiles: the page has no Defaults button
@@ -637,6 +637,7 @@ badge and any count quoted in the docs must agree with it.
 - profiles: switching to a disabled profile stands the addon down, and back brings it up
 - profiles: the Reset all settings tooltip says it is Profiles -> Reset Profile
 - profiles: ONE named veto keeps the Profiles page and every profile row out of the reset walk
+- profiles: /wg resetall resets the active profile and leaves the list and the other profile alone
 
 ### test_testmode.lua (23)
 
@@ -964,7 +965,7 @@ badge and any count quoted in the docs must agree with it.
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_panel.lua | 54 |
-| test_profiles.lua | 11 |
+| test_profiles.lua | 12 |
 | test_testmode.lua | 23 |
 | test_snapshot.lua | 10 |
 | test_diagnostics.lua | 18 |
@@ -981,4 +982,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **835** |
+| **Total** | **836** |
