@@ -11,11 +11,11 @@ self:RegisterChatCommand("wg",        "OnSlashCommand")
 self:RegisterChatCommand("whatgroup", "OnSlashCommand")
 ```
 
-`WhatGroup:OnSlashCommand` (`settings/Slash.lua:488`) hands the raw input straight to `Sl:OnSlash`. The library deliberately registers no chat command of its own — AceConsole stays the single registrar, so every verb's output keeps flowing through the tagged printer (slash-commands-§1).
+`WhatGroup:OnSlashCommand` (`settings/Slash.lua:496`) hands the raw input straight to `Sl:OnSlash`. The library deliberately registers no chat command of its own — AceConsole stays the single registrar, so every verb's output keeps flowing through the tagged printer (slash-commands-§1).
 
 ## Case-preserving parse
 
-The dispatcher (`libs/LibKa0s/Slash.lua:766`) lowercases only the command name — the rest of the input is passed through untouched:
+The dispatcher (`libs/LibKa0s/Slash.lua:949-951`) lowercases only the command name — the rest of the input is passed through untouched:
 
 ```lua
 local cmd, rest = raw:match("^(%S+)%s*(.*)$")

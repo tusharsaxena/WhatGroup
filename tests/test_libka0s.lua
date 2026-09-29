@@ -674,6 +674,35 @@ test("degraded: `/wg test on|off` print the library-absent line and move nothing
     end
 end)
 
+-- Slash minor 17 put CliProfile and ProfileSwitch on the live instance, so the stub owes both
+-- (slash-commands-§1). With the library absent there is no store adapter to trust: both take
+-- route (b), one library-absent line naming `/wg profile`, and no profile moves.
+--
+-- red under: a stub member that switches, raises, or says nothing.
+test("degraded: the Slash stub's CliProfile and ProfileSwitch print the library-absent line and "
+     .. "switch nothing (Slash 17)", function()
+    local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
+    NS.addon:OnInitialize()
+    NS.addon:OnEnable()
+    NS.addon.db:SetProfile("Alt")
+    NS.addon.db:SetProfile("Default")
+    local Sl = NS.SlashCommands
+    local calls = {
+        function() return Sl:CliProfile("Alt") end,
+        function() return Sl:ProfileSwitch("Alt") end,
+    }
+    for i, call in ipairs(calls) do
+        local mark = #mock.prints
+        local ok, answer = pcall(call)
+        assertTrue(ok, "stub member " .. i .. " raised: " .. tostring(answer))
+        assertEqual(#mock.prints - mark, 1, "stub member " .. i .. " answers one line")
+        local want = "/wg profile" .. ABSENT
+        assertEqual(mock.prints[#mock.prints]:sub(-#want), want, "the line names /wg profile")
+        assertEqual(NS.addon.db:GetCurrentProfile(), "Default", "no profile moved")
+    end
+    assertEqual(Sl:ProfileSwitch("Alt"), false, "ProfileSwitch answers false: nothing switched")
+end)
+
 -- options-ui-§1 keeps the global reset real in the stub. On this path H IS Settings.Helpers, the
 -- table settings/Schema.lua already hung the host's RestoreAllDefaults on, so a stub that assigns
 -- its own no-op wipes the real reset -- and both entry points (the direct call and `/wg resetall`'s

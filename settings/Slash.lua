@@ -130,8 +130,11 @@ if not lib then
     -- Nothing here re-implements a row formatter, a `key = value` shape or the parser. A degraded
     -- help row renders plainly and says so.
     local function unavailable() NS.Print(CLI_MISSING) end
+    local function profileAbsent()
+        NS.Print(L["%s is unavailable: the LibKa0s library did not load."]:format("/wg profile"))
+    end
 
-    -- A BYTE COPY of libs/LibKa0s/Slash.lua's `lib.DISABLED_LINE_FORMAT` (:84), and the only place
+    -- A BYTE COPY of libs/LibKa0s/Slash.lua's `lib.DISABLED_LINE_FORMAT` (:94), and the only place
     -- this addon may spell the refusal line (slash-commands-§7). It is a copy because this is the
     -- branch where the library is absent and there is nothing to ask; it is pinned to the live
     -- library's bytes by tests/test_libka0s.lua through Kit.assertLibraryConstant, so a library-side
@@ -192,6 +195,11 @@ if not lib then
         BuildListLines  = function() return { CLI_MISSING } end,
         SetRowAnnotator = function() end,
         Text            = function(_, key) return key end,
+        -- Slash minor 17's profile pair. With the library absent there is no store adapter to
+        -- trust, so both take options-ui-§1's route (b): the library-absent line for
+        -- `/wg profile`, and no switch.
+        CliProfile      = function() profileAbsent() end,
+        ProfileSwitch   = function() profileAbsent(); return false end,
     }
     NS.SlashCommands = Sl
 else
