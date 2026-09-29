@@ -43,9 +43,10 @@ Profiles page. It then runs `RunMigrations` and registers the three profile call
 `settings/Profiles.lua` registers the `Profiles` subcategory, **last** in the Settings tree (it loads
 last in the TOC, so its `RegisterOptionsPage` call queues behind General's). The canvas and header are
 `LibKa0s-Options-1.0`'s. Its body is an AceGUI `SimpleGroup` into which `AceConfigDialog` draws
-**AceDBOptions'** own options table: choose, create, copy, reset and delete, plus the scope
-dropdowns. It is the one AceConfig use in this addon (options-ui-§3), because that table is Ace's and
-not the addon's.
+**AceDBOptions'** own options table: reset, the current profile, create, choose, copy and delete,
+and no scope control (the choose dropdown also offers the character, realm and class profile names
+Ace suggests). It is the one AceConfig use in this addon (options-ui-§3), because that table is
+Ace's and not the addon's.
 
 - **No Defaults button** (`defaultsButton = false`). Restoring a default here would mean deleting
   profiles.

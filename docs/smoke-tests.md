@@ -186,8 +186,10 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 
 - **PROFILE-1. The Profiles page.** Settings → AddOns → **Ka0s WhatGroup** → **Profiles** → it is
   the last subcategory, below **General**; it has no **Defaults** button; its body is Ace's
-  profile controls (current profile, choose, create, copy from, reset, delete, and the scope
-  dropdowns), naming `Default` as current on a fresh install. Result:
+  profile controls and nothing else, each under Ace's own line of explanation: **Reset Profile**,
+  `Current Profile: Default` on a fresh install, **New**, **Existing Profiles**, **Copy From** and
+  **Delete a Profile**. **Existing Profiles** also offers this character's, realm's and class's
+  profile names beside `Default`, as Ace always does. Result:
 - **PROFILE-2. A switch on the page.** With `/wg debug on` and the popup open (`/wg test notify`),
   choose `Alt` on the Profiles page → the popup resizes to 600 wide, **General** → **Popup** reads
   600, and the console shows one `[Profile] switched to 'Alt'` line and no `[Set]` line. Result:
@@ -250,12 +252,15 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   stays unticked. Result:
 - **STATE-3. Everything else answers while disabled.** Still disabled: `/wg help`, `/wg version`,
   `/wg list`, `/wg get enabled`, `/wg set notify.delay 2`, `/wg reset notify.delay`, `/wg debug`,
-  `/wg profile` and a bare `/wg` → each answers normally and none prints the refusal. Result:
+  `/wg profile` and a bare `/wg` → each answers normally and none is refused. `/wg help` prints
+  the refusal line once, unindented, straight under its header, as a note on the index: the
+  header, that line, then all fifteen rows. No other command here prints it. Result:
 - **STATE-4. The Test button while disabled.** Still disabled, **Chat** tab → **Test** → it
   previews as usual; it is the panel route that replaced `/wg test notify`'s old master-switch
   bypass. Result:
-- **STATE-5. A typo while disabled.** Still disabled, `/wg shwo` → `unknown command 'shwo'` and
-  the help index, not the refusal. Result:
+- **STATE-5. A typo while disabled.** Still disabled, `/wg shwo` → `unknown command 'shwo'`, then
+  the help index with the refusal line under its header (as in STATE-3); never the refusal line
+  alone. Result:
 - **STATE-6. The way back.** Still disabled, **Popup** → drag *Width* to 600, then `/wg enable` and
   `/wg test notify` → it acts at once with no reload, and the popup opens 600 wide, the width you
   set while off. `/wg reset frame.width`. Result:
@@ -321,8 +326,9 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   nothing is captured, then pull and drop combat → nothing opens: an empty popup must never
   appear on a combat edge. Restore *Always*. Result:
 - **COMBAT-12. A popup requested in combat is deferred.** With the popup closed, pull a dummy,
-  `/wg test notify` → no error, no popup, one line: `Popup deferred until combat ends.` Drop
-  combat → the popup opens now, with that capture. Result:
+  `/wg test notify` → no error and no popup; chat prints the join summary (POPUP-1's eight
+  lines), then one more line, `Popup deferred until combat ends.` Drop combat → the popup opens
+  now, with that capture. Result:
 
 ## The popup
 
@@ -593,33 +599,41 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 
 ## Library-absent install
 
-Quit the game and rename `Interface/AddOns/WhatGroup/libs/LibKa0s` to `libs/LibKa0s.off` first;
-rename it back and `/reload` when done. The ten seam files (`core/CoreSetup.lua`,
+Quit the game and rename `Interface/AddOns/WhatGroup/libs/LibKa0s` to `libs/LibKa0s.off` first,
+and disable every other Ka0s addon on the AddOns list: each ships its own LibKa0s, and LibStub
+hands WhatGroup that copy, so nothing here degrades while one of them loads. Rename the folder
+back, re-enable the others and `/reload` when done. The ten seam files (`core/CoreSetup.lua`,
 `core/Compat.lua`, `core/EnvSetup.lua`, `core/MediaSetup.lua`, `core/DebugLogSetup.lua`,
 `core/LauncherSetup.lua`, `core/LifecycleSetup.lua`, `settings/OptionsSetup.lua`,
 `settings/SchemaSetup.lua`, `settings/Slash.lua`) each fall back; only a real broken install
 proves they do.
 
-- **DEGRADED-1. It loads and lists.** Log in, `/wg list` → zero Lua errors at load, and a complete
-  listing of every setting (a short one means a page file touched a helper at file load). Result:
+- **DEGRADED-1. It loads, and the CLI says it is gone.** Log in, `/wg list` → zero Lua errors at
+  load, and `/wg list` prints one `[WG]` line, *The LibKa0s library is missing from this
+  installation of Ka0s WhatGroup (expected in libs/LibKa0s), so the settings CLI is unavailable.*,
+  not a listing: the schema CLI is the library's. That the schema itself loads whole is headless
+  (`tests/test_libka0s.lua` "degraded: every HAND-WRITTEN schema row survives the options
+  library's absence (options-ui-§1)"). Result:
 - **DEGRADED-2. The notices, counted.** `/wg config` twice, `/wg debug on`, `/wg debug` twice →
   every notice is one `[WG]` line starting *The LibKa0s library is missing from this installation
   of Ka0s WhatGroup (expected in libs/LibKa0s)*, with only the tail differing (reduced built-in
-  fallbacks; settings panel unavailable; debug console window unavailable; settings CLI
-  unavailable). The printer's notice appears exactly once per session; the settings notice twice
-  (login and the first `/wg config`, not the second); the console notice twice (`/wg debug on`
-  and the first bare `/wg debug`, not the second). Result:
+  fallbacks; settings panel unavailable; no minimap button and no broker plugin; debug console
+  window unavailable; settings CLI unavailable). The printer's notice appears exactly once per
+  session; the launcher notice once, at login; the settings notice twice (login and the first
+  `/wg config`, not the second); the console notice twice (`/wg debug on` and the first bare
+  `/wg debug`, not the second). Result:
 - **DEGRADED-3. The debug flag still flips.** `/wg debug on` → it reports the flag flipping; only
   the window is lost. Result:
 - **DEGRADED-4. Library-owned verbs say so.** `/wg disable`, `/wg enable`, `/wg test on`,
   `/wg diagnostics`, `/wg debug diagnostics`, `/wg profile`, `/wg profile Alt` → each prints one
-  `[WG] <verb> is unavailable: the LibKa0s library did not load.` (for example `/wg profile is
-  unavailable: …`), raises nothing, and moves nothing: the addon stays enabled, no popup opens, no
-  report is written, no profile switches. Result:
-- **DEGRADED-5. The art falls back.** `/wg debug`, `/wg test notify` → the console's controls read
-  `Copy`, `Clear` and `×`, and the footer still reads `Close`. Correct, since the marks live in
-  the missing payload; a blank control, an error, or a console that will not open is the failure.
-  Result:
+  `[WG] <verb> is unavailable: the LibKa0s library did not load.` line, raises nothing, and moves
+  nothing: the addon stays enabled, no popup opens, no report is written, no profile switches.
+  The verb named is `/wg disable`, `/wg enable`, `/wg test`, `/wg diagnostics` for both report
+  forms, and `/wg profile` for both profile forms. Result:
+- **DEGRADED-5. The popup without the art.** `/wg debug` → no console window (the window is the
+  library's), and nothing prints once DEGRADED-2 has spent the console notice. `/wg test notify`
+  → the chat summary and the popup, whose footer still reads `Close` alone. A blank footer button
+  or a Lua error is the failure. Result:
 
 ## Non-English client
 
@@ -676,10 +690,45 @@ headless stand-in: `tests/wow_mock.lua` answers enUS for every string the captur
 
 ## Pending sign-off
 
-Owner checks carried over unsigned. Each still needs a client run and a filled `Result:` line.
+The old suite recorded no result for any check, so every check carried over from it is owed unless a
+Ka0sAddonsCommonTasks plan records the owner's pass. Only the diagnostics rollout's does:
+DIAG-5 and DIAG-17 to DIAG-24 passed on 2026-09-26 (`2026-09-25-DIAGNOSTICS_COMMAND/99_REPORT.md`
+§ 6, WG-S1 to WG-S11 and WG-X1) and are not listed. Checks new in this rework, and checks whose
+expectation it corrected against the code, are listed too. Sign one off on its own `Result:` line,
+then remove its row here.
 
 | ID | Origin in the old suite | Owed because |
 |---|---|---|
-| LOC-1 – LOC-4, LOC-6 | § 12b steps 1-4 and 6 | Never run: no non-English client was available when the section landed |
+| INSTALL-1 – INSTALL-3 | § 1.1 – 1.3 | No result recorded |
+| INSTALL-4 | § 1.3 repeat list | No result recorded; its reset step corrected to `/wg resetall` |
+| INSTALL-5 | § 7 step 1 | No result recorded |
+| SLASH-1 | § 2.2, 2.3, 2.17 | No result recorded; the index now has fifteen rows, `profile` among them |
+| SLASH-2 | § 2.1, 2.12 | No result recorded; now expects the Profiles subcategory |
+| SLASH-3 – SLASH-8 | § 2.4 – 2.7, 2.16, 3.7j | No result recorded |
+| SLASH-9, SLASH-10 | § 11.6, 11.7 | No result recorded |
+| SLASH-11 | § 2.13, 11.5 | No result recorded; § 2.13's bare `/wg reset` corrected to `/wg resetall` |
+| SLASH-12 | § 2.9 | No result recorded |
+| PANEL-1 – PANEL-13 | § 3.1 – 3.7, 3.9 step 4, 11.1 – 11.4 | No result recorded; PANEL-2's Master controls order and PANEL-10's in-combat step corrected |
+| PANEL-14 | § 10 | No result recorded; `/wg profile` added |
+| PANEL-15 – PANEL-19 | § 12a.1 – 12a.5 | Never run since the pooled tab strip arrived with LibKa0s v1.27.0 |
+| PROFILE-1 – PROFILE-14 | New; PROFILE-10 also carries § 6 | New in this rework (the `profile` verb and the Profiles page) |
+| STATE-1, STATE-2, STATE-4, STATE-7, STATE-8 | § 5.4, 5.5 steps 1 – 2 and 4, 5.5a | No result recorded |
+| STATE-3, STATE-5 | § 5.5 steps 3 and 6 | No result recorded; corrected: `/wg help` prints the refusal line under its header while disabled |
+| STATE-6 | § 5.5 step 7 | No result recorded; the change made while off is now Popup Width |
+| COMBAT-1 | § 1.4 | No result recorded; the in-combat raise is now `/wg resetall` |
+| COMBAT-2 | § 1.5 | No result recorded; now expects the Profiles subcategory |
+| COMBAT-3, COMBAT-4, COMBAT-6 – COMBAT-9, COMBAT-11 | § 2.15, 3.8, 3.9 step 8, 4.3a, 4.5 steps 1 – 6, 4.6 steps 1 – 4 | No result recorded |
+| COMBAT-5 | § 3.5a step 5, 3.7c | No result recorded; the in-combat change is now `/wg set` |
+| COMBAT-10 | § 3.7h, 3.8 step 4, 4.5 step 9, 4.6 steps 5 – 6 | No result recorded; the pull's expectation corrected per frame.md |
+| COMBAT-12 | § 4.5 steps 7 – 8 | No result recorded; corrected: the join summary prints before the deferred line |
+| POPUP-1 – POPUP-8 | § 2.10, 2.11, 2.18, 4, 4.2 – 4.4, 11.8, 11.9, 12.4 | No result recorded |
+| TEST-1 – TEST-11 | § 2.10a, 3.9 | No result recorded |
+| TELE-1 – TELE-6 | § 3.8 "Also here", 4.1, 4.1a, 4.1b | No result recorded |
+| LFG-1 – LFG-4 | § 5.1 – 5.3 | No result recorded |
+| LAUNCH-1 – LAUNCH-10, LAUNCH-12, LAUNCH-13 | § 5.5 step 5, 12c | No result recorded |
+| LAUNCH-11 | § 12c.7 | No result recorded; the profile switch is now `/wg profile` |
+| DIAG-1 – DIAG-4, DIAG-6 – DIAG-10, DIAG-12 – DIAG-16 | § 2.8 – 2.8b-i, 2.8c, 2.8d, 2.19, 3.6, 12.1 – 12.3, 12.5, 12.6 | No result recorded; DIAG-6 now also logs the verbs' `[Set]` lines |
+| DIAG-11 | § 2.18, 11.10 | No result recorded; § 2.18's remembered console position corrected |
+| DEGRADED-1 – DEGRADED-5 | § 9, 12 closing, 2.19 | No result recorded; corrected: the other Ka0s addons disabled, DEGRADED-1's `/wg list`, DEGRADED-2's launcher notice, DEGRADED-4's `/wg profile` lines, DEGRADED-5's console |
+| LOC-1 – LOC-4, LOC-6 | § 12b steps 1 – 4 and 6 | Never run: no non-English client was available when the section landed |
 | LOC-5 | § 7a, and § 12b step 5 | Never run; issue #15 waits on the readings |
-| PANEL-15 – PANEL-19 | § 12a rows 12a.1-12a.5 | Never run since the pooled tab strip arrived with LibKa0s v1.27.0 |
