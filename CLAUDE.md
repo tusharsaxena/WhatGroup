@@ -95,8 +95,9 @@ This root file is a **stub** (documentation-§2). The real detail lives in `docs
   overview, subsystem map, invariants, working environment, load order. **Read first.**
 - **[docs/testing.md](docs/testing.md)** — how to verify: the green gate, mock fidelity,
   the generated `docs/test-cases.md` inventory and the README `tests` badge.
-- Topic detail (module map, scope, schema, capture pipeline, settings system, slash dispatch,
-  debug console, frame, WoW quirks, common tasks, smoke tests) sits alongside them —
+- Topic detail (module map, scope, schema, capture pipeline, settings system, profiles, slash
+  dispatch, stand-down, compat layer, debug console and diagnostics, frame, WoW quirks, performance,
+  common tasks, smoke tests) sits alongside them —
   including the generated **[docs/automated-tests/RESULTS.md](docs/automated-tests/RESULTS.md)**, refreshed at
   every release and never hand-edited (performance-§10).
 - **[DEPENDENCIES.md](DEPENDENCIES.md)** — the root toolchain contract (documentation-§7):

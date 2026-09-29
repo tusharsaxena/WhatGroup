@@ -12,7 +12,8 @@ WhatGroup has two debug surfaces, and both write into the same window:
 
 The console and the report frame are the library's, and their contract lives in LibKa0s's
 [`docs/api/DebugLog/version-14.1-docs.md`](https://github.com/tusharsaxena/LibKa0s/blob/master/docs/api/DebugLog/version-14.1-docs.md)
-(DebugLog minor 14 with its `DebugLogDiagnostics.lua` secondary file, vendored from LibKa0s v1.60.0).
+(DebugLog minor 14 with its `DebugLogDiagnostics.lua` secondary file, first vendored from LibKa0s v1.60.0
+and unchanged in the vendored v1.63.0).
 This page covers only what WhatGroup adds on top.
 
 ## The console in one table
