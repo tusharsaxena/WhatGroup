@@ -168,12 +168,20 @@ end)
 
 test("profiles: switching to a disabled profile stands the addon down, and back brings it up", function()
     -- The enable flag is profile-scoped, so the latch is re-synced from the incoming profile.
+    -- red under: the profile callback only ever releasing HOLD_DISABLED (a switch INTO a disabled
+    -- profile leaves the addon up), or never re-reading `enabled` at all (the switch back leaves it
+    -- down). Unticking `enabled` on "off" stands the addon down through the row's own onChange, not
+    -- the profile latch, so the case leaves "off" and re-enters it: only that second switch into an
+    -- already-disabled profile proves the latch follows the incoming profile downwards.
     local NS = T.enableAddon()
     NS.addon.db:SetProfile("off")
     NS.addon.Settings.Helpers.Set("enabled", false)
-    assertTrue(NS.IsStoodDown(), "the disabled profile stood the addon down")
     NS.addon.db:SetProfile("Default")
     assertFalse(NS.IsStoodDown(), "the enabled one stood it back up")
+    NS.addon.db:SetProfile("off")
+    assertTrue(NS.IsStoodDown(), "switching into the disabled profile stood the addon down")
+    NS.addon.db:SetProfile("Default")
+    assertFalse(NS.IsStoodDown(), "and switching out of it stood it back up again")
 end)
 
 -- ---------------------------------------------------------------------------

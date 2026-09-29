@@ -104,8 +104,8 @@ files["core/WhatGroup.lua"] = {
 -- The four `ApplyFrame*` appliers. Every one of them reads the popup through this file's `f`
 -- upvalue rather than through the addon table, so the receiver is unused -- but the method form is
 -- load-bearing at the call sites, not decoration. Two of them are reached through a PROBE of the
--- member on the addon table before the colon call -- settings/Schema.lua:263 (`if
--- WhatGroup.ApplyFrameSize then`) and core/WhatGroup.lua:924 (`if not self.ApplyFrameVisibility
+-- member on the addon table before the colon call -- settings/Schema.lua:265 (`if
+-- WhatGroup.ApplyFrameSize then`) and core/WhatGroup.lua:984 (`if not self.ApplyFrameVisibility
 -- then return end`) -- which is how a settings row and a combat-edge handler survive
 -- modules/Frame.lua failing to load. A plain local would have nothing for those probes to find.
 files["modules/Frame.lua"] = {
