@@ -1,0 +1,1 @@
+OK SP-WG-02 PASS: vendor byte-identical to v1.63.0 (tag+HEAD archive), provenance v1.63.0, bundle present; COMMANDS triple+NS.L, profiles=WhatGroup.db, liveVerbs=LIVE_VERBS+profile only, stub CliProfile+ProfileSwitch; tests fail under 5 scratch mutations; docs/counts/test-cases/badge consistent; CRLF clean; gate 845/0, luacheck 0/0
