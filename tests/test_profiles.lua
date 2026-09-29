@@ -96,14 +96,28 @@ end)
 test("profiles: nothing is built until the page is first shown, then the dialog fills a SHOWN container", function()
     -- AceGUI:Release hides a frame before pooling it and neither AceGUI:Create nor
     -- AceConfigDialog:Open shows it again, so a pooled group filled as-is reads as a blank page.
-    local _, _, mock, rec = withProfiles()
+    -- The kit's AceGUI never pools and starts every frame shown, so the case builds that state
+    -- itself: a SimpleGroup handed out HIDDEN, the way a pooled one comes back, and then the same
+    -- group hidden again between two renders.
+    -- red under: dropping the container.frame:Show() from the Profiles renderer.
+    local NS, _, mock, rec = withProfiles()
+    mock.__libs["AceGUI-3.0"]:RegisterWidgetType("SimpleGroup", function()
+        local w = mock.__makeAceGUIWidget("SimpleGroup")
+        w.frame:Hide()
+        return w
+    end, 1)
     assertEqual(#rec.opened, 0, "the builder draws nothing (options-ui-§5)")
     open(mock, profilesPanel(mock))
     assertEqual(#rec.opened, 1, "the first show opens the dialog once")
     assertEqual(rec.opened[1].app, APP)
     local container = rec.opened[1].container
     assertTrue(container ~= nil and container.frame ~= nil, "AceConfigDialog is handed an AceGUI group")
-    assertTrue(container.frame:IsShown(), "and the group it fills is shown")
+    assertTrue(container.frame:IsShown(), "and the pooled, hidden group it fills is shown")
+    container.frame:Hide()
+    NS.addon.db:SetProfile("Alt")
+    mock.fireCTimers()
+    assertEqual(#rec.opened, 2, "the switch re-drew the open page")
+    assertTrue(container.frame:IsShown(), "and every render shows the group again")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -164,6 +178,21 @@ test("profiles: a switch re-applies the popup's size, scale and alpha from the i
     assertEqual(f:GetScale(), NS.C.scale, "scale from the fresh profile")
     assertEqual(f:GetAlpha(), NS.C.alpha, "alpha from the fresh profile")
     assertEqual((f:GetWidth()), NS.C.frame.width, "width from the fresh profile")
+end)
+
+test("profiles: a switch to a profile whose visibility is 'never' takes an open popup off screen", function()
+    -- `visibility` reaches a built popup only through its row's onChange, and a profile event
+    -- writes no row, so reloadProfile re-applies it from the incoming profile.
+    -- red under: dropping ApplyFrameVisibility from reloadProfile.
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db:SetProfile("hidden")
+    NS.addon.Settings.Helpers.Set("visibility", "never")
+    NS.addon.db:SetProfile("Default")
+    NS.addon:ShowFrame()
+    local f = mock.frames["WhatGroupFrame"]
+    assertTrue(f ~= nil and f:IsShown(), "the popup is on screen under the 'always' profile")
+    NS.addon.db:SetProfile("hidden")
+    assertFalse(f:IsShown(), "the switch into the 'never' profile took it off screen")
 end)
 
 test("profiles: switching to a disabled profile stands the addon down, and back brings it up", function()

@@ -114,7 +114,9 @@ There is no `/wg profile` verb yet; the Profiles page is the only control.
 
 `tests/test_profiles.lua` registers recording AceDBOptions, AceConfig and AceConfigDialog fakes and
 covers the page (last in the tree, no Defaults, opts out without any one of the three, built on first
-show into a shown group), the re-draw after a switch on a shown and a hidden page, the `[Profile]`
-line, the popup re-apply, the latch following `enabled`, and the Reset all settings tooltip. The copy
+show into a group that was handed out hidden, as a pooled one is, and shown again on every render),
+the re-draw after a switch on a shown and a hidden page, the `[Profile]` line, the popup re-apply
+(size, scale and alpha, and `visibility` taking an open popup off screen), the latch following
+`enabled`, and the Reset all settings tooltip. The copy
 and reset lines are in `tests/test_debuglog.lua`; the latch across a switch is also in
 `tests/test_disabled.lua`.
