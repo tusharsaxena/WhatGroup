@@ -69,7 +69,7 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the STORED profile is the same shape with the library absent
 - degraded: `/wg disable` and `/wg enable` print the library-absent line and write nothing (options-ui-§1, WhatGroup#22)
 - degraded: `/wg test on|off` print the library-absent line and move nothing
-- degraded: the Slash stub's CliProfile and ProfileSwitch print the library-absent line and switch nothing (Slash 17)
+- degraded: `/wg profile`, CliProfile and ProfileSwitch print the library-absent line and switch nothing (Slash 17)
 - degraded: Reset all settings still resets the profile (options-ui-§1)
 - degraded: the settings stub carries no widget maker and no layout constant
 - degraded: the settings panel explains itself once at load and once per config
@@ -273,7 +273,7 @@ badge and any count quoted in the docs must agree with it.
 - settings: every row on every page carries a `group`
 - settings: every color row is followed by its class-color companion, and none is disabled
 
-### test_slash.lua (60)
+### test_slash.lua (61)
 
 - slash: COMMANDS has a standalone version verb (WG-29)
 - slash: /wg version prints [WG] v<version> on its own line (WG-29)
@@ -328,6 +328,7 @@ badge and any count quoted in the docs must agree with it.
 - slash: each verb acknowledges on one `key = value` line
 - slash: the dispatcher answers while the addon is disabled
 - slash: the reserved pair is in COMMANDS, so help and the landing page carry it
+- slash: COMMANDS order — `profile` sits with the settings verbs, fifteen rows in all
 - slash: `/wg show` refuses while disabled, and does not show the popup
 - slash: `/wg test on` refuses while disabled, and does not enter test mode
 - slash: every verb is either on the live list or refuses — there is no third kind
@@ -625,7 +626,7 @@ badge and any count quoted in the docs must agree with it.
 - panel: the landing page adds logo, notes, heading and command rows in that order
 - panel: a dirty landing page re-renders in place instead of stacking a second copy
 
-### test_profiles.lua (13)
+### test_profiles.lua (18)
 
 - profiles: the page registers this db's AceDBOptions table, as the LAST subcategory
 - profiles: the page has no Defaults button
@@ -640,6 +641,11 @@ badge and any count quoted in the docs must agree with it.
 - profiles: the Reset all settings tooltip says it is Profiles -> Reset Profile
 - profiles: ONE named veto keeps the Profiles page and every profile row out of the reset walk
 - profiles: /wg resetall resets the active profile and leaves the list and the other profile alone
+- profile verb: bare `/wg profile` lists the profiles, the current one marked
+- profile verb: `/wg profile <name>` switches to an existing profile and runs the handler
+- profile verb: an unknown name is refused, and no profile is created
+- profile verb: surrounding quotes are stripped, case and inner spaces kept
+- profile verb: a switch in combat is refused and nothing moves
 
 ### test_testmode.lua (23)
 
@@ -870,7 +876,7 @@ badge and any count quoted in the docs must agree with it.
 
 - every evidence id the register cites is assigned by its bundle in docs/audits/ or docs/reviews/
 
-### test_disabled.lua (18)
+### test_disabled.lua (19)
 
 - disabled 1: enabled, the addon holds a NON-EMPTY registration set
 - disabled 3: the registration set is EMPTY, by count and by name
@@ -880,6 +886,7 @@ badge and any count quoted in the docs must agree with it.
 - disabled 5: every frame shown while enabled is hidden, and the show ladder answers no
 - disabled 6: firing every event it used to watch writes nothing, says nothing, shows nothing
 - disabled 7: every reserved verb answers normally, and the bare /wg opens the panel
+- disabled 7: `profile` is live — it lists while off, and a switch to an enabled profile is a way back
 - disabled 7: each FEATURE verb answers exactly one refusal line and reaches no write seam
 - disabled 8: left-click opens the panel; right-click's menu grays every feature entry
 - disabled 9: re-enabling restores the registration set exactly
@@ -959,7 +966,7 @@ badge and any count quoted in the docs must agree with it.
 | test_compat.lua | 42 |
 | test_database.lua | 11 |
 | test_settings.lua | 56 |
-| test_slash.lua | 60 |
+| test_slash.lua | 61 |
 | test_labels.lua | 34 |
 | test_capture.lua | 35 |
 | test_notify.lua | 48 |
@@ -967,7 +974,7 @@ badge and any count quoted in the docs must agree with it.
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_panel.lua | 54 |
-| test_profiles.lua | 13 |
+| test_profiles.lua | 18 |
 | test_testmode.lua | 23 |
 | test_snapshot.lua | 10 |
 | test_diagnostics.lua | 18 |
@@ -978,10 +985,10 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 6 |
 | test_doc_structure.lua | 9 |
 | test_register.lua | 1 |
-| test_disabled.lua | 18 |
+| test_disabled.lua | 19 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **838** |
+| **Total** | **845** |

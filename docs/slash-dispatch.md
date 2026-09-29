@@ -11,7 +11,7 @@ self:RegisterChatCommand("wg",        "OnSlashCommand")
 self:RegisterChatCommand("whatgroup", "OnSlashCommand")
 ```
 
-`WhatGroup:OnSlashCommand` (`settings/Slash.lua:496`) hands the raw input straight to `Sl:OnSlash`. The library deliberately registers no chat command of its own — AceConsole stays the single registrar, so every verb's output keeps flowing through the tagged printer (slash-commands-§1).
+`WhatGroup:OnSlashCommand` (`settings/Slash.lua:518`) hands the raw input straight to `Sl:OnSlash`. The library deliberately registers no chat command of its own — AceConsole stays the single registrar, so every verb's output keeps flowing through the tagged printer (slash-commands-§1).
 
 ## Case-preserving parse
 
@@ -42,6 +42,8 @@ local COMMANDS = {
         function(rest) runReset(rest) end},
     {"resetall", L["Reset every setting to defaults"],
         function() runResetAll() end},
+    {"profile",  L["List profiles, or switch to one: profile <name>"],
+        function(rest) Sl:CliProfile(rest) end},
     {"debug",    L["Open/close the debug window — `/wg debug on|off` toggles logging"],
         function(rest) runDebug(rest) end},
 }
@@ -93,6 +95,7 @@ Library verbs delegate to the instance; host verbs are the file-local functions 
 | `/wg set <path> <value>` | `Sl:CliSet` (library) | Type-aware parse (see the adapter below), then the descriptor's `set`, bound to the schema runtime's `Set` (`NS.SchemaRuntime`, `LibKa0s-Schema-1.0`) — the single write-path that refuses a path no row declares, writes the value, fires the row's `onChange` and refreshes panel widgets. A refusal is printed in the seam's own words, never as a success echo. The echo **re-reads** the stored value rather than repeating what was parsed, so a clamped number is visible. Usage line is `Usage: /wg set <path> <value>  (try /wg list)`. |
 | `/wg reset <path>` | `runReset` (host) → `Sl:CliReset` (library) | Reset **one** row to its default via `Helpers.ApplyDefault`, no confirmation, and echo the restored value. A bare `/wg reset` prints the deprecation notice below instead. |
 | `/wg resetall` | `runResetAll` (host) → `StaticPopup_Show("WHATGROUP_RESET_ALL")` → `Helpers.RestoreAllDefaults()` | Show a confirm popup; on accept, `db:ResetProfile()` (which empties the profile in place, merges the defaults back and fires `OnProfileReset`), then restore the `sessionOnly` rows by hand, because a profile reset cannot reach storage that is not the db (options-ui-§12). The *Reset all settings* button on the **Master controls** tab is a third entry point onto the same body. With no `StaticPopup_Show` or `Settings.EnsureResetPopup` (headless) it calls `Helpers.RestoreAllDefaults()` directly, unconfirmed. Per-row `onChange` is skipped — the default baseline is already the reconciled state. The Defaults button in the General sub-page header (and Blizzard's own footer control, which the library forwards to it) shows the same popup, so all paths share one OnAccept body. |
+| `/wg profile` / `/wg profile <name>` | `Sl:CliProfile` (library) | Bare lists the profiles, sorted ignoring case, the current one marked `(current)`, then a hint line. A name (one pair of surrounding quotes stripped; case and inner spaces kept) switches to that profile if it **exists**: `Switched to profile '<name>'.`, and AceDB fires `OnProfileChanged`, whose handler logs the one `[Profile]` line and re-applies the profile. The current name answers `Already on profile '<name>'.`; an unknown one is refused with a did-you-mean and the list, and **never created**; a switch in combat is refused (`Can't switch profiles in combat.`). The store is the descriptor's `profiles` field, `function() return WhatGroup.db end`, asked at call time. Live while disabled. Detail: [profiles.md](./profiles.md#from-chat). |
 | `/wg debug` / `/wg debug on\|off` | `runDebug` (host) | Bare `/wg debug` **toggles the on-screen debug console window** (`NS.DebugLog:Toggle()`), state untouched; `/wg debug on\|off` sets the session-only `NS.State.debug` flag through the single `NS.DebugLog:SetEnabled` seam (color-coded chat ack + `[Debug] logging enabled/disabled` console line). The FLAG is off on every login, never persisted, and **not** a schema row (WG-12), so there's no `/wg set debug`. The **Debug console** checkbox on the Master controls tab is *not* a second toggle for it — it is a `sessionOnly` schema row on the path `state.debugConsole` that shows/hides the console **window** only, routed to `NS.DebugLog`'s own get/set by `settings/Schema.lua`'s `SESSION` table so it never reaches `db.profile`. Debug output (`NS.Debug(tag, …)`) renders in the console, not chat — see [debug-content.md](./debug-content.md). `runDebug` tests `diagnostics` first (next row); any other word prints a three-line usage. |
 | `/wg diagnostics` / `/wg debug diagnostics` | `NS.DebugLog:RunDiagnostics` (library), sections from `modules/Diagnostics.lua` (host) | The diagnostics report (`debug-logging-§14`), appended to the debug console after whatever it already holds, with logging on or off. The two forms are the only ones: `runDebug` tests `diagnostics` first, and `/wg debug diag` is an unknown word that prints the three-line usage. On the library's live list, so it runs while the addon is disabled. One localized chat line gives the line count and points at **Copy**. What the report prints: [debug.md](./debug.md). |
 
@@ -113,7 +116,8 @@ inert; its command surface is not the addon.**
 
 **Every reserved verb answers while the addon is off** — `help`, `config`, `version`, `enable`,
 `disable`, `debug`, `perf`, `diagnostics`, `get`, `set`, `list`, `reset`, `resetall` — and the bare `/wg` opens the
-settings panel exactly as it does when the addon is running.
+settings panel exactly as it does when the addon is running. So does one host verb, `profile`: see
+the `liveVerbs` note below.
 
 That sentence is a **ruling rather than a default**, and the round trip behind it is worth knowing.
 The standard narrowed this surface to `enable` and `help` at **v2.56.0** and **reversed it at
@@ -142,7 +146,7 @@ the MAY exists to leave alone. Declining a MAY is not a deviation and owes no re
 ### The gate is the library's, not this file's
 
 `settings/Slash.lua` used to name the live set itself (`ALWAYS_LIVE`) and wrap `entry[3]` for every
-row that was not on it. Both moved into `LibKa0s-Slash-1.0` at **minor 13**. The host now passes two
+row that was not on it. Both moved into `LibKa0s-Slash-1.0` at **minor 13**. The host now passes three
 descriptor fields and nothing else:
 
 - **`isEnabled`** — a function, asked at **dispatch time** and never cached, so the command after an
@@ -152,9 +156,12 @@ descriptor fields and nothing else:
   gives the LDB object as `label`. One brand spelling per addon, not a second one invented for a
   message.
 
-`liveVerbs` is deliberately **not** passed: the library's default *is* the standard's thirteen, and
-passing a copy would be this addon's own opinion about which verbs a player may use on an addon they
-have switched off — the opinion v2.57.0 settled.
+- **`liveVerbs`** — `lib.LIVE_VERBS` plus `profile`, and nothing else. The library's list *is* the
+  standard's thirteen reserved verbs, and it is read at load rather than hand-copied, so a verb the
+  standard reserves later arrives with the next re-vendor. `profile` is a host verb, not a reserved
+  one (Slash minor 17), so the default would refuse it as a feature verb. It is not one: `enabled`
+  is profile-scoped, so switching to an enabled profile is a way back, and refusing it would be the
+  one-way trap v2.57.0 settled.
 
 Two consequences of where the gate now sits are worth naming, because both were wrong before:
 
@@ -214,7 +221,7 @@ Plain, never `NS.L`: the library resolves overrides with `rawget`, but a metatab
 
 **The composed-row verbs say they are unavailable** (`options-ui-§1` route (b), the owner's ruling on [WhatGroup#22](https://github.com/tusharsaxena/WhatGroup/issues/22)). The rows `enable`, `disable` and `test` write — `enabled` and `state.testMode` — are composed by `LibKa0s-Options-1.0`, so a library-absent load has no row for them, and the schema seam (`settings/SchemaSetup.lua`'s stub) refuses a row-less path. No `writeThrough` list is passed, so `/wg enable`, `/wg disable`, `/wg test`, `/wg test on` and `/wg test off` each print `<verb> is unavailable: the LibKa0s library did not load.` (one `L` key, one placeholder) with no Lua error, no write and no ack. `/wg test notify` is unaffected. The deviation from route (a) is a row in [ARCHITECTURE.md](./ARCHITECTURE.md)'s `## Documented deviations`.
 
-`/wg` is registered unconditionally, so something has to answer it. If `LibKa0s-Slash-1.0` is missing, `settings/Slash.lua` installs a small stand-in `Sl`: the host verbs never went to the library and keep working, dispatch and a plain help index still render, a bare `/wg` still runs the `config` row as the library's dispatcher does, and every schema verb (`list`, `get`, `set`, and `/wg reset <path>`) prints one honest line naming the missing library — `NS.LIBKA0S_MISSING` plus *"so the settings CLI is unavailable."* `/wg resetall` is host-owned and never delegated to `CliResetAll`, so it still confirms and wipes; it prints that line only when `Helpers.RestoreAllDefaults` itself is missing. Nothing in that branch re-implements a row formatter, the `key = value` shape or the parser (slash-commands-§1).
+`/wg` is registered unconditionally, so something has to answer it. If `LibKa0s-Slash-1.0` is missing, `settings/Slash.lua` installs a small stand-in `Sl`: the host verbs never went to the library and keep working, dispatch and a plain help index still render, a bare `/wg` still runs the `config` row as the library's dispatcher does, and every schema verb (`list`, `get`, `set`, and `/wg reset <path>`) prints one honest line naming the missing library — `NS.LIBKA0S_MISSING` plus *"so the settings CLI is unavailable."* `/wg resetall` is host-owned and never delegated to `CliResetAll`, so it still confirms and wipes; it prints that line only when `Helpers.RestoreAllDefaults` itself is missing. `/wg profile` routes to the stand-in's `CliProfile`, which prints `/wg profile is unavailable: the LibKa0s library did not load.` and switches nothing; the stand-in also carries `ProfileSwitch`, the same way, because the live instance has both and the surface-parity case compares them by name. Nothing in that branch re-implements a row formatter, the `key = value` shape or the parser (slash-commands-§1).
 
 ## Why `/wg test notify` and the Test button share `WhatGroup:RunTest()`
 

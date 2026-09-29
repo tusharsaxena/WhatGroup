@@ -108,7 +108,24 @@ anyway; the veto says so where the standard asks for it.
 
 ## From chat
 
-There is no `/wg profile` verb yet; the Profiles page is the only control.
+`/wg profile` lists the profiles, the current one marked, and `/wg profile <name>` switches to an
+existing one. The verb is `LibKa0s-Slash-1.0`'s `CliProfile` (Slash minor 17); `settings/Slash.lua`
+registers the row and hands it this addon's db through the descriptor's `profiles` field.
+
+- **Existing profiles only.** A name the store does not list is refused (`No profile named '<name>'.`,
+  a did-you-mean when exactly one name matches ignoring case, then the list). AceDB's `SetProfile`
+  would create the profile, so a typo would otherwise leave a stray one full of defaults. New
+  profiles are made on the Profiles page.
+- **Names are case-sensitive and may hold spaces.** One pair of surrounding quotes is stripped, so
+  `/wg profile My Main`, `/wg profile "My Main"` and `/wg profile 'My Main'` are the same switch.
+- **Not in combat.** A switch can stand the addon down, and the popup's Hide is protected in combat,
+  so the library refuses the switch (`Can't switch profiles in combat.`). Listing still answers.
+- **Live while disabled.** `enabled` is profile-scoped, so switching to an enabled profile is a way
+  back; the descriptor passes `lib.LIVE_VERBS` plus `profile` as `liveVerbs`.
+- A switch fires `OnProfileChanged`, so it takes the same path as a switch on the Profiles page and
+  logs the same one `[Profile]` line. The verb logs nothing of its own.
+- Without LibKa0s the verb prints `/wg profile is unavailable: the LibKa0s library did not load.`
+  and switches nothing.
 
 ## Tests
 
@@ -117,6 +134,8 @@ covers the page (last in the tree, no Defaults, opts out without any one of the 
 show into a group that was handed out hidden, as a pooled one is, and shown again on every render),
 the re-draw after a switch on a shown and a hidden page, the `[Profile]` line, the popup re-apply
 (size, scale and alpha, and `visibility` taking an open popup off screen), the latch following
-`enabled`, and the Reset all settings tooltip. The copy
+`enabled`, the Reset all settings tooltip, and the `/wg profile` verb (the list, a switch that runs
+the handler, an unknown name refused with nothing created, quotes, the combat refusal). The copy
 and reset lines are in `tests/test_debuglog.lua`; the latch across a switch is also in
-`tests/test_disabled.lua`.
+`tests/test_disabled.lua`, which also pins `/wg profile` as live while the addon is disabled; the
+library-absent verb is in `tests/test_libka0s.lua`.

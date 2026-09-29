@@ -461,6 +461,19 @@ test("slash: the reserved pair is in COMMANDS, so help and the landing page carr
     assertEqual(type(seen.disable[2]), "string")
 end)
 
+test("slash: COMMANDS order — `profile` sits with the settings verbs, fifteen rows in all", function()
+    -- The help index and the landing page print this table in declaration order, so the order is
+    -- what a player reads. `profile` (Slash minor 17's CliProfile) goes after the schema CLI,
+    -- where the other settings verbs are.
+    -- red under: a missing, duplicated or relocated row.
+    local NS = T.newAddon()
+    local names = {}
+    for i, c in ipairs(NS.addon.COMMANDS) do names[i] = c[1] end
+    assertEqual(table.concat(names, " "),
+        "help show test config enable disable version list get set reset resetall profile debug "
+        .. "diagnostics")
+end)
+
 -- ---------------------------------------------------------------------------
 -- The disabled gate — a feature verb refuses rather than acting (slash-commands-§2)
 -- ---------------------------------------------------------------------------
@@ -481,10 +494,11 @@ local FEATURE_VERBS = { "show", "test" }
 -- The verbs that keep answering, named here the way settings/Slash.lua names them: the standard's
 -- list, not this addon's subset. `perf` is absent from COMMANDS (LIBKA0S-15) and is checked as a
 -- non-row rather than run. `diagnostics` joined the library's list at Slash minor 16 (LibKa0s
--- v1.60.0, debug-logging-§14).
+-- v1.60.0, debug-logging-§14). `profile` is this addon's own addition: a host verb, not a reserved
+-- one, which settings/Slash.lua appends to lib.LIVE_VERBS (Slash minor 17, spec S3 step 4).
 local LIVE_VERBS = {
     "help", "config", "version", "enable", "disable", "debug",
-    "get", "set", "list", "reset", "resetall", "diagnostics",
+    "get", "set", "list", "reset", "resetall", "diagnostics", "profile",
 }
 
 local function disabled()

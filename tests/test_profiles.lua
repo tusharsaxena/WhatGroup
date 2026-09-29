@@ -279,3 +279,123 @@ test("profiles: /wg resetall resets the active profile and leaves the list and t
     db:SetProfile("Default")
     assertEqual(H.Get("notify.delay"), 5, "and the other profile kept its value")
 end)
+
+-- ---------------------------------------------------------------------------
+-- The `/wg profile` verb (LibKa0s-Slash-1.0 minor 17, CliProfile)
+-- ---------------------------------------------------------------------------
+--
+-- The behavior is the library's (tests/test_slash_profile.lua in LibKa0s pins it in full); these
+-- cases pin the WIRING: the COMMANDS row reaches CliProfile, the descriptor's `profiles` answers
+-- this addon's own db, and a switch runs this addon's profile handler. Every line carries the
+-- [WG] tag, because the descriptor's `print` is NS.Print (slash-commands-§4).
+
+--- The chat lines one `/wg <input>` printed.
+local function verb(NS, mock, input)
+    local mark = #mock.prints
+    NS.addon:OnSlashCommand(input)
+    local out = {}
+    for i = mark + 1, #mock.prints do out[#out + 1] = mock.prints[i] end
+    return out
+end
+
+local function has(lines, needle)
+    for _, l in ipairs(lines) do if l:find(needle, 1, true) then return true end end
+    return false
+end
+
+local function profileNames(db)
+    local names = {}
+    for _, name in ipairs(db:GetProfiles({})) do names[#names + 1] = name end
+    table.sort(names)
+    return table.concat(names, ",")
+end
+
+-- red under: no `profile` row, or a descriptor with no `profiles` field (PROFILE_UNAVAILABLE).
+test("profile verb: bare `/wg profile` lists the profiles, the current one marked", function()
+    local NS, _, mock = T.enableAddon()
+    NS.addon.db:SetProfile("Alt")
+    NS.addon.db:SetProfile("Default")
+    local lines = verb(NS, mock, "profile")
+    assertEqual(#lines, 4, "header, two rows, the hint")
+    assertTrue(lines[1]:find("Profiles", 1, true) ~= nil, "the header")
+    assertNil(lines[1]:find("Profiles:", 1, true), "with no trailing colon")
+    assertTrue(has(lines, "Alt"), "Alt is listed")
+    assertTrue(has(lines, "Default (current)"), "the current profile is marked")
+    assertTrue(lines[4]:find("/wg profile <name>", 1, true) ~= nil, "the hint names this addon's slash")
+    for _, l in ipairs(lines) do
+        assertTrue(l:find(NS.PREFIX, 1, true) ~= nil, "every line carries the [WG] tag")
+    end
+end)
+
+-- red under: a row that switches through anything but CliProfile, or a store other than NS.addon.db.
+test("profile verb: `/wg profile <name>` switches to an existing profile and runs the handler", function()
+    local NS, _, mock = T.enableAddon()
+    local db, H = NS.addon.db, NS.addon.Settings.Helpers
+    db:SetProfile("Alt")
+    H.Set("notify.delay", 7)
+    db:SetProfile("Default")
+    NS.State.debug = true
+    local prof = countLines(NS, "[Profile] switched to 'Alt'")
+    local lines = verb(NS, mock, "profile Alt")
+    assertEqual(db:GetCurrentProfile(), "Alt", "switched")
+    assertEqual(#lines, 1, "one acknowledgment")
+    assertTrue(has(lines, "Switched to profile 'Alt'."))
+    assertEqual(countLines(NS, "[Profile] switched to 'Alt'") - prof, 1,
+        "the host's profile handler logged its one line")
+    assertEqual(H.Get("notify.delay"), 7, "and reads now resolve against the incoming profile")
+end)
+
+-- red under: a verb that calls SetProfile without an existence check (AceDB creates the profile).
+test("profile verb: an unknown name is refused, and no profile is created", function()
+    local NS, _, mock = T.enableAddon()
+    local db = NS.addon.db
+    db:SetProfile("Alt")
+    db:SetProfile("Default")
+    local lines = verb(NS, mock, "profile Nope")
+    assertTrue(has(lines, "No profile named 'Nope'."), "refused by name")
+    assertTrue(has(lines, "Alt"), "and the list follows")
+    assertEqual(db:GetCurrentProfile(), "Default", "no switch")
+    assertEqual(profileNames(db), "Alt,Default", "nothing created")
+    -- Names are case-sensitive: `alt` is not `Alt`, but it is offered.
+    lines = verb(NS, mock, "profile alt")
+    assertTrue(has(lines, "Did you mean 'Alt'?"), "the one case-insensitive match is offered")
+    assertEqual(db:GetCurrentProfile(), "Default", "and still no switch")
+    assertEqual(profileNames(db), "Alt,Default", "still nothing created")
+end)
+
+-- red under: a dispatcher that lowercases or re-splits the remainder, or a verb without the strip.
+test("profile verb: surrounding quotes are stripped, case and inner spaces kept", function()
+    local NS, _, mock = T.enableAddon()
+    local db = NS.addon.db
+    db:SetProfile("My Main")
+    db:SetProfile("Default")
+    verb(NS, mock, "profile \"My Main\"")
+    assertEqual(db:GetCurrentProfile(), "My Main", "double quotes")
+    db:SetProfile("Default")
+    verb(NS, mock, "profile 'My Main'")
+    assertEqual(db:GetCurrentProfile(), "My Main", "single quotes")
+    db:SetProfile("Default")
+    verb(NS, mock, "profile My Main")
+    assertEqual(db:GetCurrentProfile(), "My Main", "and bare, spaces and all")
+    local lines = verb(NS, mock, "profile My Main")
+    assertTrue(has(lines, "Already on profile 'My Main'."), "the current one says so")
+end)
+
+-- The popup's Hide is protected in combat (docs/ARCHITECTURE.md), and a switch can stand the addon
+-- down, so the library's refusal is what keeps a switch out of combat.
+-- red under: a CliProfile that switches regardless of InCombatLockdown.
+test("profile verb: a switch in combat is refused and nothing moves", function()
+    local NS, _, mock = T.enableAddon()
+    local db = NS.addon.db
+    db:SetProfile("Alt")
+    db:SetProfile("Default")
+    mock.combat = true
+    local lines = verb(NS, mock, "profile Alt")
+    assertEqual(#lines, 1, "one line")
+    assertTrue(has(lines, "Can't switch profiles in combat."))
+    assertEqual(db:GetCurrentProfile(), "Default", "no switch")
+    assertTrue(#verb(NS, mock, "profile") > 1, "the list still answers in combat")
+    mock.combat = false
+    verb(NS, mock, "profile Alt")
+    assertEqual(db:GetCurrentProfile(), "Alt", "and after combat it switches")
+end)

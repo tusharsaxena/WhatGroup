@@ -154,6 +154,7 @@ landing page renders exactly what the dispatcher runs.
 | `list` / `get` / `set` | library | The schema CLI, over the nineteen rows above (`/wg set state.testMode` reaches test mode too; `/wg test` is its verb) |
 | `reset` | host | Resets **one** path — `/wg reset <path>`, no confirmation ([`LIBKA0S-13`](https://github.com/tusharsaxena/WhatGroup/issues/8)) |
 | `resetall` | host | Resets the **active profile** to the shipped defaults — a profile reset, the same act as AceDBOptions' Reset Profile (`options-ui-§12`) — behind the shared `WHATGROUP_RESET_ALL` popup |
+| `profile` | library (`CliProfile`) | Bare lists the profiles, current marked; `profile <name>` switches to an **existing** profile (never creates one; refused in combat). The descriptor's `profiles` hands it `WhatGroup.db`, and `liveVerbs` (`lib.LIVE_VERBS` plus `profile`) keeps it live while disabled. See [profiles.md](./profiles.md#from-chat) |
 | `debug` | host | Opens/closes the debug console; `on|off` toggles logging; `debug diagnostics` is the report's second form |
 | `diagnostics` | library report, host sections | Appends the diagnostics report (`debug-logging-§14`) to the debug console, sections from `modules/Diagnostics.lua`. On the live list, so it answers while the addon is disabled |
 
@@ -340,7 +341,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 
 | Doc | Status | Trigger |
 |---|---|---|
-| `slash-dispatch.md` | Present | 14 verbs in the command table |
+| `slash-dispatch.md` | Present | 15 verbs in the command table |
 | `midnight-quirks.md` | Present | LFG and group-API behavior the addon works around |
 | `debug.md` | Present | The diagnostics report (`/wg diagnostics`, debug-logging-§14) is a debug surface beyond the LibKa0s console, and documentation-§3 makes the page a MUST in every addon that ships it. The console content stays in the Tier 3 `debug-content.md` |
 | `message-bus.md` | Not applicable | Below the `architecture-§4` threshold: a shell plus one feature module, so no cross-module messages (see `## Message Bus`) |

@@ -679,7 +679,7 @@ end)
 -- route (b), one library-absent line naming `/wg profile`, and no profile moves.
 --
 -- red under: a stub member that switches, raises, or says nothing.
-test("degraded: the Slash stub's CliProfile and ProfileSwitch print the library-absent line and "
+test("degraded: `/wg profile`, CliProfile and ProfileSwitch print the library-absent line and "
      .. "switch nothing (Slash 17)", function()
     local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
     NS.addon:OnInitialize()
@@ -690,6 +690,9 @@ test("degraded: the Slash stub's CliProfile and ProfileSwitch print the library-
     local calls = {
         function() return Sl:CliProfile("Alt") end,
         function() return Sl:ProfileSwitch("Alt") end,
+        -- and the COMMANDS row, the route a player takes, in both forms
+        function() return NS.addon:OnSlashCommand("profile Alt") end,
+        function() return NS.addon:OnSlashCommand("profile") end,
     }
     for i, call in ipairs(calls) do
         local mark = #mock.prints
