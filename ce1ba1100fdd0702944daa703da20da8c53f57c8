@@ -1,0 +1,1 @@
+OK SP-WG-03 PASS: coverage complete (every old check mapped or dropped with a named test), expectations verified against code and libs/LibKa0s, Pending sign-off matches the clarified policy (all unsigned except DIAG-5, DIAG-17..24 per DIAGNOSTICS_COMMAND 99_REPORT §6), references resolve, no duplicates, S4 shape met; gate 846/0/0, luacheck 0/0
