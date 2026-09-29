@@ -626,7 +626,7 @@ badge and any count quoted in the docs must agree with it.
 - panel: the landing page adds logo, notes, heading and command rows in that order
 - panel: a dirty landing page re-renders in place instead of stacking a second copy
 
-### test_profiles.lua (18)
+### test_profiles.lua (19)
 
 - profiles: the page registers this db's AceDBOptions table, as the LAST subcategory
 - profiles: the page has no Defaults button
@@ -634,6 +634,7 @@ badge and any count quoted in the docs must agree with it.
 - profiles: nothing is built until the page is first shown, then the dialog fills a SHOWN container
 - profiles: a switch made elsewhere re-draws an OPEN Profiles page into the same container
 - profiles: a switch while the page is HIDDEN re-draws it on its next show
+- profiles: a page first shown in combat draws nothing, then draws once at combat end
 - profiles: a switch logs ONE [Profile] line naming the incoming profile (debug-logging-§10)
 - profiles: a switch re-applies the popup's size, scale and alpha from the incoming profile
 - profiles: a switch to a profile whose visibility is 'never' takes an open popup off screen
@@ -974,7 +975,7 @@ badge and any count quoted in the docs must agree with it.
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_panel.lua | 54 |
-| test_profiles.lua | 18 |
+| test_profiles.lua | 19 |
 | test_testmode.lua | 23 |
 | test_snapshot.lua | 10 |
 | test_diagnostics.lua | 18 |
@@ -991,4 +992,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 7 |
-| **Total** | **845** |
+| **Total** | **846** |

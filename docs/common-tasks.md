@@ -185,7 +185,7 @@ cp -r ../LibKa0s/testkit/. tests/_kit/
 - **Run the vendor gate afterwards** — all four diffs in [testing.md](./testing.md) — because nothing else can see a stale copy: the library's suite passes against the library and this addon's passes against a stale copy that still works, so both repos stay green while they diverge (anti-patterns #45).
 - **Move the `CLAUDE.md` provenance line in the same commit**, so "which LibKa0s does this ship?" stays answerable without grepping a minor constant out of every vendored library file.
 
-After either refresh, run the `libs/` refresh row of [smoke-tests.md → Before you start](./smoke-tests.md#before-you-start) — and after a LibKa0s one, its re-vendor row as well (the library-absent DEGRADED checks and the shared-art checks).
+After either refresh, run the `libs/` refresh row of [smoke-tests.md → Before you start](./smoke-tests.md#before-you-start) — and after a LibKa0s one, its re-vendor row as well (the post-adoption panel, reset-verb and window-position checks, the library-absent DEGRADED checks and the shared-art checks).
 
 ## Bump the Interface version
 

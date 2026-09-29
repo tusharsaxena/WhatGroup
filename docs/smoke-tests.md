@@ -17,7 +17,7 @@ number out of use rather than handing it to a new one.
 | INSTALL-1 – INSTALL-5 | [Install](#install) | Cold load, `/reload`, the GameMenu Logout taint check, patch day |
 | SLASH-1 – SLASH-12 | [Slash commands](#slash-commands) | Help, alias, the schema CLI, reset verbs, `show` with nothing captured |
 | PANEL-1 – PANEL-19 | [Settings panel](#settings-panel) | Landing page, the General tab strip, widgets, Defaults, the frame rows, raw-key trap, the pooled strip |
-| PROFILE-1 – PROFILE-13 | [Profiles](#profiles) | The Profiles page, `/wg profile`, persistence, what a switch leaves alone |
+| PROFILE-1 – PROFILE-14 | [Profiles](#profiles) | The Profiles page, `/wg profile`, persistence, what a switch leaves alone, the page in combat |
 | STATE-1 – STATE-8 | [Enable and disable](#enable-and-disable) | The stand-down, refusals while disabled, the way back, the chat-link callback |
 | COMBAT-1 – COMBAT-12 | [Combat](#combat) | Reset popup and Settings registration in combat, Close and ESC in combat, the visibility gate on combat edges |
 | POPUP-1 – POPUP-8 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome |
@@ -39,15 +39,16 @@ number out of use rather than handing it to a new one.
   | Occasion | Run |
   |---|---|
   | A non-trivial commit | The theme the change touches, plus INSTALL-3 and INSTALL-4 when it touches hooks, the popup, the panel or the StaticPopup table |
-  | An `## Interface:` bump | INSTALL-1 to INSTALL-5, POPUP-1, LFG-1 and LOC-5. If a Blizzard API broke, [data-flow.md → Captured info](./data-flow.md#captured-info) lists every field the capture reads |
+  | An `## Interface:` bump | INSTALL-1 to INSTALL-5, COMBAT-1, COMBAT-2, POPUP-1, POPUP-3 to POPUP-5, TELE-1 to TELE-4, TELE-6, COMBAT-6 to COMBAT-10, COMBAT-12, LFG-1 and LOC-5. If a Blizzard API broke, [data-flow.md → Captured info](./data-flow.md#captured-info) lists every field the capture reads |
   | A `libs/` refresh | INSTALL-2, PANEL-1, PANEL-2, POPUP-1. If an Ace3 module was added or removed, match `WhatGroup.toc`'s lib block to the folders (AceGUI's `.xml` loads last among Ace3, `LibKa0s.xml` after it) |
-  | A LibKa0s re-vendor, or a change to a seam file | The row above, plus PANEL-14 to PANEL-19, DIAG-12 to DIAG-16, POPUP-7, POPUP-8 and all of DEGRADED |
+  | A LibKa0s re-vendor, or a change to a seam file | The row above, plus PANEL-4, PANEL-5, PANEL-14 to PANEL-19, SLASH-9 to SLASH-11, POPUP-6 to POPUP-8, DIAG-11 to DIAG-16 and all of DEGRADED |
   | A release | The release pass below; the whole suite for a release carrying feature work |
 
 - **Release pass.** INSTALL-3, INSTALL-4, COMBAT-2, SLASH-1, SLASH-2, SLASH-9, SLASH-11, PANEL-5,
-  PANEL-14, PROFILE-3, PROFILE-4, PROFILE-6, POPUP-1, POPUP-7, COMBAT-7, COMBAT-9, TEST-2, TEST-6,
-  TEST-7, TELE-1 to TELE-4, LFG-1, LFG-2, STATE-7, STATE-8, LAUNCH-2 to LAUNCH-4, LAUNCH-11, DIAG-5,
-  DIAG-12, DIAG-17 to DIAG-22, plus everything under [Pending sign-off](#pending-sign-off).
+  PANEL-14 to PANEL-19, PROFILE-3, PROFILE-4, PROFILE-6, POPUP-1, POPUP-7, COMBAT-7, COMBAT-9,
+  TEST-2, TEST-6, TEST-7, TELE-1 to TELE-4, LFG-1, LFG-2, STATE-7, STATE-8, LAUNCH-2 to LAUNCH-4,
+  LAUNCH-11, DIAG-5, DIAG-12, DIAG-17 to DIAG-22, and the whole non-English pass, LOC-1 to LOC-6.
+  These run on every release, signed off or not.
 
 ## Install
 
@@ -93,7 +94,7 @@ number out of use rather than handing it to a new one.
 - **SLASH-9. Bare `/wg reset` resets nothing.** `/wg set notify.delay 3`, then `/wg reset` with no
   argument → three lines: `/wg reset now takes a setting PATH.`, how to reset one setting
   (`/wg reset <path>`), and how to reset everything (`/wg resetall` or the **Defaults** button).
-  `/wg get notify.delay` still reads `3s`. Result:
+  `/wg get notify.delay` still reads `3.0s`. Result:
 - **SLASH-10. `/wg reset <path>`.** With `notify.delay` at 3, `/wg reset notify.delay` → that row
   goes back to its default with no confirmation, and nothing else moves (`/wg list`). Result:
 - **SLASH-11. `/wg resetall`.** Change two settings, then `/wg resetall` → the same confirmation
@@ -122,7 +123,7 @@ number out of use rather than handing it to a new one.
   on Master controls only. Result:
 - **PANEL-3. Widget and CLI round-trip.** **Popup** → untick *Open Automatically*; **Chat** →
   slide *Notification Delay* to 3.0s; close Settings. `/wg get frame.autoShow` → `false`;
-  `/wg get notify.delay` → `3s`. Reopen the Popup tab, then `/wg set frame.autoShow on` with it
+  `/wg get notify.delay` → `3.0s`. Reopen the Popup tab, then `/wg set frame.autoShow on` with it
   open → the checkbox ticks in place, without a rebuild. Restore both. Result:
 - **PANEL-4. A slider commits on release.** Drag *Notification Delay* slowly and watch the value
   → the stored value changes when you release, not on every frame of the drag. Reopen the page: it
@@ -145,8 +146,9 @@ number out of use rather than handing it to a new one.
 - **PANEL-9. Master scale.** With the popup open, **Master scale** → 1.5 → the popup grows at once
   and `/wg get scale` reads `1.5`. `/wg set scale 40` → drawn at 2×, not 40×. `/wg set scale 1`.
   Result:
-- **PANEL-10. Master alpha.** **Master alpha** → 40% → the popup fades at once. Pull a dummy and
-  move it again → it fades in combat too, unlike scale. Restore 100%. Result:
+- **PANEL-10. Master alpha.** **Master alpha** → 40% → the popup fades at once. Restore 100%, pull
+  a dummy, then `/wg set alpha 0.4` (the slider sits under the combat cover, COMBAT-4) → the popup
+  fades in combat too, unlike scale. Drop combat and `/wg set alpha 1`. Result:
 - **PANEL-11. Lock frame.** Drag the popup by its title bar, tick **Lock frame**, drag again → the
   first drag moves it, the second does nothing, and the same holds with **Test mode** ticked.
   Untick both; dragging works again. Result:
@@ -225,8 +227,15 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   widgets read defaults. Result:
 - **PROFILE-13. Reset all settings touches one profile.** `/wg profile Default`,
   `/wg set notify.delay 2`; `/wg profile Alt`, `/wg set notify.delay 4`, then `/wg resetall` →
-  **Yes** → `Alt` reads `0s`. `/wg profile Default` → still `2s`, and `/wg profile` lists the same
-  three profiles. `/wg reset notify.delay` afterwards. Result:
+  **Yes** → `Alt` reads `0.0s`. `/wg profile Default` → still `2.0s`, and `/wg profile` lists the
+  same three profiles. `/wg reset notify.delay` afterwards. Result:
+- **PROFILE-14. The Profiles page in combat.** Open Settings → AddOns → **Ka0s WhatGroup** →
+  **General**, pull a dummy, then click **Profiles** in the sidebar (the route that reaches it
+  mid-fight; `/wg config` is refused, COMBAT-3) → the page is covered (*Settings are locked during
+  combat.*), clicking its dropdowns and buttons does nothing, no profile changes, and at most one
+  gray `settings are locked during combat` line prints for the fight. Drop combat with the page
+  open → the cover lifts and the profile controls answer again, naming the current profile.
+  Result:
 
 ## Enable and disable
 
@@ -247,8 +256,9 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   bypass. Result:
 - **STATE-5. A typo while disabled.** Still disabled, `/wg shwo` → `unknown command 'shwo'` and
   the help index, not the refusal. Result:
-- **STATE-6. The way back.** Change *Notification Delay* while disabled, then `/wg enable` and
-  `/wg test notify` → it acts at once with no reload, and uses the delay you set while off. Result:
+- **STATE-6. The way back.** Still disabled, **Popup** → drag *Width* to 600, then `/wg enable` and
+  `/wg test notify` → it acts at once with no reload, and the popup opens 600 wide, the width you
+  set while off. `/wg reset frame.width`. Result:
 - **STATE-7. The chat-link callback comes back without taint (critical).** `/wg disable`,
   `/wg enable`, then ESC → **Logout** and cancel → no `ADDON_ACTION_FORBIDDEN` or
   `ADDON_ACTION_BLOCKED` naming WhatGroup, and the countdown starts normally. If it fails, the
@@ -260,15 +270,18 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 
 ## Combat
 
-- **COMBAT-1. The reset popup in and out of combat (critical).** Out of combat: **General** →
-  **Defaults** → **Yes**. Pull a dummy and do the same in combat → the popup shows and accepts
-  both times. Out of combat, ESC → **Logout** → cancel → no "Interface action failed because of an
-  AddOn" and no `ADDON_ACTION_FORBIDDEN` at any step. `Settings.EnsureResetPopup` writes one key
-  into `StaticPopupDialogs` and never assigns the table itself. Result:
+- **COMBAT-1. The reset popup in and out of combat (critical).** `/reload`, so nothing has raised
+  the popup this session. Pull a dummy and, in combat, `/wg resetall` → **Yes**. The verb is not
+  combat-refused, so this first raise makes `Settings.EnsureResetPopup`'s one `StaticPopupDialogs`
+  write happen in combat (the **Defaults** button sits under the combat cover, COMBAT-4). Drop
+  combat, then **General** → **Defaults** → **Yes** → the popup shows and accepts both times. Out
+  of combat, ESC → **Logout** → cancel → no "Interface action failed because of an AddOn" and no
+  `ADDON_ACTION_FORBIDDEN` at any step. `Settings.EnsureResetPopup` writes one key into
+  `StaticPopupDialogs` and never assigns the table itself. Result:
 - **COMBAT-2. A `/reload` in combat registers Settings at combat end.** Pull a dummy, `/reload`
   mid-fight, and open Settings → AddOns while still in combat → **Ka0s WhatGroup** is missing.
   Leave combat and look again without running `/wg config` → it is there, with its **General**
-  subcategory. ESC → **Logout** → cancel → no Lua error and no taint line. Result:
+  and **Profiles** subcategories. ESC → **Logout** → cancel → no Lua error and no taint line. Result:
 - **COMBAT-3. `/wg config` in combat.** Pull a dummy, `/wg config` → a gray `[WG] cannot open
   settings during combat — Blizzard's category-switch is protected` and no panel. Result:
 - **COMBAT-4. The panel locks in combat.** Open **General**, pull a dummy, then click any widget →
@@ -276,9 +289,10 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   one gray `settings are locked during combat — changes are refused until it ends` line prints
   for the whole fight. Result:
 - **COMBAT-5. Size and scale wait for combat end.** With the popup open, pull a dummy, then
-  `/wg set frame.width 500` and move **Master scale** → the open popup neither resizes nor
-  rescales, with no error and no "action blocked". Drop combat, `/wg show` → width 500 and the new
-  scale apply. Restore both. Result:
+  `/wg set frame.width 500` and `/wg set scale 1.5` (a CLI write is not combat-locked; the
+  **Master scale** slider sits under the combat cover) → the open popup neither resizes nor
+  rescales, with no error and no "action blocked". Drop combat, `/wg show` → width 500 and scale
+  1.5 apply. `/wg reset frame.width` and `/wg set scale 1`. Result:
 - **COMBAT-6. Close works in combat.** `/wg test notify`, pull a dummy, press **Close** → the popup
   goes at once, with no error and no chat line. Drop combat → it stays gone. Until combat ends the
   frame is invisible but present (alpha 0), so its title bar still drags; that is known and
@@ -575,9 +589,11 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 ## Library-absent install
 
 Quit the game and rename `Interface/AddOns/WhatGroup/libs/LibKa0s` to `libs/LibKa0s.off` first;
-rename it back and `/reload` when done. The six seam files (`core/CoreSetup.lua`,
-`core/EnvSetup.lua`, `core/MediaSetup.lua`, `core/DebugLogSetup.lua`, `settings/OptionsSetup.lua`,
-`settings/Slash.lua`) each fall back; only a real broken install proves they do.
+rename it back and `/reload` when done. The ten seam files (`core/CoreSetup.lua`,
+`core/Compat.lua`, `core/EnvSetup.lua`, `core/MediaSetup.lua`, `core/DebugLogSetup.lua`,
+`core/LauncherSetup.lua`, `core/LifecycleSetup.lua`, `settings/OptionsSetup.lua`,
+`settings/SchemaSetup.lua`, `settings/Slash.lua`) each fall back; only a real broken install
+proves they do.
 
 - **DEGRADED-1. It loads and lists.** Log in, `/wg list` → zero Lua errors at load, and a complete
   listing of every setting (a short one means a page file touched a helper at file load). Result:
@@ -648,8 +664,9 @@ headless stand-in: `tests/wow_mock.lua` answers enUS for every string the captur
   popup's learned and not-learned states are suspect (TELE-2). Re-run on patch day and whenever the
   popup calls a learned teleport unlearned. [compat-layer.md](./compat-layer.md) has the reasoning.
   Result:
-- **LOC-6. Nothing else moved.** On this client run INSTALL-1 to INSTALL-3, POPUP-1 and LFG-1 →
-  identical to English. Fail: any Lua error, meaning a localized string reached code that assumed
+- **LOC-6. Nothing else moved.** On this client run INSTALL-1 to INSTALL-4, COMBAT-1, COMBAT-2,
+  POPUP-1, POPUP-3 to POPUP-5, TELE-1 to TELE-4, TELE-6, COMBAT-6 to COMBAT-10, COMBAT-12 and
+  LFG-1 → identical to English. Fail: any Lua error, meaning a localized string reached code that assumed
   an English one. Result:
 
 ## Pending sign-off

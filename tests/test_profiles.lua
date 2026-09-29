@@ -148,6 +148,26 @@ test("profiles: a switch while the page is HIDDEN re-draws it on its next show",
     assertEqual(#rec.opened, 2, "the next show draws the switched profile")
 end)
 
+-- The Blizzard AddOns sidebar reaches this canvas without going through OpenOptionsPanel, whose
+-- combat refusal is what `/wg config` meets, so the page has to carry the library's combat lock
+-- itself (settings/Profiles.lua renders through H.SetRenderer for that).
+-- red under: the renderer parked on a hand-rolled OnShow, which draws AceDBOptions' controls
+-- mid-fight.
+test("profiles: a page first shown in combat draws nothing, then draws once at combat end", function()
+    local _, env, mock, rec = withProfiles()
+    local panel = profilesPanel(mock)
+    mock.combat = true
+    open(mock, panel)
+    assertEqual(#rec.opened, 0, "nothing drawn under the combat lock")
+    mock.combat = false
+    local f = env.LibStub("LibKa0s-Options-1.0").__combatFrame
+    assertTrue(f ~= nil and f.__events.PLAYER_REGEN_ENABLED,
+        "the shown page listens for the end of combat")
+    f.__fire("OnEvent", "PLAYER_REGEN_ENABLED")
+    mock.fireCTimers()
+    assertEqual(#rec.opened, 1, "combat end draws the page it owed")
+end)
+
 test("profiles: a switch logs ONE [Profile] line naming the incoming profile (debug-logging-§10)", function()
     -- A switch rewrites no row through the seam, so it gets no [Set] line; the profile-event
     -- handler logs it once, as KickCD and MultiMeters word theirs.

@@ -132,7 +132,8 @@ registers the row and hands it this addon's db through the descriptor's `profile
 `tests/test_profiles.lua` registers recording AceDBOptions, AceConfig and AceConfigDialog fakes and
 covers the page (last in the tree, no Defaults, opts out without any one of the three, built on first
 show into a group that was handed out hidden, as a pooled one is, and shown again on every render),
-the re-draw after a switch on a shown and a hidden page, the `[Profile]` line, the popup re-apply
+the re-draw after a switch on a shown and a hidden page, the combat lock on a page first shown
+in combat (nothing drawn until combat ends), the `[Profile]` line, the popup re-apply
 (size, scale and alpha, and `visibility` taking an open popup off screen), the latch following
 `enabled`, the Reset all settings tooltip, and the `/wg profile` verb (the list, a switch that runs
 the handler, an unknown name refused with nothing created, quotes, the combat refusal). The copy
