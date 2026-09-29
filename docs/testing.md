@@ -443,5 +443,5 @@ The pieces that can't be exercised headlessly — AceGUI panel rendering, the
 secure teleport button, and the **GameMenu → Logout taint check** — are covered
 by the manual [smoke-test checklist](./smoke-tests.md). Run the relevant section
 after any non-trivial change, after an `## Interface:` bump, after refreshing
-`libs/`, and before tagging a release; the Quick-reference checklist at the
-bottom of that file is the minimum pre-release pass.
+`libs/`, and before tagging a release; the Release pass list in its Before you
+start section is the minimum pre-release pass.

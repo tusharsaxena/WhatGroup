@@ -161,7 +161,7 @@ end)
 -- The IsSpellKnown ladder: C_SpellBook.IsSpellKnown, then the bare global, then false. The rung
 -- was built from Blizzard's generated API documentation on live (SpellBookDocumentation.lua,
 -- `IsSpellKnown(spellID, spellBank = "Player") -> isKnown`), not from an in-client observation;
--- docs/smoke-tests.md § 7a is where the two APIs are checked to agree.
+-- docs/smoke-tests.md LOC-5 is where the two APIs are checked to agree.
 test("compat: IsSpellKnown asks C_SpellBook first when both APIs exist", function()
     local NS, env = T.newAddon()
     local calls, argc, firstArg = {}, nil, nil

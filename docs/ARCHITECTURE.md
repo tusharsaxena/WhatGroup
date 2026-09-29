@@ -62,7 +62,7 @@ LFG events ─▶ capture pipeline ─▶ pendingInfo
 | WoW API gotchas (hook discipline, Settings API, lazy panel build) | — | [docs/midnight-quirks.md](./midnight-quirks.md) |
 | Routine recipes (add a setting, add a command, refresh libs) | — | [docs/common-tasks.md](./common-tasks.md) |
 | Verification model (headless harness, mock fidelity, `--list` inventory + badge sync) | `tests/` | [docs/testing.md](./testing.md) |
-| Manual smoke tests (boot health, slash, settings panel, `/wg test notify`, test mode, real LFG, regression checks) | — | [docs/smoke-tests.md](./smoke-tests.md) |
+| Manual smoke tests, theme-grouped (install and taint, slash, settings panel, profiles, enable and disable, combat, the popup, test mode, teleport, real LFG, launcher, debug console and diagnostics, library-absent install, non-English client) | — | [docs/smoke-tests.md](./smoke-tests.md) |
 
 ## Settings Schema
 

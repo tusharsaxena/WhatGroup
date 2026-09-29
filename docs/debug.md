@@ -135,7 +135,7 @@ to the table above in the same change, and a case to `tests/test_diagnostics.lua
 ## Where else this is pinned
 
 The command rows are in [slash-dispatch.md](./slash-dispatch.md), and the player-facing steps are the
-README's `## Reporting a bug`. The in-game checks are section 2a and row 2.8b-ii of
+README's `## Reporting a bug`. The in-game checks are DIAG-17 to DIAG-24 and DIAG-5 of
 [smoke-tests.md](./smoke-tests.md). The suites are `tests/test_diagnostics.lua` (this addon's
 sections), the kit's shared `tests/_kit/test_diagnostics_contract.lua` (wired in `tests/run.lua`),
 `tests/test_disabled.lua` (both forms while disabled) and `tests/test_slash.lua` (the usage line and

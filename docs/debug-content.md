@@ -180,5 +180,5 @@ copying no formatter.
 
 The diagnostics report's cases are listed in [debug.md](./debug.md#where-else-this-is-pinned).
 
-The in-game scrollbar and counter checks are [smoke-tests.md](./smoke-tests.md) rows 2.8b-i and
-2.8b-ii (the counter pinning at 3000).
+The in-game scrollbar and counter checks are [smoke-tests.md](./smoke-tests.md) DIAG-4 and DIAG-5
+(the counter pinning at 3000).
