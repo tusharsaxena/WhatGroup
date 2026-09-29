@@ -1,0 +1,1 @@
+OK SP-WG-01 Profiles page, shared profile-event reaction and docs meet S2 and options-ui-§3/§12, debug-logging-§10; gate 837/0 + luacheck 0/0; 20 mutations each red except inert/pre-existing paths; libs byte-identical; CRLF and citations clean
