@@ -21,6 +21,12 @@ libs\AceConsole-3.0\AceConsole-3.0.lua
 libs\AceTimer-3.0\AceTimer-3.0.lua
 libs\AceDB-3.0\AceDB-3.0.lua
 libs\AceGUI-3.0\AceGUI-3.0.xml
+# The Profiles page (settings\Profiles.lua, options-ui-§3): AceConfigDialog draws AceDBOptions'
+# table into the page. Both after AceGUI, which AceConfigDialog builds on, and before LibKa0s, in
+# the order the collection's other Profiles pages load them. Looked up with LibStub(..., true) at
+# PLAYER_LOGIN, so the slot is conventional.
+libs\AceConfig-3.0\AceConfig-3.0.xml
+libs\AceDBOptions-3.0\AceDBOptions-3.0.lua
 libs\LibSharedMedia-3.0\lib.xml
 # The launcher's two libraries (launcher-§1). LibKa0s-Launcher-1.0 resolves both with
 # LibStub(..., true) at Register time rather than at load, so this position is conventional --
@@ -87,8 +93,12 @@ settings\SchemaSetup.lua
 # which Panel splices its master rows into at file scope (settings/Panel.lua:301). Load-bearing.
 settings\Schema.lua
 # Before settings\Panel.lua: this file publishes the LibKa0s-Options instance as Settings.Helpers
-# (settings/OptionsSetup.lua:303), and Panel calls Helpers.MasterControls at file scope
+# (settings/OptionsSetup.lua:321), and Panel calls Helpers.MasterControls at file scope
 # (settings/Panel.lua:207). Above it that member does not exist yet. Load-bearing.
 settings\OptionsSetup.lua
 settings\Panel.lua
 settings\Slash.lua
+# The Profiles page. LAST, so its RegisterOptionsPage call queues behind General's and the page is
+# the last subcategory in the tree (options-ui-§3). Its builder and renderer run at PLAYER_LOGIN
+# and on first show; at load it only registers the page.
+settings\Profiles.lua

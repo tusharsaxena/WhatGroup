@@ -155,6 +155,7 @@ Kit.run{
         "test_frame_visibility",
         "test_frame_secure",
         "test_panel",
+        "test_profiles",
         "test_testmode",
         "test_snapshot",
         "test_diagnostics",

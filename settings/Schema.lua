@@ -566,6 +566,16 @@ local STOPPED = " (stopped by an error)"
 
 local function notGlobal(row) return not GLOBAL[row.path] end
 
+-- THE RESET VETO, NAMED ONCE (options-ui-§3, options-ui-§12). The global reset is a profile reset,
+-- so a row walk is left with the session-only rows alone: a profile row comes back with the profile,
+-- the global minimap row survives every reset (launcher-§3), and a Profiles page row is AceDBOptions'
+-- and resetting it would delete profiles. The Profiles page ships no schema rows today; its veto is
+-- stated anyway, so a row added there is vetoed without anyone remembering to. Read by the session
+-- sweep below and by the Options descriptor's `skipRestoreAll` (settings/OptionsSetup.lua).
+function Settings.VetoedFromResetAll(row)
+    return row.page == "profiles" or not row.sessionOnly
+end
+
 function Helpers.RestoreAllDefaults()
     local db = WhatGroup.db
     if db and db.ResetProfile then
@@ -592,14 +602,14 @@ function Helpers.RestoreAllDefaults()
     S.BulkRun("reset", "profile", function(info)
         info.profileReset = true
         for _, def in ipairs(Schema) do
-            if def.sessionOnly then S.ApplyDefault(def) end
+            if not Settings.VetoedFromResetAll(def) then S.ApplyDefault(def) end
         end
     end)
 end
 
 -- Re-sync every open panel widget against the current db.profile value. Called
--- after a reset, after `/wg set`, and after profile switches (none today but the
--- hook is here if AceDBOptions is ever added).
+-- after a reset, after `/wg set`, and after every profile event (core/WhatGroup.lua's
+-- reloadProfile, reached from the Profiles page in settings/Profiles.lua).
 --
 -- The body is LibKa0s-Options-1.0's RefreshScalars, installed over this stub by
 -- settings/OptionsSetup.lua. What survives here is the NAME, because the runtime's

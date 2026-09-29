@@ -59,7 +59,7 @@ label like **Enable WhatGroup** honest about which addon it is turning off.
 The suites, in run order: `test_harness`, `test_libka0s`,
 `test_surface_parity`, `test_mediasetup`, `test_envsetup`, `test_util`,
 `test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
-`test_capture`, `test_notify`, `test_frame`, `test_frame_visibility`, `test_frame_secure`, `test_panel`, `test_testmode`,
+`test_capture`, `test_notify`, `test_frame`, `test_frame_visibility`, `test_frame_secure`, `test_panel`, `test_profiles`, `test_testmode`,
 `test_snapshot`, `test_diagnostics`, `test_launcher`, `test_lifecycle`,
 `test_debuglog`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
 `test_register`, `test_disabled`, `test_vendor_sync`. Four more run last and arrive with the
@@ -134,7 +134,8 @@ Coverage extends past pure logic into the UI and event layers — the popup's
 field rendering and secure-teleport-button states (`test_frame`, with the master controls, the visibility gate's
 combat transition and Escape in combat in `test_frame_visibility`, and the combat reopen of a
 soft-hidden popup in `test_frame_secure`), the settings
-panel's deferred build and widget write-back (`test_panel`), the delayed
+panel's deferred build and widget write-back (`test_panel`), the Profiles page and the
+reaction to a profile switch, copy or reset (`test_profiles`), the delayed
 join-notify pipeline (`test_notify`), and the event/hook wiring
 (`test_lifecycle`). What genuinely **cannot** be reproduced headlessly stays in
 the manual [smoke-test checklist](./smoke-tests.md): real frame layout and

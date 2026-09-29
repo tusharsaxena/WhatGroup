@@ -82,14 +82,16 @@ L["Dungeon"]                  = "Dungeon"
 L["Raid"]                     = "Raid"
 L["Group"]                    = "Group"
 
--- Settings panel. Only the landing page's own heading lives here. Three former
--- rows were dropped as unroutable rather than left as keys nothing reads:
+-- Settings panel: the landing page's own heading and the Profiles page's label
+-- (settings/Profiles.lua). Three former rows were dropped as unroutable rather
+-- than left as keys nothing reads:
 -- "Ka0s WhatGroup" is the brand (the TOC Title and the Blizzard category label,
 -- not prose); "General" is simultaneously the page id, the schema `group` key
 -- and the subcategory label, so translating the display copy alone would
 -- silently unmatch the schema; "Defaults" is the library's DEFAULTS_LABEL, not
 -- a string this addon authors.
 L["Slash Commands"]           = "Slash Commands"
+L["Profiles"]                 = "Profiles"
 
 -- StaticPopup / reset
 L["Reset this profile to the addon's defaults? Everything you have configured or added in it is discarded \226\128\148 your other profiles are not affected."] =

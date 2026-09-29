@@ -220,14 +220,18 @@ end
 -- ---------------------------------------------------------------------------
 
 -- The three profile events' shared reaction: switching, copying or resetting a profile replaces
--- every stored value at once. At file scope, so the OnProfileCopied method below and the closures
--- OnInitialize registers share one copy.
+-- every stored value at once. At file scope, so the OnProfileChanged and OnProfileCopied methods
+-- below and the reset closure OnInitialize registers share one copy.
 local function reloadProfile(self)
     -- The incoming profile may predate the current schema version.
     self:RunMigrations()
-    -- And every open panel is showing the outgoing profile's values.
-    local H = NS.Settings and NS.Settings.Helpers
+    -- And every open panel is showing the outgoing profile's values: General's widgets re-read
+    -- their rows, and the Profiles page (settings/Profiles.lua) is re-drawn, because AceConfigDialog
+    -- names the active profile only when it is fed again.
+    local S = NS.Settings
+    local H = S and S.Helpers
     if H and H.RefreshAll then H.RefreshAll() end
+    if S and S.RefreshProfilesPage then S.RefreshProfilesPage() end
     -- THE INCOMING PROFILE CARRIES ITS OWN ANSWER TO `enabled`, and nothing else in this addon
     -- would notice: a profile switch flips the stored path with no checkbox clicked and no verb
     -- typed. `Set` re-reads the path and `Reevaluate` fires a stand-down or a stand-up only on an
@@ -238,6 +242,26 @@ local function reloadProfile(self)
         NS.Lifecycle:Set(NS.HOLD_DISABLED, not (self.db and self.db.profile and self.db.profile.enabled))
         NS.Lifecycle:Reevaluate()
     end
+    -- The popup's size, scale and alpha reach a built popup only through their rows' onChange, and
+    -- a profile event writes no row, so they are re-applied here from the incoming profile. Each
+    -- is a no-op before the popup is built, and size and scale are refused in combat exactly as
+    -- their onChange is (the next open applies them). After the latch, so a profile that stands the
+    -- addon down has already hidden the popup. Everything else the profile holds is read at use.
+    if self.ApplyFrameSize then
+        self:ApplyFrameSize()
+        self:ApplyFrameScale()
+        self:ApplyFrameAlpha()
+        self:ApplyFrameVisibility()
+    end
+end
+
+-- A profile switch is logged HERE, once (debug-logging-§10): it rewrites no row through the write
+-- seam, so it gets no [Set] line, and the profile-event handler words it. `[Profile]`, as KickCD and
+-- MultiMeters tag theirs. AceDB fires OnProfileChanged(event, db, newProfileKey). A method, like
+-- OnProfileCopied, so a test can call it with those arguments directly.
+function WhatGroup:OnProfileChanged(_, _, key)
+    NS.Debug("Profile", "switched to '%s'", tostring(key or self.db:GetCurrentProfile()))
+    reloadProfile(self)
 end
 
 -- A profile copy is logged HERE, once (debug-logging-§10): AceDB copying one profile over another is
@@ -264,23 +288,20 @@ function WhatGroup:OnInitialize()
     -- reads the profile (WG-08 / Database.lua). Idempotent.
     self:RunMigrations()
 
-    -- PROFILE CALLBACKS, and this addon had none.
-    --
-    -- Switching, copying or resetting a profile replaces every stored value at
-    -- once, and nothing here reacted: an open settings panel kept showing the
-    -- OLD profile's values until it was closed and reopened, and the migrations
-    -- never ran on an incoming profile that a copy could have authored at an
-    -- older schema version. It went unnoticed because nothing in this addon
-    -- switched profiles -- until options-ui-§12 made the GLOBAL RESET a profile
-    -- reset, which fires the same event and needs the same reaction.
+    -- PROFILE CALLBACKS. Switching, copying or resetting a profile replaces every
+    -- stored value at once. Before these existed nothing here reacted: an open
+    -- settings panel kept showing the OLD profile's values until it was closed and
+    -- reopened, and the migrations never ran on an incoming profile that a copy
+    -- could have authored at an older schema version. options-ui-§12 made the
+    -- GLOBAL RESET a profile reset, which fires the same event, and the Profiles
+    -- page (settings/Profiles.lua) puts all three in the player's hands.
     --
     -- The function form rather than the string-method one: CallbackHandler takes
     -- both, and a closure keeps this readable. The reaction itself is the
-    -- file-scope reloadProfile above. OnProfileCopied is the one method, because
-    -- its line needs AceDB's source-key argument and a test has to be able to
-    -- pass it the real one.
+    -- file-scope reloadProfile above. OnProfileChanged and OnProfileCopied are
+    -- methods, because each line needs an AceDB argument (the incoming key, the
+    -- copy's source) and a test has to be able to pass it the real one.
     if self.db.RegisterCallback then
-        local function reload() reloadProfile(self) end
         -- A reset is logged HERE, once (debug-logging-§10): AceDB replacing the whole profile is
         -- not a write through the helper, so it gets no per-row line and no bulk-bracket line, just
         -- this one from the profile-event handler. Here rather than in Helpers.RestoreAllDefaults,
@@ -298,11 +319,11 @@ function WhatGroup:OnInitialize()
                 NS.Debug("Set", "reset profile '%s' to defaults", name)
             end
         end
-        self.db.RegisterCallback(self, "OnProfileChanged", reload)
+        self.db.RegisterCallback(self, "OnProfileChanged", function(...) self:OnProfileChanged(...) end)
         self.db.RegisterCallback(self, "OnProfileCopied",  function(...) self:OnProfileCopied(...) end)
         self.db.RegisterCallback(self, "OnProfileReset",   function()
             logReset()
-            reload()
+            reloadProfile(self)
         end)
     end
 

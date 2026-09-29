@@ -104,9 +104,7 @@ end
 self.db = LibStub("AceDB-3.0"):New("WhatGroupDB", defaults, true)
 ```
 
-The third arg `true` means "use a single shared `Default` profile across every character on the account". Every character sees the same settings.
-
-If WhatGroup ever needs per-character settings, that arg becomes `false` (or omitted) and AceDB creates a per-character profile by default. The current design is intentionally account-wide — see [scope.md](./scope.md#out-of-scope).
+The third arg `true` means "start every character on one shared `Default` profile". Every character sees the same settings until the player picks another profile on the **Profiles** page ([profiles.md](./profiles.md)). With `false` (or omitted) AceDB would start each character on a profile of its own instead; `true` keeps the account-wide default a new character has always had.
 
 ## `BuildDefaults` runs every login
 

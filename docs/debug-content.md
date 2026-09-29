@@ -99,6 +99,9 @@ Each console line carries its tag in brackets; the tag is the first argument at 
     N is the rows whose stored value changed.
 
   A bulk act that ends in an error still logs its one line, with ` (stopped by an error)` appended.
+- **Profile** — `[Profile] switched to '<name>'`, a profile switch, logged once by
+  `WhatGroup:OnProfileChanged` in `core/WhatGroup.lua`. A switch rewrites no row through the seam, so
+  it carries no `[Set]` line (debug-logging-§10, [profiles.md](./profiles.md)).
 - **Library lines through this addon's sink** — `Cfg` (`LibKa0s-Options-1.0`: the settings category
   parked in combat, opened, or refused in combat) and `Launcher` (`LibKa0s-Launcher-1.0`), both
   reaching the console through the `debug` forwarders `settings/OptionsSetup.lua` and

@@ -1,7 +1,7 @@
 # CLAUDE.md — Ka0s WhatGroup
 
-**Ka0s WoW addon.** A retail WoW addon: Ace3 vendored under `libs/`, one shared
-AceDB profile.
+**Ka0s WoW addon.** A retail WoW addon: Ace3 vendored under `libs/`, AceDB
+profiles (one shared `Default` until a player picks another on the Profiles page).
 
 ## Standards compliance (read first)
 
