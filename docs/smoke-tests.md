@@ -45,9 +45,10 @@ number out of use rather than handing it to a new one.
   | A release | The release pass below; the whole suite for a release carrying feature work |
 
 - **Release pass.** INSTALL-3, INSTALL-4, COMBAT-2, SLASH-1, SLASH-2, SLASH-9, SLASH-11, PANEL-5,
-  PANEL-14 to PANEL-19, PROFILE-3, PROFILE-4, PROFILE-6, POPUP-1, POPUP-7, COMBAT-7, COMBAT-9,
-  TEST-2, TEST-6, TEST-7, TELE-1 to TELE-4, LFG-1, LFG-2, STATE-7, STATE-8, LAUNCH-2 to LAUNCH-4,
-  LAUNCH-11, DIAG-5, DIAG-12, DIAG-17 to DIAG-22, and the whole non-English pass, LOC-1 to LOC-6.
+  PANEL-14 to PANEL-19, PROFILE-3, PROFILE-4, PROFILE-6, POPUP-1, POPUP-7, COMBAT-7, COMBAT-9 to
+  COMBAT-11, TEST-2, TEST-6, TEST-7, TELE-1 to TELE-4, LFG-1, LFG-2, STATE-7, STATE-8, LAUNCH-2 to
+  LAUNCH-4, LAUNCH-11, DIAG-5, DIAG-12, DIAG-17 to DIAG-22, and the whole non-English pass, LOC-1
+  to LOC-6.
   These run on every release, signed off or not.
 
 ## Install
