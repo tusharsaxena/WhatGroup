@@ -313,8 +313,10 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **COMBAT-10. *Only in combat*.** Set it, `/wg test notify` out of combat → the chat summary
   prints and nothing shows; `/wg show` → nothing shows. Pull a dummy → no error; the popup does
   **not** open, because Show is protected in combat and a hidden frame cannot be revealed there
-  (a known limitation, [frame.md](./frame.md)). If it does open, record that. Drop combat → no
-  popup left behind. Restore *Always*. Result:
+  (a known limitation, [frame.md](./frame.md)). If it does open, record that. If it did not, still
+  in combat, `/wg show` → one line, `Popup deferred until combat ends.`, no popup and no error.
+  Drop combat → nothing opens (out of combat the gate withholds the deferred show) and no popup is
+  left behind. Restore *Always*. Result:
 - **COMBAT-11. No capture, no popup on a combat edge.** *Only out of combat* set, `/reload` so
   nothing is captured, then pull and drop combat → nothing opens: an empty popup must never
   appear on a combat edge. Restore *Always*. Result:
@@ -481,7 +483,8 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **LAUNCH-10. The Minimap button row.** Untick *Minimap button* on **Master controls** → the button
   goes at once, not at the next reload. Tick it → it returns at the same angle. Result:
 - **LAUNCH-11. Hidden survives every reset.** With the button hidden, run in turn: `/wg profile Alt`
-  (and back), `/wg resetall` → **Yes**, the page's **Defaults**, and **Reset all settings** on
+  (the profile from the [Profiles](#profiles) setup; create it first if that theme has not run) and
+  back, `/wg resetall` → **Yes**, the page's **Defaults**, and **Reset all settings** on
   Master controls → it stays hidden through all of them, and returns at the same angle when you
   tick the row. Result:
 - **LAUNCH-12. A broker display.** In Titan Panel, ElvUI data texts or Bazooka, if you run one →
@@ -519,7 +522,9 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   the latest report's end marker. Result:
 - **DIAG-6. One `[Set]` line per write.** With debug on, `/wg set notify.delay 3` → exactly one
   `[Set] notify.delay = 3` line; `/wg set notify.delay 0` → one more. A Master controls checkbox
-  write logs the same single line. Result:
+  write logs the same single line. The verbs write through the same seam: `/wg disable` → one
+  `[Set] enabled = false` line, `/wg enable` → one `[Set] enabled = true`, `/wg test on` → one
+  `[Set] state.testMode = true`, and `/wg test off` → one `[Set] state.testMode = false`. Result:
 - **DIAG-7. Reset all logs once.** With debug on, `/wg set notify.delay 3`, `/wg resetall` →
   **Yes** → the console closes (it is a session-only row the reset sweeps). Reopen it with
   `/wg debug` → after the `[Set] notify.delay = 3` line, exactly one `[Set] reset profile '<name>'
