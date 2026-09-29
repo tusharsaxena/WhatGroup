@@ -227,3 +227,26 @@ test("profiles: ONE named veto keeps the Profiles page and every profile row out
     end
     assertEqual(session, 2, "the console and test mode are what the walk keeps")
 end)
+
+-- options-ui-§12's testing MUST: prove the blast radius, not the mechanism. docs/profiles.md claims
+-- the global reset "never touches another profile or the profile list"; this is that claim, driven
+-- through `/wg resetall` and the popup's OnAccept, the path a player takes.
+-- red under: RestoreAllDefaults wiping sv.profiles or walking every profile, deleting the active
+-- profile, or switching back to "Default" as part of the reset.
+test("profiles: /wg resetall resets the active profile and leaves the list and the other profile alone", function()
+    local NS, env = T.enableAddon()
+    local db, H = NS.addon.db, NS.addon.Settings.Helpers
+    H.Set("notify.delay", 5)
+    db:SetProfile("Alt")
+    H.Set("notify.delay", 7)
+    NS.addon:OnSlashCommand("resetall")
+    env.StaticPopupDialogs["WHATGROUP_RESET_ALL"].OnAccept()
+    assertEqual(db:GetCurrentProfile(), "Alt", "still on the profile that was reset")
+    local names = {}
+    for _, name in ipairs(db:GetProfiles({})) do names[#names + 1] = name end
+    table.sort(names)
+    assertEqual(table.concat(names, ","), "Alt,Default", "the profile list is unchanged")
+    assertEqual(H.Get("notify.delay"), NS.C.notify.delay, "the active profile is back to its defaults")
+    db:SetProfile("Default")
+    assertEqual(H.Get("notify.delay"), 5, "and the other profile kept its value")
+end)

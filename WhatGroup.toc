@@ -22,9 +22,12 @@ libs\AceTimer-3.0\AceTimer-3.0.lua
 libs\AceDB-3.0\AceDB-3.0.lua
 libs\AceGUI-3.0\AceGUI-3.0.xml
 # The Profiles page (settings\Profiles.lua, options-ui-§3): AceConfigDialog draws AceDBOptions'
-# table into the page. Both after AceGUI, which AceConfigDialog builds on, and before LibKa0s, in
-# the order the collection's other Profiles pages load them. Looked up with LibStub(..., true) at
-# PLAYER_LOGIN, so the slot is conventional.
+# table into the page. AceConfig-3.0.xml sits AFTER AceGUI, and that is load-bearing:
+# AceConfigDialog-3.0.lua:7 resolves AceGUI-3.0 with a non-silent LibStub at file load, so moving
+# this line above AceGUI-3.0.xml raises at load (unless another addon loaded AceGUI first). Its
+# AceConfigRegistry also resolves CallbackHandler-1.0 at load, which sits above. The silent
+# LibStub(..., true) lookups in settings\Profiles.lua at PLAYER_LOGIN do not change that.
+# AceDBOptions-3.0.lua resolves nothing at load beyond LibStub, so its slot is conventional.
 libs\AceConfig-3.0\AceConfig-3.0.xml
 libs\AceDBOptions-3.0\AceDBOptions-3.0.lua
 libs\LibSharedMedia-3.0\lib.xml
