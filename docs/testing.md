@@ -61,7 +61,7 @@ The suites, in run order: `test_harness`, `test_libka0s`,
 `test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
 `test_capture`, `test_notify`, `test_frame`, `test_frame_visibility`, `test_frame_secure`, `test_panel`, `test_profiles`, `test_testmode`,
 `test_snapshot`, `test_diagnostics`, `test_launcher`, `test_lifecycle`,
-`test_debuglog`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
+`test_debuglog`, `test_library_lines`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
 `test_register`, `test_disabled`, `test_vendor_sync`. Four more run last and arrive with the
 vendored kit rather than living in `tests/`, each declared by the pair form
 `{ name = ..., dir = "tests/_kit/" }` (testing-§9): `test_eol` (line-endings-§7), `test_prose`

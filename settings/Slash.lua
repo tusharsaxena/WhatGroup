@@ -267,6 +267,12 @@ Sl = lib:New({
     profiles = function() return WhatGroup.db end,
 
     print   = function(line) NS.Print(line) end,
+    -- The gated sink (Slash minor 18). Every refusal the DISPATCHER decides -- the disabled gate, an
+    -- unknown verb, get/set/reset usage and not-found, a parse or write refusal, the profile verb's
+    -- refusals -- writes one `[Cmd] refused <verb>: <guard>` line after its chat line. This file
+    -- logs only the refusals its own verbs decide (`/wg show` with nothing captured, the `enabled`
+    -- write), never one the library already wrote.
+    debug   = function(tag, message) NS.Debug(tag, message) end,
     -- The TOC first, then this addon's in-code constant, through the one seam that knows both
     -- (core/EnvSetup.lua). The library calls this at render time, so passing the function
     -- rather than a string keeps the banner reading the manifest rather than a load-time copy.

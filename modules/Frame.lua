@@ -608,23 +608,26 @@ end
 -- state but says why, and the swipe shows the wait draining. `remaining` is only asked of a spell
 -- the player actually has: an unlearned one has no meaningful cooldown, and answering with one
 -- answers a question nobody asked.
--- The last teleport state logged, as a key, and nil again on every show request (preparePopup).
--- One show runs the configure twice -- PopulateFields fills the hidden popup, then OnShow re-runs it
--- to arm the ticker -- and without this the pair of teleport lines landed twice for every open.
--- Change-gated rather than dropped (debug-logging-§9, quiet steady state): a cooldown that runs out
--- under an open popup is a new state, and logs.
-local lastTeleportKey
+-- The teleport state line is CHANGE-GATED on the console's own gate (`D.DebugChanged`,
+-- LibKa0s-DebugLog-1.0 18.2.1) under one key, re-armed on every show request (preparePopup's
+-- `DebugForget`) and by the library on Clear and on turning logging on. One show runs the
+-- configure twice -- PopulateFields fills the hidden popup, then OnShow re-runs it to arm the
+-- ticker -- and without the gate the teleport lines landed twice for every open. Change-gated
+-- rather than dropped (debug-logging-§9, quiet steady state): a cooldown that runs out under an
+-- open popup is a new state, and logs. The gated line names the ready/cooldown state (the
+-- ` on cooldown` suffix) because the gate compares the line it writes; the remaining time goes on
+-- the follow-up line, written only when the state line was, so a second that ticks between the two
+-- configures of one open cannot make it land twice. This file kept its own last-key memo until
+-- DG-WG-01; a Clear never re-armed it.
+local TELEPORT_GATE_KEY = "teleport"
 
 local function logTeleportState(spellID, known, remaining, info)
     if not NS.State.debug then return end
     local activityID, mapID = info and info.activityID, info and info.mapID
-    local key = table.concat({ NS.SafeToString(spellID), NS.SafeToString(known),
-        NS.SafeToString(activityID), NS.SafeToString(mapID), remaining > 0 and "cd" or "ready" }, "|")
-    if key == lastTeleportKey then return end
-    lastTeleportKey = key
-    NS.Debug("Frame", "teleport spellID=%s known=%s (activity=%s map=%s)", spellID, known,
-        activityID, mapID)
-    if remaining > 0 then
+    local wrote = NS.DebugLog.DebugChanged(TELEPORT_GATE_KEY, "Frame",
+        "teleport spellID=%s known=%s (activity=%s map=%s)%s", spellID, known, activityID, mapID,
+        remaining > 0 and " on cooldown" or "")
+    if wrote and remaining > 0 then
         NS.Debug("Frame", "teleport on cooldown, %s remaining (spellID=%s)",
             NS.FormatDuration(remaining), NS.SafeToString(spellID))
     end
@@ -1021,7 +1024,7 @@ local function preparePopup()
     WhatGroup:ApplyFrameSize()
     WhatGroup:ApplyFrameScale()
     WhatGroup:ApplyFrameAlpha()
-    lastTeleportKey = nil   -- a new show request logs its teleport state once
+    NS.DebugLog.DebugForget(TELEPORT_GATE_KEY)   -- a new show request logs its teleport state once
     local info = shownInfo()
     if info then
         NS.Debug("Frame", 'popup shown "%s" map=%s', info.title, info.mapID)

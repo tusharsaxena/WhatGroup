@@ -95,4 +95,8 @@ NS.Lifecycle = lib:New({
     standDown = function() NS.StandDown() end,
     standUp   = function() NS.StandUp() end,
     print     = function(line) NS.Print(line) end,
+    -- The gated sink (Lifecycle minor 3). The library writes one `[Lifecycle]` line per stand-down
+    -- and stand-up edge, naming the hold that moved and the resulting set, before the callback
+    -- above runs; core/WhatGroup.lua's StandDown / StandUp therefore write no edge line of their own.
+    debug     = function(tag, message) NS.Debug(tag, message) end,
 })

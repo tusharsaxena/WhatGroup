@@ -162,6 +162,7 @@ Kit.run{
         "test_launcher",
         "test_lifecycle",
         "test_debuglog",
+        "test_library_lines",
         "test_docmap",
         "test_lintconfig",
         "test_doc_structure",

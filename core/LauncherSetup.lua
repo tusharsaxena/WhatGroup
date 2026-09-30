@@ -154,6 +154,12 @@ NS.Launcher = lib:New({
 
     print = function(line) NS.Print(line) end,
     debug = function(tag, message) NS.Debug(tag, message) end,
+    -- Register's STATE lines (LibDataBroker-1.1 / LibDBIcon-1.0 absent, no minimap table,
+    -- `registered`; Launcher minor 5) go to the console's at-enable queue: Register runs at
+    -- OnEnable, while the session-only flag is still off, so through `debug` they never landed.
+    -- Held, they are written the first time the player turns logging on (debug-logging-§8).
+    -- Resolved at call time, like every NS member here.
+    debugAtEnable = function(tag, message) NS.DebugLog.DebugAtEnable(tag, "%s", message) end,
 
     -- ── THE STATUS TOOLTIP (launcher-§1, LibKa0s-Launcher-1.0 minor 3) ──────────────────────
     --

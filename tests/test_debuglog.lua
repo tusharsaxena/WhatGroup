@@ -120,16 +120,19 @@ test("debuglog: enabling debug appends the [Init] session summary after the brac
     NS.State.debug = false
     debugCmd(NS, "on")
     local buf = NS.DebugLog.buffer
-    local last = buf[#buf]
+    -- Since LibKa0s v1.65.0 the at-enable queue's held state lines follow the summary (the boot's
+    -- [Migrate] line here), so the summary is found after the bracket rather than read off the end.
+    local at
+    for i = #buf, 1, -1 do
+        if buf[i]:find("[Debug] logging enabled", 1, true) then at = i; break end
+    end
+    local last = at and buf[at + 1]
     assertTrue(last and last:find("[Init]", 1, true) ~= nil,
-        "the on path must end with the [Init] summary, after the bracket line")
+        "the on path must write the [Init] summary right after the bracket line")
     -- Identity content: addon/version, schema, profile (debug-logging-§5).
     assertTrue(last:find("WhatGroup v", 1, true) ~= nil, "carries addon + version")
     assertTrue(last:find("schema v", 1, true) ~= nil, "carries schema version")
     assertTrue(last:find("profile 'Default'", 1, true) ~= nil, "carries active profile")
-    -- Order: the bracket line comes immediately before the [Init] line.
-    assertTrue(buf[#buf - 1]:find("[Debug] logging enabled", 1, true) ~= nil,
-        "[Init] follows the enable bracket line")
 end)
 
 test("debuglog: [Init] fires only on enable, not on disable (debug-logging-§5)", function()
@@ -664,23 +667,27 @@ local function onCooldownFor(mock, spellID, remaining)
         { startTime = mock.now - 60, duration = 60 + remaining, isEnabled = true, modRate = 1 }
 end
 
-test("debuglog: pin — standing down logs one [State] line naming the holds", function()
-    -- red under: dropping logStandDown from NS.StandDown -- the log then shows `[Set] enabled =
-    -- false` and nothing about whether the latch actually took the addon down.
+test("debuglog: pin — standing down logs one [Lifecycle] line naming the holds, the library's", function()
+    -- red under: dropping `debug` from core/LifecycleSetup.lua's descriptor -- the log then shows
+    -- `[Set] enabled = false` and nothing about whether the latch actually took the addon down. The
+    -- edge line is LibKa0s-Lifecycle-1.0's (minor 3); the host's own [State] line is gone, so the
+    -- edge is one line, not two.
     local NS = T.enableAddon()
     NS.State.debug = true
     NS.addon.Settings.Helpers.Set("enabled", false)
-    assertLogged(NS, "[State] stood down (holds: disabled)")
-    assertEqual(countLogged(NS, "[State] stood down"), 1, "one line per edge")
+    assertLogged(NS, "[Lifecycle] stood down: added disabled (holds: disabled)")
+    assertEqual(countLogged(NS, "stood down"), 1, "one line per edge")
+    assertEqual(countLogged(NS, "[State]"), 0, "and no host copy of it")
 end)
 
-test("debuglog: pin — standing back up logs the [State] stood-up line", function()
-    -- red under: dropping the NS.StandUp line.
+test("debuglog: pin — standing back up logs the library's [Lifecycle] stood-up line, once", function()
+    -- red under: dropping `debug` from the Lifecycle descriptor, or restoring NS.StandUp's own line.
     local NS = T.enableAddon()
     NS.addon.Settings.Helpers.Set("enabled", false)
     NS.State.debug = true
     NS.addon.Settings.Helpers.Set("enabled", true)
-    assertLogged(NS, "[State] stood up: events and the chat link re-registered")
+    assertLogged(NS, "[Lifecycle] stood up: released disabled (holds: none)")
+    assertEqual(countLogged(NS, "stood up"), 1, "one line per edge")
 end)
 
 test("debuglog: pin — an apply while stood down logs the [Apply] refusal naming the guard", function()

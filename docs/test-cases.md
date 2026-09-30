@@ -848,8 +848,8 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: pin — showing with no capture logs the [Frame] fallback and nil teleport lines
 - debuglog: pin — a show the visibility gate withholds logs the [Frame] not-shown line
 - debuglog: pin — unticking test mode logs the [Test] off line with its reason
-- debuglog: pin — standing down logs one [State] line naming the holds
-- debuglog: pin — standing back up logs the [State] stood-up line
+- debuglog: pin — standing down logs one [Lifecycle] line naming the holds, the library's
+- debuglog: pin — standing back up logs the library's [Lifecycle] stood-up line, once
 - debuglog: pin — an apply while stood down logs the [Apply] refusal naming the guard
 - debuglog: pin — a join with notify.enabled off logs the [Notify] skip naming the row
 - debuglog: pin — an accepted invite before the roster says grouped logs the [Notify] skip
@@ -871,6 +871,17 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: pin — test mode refused in combat logs the guard
 - debuglog: the [Init] line names the degraded chat-link route, and only there
 - debuglog: pin — the degraded chat link clicked while stood down logs the refusal
+
+### test_library_lines.lua (8)
+
+- library lines: an unknown verb writes the library's [Cmd] refusal, once
+- library lines: a feature verb refused by the disabled gate is one [Cmd] line
+- library lines: a set the parser refuses writes one [Cmd] line naming the path
+- library lines: a profile switch refused in combat writes one [Cmd] line
+- library lines: a registration parked in combat logs the park and the flush, once each
+- library lines: the launcher's registration lands the first time logging is turned on
+- library lines: the login migration's [Migrate] line lands the first time logging is turned on
+- library lines: a caught error logged once is logged again after a Clear
 
 ### test_docmap.lua (1)
 
@@ -1008,6 +1019,7 @@ badge and any count quoted in the docs must agree with it.
 | test_launcher.lua | 36 |
 | test_lifecycle.lua | 46 |
 | test_debuglog.lua | 72 |
+| test_library_lines.lua | 8 |
 | test_docmap.lua | 1 |
 | test_lintconfig.lua | 6 |
 | test_doc_structure.lua | 9 |
@@ -1018,4 +1030,4 @@ badge and any count quoted in the docs must agree with it.
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
-| **Total** | **872** |
+| **Total** | **880** |
