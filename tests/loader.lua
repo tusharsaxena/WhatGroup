@@ -43,6 +43,9 @@ local LIBKA0S = {
     -- New in LibKa0s v1.60.0: DebugLog's second file, the diagnostics report (debug-logging-§14).
     -- It attaches to the DebugLog shell, so it loads right after it, as the XML has it.
     "libs/LibKa0s/DebugLogDiagnostics.lua",
+    -- New in LibKa0s v1.65.0: DebugLog's third file, the change gates and the at-enable queue
+    -- (DebugLogGates minor 1). It attaches to the DebugLog shell after the diagnostics file.
+    "libs/LibKa0s/DebugLogGates.lua",
     "libs/LibKa0s/Slash.lua",
     "libs/LibKa0s/Launcher.lua",
     "libs/LibKa0s/Options.lua",
