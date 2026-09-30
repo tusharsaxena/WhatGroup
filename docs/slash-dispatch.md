@@ -4,14 +4,14 @@
 
 ## Registration
 
-Both names are registered through `AceConsole-3.0:RegisterChatCommand` in `OnInitialize` (`core/WhatGroup.lua:333`):
+Both names are registered through `AceConsole-3.0:RegisterChatCommand` in `OnInitialize` (`core/WhatGroup.lua:352`):
 
 ```lua
 self:RegisterChatCommand("wg",        "OnSlashCommand")
 self:RegisterChatCommand("whatgroup", "OnSlashCommand")
 ```
 
-`WhatGroup:OnSlashCommand` (`settings/Slash.lua:518`) hands the raw input straight to `Sl:OnSlash`. The library deliberately registers no chat command of its own — AceConsole stays the single registrar, so every verb's output keeps flowing through the tagged printer (slash-commands-§1).
+`WhatGroup:OnSlashCommand` (`settings/Slash.lua:523`) hands the raw input straight to `Sl:OnSlash`. The library deliberately registers no chat command of its own — AceConsole stays the single registrar, so every verb's output keeps flowing through the tagged printer (slash-commands-§1).
 
 ## Case-preserving parse
 
@@ -99,7 +99,7 @@ Library verbs delegate to the instance; host verbs are the file-local functions 
 | `/wg debug` / `/wg debug on\|off` | `runDebug` (host) | Bare `/wg debug` **toggles the on-screen debug console window** (`NS.DebugLog:Toggle()`), state untouched; `/wg debug on\|off` sets the session-only `NS.State.debug` flag through the single `NS.DebugLog:SetEnabled` seam (color-coded chat ack + `[Debug] logging enabled/disabled` console line). The FLAG is off on every login, never persisted, and **not** a schema row (WG-12), so there's no `/wg set debug`. The **Debug console** checkbox on the Master controls tab is *not* a second toggle for it — it is a `sessionOnly` schema row on the path `state.debugConsole` that shows/hides the console **window** only, routed to `NS.DebugLog`'s own get/set by `settings/Schema.lua`'s `SESSION` table so it never reaches `db.profile`. Debug output (`NS.Debug(tag, …)`) renders in the console, not chat — see [debug-content.md](./debug-content.md). `runDebug` tests `diagnostics` first (next row); any other word prints a three-line usage. |
 | `/wg diagnostics` / `/wg debug diagnostics` | `NS.DebugLog:RunDiagnostics` (library), sections from `modules/Diagnostics.lua` (host) | The diagnostics report (`debug-logging-§14`), appended to the debug console after whatever it already holds, with logging on or off. The two forms are the only ones: `runDebug` tests `diagnostics` first, and `/wg debug diag` is an unknown word that prints the three-line usage. On the library's live list, so it runs while the addon is disabled. One localized chat line gives the line count and points at **Copy**. What the report prints: [debug.md](./debug.md). |
 
-`Helpers.RestoreAllDefaults` deliberately **overrides** the library member of the same name (`settings/OptionsSetup.lua:308-324`, [LIBKA0S-08](https://github.com/tusharsaxena/WhatGroup/issues/10)): the library's is row-by-row over every row, with no profile reset and no confirmation. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched.
+`Helpers.RestoreAllDefaults` deliberately **overrides** the library member of the same name (`settings/OptionsSetup.lua:314-330`, [LIBKA0S-08](https://github.com/tusharsaxena/WhatGroup/issues/10)): the library's is row-by-row over every row, with no profile reset and no confirmation. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched.
 
 ## The dispatcher survives the disabled state, and so does every reserved verb
 

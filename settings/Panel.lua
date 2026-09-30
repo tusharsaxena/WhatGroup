@@ -58,7 +58,14 @@ function Helpers.InlineButton(ctx, spec)
         -- propagate into AceGUI's dispatch and take the click handling of every widget on the frame
         -- down with it.
         local ok, err = pcall(spec.onClick)
-        if not ok then pout("button onClick failed: " .. tostring(err)) end
+        if not ok then
+            -- Chat for the player, and the log once per distinct error (debug-logging-§8), its
+            -- site built behind the gate.
+            if NS.State.debug then
+                NS.DebugErrorOnce("Cfg", "button '" .. tostring(spec.text) .. "' onClick raised", err)
+            end
+            pout("button onClick failed: " .. tostring(err))
+        end
     end)
     row:AddChild(btn)
 

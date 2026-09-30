@@ -9,6 +9,8 @@ WhatGroup has two debug surfaces, and both write into the same window:
   `/wg diagnostics` (`debug-logging-§14`). It is why this page exists (`documentation-§3`, Tier 2):
   every Ka0s addon ships the report, and a maintainer reading a pasted one needs to know what each
   line means.
+- **The coverage map** ([Coverage](#coverage), below) is the trace's other half: every tag the
+  console carries, what writes it and when, and which repeating paths stay quiet on purpose.
 
 The console and the report frame are the library's, and their contract lives in LibKa0s's
 [`docs/api/DebugLog/version-15.1-docs.md`](https://github.com/tusharsaxena/LibKa0s/blob/master/docs/api/DebugLog/version-15.1-docs.md)
@@ -132,6 +134,51 @@ Write a `local function name(out)` in `modules/Diagnostics.lua` and add `{ "name
 (`out:add`, `out:list`, `out:joined`, `out:readable`, `out:nonDefaults`), pass raw values, and read
 state only: anything file-local elsewhere gets a read-only accessor that returns a copy. Add its row
 to the table above in the same change, and a case to `tests/test_diagnostics.lua`.
+
+## Coverage
+
+What the gated trace carries, tag by tag: which code writes each line and when it lands. This is the
+map `debug-logging-§8` (the flows and the diagnosis checklist) and `debug-logging-§9` (one line per
+pass, and none when nothing changed) are checked against. Every line is one `NS.Debug` call, gated,
+with its formatting behind the gate. The diagnostics report above is not part of the trace: it is
+ungated and runs only when asked.
+
+| Tag | Written by | When |
+|---|---|---|
+| `Debug` | the library | The `logging enabled` / `logging disabled` bracket, at each flip of the flag. |
+| `Init` | the library, from `WhatGroup:InitSummary()` | Once per enable, after the bracket: identity, runtime state, then `rejected events: …` when a registration was refused and `link route: SetItemRef post-hook (degraded client)` on a client without Blizzard's addon link type. Both clauses are absent otherwise. This is where the dependencies are logged, because the flag is off at login. |
+| `Migrate` | `core/Database.lua` | `vX -> vY`, only when a migration actually moves the version. |
+| `State` | `NS.StandDown` / `NS.StandUp` | `stood down (holds: …)` on the latch's down edge, first, so the teardown lines below it read as its consequences; `stood up: events and the chat link re-registered` on the up edge. Once per edge; a hold that does not move the latch writes nothing here. |
+| `Apply` | the `ApplyToGroup` post-hook | `id=… captured "…" (activity=… map=… m+=…)` per apply; `ignored id=…: addon stood down` for an apply while disabled (the hook cannot be unregistered). |
+| `Capture` | `core/WhatGroup.lua` | `GetSearchResultInfo returned nil for id=…` (the capture that never happened); `GetApplicationInfo gave no id …` per status event; `GetApplicationInfo raised (falling back to appID): <err>` once per distinct error; `GetApplicationInfo unavailable: falling back to appID` once per session; `wiped (<reason>)` when a reasoned wipe had something in flight. |
+| `LFG` | the status event | `appID=… status=…` per event; `appID=… applied: nothing captured under result id=… to pair`; `dropped the capture for appID=… (<status>)`. |
+| `Invite` | the `inviteaccepted` arm | `accepted appID=… → "<title>" map=… (source=fresh\|queued)` or `→ no capture`; `ignored appID=…: addon stood down` for a direct call while disabled. |
+| `Roster` | `GROUP_ROSTER_UPDATE` | Only on an in-group transition, or a leave with a capture still held. |
+| `Notify` | `_TryFireJoinNotify`, its timer, `ShowNotification` | `scheduling in Ns (<reason>)`; the skips, each naming its guard (`no pendingInfo`, `already notified for this group`, `not in a group yet`, `notify.enabled is off`); at fire time `fired`, `canceled (superseded)`, `popup held: test mode is on` or `popup not auto-shown: frame.autoShow is off`. |
+| `ChatLink` | `OnSetItemRef`, the degraded post-hook | `clicked hasPending=…` per click on the details link; `ignored: addon stood down` on the degraded route only (the normal route is unregistered while disabled). Another addon's link writes nothing. |
+| `Frame` | `modules/Frame.lua`, and `/wg show` in `settings/Slash.lua` | `popup shown …` per show request, then its teleport state (`teleport spellID=… known=…`, plus `teleport on cooldown, … remaining`) once per request and again when that state changes under an open popup. `teleport button pressed …` per press. `popup suppressed: visibility = never`, `popup built but not shown: visibility = …`. `popup <before> → <after>: <cause>` when the popup's state moved: the visibility gate on a combat edge or a setting, a dismissal (Close, Escape, the launcher), the stand-down, the owed Hide settling. `held until combat ends: <key> (in combat)` when a combat-end slot fills, `combat ended: flushing N held (<keys>)` when the edge drains it, `dropped held work: <keys> (addon stood down)` when a stand-down drops it. The combat refusals: `popup size not applied`, `popup scale not applied`, `popup saved position dropped; re-anchor refused`. `popup position reset to the shipped anchor`. `/wg show refused: no captured group`. |
+| `Test` | test mode, `RunTest` | `test mode on`, `test mode off (<why>)`, `test mode refused: in combat`, `synthetic capture injected "…"`. |
+| `Set` | the library's write seam, the profile handlers, `/wg enable\|disable` | `<path> = <value>` once per write; the bulk and profile-reset/copy lines ([debug-content.md](./debug-content.md#tag-vocabulary)); `enabled refused: <err>` when the seam turns the switch down. |
+| `Profile` | `OnProfileChanged` | `switched to '<name>'`, once per switch. |
+| `Cfg` | the library's Options major; `settings/OptionsSetup.lua`, `settings/Panel.lua` | The category parked, opened or refused in combat (library). `settings page '<key>' render raised: <err>` and `button '<text>' onClick raised: <err>`, once per distinct error, beside the chat line the player already sees. |
+| `Launcher` | the library's Launcher major | Its own registration and accessor lines. |
+
+### What stays quiet, and why
+
+- **The cooldown ticker**, the addon's one repeating timer, writes nothing per tick. The change it
+  exists for (the cooldown running out) re-runs the configure, and that logs the new teleport state.
+- **The combat edges** re-ask the visibility gate twice per pull for the rest of the session once the
+  popup has been built. They write a line only when the popup's state changed, or when held work is
+  flushed.
+- **`GROUP_ROSTER_UPDATE`** fires on every roster change in a raid, and writes only on a transition.
+- **One open runs the teleport configure twice** (the fill, then `OnShow` arming the ticker). The
+  teleport line is change-gated so the pair lands once per show request.
+- **Edges this addon does not react to** (loading screens, zone and instance changes, spec changes,
+  the addon-restriction state) have no line, because nothing here changes on them.
+
+The pins are the `debug-logging-§8` / `debug-logging-§9` cases at the end of
+`tests/test_debuglog.lua`, each with a red-under comment naming the line it protects; the quiet
+cases run the path many times and assert the buffer did not grow.
 
 ## Where else this is pinned
 

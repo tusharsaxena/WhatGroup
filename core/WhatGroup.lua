@@ -46,6 +46,20 @@ NS.State.debug = false
 -- only place the player sees it (events-frames-taint-§1).
 NS.RejectedEvents = {}
 
+-- ONE LINE PER DISTINCT CAUGHT ERROR (debug-logging-§8, Diagnosis): a pcall this addon owns logs its
+-- site and message the first time that pair is seen, and never again this session, so a call that
+-- raises on every event is one line rather than a wall of them. The gate comes first and the key is
+-- built behind it, so with logging off this costs one boolean read; and a pair is only marked seen
+-- when it was actually logged, so turning logging on later still shows it.
+local loggedErrors = {}
+function NS.DebugErrorOnce(tag, site, err)
+    if not NS.State.debug then return end
+    local key = tostring(site) .. "\0" .. NS.SafeToString(err)
+    if loggedErrors[key] then return end
+    loggedErrors[key] = true
+    NS.Debug(tag, "%s: %s", site, err)
+end
+
 -- Single shared chat prefix (slash-commands-§4). NS.PREFIX is the one source of
 -- truth; the secret-safe printer (core/CoreSetup.lua) prepends it to every line.
 NS.PREFIX = "|cff00FFFF[WG]|r"
@@ -104,9 +118,14 @@ local function onDetailsLinkClick(linkArg)
     -- EventRegistry route has a real unregister and is really unregistered -- NS.StandDown drops it
     -- and NS.StandUp puts it back -- so it never reaches here while disabled (anti-pattern #85).
     -- A disabled addon prints no notify line, so a link clicked then is a leftover from before.
-    if NS.IsStoodDown() then return end
+    -- The stand-down test comes AFTER the two "is it ours" tests, so the refusal line it logs is
+    -- about our link only and not every item link a player clicks while the addon is off.
     if type(linkArg) ~= "string" then return end
     if linkArg:sub(1, #DETAILS_LINK_PREFIX) ~= DETAILS_LINK_PREFIX then return end
+    if NS.IsStoodDown() then
+        NS.Debug("ChatLink", "ignored: addon stood down")
+        return
+    end
     if WhatGroup.OnSetItemRef then
         WhatGroup:OnSetItemRef()
     end
@@ -387,8 +406,18 @@ end
 -- protected call: the popup parents a SecureActionButtonTemplate button, so Hide on it is refused
 -- under lockdown and modules/Frame.lua takes the alpha-0 route instead. The real Hide is owed to
 -- the next legal edge, so the registration is held pending and released the moment it fires.
+-- The latch's edge, logged once per edge (debug-logging-§8, Diagnosis: the addon's own stand-down
+-- transitions), naming the holds that took it down. First, so the lines the teardown writes below
+-- it read as its consequences. The holds array is built behind the gate.
+local function logStandDown()
+    if not NS.State.debug then return end
+    local holds = NS.Lifecycle and NS.Lifecycle.Holds and NS.Lifecycle:Holds() or {}
+    NS.Debug("State", "stood down (holds: %s)", #holds > 0 and table.concat(holds, ", ") or "none")
+end
+
 function NS.StandDown()
     local self = WhatGroup
+    logStandDown()
     self:UnregisterEvent("GROUP_ROSTER_UPDATE")
     self:UnregisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
     self:UnregisterEvent("PLAYER_REGEN_DISABLED")
@@ -417,6 +446,7 @@ end
 -- an event it no longer owes anything to.
 function WhatGroup:OnDisabledCombatEnded()
     self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+    -- The owed Hide's flush is logged by FrameFinishStandDown, as the popup's own transition line.
     if NS.FrameFinishStandDown then NS.FrameFinishStandDown() end
 end
 
@@ -425,6 +455,7 @@ end
 -- and the rebuild has to reflect the setting as it is NOW.
 function NS.StandUp()
     local self = WhatGroup
+    NS.Debug("State", "stood up: events and the chat link re-registered")
     -- Drop any pending combat hold before re-registering, or registerFeatureEvents would be
     -- rebinding PLAYER_REGEN_ENABLED on top of the stand-down's own handler.
     self:UnregisterEvent("PLAYER_REGEN_ENABLED")
@@ -485,6 +516,16 @@ local function rejectedClause()
     return ", rejected events: " .. table.concat(rejected, ", ")
 end
 
+-- THE ONE DEPENDENCY A LOG CANNOT OTHERWISE SHOW (debug-logging-§8, Diagnosis). A client without
+-- Blizzard's addon link type hears the details link through the SetItemRef post-hook instead, and a
+-- "the chat link does nothing" report turns on which route this client took. Logged here, on the
+-- [Init] line, because the flag is off at login and this is the line that lands once, at enable;
+-- absent on a client with the normal route, so that line keeps its shape.
+local function linkRouteClause()
+    if ADDON_LINK_TYPE then return "" end
+    return ", link route: SetItemRef post-hook (degraded client)"
+end
+
 -- One-line [Init] session summary (debug-logging-§5 MUST / debug-logging-§8 boot-summary):
 -- addon name + version, schema/DB version, active AceDB profile. A pure builder
 -- — the DebugLog:SetEnabled seam calls it and appends the line via raw D:Add on
@@ -504,7 +545,7 @@ function WhatGroup:InitSummary()
         tostring(pr.notify and pr.notify.delay),
         tostring(not (pr.frame and pr.frame.autoShow == false)),
         tostring(IsInGroup() and true or false),
-        tostring(self.pendingInfo ~= nil)) .. rejectedClause()
+        tostring(self.pendingInfo ~= nil)) .. rejectedClause() .. linkRouteClause()
 end
 
 -- ---------------------------------------------------------------------------
@@ -626,8 +667,9 @@ function WhatGroup:ResolveSearchResultID(appID)
     if getAppInfo then
         local ok, res = pcall(getAppInfo, appID)
         if not ok then
-            NS.Debug("Capture", "GetApplicationInfo raised for appID=%s; falling back to appID",
-                NS.SafeToString(appID))
+            -- The site and the message, once per distinct message (debug-logging-§8): a client that
+            -- raises here raises on every status event, and the fallback below is the same each time.
+            NS.DebugErrorOnce("Capture", "GetApplicationInfo raised (falling back to appID)", res)
         else
             if type(res) == "table" then
                 res = res.searchResultID or res.id
@@ -640,8 +682,8 @@ function WhatGroup:ResolveSearchResultID(appID)
             end
         end
     else
-        NS.Debug("Capture", "GetApplicationInfo unavailable; falling back to appID=%s",
-            NS.SafeToString(appID))
+        -- A missing API is a dependency, not an event: once per session (debug-logging-§8).
+        NS.DebugErrorOnce("Capture", "GetApplicationInfo unavailable", "falling back to appID")
     end
 
     return resultID
@@ -791,7 +833,11 @@ function WhatGroup:ShowNotification()
         return
     end
     local n = self.db and self.db.profile and self.db.profile.notify
-    if not n or not n.enabled then return end
+    if not (n and n.enabled) then
+        -- The guard a "no chat notice on join" report turns on (debug-logging-§8, Diagnosis).
+        NS.Debug("Notify", "skip: notify.enabled is off (no chat notice)")
+        return
+    end
 
     -- Every line routes through the single secret-safe printer `p` (WG-23):
     -- the label (a constant color-coded string) and the value are passed as
@@ -833,6 +879,7 @@ function WhatGroup:OnApplyToGroup(searchResultID)
     -- The question asked is the LATCH's, not `db.profile.enabled`, so a perf-suspended arm and a
     -- disabled addon get the same answer through one seam.
     if NS.IsStoodDown() then
+        NS.Debug("Apply", "ignored id=%s: addon stood down", searchResultID)
         return
     end
     local captured = self:CaptureGroupInfo(searchResultID)
@@ -892,8 +939,17 @@ function WhatGroup:_TryFireJoinNotify(reason)
         end
         return
     end
-    if notifiedFor == self.pendingInfo then return end
-    if not IsInGroup() then return end
+    -- The two quiet guards say why nothing fired (debug-logging-§8, Diagnosis). Both are once per
+    -- join at most: the second path to reach a join is the one that finds it already notified, and
+    -- only the inviteaccepted path can arrive before the client reports the player in a group.
+    if notifiedFor == self.pendingInfo then
+        NS.Debug("Notify", "skip: already notified for this group (%s)", reason)
+        return
+    end
+    if not IsInGroup() then
+        NS.Debug("Notify", "skip: not in a group yet (%s)", reason)
+        return
+    end
 
     notifiedFor = self.pendingInfo
     local capturedInfo = self.pendingInfo
@@ -928,9 +984,11 @@ function WhatGroup:_TryFireJoinNotify(reason)
         -- Test mode is left on until the player turns it off (options-ui-§15), so the join popup does
         -- not take the popup from it: the capture waits in pendingInfo for the chat link or
         -- `/wg show`, and either of those, an explicit request to see it, ends test mode.
-        if autoShow and NS.State.testMode then
+        if not autoShow then
+            NS.Debug("Notify", "popup not auto-shown: frame.autoShow is off")
+        elseif NS.State.testMode then
             NS.Debug("Notify", "popup held: test mode is on")
-        elseif autoShow then
+        else
             self:ShowFrame()
         end
     end, delay)
@@ -1037,6 +1095,10 @@ local function pairApplication(self, appID)
     if capture then
         capturesByResult[resultID] = nil
         pendingApplications[appID] = capture
+    else
+        -- The no-op that explains a later "accepted → no capture" (debug-logging-§8).
+        NS.Debug("LFG", "appID=%s applied: nothing captured under result id=%s to pair",
+            appID, resultID)
     end
 end
 
@@ -1076,6 +1138,7 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
         -- method directly. It asks the LATCH rather than the stored path, so there is one notion
         -- of "off" in this file rather than two that can disagree (WG-R-01).
         if NS.IsStoodDown() then
+            NS.Debug("Invite", "ignored appID=%s: addon stood down", appID)
             return
         end
         -- Pick the more-complete capture between fresh (re-fetched

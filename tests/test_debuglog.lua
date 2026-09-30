@@ -642,3 +642,312 @@ test("debuglog: pin — unticking test mode logs the [Test] off line with its re
     NS.addon.Settings.Helpers.Set("state.testMode", false)
     assertLogged(NS, "[Test] test mode off (unticked)")
 end)
+
+-- ── the diagnosis checklist and quiet steady state (debug-logging-§8, debug-logging-§9) ──────
+--
+-- The DL-WG-02 audit's fills. Each pin names, in its red-under comment, the line whose absence
+-- leaves a support read of the log unable to say why something did not happen. The quiet cases
+-- run a repeating path N times with nothing changing and assert the buffer did not grow.
+
+local function lines(NS) return #NS.DebugLog.buffer end
+
+local function countLogged(NS, needle)
+    local n = 0
+    for _, line in ipairs(NS.DebugLog.buffer) do
+        if line:find(needle, 1, true) then n = n + 1 end
+    end
+    return n
+end
+
+local function onCooldownFor(mock, spellID, remaining)
+    mock.spellCooldowns[spellID] =
+        { startTime = mock.now - 60, duration = 60 + remaining, isEnabled = true, modRate = 1 }
+end
+
+test("debuglog: pin — standing down logs one [State] line naming the holds", function()
+    -- red under: dropping logStandDown from NS.StandDown -- the log then shows `[Set] enabled =
+    -- false` and nothing about whether the latch actually took the addon down.
+    local NS = T.enableAddon()
+    NS.State.debug = true
+    NS.addon.Settings.Helpers.Set("enabled", false)
+    assertLogged(NS, "[State] stood down (holds: disabled)")
+    assertEqual(countLogged(NS, "[State] stood down"), 1, "one line per edge")
+end)
+
+test("debuglog: pin — standing back up logs the [State] stood-up line", function()
+    -- red under: dropping the NS.StandUp line.
+    local NS = T.enableAddon()
+    NS.addon.Settings.Helpers.Set("enabled", false)
+    NS.State.debug = true
+    NS.addon.Settings.Helpers.Set("enabled", true)
+    assertLogged(NS, "[State] stood up: events and the chat link re-registered")
+end)
+
+test("debuglog: pin — an apply while stood down logs the [Apply] refusal naming the guard", function()
+    -- red under: the bare `return` the hook's stand-down gate used to take; the report is "I applied
+    -- and nothing was captured", and this line is the whole answer.
+    local NS = T.enableAddon()
+    NS.addon.Settings.Helpers.Set("enabled", false)
+    NS.State.debug = true
+    NS.addon:OnApplyToGroup(100)
+    assertLogged(NS, "[Apply] ignored id=100: addon stood down")
+end)
+
+test("debuglog: pin — a join with notify.enabled off logs the [Notify] skip naming the row", function()
+    -- red under: the silent `return` ShowNotification used to take on the notify.enabled guard.
+    local NS = T.bootAddon()
+    NS.addon.db.profile.notify.enabled = false
+    NS.State.debug = true
+    NS.addon.pendingInfo = pendingCapture()
+    NS.addon:ShowNotification()
+    assertLogged(NS, "[Notify] skip: notify.enabled is off (no chat notice)")
+end)
+
+test("debuglog: pin — an accepted invite before the roster says grouped logs the [Notify] skip", function()
+    -- red under: the silent IsInGroup() return in _TryFireJoinNotify.
+    local NS, _, mock = T.bootAddon()
+    NS.State.debug = true
+    mock.inGroup = false
+    NS.addon.pendingInfo = pendingCapture()
+    NS.addon:_TryFireJoinNotify("inviteaccepted")
+    assertLogged(NS, "[Notify] skip: not in a group yet (inviteaccepted)")
+end)
+
+test("debuglog: pin — the second path to reach a join logs the [Notify] already-notified skip", function()
+    -- red under: the silent notifiedFor return in _TryFireJoinNotify.
+    local NS, _, mock = T.bootAddon()
+    NS.State.debug = true
+    mock.inGroup = true
+    NS.addon.pendingInfo = pendingCapture()
+    NS.addon:_TryFireJoinNotify("inviteaccepted")
+    NS.addon:_TryFireJoinNotify("ROSTER transition")
+    assertLogged(NS, "[Notify] skip: already notified for this group (ROSTER transition)")
+end)
+
+test("debuglog: pin — a fired notify with frame.autoShow off logs why no popup opened", function()
+    -- red under: the old `elseif autoShow` arm, which fell through to nothing with no line.
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db.profile.frame.autoShow = false
+    NS.State.debug = true
+    mock.inGroup = true
+    NS.addon.pendingInfo = pendingCapture()
+    NS.addon:_TryFireJoinNotify("inviteaccepted")
+    mock.__fireTimers()
+    assertLogged(NS, "[Notify] popup not auto-shown: frame.autoShow is off")
+end)
+
+test("debuglog: pin — an 'applied' status with nothing captured logs the [LFG] no-pair line", function()
+    -- red under: pairApplication's silent miss. It is the line that explains a later
+    -- `[Invite] accepted ... no capture`.
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    NS.addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "applied")
+    assertLogged(NS, "[LFG] appID=100 applied: nothing captured under result id=100 to pair")
+end)
+
+test("debuglog: pin — a raising GetApplicationInfo logs its message once, not once per event", function()
+    -- red under: the old per-call line, which also dropped the error message itself.
+    local NS, _, mock = T.bootAddon()
+    NS.State.debug = true
+    mock.C_LFGList.GetApplicationInfo = function() error("bridge broke", 0) end
+    for _ = 1, 3 do NS.addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "applied") end
+    assertLogged(NS, "[Capture] GetApplicationInfo raised (falling back to appID): bridge broke")
+    assertEqual(countLogged(NS, "GetApplicationInfo raised"), 1, "once per distinct error")
+end)
+
+test("debuglog: a caught error logged while debug was off is still logged once it is on", function()
+    -- red under: marking the error seen before the gate, which would hide it for the session.
+    local NS = T.bootAddon()
+    NS.DebugErrorOnce("Capture", "site", "boom")
+    NS.State.debug = true
+    NS.DebugErrorOnce("Capture", "site", "boom")
+    NS.DebugErrorOnce("Capture", "site", "boom")
+    assertEqual(countLogged(NS, "[Capture] site: boom"), 1)
+end)
+
+test("debuglog: pin — a show deferred by combat logs its hold, and the combat-end edge its flush", function()
+    -- red under: dropping either line from FrameQueueForCombatEnd / FrameDrainCombatEnd. A hold with
+    -- no flush after it is how a support read sees work that never ran.
+    local NS, _, mock = T.enableAddon()
+    NS.State.debug = true
+    NS.addon.pendingInfo = pendingCapture()
+    mock.combat = true
+    NS.addon:ShowFrame()
+    NS.addon:ShowFrame()
+    assertLogged(NS, "[Frame] held until combat ends: firstShow (in combat)")
+    assertEqual(countLogged(NS, "held until combat ends"), 1, "a second request adds no second hold")
+    mock.combat = false
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    assertLogged(NS, "[Frame] combat ended: flushing 1 held (firstShow)")
+end)
+
+test("debuglog: pin — a stand-down drops held work with a line, so the hold is answered", function()
+    -- red under: wiping the combat-end queue silently in NS.FrameStandDown.
+    local NS, _, mock = T.enableAddon()
+    NS.State.debug = true
+    NS.addon.pendingInfo = pendingCapture()
+    mock.combat = true
+    NS.addon:ShowFrame()
+    NS.Lifecycle:Hold(NS.HOLD_DISABLED)
+    assertLogged(NS, "[Frame] dropped held work: firstShow (addon stood down)")
+end)
+
+test("debuglog: pin — a combat edge that moves the popup logs one [Frame] transition line", function()
+    -- red under: the unlogged gate. `outOfCombat` soft-hides on the way in and re-shows on the way
+    -- out, and without these two lines a "the popup vanished in combat" report has no answer.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.db.profile.visibility = "outOfCombat"
+    NS.addon.pendingInfo = pendingCapture()
+    NS.addon:ShowFrame()
+    NS.State.debug = true
+    mock.combat = true
+    mock.__fireEvent("PLAYER_REGEN_DISABLED")
+    assertLogged(NS, "[Frame] popup on screen " .. ARROW
+        .. " soft-hidden, Hide owed: combat started, visibility=outOfCombat")
+    mock.combat = false
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    assertLogged(NS, "[Frame] popup soft-hidden, Hide owed " .. ARROW
+        .. " on screen: combat ended, visibility=outOfCombat")
+end)
+
+test("debuglog: pin — Close pressed in combat logs the owed Hide, and combat end its settling", function()
+    -- red under: dismissPopup without its transition line. The soft hide is deferred work, and its
+    -- flush is the next line.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pendingCapture()
+    NS.addon:ShowFrame()
+    NS.State.debug = true
+    mock.combat = true
+    local f = mock.frames["WhatGroupFrame"]
+    for _, kid in ipairs(f.__children or {}) do
+        if kid.__text == "Close" and kid.__scripts and kid.__scripts.OnClick then kid.__scripts.OnClick(kid) end
+    end
+    assertLogged(NS, "[Frame] popup on screen " .. ARROW .. " soft-hidden, Hide owed: closed by the player")
+    mock.combat = false
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    assertLogged(NS, "[Frame] popup soft-hidden, Hide owed " .. ARROW
+        .. " hidden: combat ended, visibility=always")
+end)
+
+test("debuglog: quiet — combat edges that change nothing add no line (debug-logging-§9)", function()
+    -- red under: logging the gate on every edge rather than on a change of the popup's state. The
+    -- edges fire twice per pull for a whole session once the popup has been built once.
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pendingCapture()
+    NS.addon:ShowFrame()
+    NS.State.debug = true
+    local before = lines(NS)
+    for _ = 1, 25 do
+        mock.combat = true
+        mock.__fireEvent("PLAYER_REGEN_DISABLED")
+        mock.combat = false
+        mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    end
+    assertEqual(lines(NS), before, "an on-screen popup under `always` changes nothing on an edge")
+end)
+
+test("debuglog: quiet — the cooldown ticker adds no line while the cooldown only counts down", function()
+    -- red under: any trace inside the ticker's per-second body.
+    local NS, _, mock = T.bootAddon()
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    onCooldownFor(mock, 445269, 3600)
+    NS.addon.pendingInfo = pendingCapture()
+    NS.addon:ShowFrame()
+    NS.State.debug = true
+    local before = lines(NS)
+    for _ = 1, 30 do
+        mock.now = mock.now + 1
+        mock.__fireTimers()
+    end
+    assertEqual(lines(NS), before)
+end)
+
+test("debuglog: quiet — one open logs its teleport state once, not once per configure", function()
+    -- red under: the unconditional teleport line. PopulateFields configures the hidden popup, then
+    -- OnShow re-runs the configure to arm the ticker, and each open used to log the pair twice.
+    local NS, _, mock = T.bootAddon()
+    NS.State.debug = true
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    onCooldownFor(mock, 445269, 3600)
+    NS.addon.pendingInfo = pendingCapture()
+    NS.addon:ShowFrame()
+    assertEqual(countLogged(NS, "[Frame] teleport spellID="), 1)
+    assertEqual(countLogged(NS, "[Frame] teleport on cooldown"), 1)
+    NS.addon:ShowFrame()
+    assertEqual(countLogged(NS, "[Frame] teleport spellID="), 2, "a new show request logs it again")
+end)
+
+test("debuglog: a cooldown that runs out under an open popup logs the new teleport state", function()
+    -- The other half of the change gate: a real change still lands.
+    -- red under: suppressing every teleport line after the first per popup build.
+    local NS, _, mock = T.bootAddon()
+    mock.knownSpells[445269] = true
+    NS.TeleportSpells[2652] = 445269
+    onCooldownFor(mock, 445269, 2)
+    NS.addon.pendingInfo = pendingCapture()
+    NS.addon:ShowFrame()
+    NS.State.debug = true
+    mock.now = mock.now + 2
+    mock.spellCooldowns[445269] = nil
+    mock.__fireTimers()
+    assertLogged(NS, "[Frame] teleport spellID=445269 known=true (activity=2516 map=2652)")
+end)
+
+test("debuglog: pin — a size or scale change refused in combat says so", function()
+    -- red under: the silent combat returns in ApplyFrameSize / ApplyFrameScale; the [Set] line alone
+    -- reads as a setting that was applied.
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    NS.State.debug = true
+    mock.combat = true
+    NS.addon.Settings.Helpers.Set("scale", 1.5)
+    assertLogged(NS, "[Frame] popup scale not applied: in combat (the next open applies it)")
+    NS.addon.Settings.Helpers.Set("frame.width", 500)
+    assertLogged(NS, "[Frame] popup size not applied: in combat (the next open applies it)")
+end)
+
+test("debuglog: pin — /wg show with nothing captured logs its refusal", function()
+    -- red under: the chat-only refusal in runShow.
+    local NS = T.bootAddon()
+    NS.State.debug = true
+    for _, c in ipairs(NS.addon.COMMANDS) do
+        if c[1] == "show" then c[3]("") end
+    end
+    assertLogged(NS, "[Frame] /wg show refused: no captured group")
+end)
+
+test("debuglog: pin — test mode refused in combat logs the guard", function()
+    -- red under: the chat-only refusal in startTestMode.
+    local NS, _, mock = T.bootAddon()
+    NS.State.debug = true
+    mock.combat = true
+    for _, c in ipairs(NS.addon.COMMANDS) do
+        if c[1] == "test" then c[3]("on") end
+    end
+    assertLogged(NS, "[Test] test mode refused: in combat")
+end)
+
+test("debuglog: the [Init] line names the degraded chat-link route, and only there", function()
+    -- red under: dropping linkRouteClause. It is the one dependency a "the link does nothing"
+    -- report turns on, and the log carries it nowhere else.
+    local NS = T.bootAddon({ mock = function(m) m.LinkTypes = {} end })
+    assertTrue(NS.addon:InitSummary():find(", link route: SetItemRef post-hook (degraded client)", 1, true)
+        ~= nil, NS.addon:InitSummary())
+    local NS2 = T.bootAddon()
+    assertTrue(NS2.addon:InitSummary():find("link route", 1, true) == nil, "absent on the normal route")
+end)
+
+test("debuglog: pin — the degraded chat link clicked while stood down logs the refusal", function()
+    -- red under: the bare stood-down return in onDetailsLinkClick. Another addon's link still
+    -- logs nothing: the refusal is only for ours.
+    local NS, _, mock = T.enableAddon({ mock = function(m) m.LinkTypes = {} end })
+    NS.addon.Settings.Helpers.Set("enabled", false)
+    NS.State.debug = true
+    local before = lines(NS)
+    mock.fireHook("SetItemRef", "item:12345", "", "LeftButton")
+    assertEqual(lines(NS), before, "not our link, not our line")
+    mock.fireHook("SetItemRef", "WhatGroup:show", "", "LeftButton")
+    assertLogged(NS, "[ChatLink] ignored: addon stood down")
+end)

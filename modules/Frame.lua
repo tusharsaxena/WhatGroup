@@ -96,7 +96,10 @@ end
 -- next ShowFrame out of combat applies the current value, which is the value the player set.
 function WhatGroup:ApplyFrameSize()
     if not f then return end
-    if InCombatLockdown() then return end
+    if InCombatLockdown() then
+        NS.Debug("Frame", "popup size not applied: in combat (the next open applies it)")
+        return
+    end
     f:SetSize(popupSize())
 end
 
@@ -143,7 +146,10 @@ end
 -- player set.
 function WhatGroup:ApplyFrameScale()
     if not f then return end
-    if InCombatLockdown() then return end
+    if InCombatLockdown() then
+        NS.Debug("Frame", "popup scale not applied: in combat (the next open applies it)")
+        return
+    end
     f:SetScale(masterScale())
 end
 
@@ -251,13 +257,36 @@ end
 local combatEndQueue = {}
 local COMBAT_END_ORDER = { "teleport", "firstShow" }
 
+-- The queued keys, in replay order, as a fresh array. For the diagnostics snapshot and for the
+-- hold/flush lines below, which only ask for it behind the debug gate.
+local function heldKeys()
+    local out = {}
+    for i = 1, #COMBAT_END_ORDER do
+        if combatEndQueue[COMBAT_END_ORDER[i]] then out[#out + 1] = COMBAT_END_ORDER[i] end
+    end
+    return out
+end
+
+-- HELD AND FLUSHED, BOTH LOGGED (debug-logging-§8, Diagnosis: deferred work). The hold line is
+-- written when a slot goes from empty to queued, so a re-queue that only replaces the replay adds no
+-- second line; the flush line names what ran. A hold with no flush after it is the evidence of work
+-- that never ran.
 function NS.FrameQueueForCombatEnd(key, fn)
+    if combatEndQueue[key] == nil then
+        NS.Debug("Frame", "held until combat ends: %s (in combat)", key)
+    end
     combatEndQueue[key] = fn
 end
 
 -- The slot is cleared BEFORE its replay runs, so a replay that has to queue again (it cannot at
 -- combat end, but the seam does not rely on that) lands in a fresh slot rather than being wiped.
+-- An empty queue returns on one `next` and allocates nothing (perf combatGateSteady).
 function NS.FrameDrainCombatEnd()
+    if next(combatEndQueue) == nil then return end
+    if NS.State.debug then
+        local held = heldKeys()
+        NS.Debug("Frame", "combat ended: flushing %d held (%s)", #held, table.concat(held, ", "))
+    end
     for i = 1, #COMBAT_END_ORDER do
         local key = COMBAT_END_ORDER[i]
         local fn = combatEndQueue[key]
@@ -345,6 +374,24 @@ end
 -- off one button's handler is wrong by construction rather than by oversight.
 local gateWithheld = false
 
+-- THE POPUP'S STATE AS ONE WORD-GROUP, for its change-gated transition line. nil while it has never
+-- been built, which is the state every caller that logs treats as "nothing to say".
+local function popupState()
+    if not f then return nil end
+    if softHidden then return "soft-hidden, Hide owed" end
+    if f:IsShown() then return "on screen" end
+    return gateWithheld and "hidden, withheld by the gate" or "hidden"
+end
+
+-- One line when, and only when, the popup's state moved (debug-logging-§9, quiet steady state).
+-- Every caller takes `before` behind the debug gate, so with logging off neither end is built. The
+-- combat edges re-ask the gate twice per pull whatever it answers, and this is what keeps a pull
+-- that changes nothing out of the log.
+local function logPopupChange(before, cause)
+    local after = popupState()
+    if after ~= before then NS.Debug("Frame", "popup %s \226\134\146 %s: %s", before, after, cause) end
+end
+
 -- THE PLAYER PUT THE POPUP AWAY. One body, because there are three of them now: the Close button,
 -- the ESC proxy, and the launcher menu's Show window entry (WhatGroup:ToggleFrame below). All
 -- three mean the same three things -- take it off screen, tell the gate not to bring it back on
@@ -354,13 +401,35 @@ local gateWithheld = false
 -- `gateWithheld` is set HERE rather than left to f's OnHide, because in combat hidePopup takes the
 -- alpha route and no OnHide fires. Declared below gateWithheld and above every caller.
 local function dismissPopup()
+    local before = NS.State.debug and popupState()
     hidePopup()
     gateWithheld = false
+    if before then logPopupChange(before, "closed by the player") end
     if endTestMode("closed") then refreshPanel() end
 end
 
+-- What re-asked the gate, for the transition line: a combat edge names itself, anything else (a
+-- settings change, a profile switch, the stand-up) names the value the gate read.
+local function visibilityCause(inCombat)
+    local v = WhatGroup.db and WhatGroup.db.profile and WhatGroup.db.profile.visibility
+    if inCombat == nil then return "visibility=" .. tostring(v) end
+    return (inCombat and "combat started" or "combat ended") .. ", visibility=" .. tostring(v)
+end
+
+local applyVisibility
+
+-- The gate's seam, logged by its outcome: one line when the popup's state changed, none when it
+-- did not (logPopupChange). With logging off the body runs bare.
 function WhatGroup:ApplyFrameVisibility(inCombat)
     if not f then return end
+    if not NS.State.debug then return applyVisibility(inCombat) end
+    local before = popupState()
+    local down = applyVisibility(inCombat)
+    logPopupChange(before, visibilityCause(inCombat))
+    return down
+end
+
+function applyVisibility(inCombat)
     -- Settle what the lockdown deferred, before the gate is asked anything. `hidePopup` performs
     -- the real Hide now that it is legal and restores the alpha, so a popup that spent the fight at
     -- alpha 0 is genuinely gone rather than invisibly present.
@@ -396,7 +465,10 @@ function WhatGroup:ResetFramePosition()
     local db = self.db
     if db and db.global and db.global.windows then db.global.windows.popup = nil end
     if not f then return end
-    if InCombatLockdown() then return end
+    if InCombatLockdown() then
+        NS.Debug("Frame", "popup saved position dropped; re-anchor refused: in combat")
+        return
+    end
     anchorDefault(f)
     NS.Debug("Frame", "popup position reset to the shipped anchor")
 end
@@ -536,17 +608,34 @@ end
 -- state but says why, and the swipe shows the wait draining. `remaining` is only asked of a spell
 -- the player actually has: an unlearned one has no meaningful cooldown, and answering with one
 -- answers a question nobody asked.
-local function resolveTeleportState(info)
-    local spellID, known = WhatGroup:GetTeleportSpell(info and info.activityID, info and info.mapID)
-    NS.Debug("Frame", "teleport spellID=%s known=%s (activity=%s map=%s)", spellID, known,
-        info and info.activityID, info and info.mapID)
-    if not spellID then return nil end
+-- The last teleport state logged, as a key, and nil again on every show request (preparePopup).
+-- One show runs the configure twice -- PopulateFields fills the hidden popup, then OnShow re-runs it
+-- to arm the ticker -- and without this the pair of teleport lines landed twice for every open.
+-- Change-gated rather than dropped (debug-logging-§9, quiet steady state): a cooldown that runs out
+-- under an open popup is a new state, and logs.
+local lastTeleportKey
 
-    local remaining = known and NS.Compat.GetSpellCooldownRemaining(spellID) or 0
+local function logTeleportState(spellID, known, remaining, info)
+    if not NS.State.debug then return end
+    local activityID, mapID = info and info.activityID, info and info.mapID
+    local key = table.concat({ NS.SafeToString(spellID), NS.SafeToString(known),
+        NS.SafeToString(activityID), NS.SafeToString(mapID), remaining > 0 and "cd" or "ready" }, "|")
+    if key == lastTeleportKey then return end
+    lastTeleportKey = key
+    NS.Debug("Frame", "teleport spellID=%s known=%s (activity=%s map=%s)", spellID, known,
+        activityID, mapID)
     if remaining > 0 then
         NS.Debug("Frame", "teleport on cooldown, %s remaining (spellID=%s)",
             NS.FormatDuration(remaining), NS.SafeToString(spellID))
     end
+end
+
+local function resolveTeleportState(info)
+    local spellID, known = WhatGroup:GetTeleportSpell(info and info.activityID, info and info.mapID)
+    -- GetTeleportSpell answers `known` only with a spellID, so this is 0 whenever there is none.
+    local remaining = known and NS.Compat.GetSpellCooldownRemaining(spellID) or 0
+    logTeleportState(spellID, known, remaining, info)
+    if not spellID then return nil end
 
     return {
         spellID   = spellID,
@@ -932,6 +1021,7 @@ local function preparePopup()
     WhatGroup:ApplyFrameSize()
     WhatGroup:ApplyFrameScale()
     WhatGroup:ApplyFrameAlpha()
+    lastTeleportKey = nil   -- a new show request logs its teleport state once
     local info = shownInfo()
     if info then
         NS.Debug("Frame", 'popup shown "%s" map=%s', info.title, info.mapID)
@@ -968,6 +1058,7 @@ local GRAY = "|cff808080%s|r"
 local function startTestMode()
     if NS.State.testMode then return true end
     if InCombatLockdown() then
+        NS.Debug("Test", "test mode refused: in combat")
         NS.Print(GRAY:format(L["cannot start test mode during combat"]))
         return false
     end
@@ -1149,13 +1240,19 @@ function NS.FrameStandDown()
 
     stopCooldownTicker()
 
+    local before = NS.State.debug and popupState()
     hidePopup()
     gateWithheld = false
     if escProxy then escProxy:Hide() end
+    if before then logPopupChange(before, "addon stood down") end
 
     -- The combat-end queue, and the stashes its two replays read: deferred protected work that a
     -- disabled addon is no longer going to do. Dropped rather than left to a drain, because a
-    -- re-enable before the lockdown lifts re-registers the handler that drains it.
+    -- re-enable before the lockdown lifts re-registers the handler that drains it. Held work that
+    -- will now never run gets its line, so the hold line above it is not left unanswered.
+    if NS.State.debug and next(combatEndQueue) ~= nil then
+        NS.Debug("Frame", "dropped held work: %s (addon stood down)", table.concat(heldKeys(), ", "))
+    end
     wipe(combatEndQueue)
     if f then f._pendingTeleportInfo = nil end
     WhatGroup._deferredShowInfo = nil
@@ -1171,10 +1268,7 @@ end
 -- reads and never builds: building creates the secure teleport button, which a dump must not do,
 -- so an unbuilt popup answers `built = false` and nothing else about the frame. Fresh tables only.
 function NS.FrameSnapshot()
-    local queue = {}
-    for i = 1, #COMBAT_END_ORDER do
-        if combatEndQueue[COMBAT_END_ORDER[i]] then queue[#queue + 1] = COMBAT_END_ORDER[i] end
-    end
+    local queue = heldKeys()
     return {
         built            = f ~= nil,
         shown            = isShownFlag(f),
@@ -1205,7 +1299,9 @@ end
 --- the addon holds no event registration at all.
 function NS.FrameFinishStandDown()
     if not pendingHide then return end
+    local before = NS.State.debug and popupState()
     hidePopup()
     gateWithheld = false
     if escProxy then escProxy:Hide() end
+    if before then logPopupChange(before, "combat ended, addon stood down") end
 end

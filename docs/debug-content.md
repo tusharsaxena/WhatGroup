@@ -73,14 +73,18 @@ the runtime state `(enabled=…, notify.delay=…s, autoShow=…, inGroup=…, h
 (debug-logging-§5). When `registerFeatureEvents` refused an event name, the line ends
 `, rejected events: <names>`, read from the session-only `NS.RejectedEvents` that
 `NS.SafeRegisterEvent` fills (WG-06). That clause is the only record of a refused name; nothing is
-printed to chat. It is absent when every name registered.
+printed to chat. It is absent when every name registered. On a client without Blizzard's addon link
+type the line then ends `, link route: SetItemRef post-hook (degraded client)`: the one dependency a
+"the chat link does nothing" report turns on, logged here because this line lands once, at enable,
+and the flag is off at login. It is absent on a client with the normal route.
 
 ## Tag vocabulary
 
 Each console line carries its tag in brackets; the tag is the first argument at the call site.
 
 - **Lifecycle** — `Init` (the summary above), `Migrate` (only when `RunMigrations` actually moves the
-  version, `core/Database.lua`).
+  version, `core/Database.lua`), `State` (the latch's stand-down and stand-up edges, once per edge,
+  from `NS.StandDown` / `NS.StandUp`).
 - **Capture flow** (`core/WhatGroup.lua`) — `Apply` (one merged line per apply:
   `id=… captured "…" (activity=… map=… m+=…)`), `Capture` (no-op / wipe decisions), `LFG` (status
   events), `Invite` (accepted, with the winning `source=fresh|queued`), `Roster` (in-group transitions
@@ -108,6 +112,7 @@ Each console line carries its tag in brackets; the tag is the first argument at 
   `core/LauncherSetup.lua` pass.
 - **Console** — `Debug` (the enable/disable bracket lines, written by the library).
 
+Every line each tag carries, and when, is the [Coverage](./debug.md#coverage) table in debug.md.
 The set is otherwise open; add a tag as needed. The content rules the addon follows are **coverage**
 of the main flows (debug-logging-§8), **coalescing** to one summary line per pass (debug-logging-§9),
 and **one `[Set]` line per settings change at the single seam** (debug-logging-§10).
