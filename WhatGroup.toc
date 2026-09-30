@@ -58,8 +58,8 @@ core\Compat.lua
 core\EnvSetup.lua
 core\Database.lua
 core\WhatGroup.lua
-# After core\WhatGroup.lua, which assigns NS.FONT_MONO at load (core/WhatGroup.lua:182). The
-# LibKa0s-DebugLog :New here runs at file scope (core/DebugLogSetup.lua:120) and the library
+# After core\WhatGroup.lua, which assigns NS.FONT_MONO at load (core/WhatGroup.lua:200). The
+# LibKa0s-DebugLog :New here runs at file scope (core/DebugLogSetup.lua:136) and the library
 # validates `font` as a string, so above that line the console is built from nil. Load-bearing.
 core\DebugLogSetup.lua
 # The launcher (launcher-§1): one LibDataBroker object, the minimap button and the broker row.
@@ -90,13 +90,13 @@ modules\Diagnostics.lua
 # file scope and core\CoreSetup.lua:34 publishes it)
 # Directly above settings\Schema.lua: this file publishes Settings.SchemaLib (LibKa0s-Schema-1.0,
 # or the host's degradation stub), and Schema.lua calls its :New at file scope
-# (settings/Schema.lua:407). Above it that member does not exist yet. Load-bearing.
+# (settings/Schema.lua:408). Above it that member does not exist yet. Load-bearing.
 settings\SchemaSetup.lua
 # Before settings\Panel.lua: this file creates Settings.Schema and its runtime NS.SchemaRuntime,
 # which Panel splices its master rows into at file scope (settings/Panel.lua:301). Load-bearing.
 settings\Schema.lua
 # Before settings\Panel.lua: this file publishes the LibKa0s-Options instance as Settings.Helpers
-# (settings/OptionsSetup.lua:321), and Panel calls Helpers.MasterControls at file scope
+# (settings/OptionsSetup.lua:324), and Panel calls Helpers.MasterControls at file scope
 # (settings/Panel.lua:207). Above it that member does not exist yet. Load-bearing.
 settings\OptionsSetup.lua
 settings\Panel.lua
