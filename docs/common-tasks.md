@@ -306,7 +306,8 @@ autoShow=…, inGroup=…, hasPending=…)` — so a pasted log is self-identify
   `/wg resetall`, from the `OnProfileReset` handler, N being the rows the reset changed
   (debug-logging-§10);
   **`[Schema]`** → an internal path-lookup miss.
-- **`[State]`** → the stand-down and stand-up edges, naming the holds; the refusal lines
+- **`[Lifecycle]`** (the library's) → the stand-down and stand-up edges, naming the holds;
+  **`[Cmd]`** (the library's) → a slash command the dispatcher refused, naming the guard; the refusal lines
   (`ignored …: addon stood down`, `skip: notify.enabled is off`, `/wg show refused …`) and the
   combat-end hold/flush lines are listed with every other line in
   [debug.md's Coverage table](./debug.md#coverage).

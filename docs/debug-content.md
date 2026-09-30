@@ -3,9 +3,9 @@
 The on-screen debug console is **LibKa0s-DebugLog-1.0**, wired by `core/DebugLogSetup.lua` from a
 descriptor. The window, the line format, the buffer, the scrollbar and line counter, the copy and
 clear controls, the enable seam and the diagnostics report's frame are all the library's, and the
-library documents them once: LibKa0s `docs/api/DebugLog/` (major `LibKa0s-DebugLog-1.0`, minor 17 with
-its `DebugLogDiagnostics.lua` secondary file at minor 2, as vendored from v1.64.0, documented as version 17.2). This
-page does not restate any of it.
+library documents them once: LibKa0s `docs/api/DebugLog/` (major `LibKa0s-DebugLog-1.0`, minor 18 with
+its `DebugLogDiagnostics.lua` secondary file at minor 2 and its `DebugLogGates.lua` secondary file at minor 1,
+as vendored from v1.65.0, documented as version 18.2.1). This page does not restate any of it.
 
 What this page holds is the part only WhatGroup knows: what the descriptor hands the library, the
 tags this addon logs under, where the session flag lives, what `/wg debug` does, and how to add a
@@ -83,8 +83,9 @@ and the flag is off at login. It is absent on a client with the normal route.
 Each console line carries its tag in brackets; the tag is the first argument at the call site.
 
 - **Lifecycle** — `Init` (the summary above), `Migrate` (only when `RunMigrations` actually moves the
-  version, `core/Database.lua`), `State` (the latch's stand-down and stand-up edges, once per edge,
-  from `NS.StandDown` / `NS.StandUp`).
+  version, `core/Database.lua`, through the console's at-enable queue so the login run lands when
+  logging is first turned on). The latch's stand-down and stand-up edges are the library's
+  `Lifecycle` line (below); this addon writes no edge line of its own.
 - **Capture flow** (`core/WhatGroup.lua`) — `Apply` (one merged line per apply:
   `id=… captured "…" (activity=… map=… m+=…)`), `Capture` (no-op / wipe decisions), `LFG` (status
   events), `Invite` (accepted, with the winning `source=fresh|queued`), `Roster` (in-group transitions
@@ -106,10 +107,23 @@ Each console line carries its tag in brackets; the tag is the first argument at 
 - **Profile** — `[Profile] switched to '<name>'`, a profile switch, logged once by
   `WhatGroup:OnProfileChanged` in `core/WhatGroup.lua`. A switch rewrites no row through the seam, so
   it carries no `[Set]` line (debug-logging-§10, [profiles.md](./profiles.md)).
-- **Library lines through this addon's sink** — `Cfg` (`LibKa0s-Options-1.0`: the settings category
-  parked in combat, opened, or refused in combat) and `Launcher` (`LibKa0s-Launcher-1.0`), both
-  reaching the console through the `debug` forwarders `settings/OptionsSetup.lua` and
-  `core/LauncherSetup.lua` pass.
+- **Library lines through this addon's sink** (LibKa0s v1.65.0) — each module writes its own
+  refusals and edges through the `debug(tag, message)` forwarder its descriptor is passed, and this
+  addon MUST NOT write a second copy of any of them (debug-logging-§8):
+  - `Cmd` (`LibKa0s-Slash-1.0` minor 18, `settings/Slash.lua`): `refused <verb>[ <arg>]: <guard>`
+    for every refusal the dispatcher decides (the disabled gate, an unknown verb, get/set/reset usage
+    and not-found, a parse or write refusal, the profile verb's refusals).
+  - `Lifecycle` (`LibKa0s-Lifecycle-1.0` minor 3, `core/LifecycleSetup.lua`): `stood down: added
+    <key> (holds: <set>)` / `stood up: released <key> (holds: none)`, once per edge.
+  - `Cfg` (`LibKa0s-Options-1.0`, `settings/OptionsSetup.lua`): the category parked in combat and
+    flushed at combat end, opened or refused in combat, and each write, Defaults, button or tab the
+    combat lock refuses (`<what> refused (in combat)`, once per combat).
+  - `Launcher` (`LibKa0s-Launcher-1.0` minor 5, `core/LauncherSetup.lua`): its events through
+    `debug`, and its registration state lines through `debugAtEnable`, the console's at-enable queue.
+- **Change gates** — a line that must land once, or only when it changes, goes through the
+  console's own gate, never a memo of this addon's: `NS.DebugErrorOnce` is `D.DebugOnce` keyed by
+  site and error, and the teleport state line is `D.DebugChanged`. The library re-arms both on
+  `Clear` and on turning logging on.
 - **Console** — `Debug` (the enable/disable bracket lines, written by the library).
 
 Every line each tag carries, and when, is the [Coverage](./debug.md#coverage) table in debug.md.

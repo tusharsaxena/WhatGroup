@@ -47,17 +47,17 @@ NS.State.debug = false
 NS.RejectedEvents = {}
 
 -- ONE LINE PER DISTINCT CAUGHT ERROR (debug-logging-§8, Diagnosis): a pcall this addon owns logs its
--- site and message the first time that pair is seen, and never again this session, so a call that
--- raises on every event is one line rather than a wall of them. The gate comes first and the key is
--- built behind it, so with logging off this costs one boolean read; and a pair is only marked seen
--- when it was actually logged, so turning logging on later still shows it.
-local loggedErrors = {}
+-- site and message the first time that pair is seen, so a call that raises on every event is one
+-- line rather than a wall of them. The memory is the CONSOLE'S change gate (`D.DebugOnce`,
+-- LibKa0s-DebugLog-1.0 18.2.1), not a table of ours: the library re-arms it on Clear and on turning
+-- logging on, which a hand-rolled table never was, so a cleared console shows a still-raising site
+-- again. The gate comes first and the key is built behind it, so with logging off this costs one
+-- boolean read; and the library marks a pair seen only when it wrote it, so turning logging on
+-- later still shows it. NS.DebugLog is resolved at call time: core/DebugLogSetup.lua loads after
+-- this file.
 function NS.DebugErrorOnce(tag, site, err)
     if not NS.State.debug then return end
-    local key = tostring(site) .. "\0" .. NS.SafeToString(err)
-    if loggedErrors[key] then return end
-    loggedErrors[key] = true
-    NS.Debug(tag, "%s: %s", site, err)
+    NS.DebugLog.DebugOnce(tostring(site) .. "\0" .. NS.SafeToString(err), tag, "%s: %s", site, err)
 end
 
 -- Single shared chat prefix (slash-commands-§4). NS.PREFIX is the one source of
@@ -406,18 +406,13 @@ end
 -- protected call: the popup parents a SecureActionButtonTemplate button, so Hide on it is refused
 -- under lockdown and modules/Frame.lua takes the alpha-0 route instead. The real Hide is owed to
 -- the next legal edge, so the registration is held pending and released the moment it fires.
--- The latch's edge, logged once per edge (debug-logging-§8, Diagnosis: the addon's own stand-down
--- transitions), naming the holds that took it down. First, so the lines the teardown writes below
--- it read as its consequences. The holds array is built behind the gate.
-local function logStandDown()
-    if not NS.State.debug then return end
-    local holds = NS.Lifecycle and NS.Lifecycle.Holds and NS.Lifecycle:Holds() or {}
-    NS.Debug("State", "stood down (holds: %s)", #holds > 0 and table.concat(holds, ", ") or "none")
-end
-
+-- The latch's edge is logged by the LIBRARY (LibKa0s-Lifecycle-1.0 minor 3, through the `debug`
+-- core/LifecycleSetup.lua passes): one `[Lifecycle] stood down: added <key> (holds: <set>)` line,
+-- written before this callback runs, so the lines the teardown writes below read as its
+-- consequences. This file wrote its own `[State]` line until DG-WG-01 and MUST NOT again: the edge
+-- would then be two lines (debug-logging-§8).
 function NS.StandDown()
     local self = WhatGroup
-    logStandDown()
     self:UnregisterEvent("GROUP_ROSTER_UPDATE")
     self:UnregisterEvent("LFG_LIST_APPLICATION_STATUS_UPDATED")
     self:UnregisterEvent("PLAYER_REGEN_DISABLED")
@@ -455,7 +450,7 @@ end
 -- and the rebuild has to reflect the setting as it is NOW.
 function NS.StandUp()
     local self = WhatGroup
-    NS.Debug("State", "stood up: events and the chat link re-registered")
+    -- The up edge's line is the library's too (`[Lifecycle] stood up: released <key> (holds: none)`).
     -- Drop any pending combat hold before re-registering, or registerFeatureEvents would be
     -- rebinding PLAYER_REGEN_ENABLED on top of the stand-down's own handler.
     self:UnregisterEvent("PLAYER_REGEN_ENABLED")

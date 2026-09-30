@@ -198,8 +198,14 @@ test("debuglog: the [Init] summary is the addon's, reached through the descripto
     local NS = T.bootAddon()
     NS.State.debug = false
     NS.DebugLog:SetEnabled(true)
-    local last = NS.DebugLog.buffer[#NS.DebugLog.buffer]
-    assertEqual(last:find("[Init]", 1, true) ~= nil, true, "the enable path ends with [Init]")
+    -- The line after the bracket, not the last one: since LibKa0s v1.65.0 the at-enable queue's
+    -- held state lines (the boot's [Migrate] line here) are written after the [Init] summary.
+    local buf = NS.DebugLog.buffer
+    local last
+    for i = #buf, 1, -1 do
+        if buf[i]:find("[Debug] logging enabled", 1, true) then last = buf[i + 1]; break end
+    end
+    assertEqual(last and last:find("[Init]", 1, true) ~= nil, true, "the bracket is followed by [Init]")
     assertTrue(last:find(NS.addon:InitSummary(), 1, true) ~= nil,
         "and the line IS this addon's summary, not a library default")
 end)

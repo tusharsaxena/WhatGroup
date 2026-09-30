@@ -47,8 +47,12 @@ function NS:RunMigrations()
     end
 
     -- Lifecycle coverage (debug-logging-§8): log only when a migration actually moved the
-    -- version — an already-current DB stays silent.
-    if from ~= g.schemaVersion and NS.Debug then
-        NS.Debug("Migrate", "v%s -> v%s", from, g.schemaVersion)
+    -- version — an already-current DB stays silent. Through the console's at-enable queue
+    -- (DebugLogGates, LibKa0s v1.65.0): the login run is at OnInitialize, with the session-only flag
+    -- still off, so a plain NS.Debug line never landed; held, it is written the first time logging
+    -- is turned on. A run with logging already on (a profile switch) writes at once.
+    local D = NS.DebugLog
+    if from ~= g.schemaVersion and D and D.DebugAtEnable then
+        D.DebugAtEnable("Migrate", "v%s -> v%s", from, g.schemaVersion)
     end
 end
