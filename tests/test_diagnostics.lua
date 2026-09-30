@@ -238,14 +238,28 @@ test("diagnostics: a secret-like pending value degrades in place instead of rais
     assertEqual(count(lines, "failed:"), 0, "and no section failed on it")
 end)
 
-test("diagnostics: one localized chat line names the count and Copy", function()
+local function writtenLine(n)
+    return "Diagnostic report written to the debug console: " .. n .. " lines. Use Copy to share it."
+end
+
+test("diagnostics: with logging off, the enable ack then one localized chat line names the count and Copy", function()
     local NS, _, mock = T.enableAddon()
+    assertFalse(NS.DebugLog:IsEnabled(), "logging starts off")
+    local mark = #mock.prints
+    local lines = report(NS)
+    assertEqual(#mock.prints - mark, 2, "the enable ack, then the report line")
+    assertTrue(mock.prints[mark + 1]:find("ON", 1, true) ~= nil, "the first line is the logging-on ack")
+    assertTrue(mock.prints[#mock.prints]:find(writtenLine(#lines), 1, true) ~= nil)
+    assertTrue(NS.DebugLog:IsEnabled(), "and logging is on for the session")
+end)
+
+test("diagnostics: with logging already on, exactly one chat line names the count and Copy", function()
+    local NS, _, mock = T.enableAddon()
+    NS.DebugLog:SetEnabled(true)
     local mark = #mock.prints
     local lines = report(NS)
     assertEqual(#mock.prints - mark, 1, "exactly one chat line")
-    assertTrue(mock.prints[#mock.prints]:find(
-        "Diagnostic report written to the debug console: " .. #lines .. " lines. Use Copy to share it.",
-        1, true) ~= nil)
+    assertTrue(mock.prints[#mock.prints]:find(writtenLine(#lines), 1, true) ~= nil)
 end)
 
 test("diagnostics: without LibKa0s-DebugLog both forms print the library-absent line, writing nothing", function()

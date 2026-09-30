@@ -9,11 +9,14 @@ WhatGroup has two debug surfaces, and both write into the same window:
   `/wg diagnostics` (`debug-logging-§14`). It is why this page exists (`documentation-§3`, Tier 2):
   every Ka0s addon ships the report, and a maintainer reading a pasted one needs to know what each
   line means.
+- **The coverage map** ([Coverage](#coverage), below) is the trace's other half: every tag the
+  console carries, what writes it and when, and which repeating paths stay quiet on purpose.
 
 The console and the report frame are the library's, and their contract lives in LibKa0s's
-[`docs/api/DebugLog/version-14.1-docs.md`](https://github.com/tusharsaxena/LibKa0s/blob/master/docs/api/DebugLog/version-14.1-docs.md)
-(DebugLog minor 14 with its `DebugLogDiagnostics.lua` secondary file, first vendored from LibKa0s v1.60.0
-and unchanged in the vendored v1.63.0).
+[`docs/api/DebugLog/version-17.2-docs.md`](https://github.com/tusharsaxena/LibKa0s/blob/master/docs/api/DebugLog/version-17.2-docs.md)
+(DebugLog minor 17 with its `DebugLogDiagnostics.lua` secondary file at minor 2, as vendored from
+LibKa0s v1.64.0: the resizable console, the title bar's Diagnostics link, and a report run that turns
+logging on for the session).
 This page covers only what WhatGroup adds on top.
 
 ## The console in one table
@@ -33,7 +36,7 @@ its newest 3000 lines.
 
 ### Running it
 
-There are exactly two forms, and no third:
+There are exactly two typed forms, and no third:
 
 - `/wg diagnostics`, a row of the `COMMANDS` table in `settings/Slash.lua`;
 - `/wg debug diagnostics`, the first word `runDebug` tests, in any case.
@@ -41,6 +44,13 @@ There are exactly two forms, and no third:
 `/whatgroup` reaches both, as it reaches every verb. `diag`, `dump`, `dx` and every other short name
 are ordinary unknown words: `/wg diag` prints `unknown command 'diag'` and the help index, and
 `/wg debug diag` prints the three-line `debug` usage.
+
+The console's title bar also carries the library's orange **Diagnostics** link, just right of the
+`Debug: ON`/`OFF` toggle with a small gap, in the same plain text (DebugLog 17). A click runs the same
+report, `NS.DebugLog:RunDiagnostics()`.
+
+Running the report, by either form or the link, **turns debug logging on for the session**
+(debug-logging-§14, DebugLogDiagnostics 2), as `/wg debug on` would; a `/reload` turns it off again.
 
 `diagnostics` is on the library's live set (`lib.LIVE_VERBS`, Slash minor 16), so both forms answer
 while the addon is **disabled**. A disabled addon is stood down, and the report says so (the
@@ -52,8 +62,15 @@ printing emptied tables as if they were data.
 - **It appends.** The report lands after whatever the console already holds, so the trace a player
   has just reproduced stays above it and one Copy carries both. Nothing the report reaches calls
   `Clear()`.
-- **It is ungated.** It writes through the library's raw append, not `NS.Debug`, so it lands in full
-  with logging off, and it does not change the flag: the header reads the same afterwards.
+- **It turns logging on first.** When logging is off, the run sets it through the one seam
+  (`NS.DebugLog:SetEnabled(true)`) before it writes, so the `debug logging ON` chat line, the
+  `[Debug] logging enabled` line and the `[Init]` summary land just ahead of the begin marker, and the
+  header reads `debug logging: on`. It never turns logging off, and with logging already on it writes no second
+  enable line. WhatGroup keeps the library's default: its descriptor does not set
+  `diagnosticsEnablesLogging = false`. The sections themselves read state only and never touch the
+  flag. A report run first leaves logging on, so what the player does next is traced too.
+- **It is ungated.** It writes through the library's raw append, not `NS.Debug`, so every line lands
+  in full whatever the gate would say.
 - **It reveals the console** if it is hidden, then prints one chat line through `NS.L`:
   `Diagnostic report written to the debug console: N lines. Use Copy to share it.`
 - **It is plain text.** The library strips color, texture, atlas and hyperlink escapes from every
@@ -133,10 +150,55 @@ Write a `local function name(out)` in `modules/Diagnostics.lua` and add `{ "name
 state only: anything file-local elsewhere gets a read-only accessor that returns a copy. Add its row
 to the table above in the same change, and a case to `tests/test_diagnostics.lua`.
 
+## Coverage
+
+What the gated trace carries, tag by tag: which code writes each line and when it lands. This is the
+map `debug-logging-§8` (the flows and the diagnosis checklist) and `debug-logging-§9` (one line per
+pass, and none when nothing changed) are checked against. Every line is one `NS.Debug` call, gated,
+with its formatting behind the gate. The diagnostics report above is not part of the trace: it is
+ungated and runs only when asked (a run turns the trace on for the session, as above).
+
+| Tag | Written by | When |
+|---|---|---|
+| `Debug` | the library | The `logging enabled` / `logging disabled` bracket, at each flip of the flag. |
+| `Init` | the library, from `WhatGroup:InitSummary()` | Once per enable, after the bracket: identity, runtime state, then `rejected events: …` when a registration was refused and `link route: SetItemRef post-hook (degraded client)` on a client without Blizzard's addon link type. Both clauses are absent otherwise. This is where the dependencies are logged, because the flag is off at login. |
+| `Migrate` | `core/Database.lua` | `vX -> vY`, only when a migration actually moves the version. |
+| `State` | `NS.StandDown` / `NS.StandUp` | `stood down (holds: …)` on the latch's down edge, first, so the teardown lines below it read as its consequences; `stood up: events and the chat link re-registered` on the up edge. Once per edge; a hold that does not move the latch writes nothing here. |
+| `Apply` | the `ApplyToGroup` post-hook | `id=… captured "…" (activity=… map=… m+=…)` per apply; `ignored id=…: addon stood down` for an apply while disabled (the hook cannot be unregistered). |
+| `Capture` | `core/WhatGroup.lua` | `GetSearchResultInfo returned nil for id=…` (the capture that never happened); `GetApplicationInfo gave no id …` per status event; `GetApplicationInfo raised (falling back to appID): <err>` once per distinct error; `GetApplicationInfo unavailable: falling back to appID` once per session; `wiped (<reason>)` when a reasoned wipe had something in flight. |
+| `LFG` | the status event | `appID=… status=…` per event; `appID=… applied: nothing captured under result id=… to pair`; `dropped the capture for appID=… (<status>)`. |
+| `Invite` | the `inviteaccepted` arm | `accepted appID=… → "<title>" map=… (source=fresh\|queued)` or `→ no capture`; `ignored appID=…: addon stood down` for a direct call while disabled. |
+| `Roster` | `GROUP_ROSTER_UPDATE` | Only on an in-group transition, or a leave with a capture still held. |
+| `Notify` | `_TryFireJoinNotify`, its timer, `ShowNotification` | `scheduling in Ns (<reason>)`; the skips, each naming its guard (`no pendingInfo`, `already notified for this group`, `not in a group yet`, `notify.enabled is off`); at fire time `fired`, `canceled (superseded)`, `popup held: test mode is on` or `popup not auto-shown: frame.autoShow is off`. |
+| `ChatLink` | `OnSetItemRef`, the degraded post-hook | `clicked hasPending=…` per click on the details link; `ignored: addon stood down` on the degraded route only (the normal route is unregistered while disabled). Another addon's link writes nothing. |
+| `Frame` | `modules/Frame.lua`, and `/wg show` in `settings/Slash.lua` | `popup shown …` per show request, then its teleport state (`teleport spellID=… known=…`, plus `teleport on cooldown, … remaining`) once per request and again when that state changes under an open popup. `teleport button pressed …` per press. `popup suppressed: visibility = never`, `popup built but not shown: visibility = …`. `popup <before> → <after>: <cause>` when the popup's state moved: the visibility gate on a combat edge or a setting, a dismissal (Close, Escape, the launcher), the stand-down, the owed Hide settling. `held until combat ends: <key> (in combat)` when a combat-end slot fills, `combat ended: flushing N held (<keys>)` when the edge drains it, `dropped held work: <keys> (addon stood down)` when a stand-down drops it. The combat refusals: `popup size not applied`, `popup scale not applied`, `popup saved position dropped; re-anchor refused`. `popup position reset to the shipped anchor`. `/wg show refused: no captured group`. |
+| `Test` | test mode, `RunTest` | `test mode on`, `test mode off (<why>)`, `test mode refused: in combat`, `synthetic capture injected "…"`. |
+| `Set` | the library's write seam, the profile handlers, `/wg enable\|disable` | `<path> = <value>` once per write; the bulk and profile-reset/copy lines ([debug-content.md](./debug-content.md#tag-vocabulary)); `enabled refused: <err>` when the seam turns the switch down. |
+| `Profile` | `OnProfileChanged` | `switched to '<name>'`, once per switch. |
+| `Cfg` | the library's Options major; `settings/OptionsSetup.lua`, `settings/Panel.lua` | The category parked, opened or refused in combat (library). `settings page '<key>' render raised: <err>` and `button '<text>' onClick raised: <err>`, once per distinct error, beside the chat line the player already sees. |
+| `Launcher` | the library's Launcher major | Its own registration and accessor lines. |
+
+### What stays quiet, and why
+
+- **The cooldown ticker**, the addon's one repeating timer, writes nothing per tick. The change it
+  exists for (the cooldown running out) re-runs the configure, and that logs the new teleport state.
+- **The combat edges** re-ask the visibility gate twice per pull for the rest of the session once the
+  popup has been built. They write a line only when the popup's state changed, or when held work is
+  flushed.
+- **`GROUP_ROSTER_UPDATE`** fires on every roster change in a raid, and writes only on a transition.
+- **One open runs the teleport configure twice** (the fill, then `OnShow` arming the ticker). The
+  teleport line is change-gated so the pair lands once per show request.
+- **Edges this addon does not react to** (loading screens, zone and instance changes, spec changes,
+  the addon-restriction state) have no line, because nothing here changes on them.
+
+The pins are the `debug-logging-§8` / `debug-logging-§9` cases at the end of
+`tests/test_debuglog.lua`, each with a red-under comment naming the line it protects; the quiet
+cases run the path many times and assert the buffer did not grow.
+
 ## Where else this is pinned
 
 The command rows are in [slash-dispatch.md](./slash-dispatch.md), and the player-facing steps are the
-README's `## Reporting a bug`. The in-game checks are DIAG-17 to DIAG-24 and DIAG-5 of
+README's `## Reporting a bug`. The in-game checks are DIAG-17 to DIAG-24, DIAG-30 and DIAG-5 of
 [smoke-tests.md](./smoke-tests.md). The suites are `tests/test_diagnostics.lua` (this addon's
 sections), the kit's shared `tests/_kit/test_diagnostics_contract.lua` (wired in `tests/run.lua`),
 `tests/test_disabled.lua` (both forms while disabled) and `tests/test_slash.lua` (the usage line and

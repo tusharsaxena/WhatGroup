@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-846%2F846_passing-green)
+![Tests](https://img.shields.io/badge/Tests-871%2F871_passing-green)
 
 WhatGroup remembers the group you signed up for through the Group Finder tool. You get accepted, you shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who's leading, and the playstyle.
 
@@ -26,10 +26,10 @@ WhatGroup starts working the moment it loads, and there's nothing to switch on. 
 
 Joining a group through the Group Finder takes four steps.
 
-1. Apply. Find a group in the Premade Group Finder and click **Apply**. WhatGroup notes what the listing said at that moment, so you can have several applications out and it still knows which is which. Groups you join from a guild or party invite aren't covered, because there's no listing to read.
-2. Join, and read the summary. Accept the invite and a chat line with a cyan `[WG]` tag lists the instance, type, leader and playstyle. The popup opens with the same details. Both appear straight away unless you've set a pause under **Chat → Notification Delay**, and if you join mid-fight the popup waits until you're out of combat.
-3. Teleport. The popup's last row is the dungeon's teleport, and it's a real spell button, so clicking it casts. It stays gray until you've learned that teleport, and goes gray again while it recharges, with the time left beside it. A dungeon with no teleport skips the row.
-4. Close it, and bring it back. `ESC` or the **Close** button puts the popup away. `/wg show` or the "Click here to view details" link on the chat line opens it again, for as long as you're in the group. WhatGroup forgets the group once you leave.
+- Apply. Find a group in the Premade Group Finder and click **Apply**. WhatGroup notes what the listing said at that moment, so you can have several applications out and it still knows which is which. Groups you join from a guild or party invite aren't covered, because there's no listing to read.
+- Join, and read the summary. Accept the invite and a chat line with a cyan `[WG]` tag lists the instance, type, leader and playstyle. The popup opens with the same details. Both appear straight away unless you've set a pause under **Chat → Notification Delay**, and if you join mid-fight the popup waits until you're out of combat.
+- Teleport. The popup's last row is the dungeon's teleport, and it's a real spell button, so clicking it casts. It stays gray until you've learned that teleport, and goes gray again while it recharges, with the time left beside it. A dungeon with no teleport skips the row.
+- Close it, and bring it back. `ESC` or the **Close** button puts the popup away. `/wg show` or the "Click here to view details" link on the chat line opens it again, for as long as you're in the group. WhatGroup forgets the group once you leave.
 
 The **Chat** tab picks which lines the chat summary includes, and **Print to Chat** turns it off. **Open Automatically** on the **Popup** tab does the same for the window, and **Width** and **Height** sit beside it. The minimap button opens Settings on a left-click and a short menu on a right-click. Untick **Minimap button** on **Master controls** if you'd rather not have it.
 
@@ -73,9 +73,9 @@ The group info doesn't outlive the session. WhatGroup drops it the moment you le
 
 ## Reporting a bug
 
-1. Type `/wg debug on` and reproduce the bug.
-2. Type `/wg diagnostics`.
-3. If the debug window isn't open, open it with `/wg debug`. Press **Copy**, copy the entire output, and include it with your bug report.
+- Type `/wg debug on` and reproduce the bug.
+- Type `/wg diagnostics`.
+- If the debug window isn't open, open it with `/wg debug`. Press **Copy**, copy the entire output, and include it with your bug report.
 
 The report is added after the debug trace in the same window, so one copy carries both.
 

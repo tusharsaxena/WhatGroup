@@ -68,7 +68,8 @@ vendored kit rather than living in `tests/`, each declared by the pair form
 (localization-§5, reading this repo's per-file, per-word waivers from `tests/prose_waivers.lua`),
 `test_layout_cap` (layout-§1, holding the census in `docs/ARCHITECTURE.md` to the tree) and
 `test_diagnostics_contract` (debug-logging-§14, run against this addon's own dispatcher through
-`Kit.diagnostics` in `tests/run.lua`; `test_diagnostics` holds the report's sections).
+`Kit.diagnostics` in `tests/run.lua`, down to the run turning logging on for the session;
+`test_diagnostics` holds the report's sections).
 
 `test_libka0s` is the integration suite for the adopted LibKa0s majors: that
 each really registers, that each descriptor is well-formed, that the degraded
@@ -285,7 +286,7 @@ than the tag this addon has taken.
 Between a library release and the re-vendor that carries it they disagree, and that disagreement is
 the normal state rather than a defect. The same goes for untagged commits the library lands after
 the tag it released. As this is written the two agree: [`CLAUDE.md`](../CLAUDE.md) names
-**v1.63.0**, and `../LibKa0s`'s HEAD carries that tag's payload, so all four commands report nothing. Read a non-empty pair here as *the library has
+**v1.64.0**, and `../LibKa0s`'s HEAD carries that tag's payload, so all four commands report nothing. Read a non-empty pair here as *the library has
 moved past the tag this addon took* — a newer release, or post-tag follow-ups — not as a fault.
 Re-vendoring to quiet them would be the actual mistake: it would pull an untested library state for
 the sake of a clean diff.

@@ -297,6 +297,12 @@ do
             C_Timer.After(0, function()
                 local ok, err = pcall(fn, c)
                 if not ok then
+                    -- Chat for the player, and the log once per distinct error (debug-logging-§8),
+                    -- its site built behind the gate.
+                    if NS.State.debug then
+                        NS.DebugErrorOnce("Cfg", "settings page '" .. tostring(c.pageKey or "?")
+                            .. "' render raised", err)
+                    end
                     NS.Print(("settings page '%s' failed to render: %s")
                         :format(tostring(c.pageKey or "?"), tostring(err)))
                 end

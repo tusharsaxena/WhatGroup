@@ -25,7 +25,7 @@ number out of use rather than handing it to a new one.
 | TELE-1 – TELE-6 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker |
 | LFG-1 – LFG-4 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving |
 | LAUNCH-1 – LAUNCH-13 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays |
-| DIAG-1 – DIAG-24 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` |
+| DIAG-1 – DIAG-30 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
 | LOC-1 – LOC-6 | [Non-English client](#non-english-client) | A deDE or frFR client, and the `IsSpellKnown` readers |
 
@@ -41,7 +41,7 @@ number out of use rather than handing it to a new one.
   | A non-trivial commit | The theme the change touches, plus INSTALL-3 and INSTALL-4 when it touches hooks, the popup, the panel or the StaticPopup table |
   | An `## Interface:` bump | INSTALL-1 to INSTALL-5, COMBAT-1, COMBAT-2, POPUP-1, POPUP-3 to POPUP-5, TELE-1 to TELE-4, TELE-6, COMBAT-6 to COMBAT-10, COMBAT-12, LFG-1 and LOC-5. If a Blizzard API broke, [data-flow.md → Captured info](./data-flow.md#captured-info) lists every field the capture reads |
   | A `libs/` refresh | INSTALL-2, PANEL-1, PANEL-2, POPUP-1. If an Ace3 module was added or removed, match `WhatGroup.toc`'s lib block to the folders (AceGUI's `.xml` loads last among Ace3, `LibKa0s.xml` after it) |
-  | A LibKa0s re-vendor, or a change to a seam file | The row above, plus PANEL-4, PANEL-5, PANEL-14 to PANEL-19, SLASH-9 to SLASH-11, POPUP-6 to POPUP-8, DIAG-11 to DIAG-16 and all of DEGRADED |
+  | A LibKa0s re-vendor, or a change to a seam file | The row above, plus PANEL-4, PANEL-5, PANEL-14 to PANEL-19, SLASH-9 to SLASH-11, POPUP-6 to POPUP-8, DIAG-11 to DIAG-16, DIAG-19, DIAG-25 to DIAG-30 and all of DEGRADED |
   | A release | The release pass below; the whole suite for a release carrying feature work |
 
 - **Release pass.** INSTALL-3, INSTALL-4, COMBAT-2, SLASH-1, SLASH-2, SLASH-9, SLASH-11, PANEL-5,
@@ -507,7 +507,7 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 ## Debug console and diagnostics
 
 - **DIAG-1. `/wg debug` opens and closes the console.** → a window titled `Ka0s WhatGroup — Debug`,
-  700×344, monospace. Again → it closes. The logging state is untouched: the title-bar toggle still
+  700×344 by default, monospace. Again → it closes. The logging state is untouched: the title-bar toggle still
   reads `Debug: OFF`. Result:
 - **DIAG-2. `/wg debug on` and `off`.** → each prints `[WG] debug logging ON` / `OFF` with the word
   colored (ON green, OFF red, as on the title-bar toggle) and appends a `[Debug] logging enabled` /
@@ -575,9 +575,15 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **DIAG-18. The copy holds it clean.** Copy, select all, paste into an editor → the trace, the
   begin marker and the whole report to the end marker, with no `|c`, `|r`, `|T` or `|H` escape.
   Result:
-- **DIAG-19. Ungated, flag untouched.** `/wg debug off`, `/wg diagnostics` → a second full report
-  lands under the first; the title bar still reads `Debug: OFF`, and `/wg set notify.delay 2`
-  writes no `[Set]` line. `/wg reset notify.delay`. Result:
+- **DIAG-19. Diagnostics turns logging on for the session.** `/reload` → the title bar reads
+  `Debug: OFF`. `/wg diagnostics` → chat prints `[WG] debug logging ON`, then the report's
+  line-count line; the console holds `[Debug] logging enabled` and the `[Init]` line just ahead of
+  the begin marker, the report's header reads `debug logging: on`, the title bar reads `Debug: ON`,
+  and `/wg set notify.delay 2` writes one `[Set]` line. `/wg diagnostics` again → a second full
+  report under the first with no second `logging enabled` line. `/reload` → `Debug: OFF` again, and
+  `/wg set notify.delay 3` writes nothing; `/wg debug diagnostics` → logging on for the session, the
+  same way. `/wg debug off` → logging stops, and nothing turns it back on until the next report or
+  `/wg debug on`. `/wg reset notify.delay`. Result:
 - **DIAG-20. Both forms, the alias, no short form.** `/wg debug diagnostics`,
   `/whatgroup diagnostics`, `/whatgroup debug diagnostics` → each writes the report. `/wg diag` →
   `unknown command 'diag'` and the help index; `/wg debug diag` → the three-line `debug` usage;
@@ -597,6 +603,35 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **DIAG-24. The README steps.** `/reload`, close the console, and follow the README's
   `## Reporting a bug` word for word → every step works as written, and the one Copy holds the
   trace and the whole report. Result:
+- **DIAG-25. The console resizes from its grip.** `/wg debug` → a small size grip in the
+  bottom-right corner, clear of the `N / 3000 lines` counter. Drag it out on both axes → the window
+  follows the pointer; the log reflows to the new width, the scrollbar runs the full new height with
+  its thumb resynced, the counter stays bottom-right, and the title-bar controls stay placed. The
+  buffer and the scroll position are kept. Result:
+- **DIAG-26. The console's minimum holds.** Drag the grip as far up and left as it goes → it stops
+  where the title and every title-bar control still fit side by side without overlap, with the
+  status bar and a few log lines showing. Result:
+- **DIAG-27. The size lasts the session, and only the session.** Resize the console, close it,
+  `/wg debug` → it reopens at the size you left it. `/reload`, `/wg debug` → back at 700×344, and
+  nothing in `WhatGroupDB` holds a size. Result:
+- **DIAG-28. The copy window resizes too.** Click the copy control, then drag the copy window's
+  bottom-right grip → it resizes on both axes and the text re-wraps to the new width; it will not
+  shrink below 240×140. The scroll bar's down button sits above the grip and takes a click on its
+  whole face. Close it and copy again → the same size; after a `/reload` → its default size.
+  Result:
+- **DIAG-29. Another addon's console is its own.** Resize this console, then open another Ka0s
+  addon's debug console → it opens at its own default size; resize it → this one does not move.
+  Result:
+- **DIAG-30. The Diagnostics link.** `/reload`, `/wg debug` → in the title bar, top left, the word
+  `Diagnostics` sits just right of the `Debug: OFF` toggle with a small gap, drawn orange in the same
+  plain text as the toggle: no button art, border or background. Hover it → it brightens; move off →
+  orange again. Click it → logging turns on first (the toggle reads `Debug: ON`, chat prints
+  `[WG] debug logging ON`, the console gains `[Debug] logging enabled` and the `[Init]` line), then
+  the diagnostics report is written after them, begin to end marker as in DIAG-17, with the one chat
+  line giving its line count. Click it again → the report appends once more, with no second
+  `logging enabled` line. Flip the toggle between `ON` and `OFF` → the gap after it holds for either
+  word. Drag the grip in as far as it goes (DIAG-26) → the link still fits beside the toggle and the
+  title. Result:
 
 ## Library-absent install
 
@@ -693,8 +728,9 @@ headless stand-in: `tests/wow_mock.lua` answers enUS for every string the captur
 
 The old suite recorded no result for any check, so every check carried over from it is owed unless a
 Ka0sAddonsCommonTasks plan records the owner's pass. Only the diagnostics rollout's does:
-DIAG-5 and DIAG-17 to DIAG-24 passed on 2026-09-26 (`2026-09-25-DIAGNOSTICS_COMMAND/99_REPORT.md`
-§ 6, WG-S1 to WG-S11 and WG-X1) and are not listed. Checks new in this rework, and checks whose
+DIAG-5, DIAG-17, DIAG-18 and DIAG-20 to DIAG-24 passed on 2026-09-26 (`2026-09-25-DIAGNOSTICS_COMMAND/99_REPORT.md`
+§ 6, WG-S1 to WG-S11 and WG-X1) and are not listed; DIAG-19 passed then too, and is listed again
+because its expectation changed on 2026-09-30. Checks new in this rework, and checks whose
 expectation it corrected against the code, are listed too. Sign one off on its own `Result:` line,
 then remove its row here.
 
@@ -730,6 +766,9 @@ then remove its row here.
 | LAUNCH-11 | § 12c.7 | No result recorded; the profile switch is now `/wg profile` |
 | DIAG-1 – DIAG-4, DIAG-6 – DIAG-10, DIAG-12 – DIAG-16 | § 2.8 – 2.8b-i, 2.8c, 2.8d, 2.19, 3.6, 12.1 – 12.3, 12.5, 12.6 | No result recorded; DIAG-6 now also logs the verbs' `[Set]` lines |
 | DIAG-11 | § 2.18, 11.10 | No result recorded; § 2.18's remembered console position corrected |
+| DIAG-19 | New | Passed on 2026-09-26 as "Ungated, flag untouched"; corrected on 2026-09-30: a run now turns logging on for the session (standard v2.71.0, DebugLogDiagnostics 2, DL-WG-03) |
+| DIAG-25 – DIAG-29 | New | New with LibKa0s v1.64.0 (the resizable console and copy window) |
+| DIAG-30 | New | New on 2026-09-30 with the console's Diagnostics link (LibKa0s v1.64.0, DebugLog 16 and up, DL-WG-03) |
 | DEGRADED-1 – DEGRADED-5 | § 9, 12 closing, 2.19 | No result recorded; corrected: the other Ka0s addons disabled, DEGRADED-1's `/wg list`, DEGRADED-2's launcher notice, DEGRADED-4's `/wg profile` lines, DEGRADED-5's console |
 | LOC-1 – LOC-4, LOC-6 | § 12b steps 1 – 4 and 6 | Never run: no non-English client was available when the section landed |
 | LOC-5 | § 7a, and § 12b step 5 | Never run; issue #15 waits on the readings |

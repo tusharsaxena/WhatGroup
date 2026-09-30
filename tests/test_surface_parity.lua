@@ -139,7 +139,7 @@ test("parity: the Options helpers stub carries the whole live surface", function
         -- or live.
         "PADDING_X", "ROW_VSPACER", "SECTION_HEADING_H", "BUTTON_PAIR_REL",
         "CHROME_GAP", "TAB_H", "BANNER_H",
-        -- The widget factory itself. settings/Panel.lua:43 and :165 read it and return early when
+        -- The widget factory itself. settings/Panel.lua:43 and :175 read it and return early when
         -- it is nil, and both sites only run inside the page builder, which never runs degraded.
         "AceGUI",
         -- Library-internal renderers this addon never calls: it builds its landing page from its

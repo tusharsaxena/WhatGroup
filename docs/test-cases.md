@@ -687,7 +687,7 @@ badge and any count quoted in the docs must agree with it.
 - snapshot: the frame copy is fresh, so a report cannot edit the queue
 - snapshot: every coerced frame flag is a strict boolean, built or not
 
-### test_diagnostics.lua (18)
+### test_diagnostics.lua (19)
 
 - diagnostics: the host identity names schema, profile, enabled, stood-down, holds, test mode
 - diagnostics: always-print rows print at default, a changed row prints path = value (default)
@@ -705,7 +705,8 @@ badge and any count quoted in the docs must agree with it.
 - diagnostics: a raising section costs exactly one line, and the report still ends
 - diagnostics: an over-cap report ends `truncated`, then the end marker
 - diagnostics: a secret-like pending value degrades in place instead of raising
-- diagnostics: one localized chat line names the count and Copy
+- diagnostics: with logging off, the enable ack then one localized chat line names the count and Copy
+- diagnostics: with logging already on, exactly one chat line names the count and Copy
 - diagnostics: without LibKa0s-DebugLog both forms print the library-absent line, writing nothing
 
 ### test_launcher.lua (36)
@@ -796,7 +797,7 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: /wg resetall asks for confirmation rather than resetting outright
 - lifecycle: /wg resetall and the Defaults button share one OnAccept body
 
-### test_debuglog.lua (49)
+### test_debuglog.lua (72)
 
 - debuglog: FONT_MONO points at the library payload's JetBrains Mono TTF
 - debuglog: the console renders in the vendored TTF when the client can fetch it
@@ -847,6 +848,29 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: pin — showing with no capture logs the [Frame] fallback and nil teleport lines
 - debuglog: pin — a show the visibility gate withholds logs the [Frame] not-shown line
 - debuglog: pin — unticking test mode logs the [Test] off line with its reason
+- debuglog: pin — standing down logs one [State] line naming the holds
+- debuglog: pin — standing back up logs the [State] stood-up line
+- debuglog: pin — an apply while stood down logs the [Apply] refusal naming the guard
+- debuglog: pin — a join with notify.enabled off logs the [Notify] skip naming the row
+- debuglog: pin — an accepted invite before the roster says grouped logs the [Notify] skip
+- debuglog: pin — the second path to reach a join logs the [Notify] already-notified skip
+- debuglog: pin — a fired notify with frame.autoShow off logs why no popup opened
+- debuglog: pin — an 'applied' status with nothing captured logs the [LFG] no-pair line
+- debuglog: pin — a raising GetApplicationInfo logs its message once, not once per event
+- debuglog: a caught error logged while debug was off is still logged once it is on
+- debuglog: pin — a show deferred by combat logs its hold, and the combat-end edge its flush
+- debuglog: pin — a stand-down drops held work with a line, so the hold is answered
+- debuglog: pin — a combat edge that moves the popup logs one [Frame] transition line
+- debuglog: pin — Close pressed in combat logs the owed Hide, and combat end its settling
+- debuglog: quiet — combat edges that change nothing add no line (debug-logging-§9)
+- debuglog: quiet — the cooldown ticker adds no line while the cooldown only counts down
+- debuglog: quiet — one open logs its teleport state once, not once per configure
+- debuglog: a cooldown that runs out under an open popup logs the new teleport state
+- debuglog: pin — a size or scale change refused in combat says so
+- debuglog: pin — /wg show with nothing captured logs its refusal
+- debuglog: pin — test mode refused in combat logs the guard
+- debuglog: the [Init] line names the degraded chat-link route, and only there
+- debuglog: pin — the degraded chat link clicked while stood down logs the refusal
 
 ### test_docmap.lua (1)
 
@@ -944,13 +968,15 @@ badge and any count quoted in the docs must agree with it.
 - layoutcap self-test: a census that states nothing is told apart from one that states none
 - layoutcap self-test: the exempt set takes folders as well as paths
 
-### test_diagnostics_contract.lua (7)
+### test_diagnostics_contract.lua (9)
 
 - diagnostics contract: both forms run the report
 - diagnostics contract: the debug word is matched in any case
 - diagnostics contract: both markers carry the brand and the end counts the report
 - diagnostics contract: the report appends after what the console already holds
-- diagnostics contract: the report lands with logging off and leaves it off
+- diagnostics contract: the report lands with logging off and turns it on for the session
+- diagnostics contract: an addon that opts out lands the report and leaves logging off (skipped: this addon keeps the default (Kit.diagnostics.enablesLogging is not false), so its report turns logging on; the case above holds it)
+- diagnostics contract: with logging already on, the report writes no second enable line
 - diagnostics contract: both forms run while the addon is disabled
 - diagnostics contract: no other name runs the report
 
@@ -978,10 +1004,10 @@ badge and any count quoted in the docs must agree with it.
 | test_profiles.lua | 19 |
 | test_testmode.lua | 23 |
 | test_snapshot.lua | 10 |
-| test_diagnostics.lua | 18 |
+| test_diagnostics.lua | 19 |
 | test_launcher.lua | 36 |
 | test_lifecycle.lua | 46 |
-| test_debuglog.lua | 49 |
+| test_debuglog.lua | 72 |
 | test_docmap.lua | 1 |
 | test_lintconfig.lua | 6 |
 | test_doc_structure.lua | 9 |
@@ -991,5 +1017,5 @@ badge and any count quoted in the docs must agree with it.
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| test_diagnostics_contract.lua | 7 |
-| **Total** | **846** |
+| test_diagnostics_contract.lua | 9 |
+| **Total** | **872** |

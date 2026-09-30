@@ -312,6 +312,8 @@ function runShow()
     if WhatGroup.pendingInfo then
         WhatGroup:ShowFrame()
     else
+        -- The refusal names its guard in the log as well as in chat (debug-logging-§8, Diagnosis).
+        NS.Debug("Frame", "/wg show refused: no captured group")
         NS.Print(L["No group info available. Use |cffFFFF00/wg test|r to preview."])
     end
 end
@@ -415,7 +417,10 @@ function runEnabled(on)
     if not row then return libraryAbsent(on and "/wg enable" or "/wg disable") end
     -- Never ack a write that did not land: a refusal prints the seam's own words instead.
     local ok, err = H.Set(ENABLED_PATH, on)
-    if ok == false then return NS.Print(tostring(err)) end
+    if ok == false then
+        NS.Debug("Set", "%s refused: %s", ENABLED_PATH, err)
+        return NS.Print(tostring(err))
+    end
     local value = H.Get(ENABLED_PATH)
     if lib then
         return NS.Print(lib.FormatKV(row.path, lib.FormatValue(row, value)))
