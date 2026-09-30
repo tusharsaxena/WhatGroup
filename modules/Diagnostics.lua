@@ -1,6 +1,6 @@
 -- modules/Diagnostics.lua — WhatGroup's sections of `/wg diagnostics` (debug-logging-§14, DX-WG).
 --
--- The library writes everything around these (LibKa0s-DebugLog-1.0 14.1): both markers, its half
+-- The library writes everything around these (LibKa0s-DebugLog-1.0 17.2): both markers, its half
 -- of the identity header (the [Init] summary, client build, locale, the debug flag, both combat
 -- reads, the running LibKa0s minors), one pcall per section so a raise costs one line, the cap and
 -- the `truncated` line. This file writes sections and nothing else; a line buffer, pcall wrapper
@@ -8,7 +8,9 @@
 --
 -- READ, NEVER ACT. Nothing here takes or releases a Lifecycle hold, registers an event, arms a
 -- timer, builds the popup or touches the secure teleport button: the report runs while the addon
--- is stood down and in combat, and it must leave both states exactly as it found them. The state
+-- is stood down and in combat, and it must leave both states exactly as it found them. (The run,
+-- not these sections, turns debug logging on for the session first: the library's RunDiagnostics,
+-- debug-logging-§14; nothing here touches that flag.) The state
 -- that is file-local elsewhere arrives through the two read-only accessors,
 -- WhatGroup:CaptureSnapshot() (core/WhatGroup.lua) and NS.FrameSnapshot() (modules/Frame.lua), which
 -- hand out copies and never build.

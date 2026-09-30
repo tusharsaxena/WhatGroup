@@ -13,9 +13,10 @@ WhatGroup has two debug surfaces, and both write into the same window:
   console carries, what writes it and when, and which repeating paths stay quiet on purpose.
 
 The console and the report frame are the library's, and their contract lives in LibKa0s's
-[`docs/api/DebugLog/version-15.1-docs.md`](https://github.com/tusharsaxena/LibKa0s/blob/master/docs/api/DebugLog/version-15.1-docs.md)
-(DebugLog minor 15 with its `DebugLogDiagnostics.lua` secondary file, the resizable console of the
-vendored LibKa0s v1.64.0; the report frame is unchanged since v1.60.0).
+[`docs/api/DebugLog/version-17.2-docs.md`](https://github.com/tusharsaxena/LibKa0s/blob/master/docs/api/DebugLog/version-17.2-docs.md)
+(DebugLog minor 17 with its `DebugLogDiagnostics.lua` secondary file at minor 2, as vendored from
+LibKa0s v1.64.0: the resizable console, the title bar's Diagnostics link, and a report run that turns
+logging on for the session).
 This page covers only what WhatGroup adds on top.
 
 ## The console in one table
@@ -35,7 +36,7 @@ its newest 3000 lines.
 
 ### Running it
 
-There are exactly two forms, and no third:
+There are exactly two typed forms, and no third:
 
 - `/wg diagnostics`, a row of the `COMMANDS` table in `settings/Slash.lua`;
 - `/wg debug diagnostics`, the first word `runDebug` tests, in any case.
@@ -43,6 +44,13 @@ There are exactly two forms, and no third:
 `/whatgroup` reaches both, as it reaches every verb. `diag`, `dump`, `dx` and every other short name
 are ordinary unknown words: `/wg diag` prints `unknown command 'diag'` and the help index, and
 `/wg debug diag` prints the three-line `debug` usage.
+
+The console's title bar also carries the library's orange **Diagnostics** link, just right of the
+`Debug: ON`/`OFF` toggle with a small gap, in the same plain text (DebugLog 17). A click runs the same
+report, `NS.DebugLog:RunDiagnostics()`.
+
+Running the report, by either form or the link, **turns debug logging on for the session**
+(debug-logging-§14, DebugLogDiagnostics 2), as `/wg debug on` would; a `/reload` turns it off again.
 
 `diagnostics` is on the library's live set (`lib.LIVE_VERBS`, Slash minor 16), so both forms answer
 while the addon is **disabled**. A disabled addon is stood down, and the report says so (the
@@ -54,8 +62,15 @@ printing emptied tables as if they were data.
 - **It appends.** The report lands after whatever the console already holds, so the trace a player
   has just reproduced stays above it and one Copy carries both. Nothing the report reaches calls
   `Clear()`.
-- **It is ungated.** It writes through the library's raw append, not `NS.Debug`, so it lands in full
-  with logging off, and it does not change the flag: the header reads the same afterwards.
+- **It turns logging on first.** When logging is off, the run sets it through the one seam
+  (`NS.DebugLog:SetEnabled(true)`) before it writes, so the `debug logging ON` chat line, the
+  `[Debug] logging enabled` line and the `[Init]` summary land just ahead of the begin marker, and the
+  header reads `debug logging: on`. It never turns logging off, and with logging already on it writes no second
+  enable line. WhatGroup keeps the library's default: its descriptor does not set
+  `diagnosticsEnablesLogging = false`. The sections themselves read state only and never touch the
+  flag. A report run first leaves logging on, so what the player does next is traced too.
+- **It is ungated.** It writes through the library's raw append, not `NS.Debug`, so every line lands
+  in full whatever the gate would say.
 - **It reveals the console** if it is hidden, then prints one chat line through `NS.L`:
   `Diagnostic report written to the debug console: N lines. Use Copy to share it.`
 - **It is plain text.** The library strips color, texture, atlas and hyperlink escapes from every
@@ -141,7 +156,7 @@ What the gated trace carries, tag by tag: which code writes each line and when i
 map `debug-logging-§8` (the flows and the diagnosis checklist) and `debug-logging-§9` (one line per
 pass, and none when nothing changed) are checked against. Every line is one `NS.Debug` call, gated,
 with its formatting behind the gate. The diagnostics report above is not part of the trace: it is
-ungated and runs only when asked.
+ungated and runs only when asked (a run turns the trace on for the session, as above).
 
 | Tag | Written by | When |
 |---|---|---|
@@ -183,7 +198,7 @@ cases run the path many times and assert the buffer did not grow.
 ## Where else this is pinned
 
 The command rows are in [slash-dispatch.md](./slash-dispatch.md), and the player-facing steps are the
-README's `## Reporting a bug`. The in-game checks are DIAG-17 to DIAG-24 and DIAG-5 of
+README's `## Reporting a bug`. The in-game checks are DIAG-17 to DIAG-24, DIAG-30 and DIAG-5 of
 [smoke-tests.md](./smoke-tests.md). The suites are `tests/test_diagnostics.lua` (this addon's
 sections), the kit's shared `tests/_kit/test_diagnostics_contract.lua` (wired in `tests/run.lua`),
 `tests/test_disabled.lua` (both forms while disabled) and `tests/test_slash.lua` (the usage line and

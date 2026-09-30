@@ -68,7 +68,8 @@ vendored kit rather than living in `tests/`, each declared by the pair form
 (localization-§5, reading this repo's per-file, per-word waivers from `tests/prose_waivers.lua`),
 `test_layout_cap` (layout-§1, holding the census in `docs/ARCHITECTURE.md` to the tree) and
 `test_diagnostics_contract` (debug-logging-§14, run against this addon's own dispatcher through
-`Kit.diagnostics` in `tests/run.lua`; `test_diagnostics` holds the report's sections).
+`Kit.diagnostics` in `tests/run.lua`, down to the run turning logging on for the session;
+`test_diagnostics` holds the report's sections).
 
 `test_libka0s` is the integration suite for the adopted LibKa0s majors: that
 each really registers, that each descriptor is well-formed, that the degraded
