@@ -275,9 +275,9 @@ end)
 -- text with this addon's slash, word for word. It names no destination and carries no link, so a
 -- player follows the same three steps whatever channel the bug report goes through.
 local REPORTING_A_BUG = table.concat({
-    "1. Type `/wg debug on` and reproduce the bug.",
-    "2. Type `/wg diagnostics`.",
-    "3. If the debug window isn't open, open it with `/wg debug`. Press **Copy**, copy the entire "
+    "- Type `/wg debug on` and reproduce the bug.",
+    "- Type `/wg diagnostics`.",
+    "- If the debug window isn't open, open it with `/wg debug`. Press **Copy**, copy the entire "
         .. "output, and include it with your bug report.",
     "",
     "The report is added after the debug trace in the same window, so one copy carries both.",
