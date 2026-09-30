@@ -386,6 +386,33 @@ test("disabled 7: every reserved verb answers normally, and the bare /wg opens t
     assertTrue(#mock.openedTo > opened + 1, "and so does `config`")
 end)
 
+test("disabled 7: `profile` is live — it lists while off, and a switch to an enabled profile is a "
+     .. "way back", function()
+    -- `profile` is a host verb, not a reserved one, so the library's default live set does not
+    -- carry it; settings/Slash.lua passes lib.LIVE_VERBS plus "profile" (spec S3 step 4). The
+    -- enabled flag is profile-scoped, so switching out of a disabled profile is a legitimate way
+    -- back, and a refusal there would hide it.
+    -- red under: no `liveVerbs` on the descriptor (the default refuses `profile` as a feature verb).
+    local NS, mock = up()
+    local db = NS.addon.db
+    db:SetProfile("off")
+    switchOff(NS)
+    assertTrue(NS.IsStoodDown(), "standing down on the disabled profile")
+
+    local mark = #mock.prints
+    NS.addon:OnSlashCommand("profile")
+    local listed = false
+    for i = mark + 1, #mock.prints do
+        assertNil(mock.prints[i]:find("WhatGroup is disabled", 1, true), "never the refusal")
+        if mock.prints[i]:find("off (current)", 1, true) then listed = true end
+    end
+    assertTrue(listed, "the list prints, the disabled profile marked current")
+
+    NS.addon:OnSlashCommand("profile Default")
+    assertEqual(db:GetCurrentProfile(), "Default", "the switch landed while disabled")
+    assertFalse(NS.IsStoodDown(), "and the enabled profile stood the addon back up")
+end)
+
 test("disabled 7: each FEATURE verb answers exactly one refusal line and reaches no write seam",
 function()
     -- This addon TAKES slash-commands-§2's SHOULD, and there are two verbs in scope: `show` and `test`, the two

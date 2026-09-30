@@ -12,7 +12,8 @@ WhatGroup has two debug surfaces, and both write into the same window:
 
 The console and the report frame are the library's, and their contract lives in LibKa0s's
 [`docs/api/DebugLog/version-14.1-docs.md`](https://github.com/tusharsaxena/LibKa0s/blob/master/docs/api/DebugLog/version-14.1-docs.md)
-(DebugLog minor 14 with its `DebugLogDiagnostics.lua` secondary file, vendored from LibKa0s v1.60.0).
+(DebugLog minor 14 with its `DebugLogDiagnostics.lua` secondary file, first vendored from LibKa0s v1.60.0
+and unchanged in the vendored v1.63.0).
 This page covers only what WhatGroup adds on top.
 
 ## The console in one table
@@ -135,7 +136,7 @@ to the table above in the same change, and a case to `tests/test_diagnostics.lua
 ## Where else this is pinned
 
 The command rows are in [slash-dispatch.md](./slash-dispatch.md), and the player-facing steps are the
-README's `## Reporting a bug`. The in-game checks are section 2a and row 2.8b-ii of
+README's `## Reporting a bug`. The in-game checks are DIAG-17 to DIAG-24 and DIAG-5 of
 [smoke-tests.md](./smoke-tests.md). The suites are `tests/test_diagnostics.lua` (this addon's
 sections), the kit's shared `tests/_kit/test_diagnostics_contract.lua` (wired in `tests/run.lua`),
 `tests/test_disabled.lua` (both forms while disabled) and `tests/test_slash.lua` (the usage line and

@@ -1,7 +1,7 @@
 # CLAUDE.md — Ka0s WhatGroup
 
-**Ka0s WoW addon.** A retail WoW addon: Ace3 vendored under `libs/`, one shared
-AceDB profile.
+**Ka0s WoW addon.** A retail WoW addon: Ace3 vendored under `libs/`, AceDB
+profiles (one shared `Default` until a player picks another on the Profiles page).
 
 ## Standards compliance (read first)
 
@@ -76,7 +76,7 @@ are **frozen history** — never treat them as a live requirement, and never "re
 
 ## Bundled LibKa0s
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.62.0 (MIT). That line is the
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.63.0 (MIT). That line is the
 repo's provenance claim — the tag `libs/LibKa0s/` and `tests/_kit/` were copied from — and
 `tests/test_vendor_sync.lua` reads it out of *this* file and compares both payloads against
 that tag in the sibling checkout. It is an input to the gate, not a comment: bump the version
@@ -95,8 +95,9 @@ This root file is a **stub** (documentation-§2). The real detail lives in `docs
   overview, subsystem map, invariants, working environment, load order. **Read first.**
 - **[docs/testing.md](docs/testing.md)** — how to verify: the green gate, mock fidelity,
   the generated `docs/test-cases.md` inventory and the README `tests` badge.
-- Topic detail (module map, scope, schema, capture pipeline, settings system, slash dispatch,
-  debug console, frame, WoW quirks, common tasks, smoke tests) sits alongside them —
+- Topic detail (module map, scope, schema, capture pipeline, settings system, profiles, slash
+  dispatch, stand-down, compat layer, debug console and diagnostics, frame, WoW quirks, performance,
+  common tasks, smoke tests) sits alongside them —
   including the generated **[docs/automated-tests/RESULTS.md](docs/automated-tests/RESULTS.md)**, refreshed at
   every release and never hand-edited (performance-§10).
 - **[DEPENDENCIES.md](DEPENDENCIES.md)** — the root toolchain contract (documentation-§7):

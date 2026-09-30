@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-824%2F824_passing-green)
+![Tests](https://img.shields.io/badge/Tests-846%2F846_passing-green)
 
 WhatGroup remembers the group you signed up for through the Group Finder tool. You get accepted, you shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who's leading, and the playstyle.
 
@@ -55,7 +55,7 @@ The group info doesn't outlive the session. WhatGroup drops it the moment you le
 | Why is the teleport button or teleport line grayed out or missing? | Three reasons, and the popup says which: you haven't learned the spell (`Teleport spell not learned` beside the button), you have it but it's still recharging (`On cooldown — 7h 58m 12s`, counting down, with a cooldown swipe over the icon), or that dungeon has no teleport at all, in which case the row is skipped. |
 | Can I keep the chat message but hide the popup, or the reverse? | Yes. Turn **Popup → Open Automatically** off to skip the popup, or **Chat → Print to Chat** off to skip the message. They work independently. |
 | Can I make the popup bigger or smaller? | Yes. **Popup → Width** and **Popup → Height** move it between 320-700 and 200-520 pixels; it ships at 420 x 260. Dragging still remembers where you left it. |
-| Are there per-character settings? | No. Your settings are shared across all your characters. |
+| Are there per-character settings? | Only if you want them. Every character shares one profile until you pick another on the **Profiles** page in Settings, which can also give a character its own profile, copy one, reset one or delete one. `/wg profile` lists your profiles, and `/wg profile <name>` switches to one. |
 
 ## Troubleshooting
 

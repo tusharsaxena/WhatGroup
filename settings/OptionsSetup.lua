@@ -226,6 +226,23 @@ local O = lib:New({
     bulkBegin = NS.SchemaRuntime.BulkBegin,
     bulkEnd   = NS.SchemaRuntime.BulkEnd,
 
+    -- RESET ALL SETTINGS IS A PROFILE RESET (options-ui-§12), and these two fields tell the library
+    -- so. What they change is the Master controls "Reset all settings" tooltip (Options minor 18):
+    -- with both, it names the current profile, says the other profiles are not affected, and names
+    -- the equivalence with Profiles -> Reset Profile, since settings/Profiles.lua ships that page.
+    -- The reset itself is still the host's RestoreAllDefaults below, reached through the
+    -- confirmation popup; the library's own RestoreAllDefaults is overridden and nothing calls
+    -- `resetProfile`. It is supplied as the real act anyway, so the field is accurate if that is
+    -- ever reached.
+    resetProfile = function() WhatGroup.db:ResetProfile() end,
+    profilesPage = true,
+    -- The reset veto (options-ui-§3), named ONCE in settings/Schema.lua and shared with the host's
+    -- own session sweep: the Profiles page and every row whose value lives in the profile are kept
+    -- out of any row walk. With `resetProfile` supplied the library narrows its walk to sessionOnly
+    -- rows on its own, so this is the belt to that brace, and it is the rule stated where the
+    -- standard asks for it.
+    skipRestoreAll = Settings.VetoedFromResetAll,
+
     -- Deliberately NOT passed, each for a reason worth writing down rather than leaving as an
     -- absence:
     --
@@ -233,8 +250,9 @@ local O = lib:New({
     --     color shape to declare.
     --   getLSM / scheduleTimer    — no media pickers and no color pickers, and the one slider is
     --     release-only, so nothing reaches either.
-    --   skipRestoreAll / afterRestoreAll — the global reset is host-owned (see below), so the
-    --     library's row-by-row RestoreAllDefaults is not on the path.
+    --   afterRestoreAll — the global reset is host-owned (see below), so the library's
+    --     RestoreAllDefaults is not on the path, and nothing sits outside both the profile and
+    --     the schema for a hook to restore.
     --   onAceGUI                  — settings/Panel.lua reads O.AceGUI off this instance at call
     --     time instead, which is the same handle without a second LibStub lookup.
 })

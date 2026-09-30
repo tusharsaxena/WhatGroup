@@ -76,7 +76,7 @@ would turn the ladder into "either reader says yes", which would hide a disagree
 What the documentation cannot say is whether the two readers **agree** on a real character. The
 finding originally made the rung conditional on that observation. The owner chose on 2026-09-12 to
 build from the documentation and keep the observation as a smoke-test step instead:
-[smoke-tests.md § 7a](./smoke-tests.md) checks it, and it has not been run. If it ever finds the two
+[smoke-tests.md LOC-5](./smoke-tests.md#non-english-client) checks it, and it has not been run. If it ever finds the two
 disagreeing, the ladder is wrong, and the shim needs a decision about which reader is right.
 
 The reason this matters: the degrade is safe but it is not quiet. If both readers are gone, or the
@@ -178,6 +178,6 @@ a shim with no absent-API case is a shim whose fallback has never run.
 
 - [midnight-quirks.md](./midnight-quirks.md) — the client behavior these shims sit under.
 - [module-map.md](./module-map.md) — where `core/Compat.lua` sits in the load order.
-- [smoke-tests.md](./smoke-tests.md) — § 7a, the in-client check that the two `IsSpellKnown` readers agree.
+- [smoke-tests.md](./smoke-tests.md) — LOC-5, the in-client check that the two `IsSpellKnown` readers agree.
 - [frame.md](./frame.md) — the teleport buttons that read the two cooldown shims and the library's name and texture readers.
 - [data-flow.md](./data-flow.md) — the details chat link `AddOnLinkType` picks the route for.

@@ -82,14 +82,16 @@ L["Dungeon"]                  = "Dungeon"
 L["Raid"]                     = "Raid"
 L["Group"]                    = "Group"
 
--- Settings panel. Only the landing page's own heading lives here. Three former
--- rows were dropped as unroutable rather than left as keys nothing reads:
+-- Settings panel: the landing page's own heading and the Profiles page's label
+-- (settings/Profiles.lua). Three former rows were dropped as unroutable rather
+-- than left as keys nothing reads:
 -- "Ka0s WhatGroup" is the brand (the TOC Title and the Blizzard category label,
 -- not prose); "General" is simultaneously the page id, the schema `group` key
 -- and the subcategory label, so translating the display copy alone would
 -- silently unmatch the schema; "Defaults" is the library's DEFAULTS_LABEL, not
 -- a string this addon authors.
 L["Slash Commands"]           = "Slash Commands"
+L["Profiles"]                 = "Profiles"
 
 -- StaticPopup / reset
 L["Reset this profile to the addon's defaults? Everything you have configured or added in it is discarded \226\128\148 your other profiles are not affected."] =
@@ -117,6 +119,8 @@ L["Set a setting — `/wg set <path> <value>` (try /wg list)"] =
 L["Reset one setting to its default — `/wg reset <path>`"] =
     "Reset one setting to its default — `/wg reset <path>`"
 L["Reset every setting to defaults"] = "Reset every setting to defaults"
+L["List profiles, or switch to one: profile <name>"] =
+    "List profiles, or switch to one: profile <name>"
 L["Open/close the debug window — `/wg debug on|off` toggles logging"] =
     "Open/close the debug window — `/wg debug on|off` toggles logging"
 L["Write the diagnostics report to the debug console"] =
@@ -136,7 +140,8 @@ L["Popup deferred until combat ends."] = "Popup deferred until combat ends."
 
 -- The library-absent line (options-ui-§1 route (b), the owner's ruling on WhatGroup#22). On a load
 -- without LibKa0s the Master controls rows are not composed, so `/wg enable`, `/wg disable` and
--- `/wg test` have no row to write; each says so, naming itself. One sentence, one placeholder.
+-- `/wg test` have no row to write; each says so, naming itself. `/wg profile` says it too: with
+-- no library there is no store adapter to trust. One sentence, one placeholder.
 L["%s is unavailable: the LibKa0s library did not load."] =
     "%s is unavailable: the LibKa0s library did not load."
 

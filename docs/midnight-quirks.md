@@ -104,9 +104,7 @@ end
 self.db = LibStub("AceDB-3.0"):New("WhatGroupDB", defaults, true)
 ```
 
-The third arg `true` means "use a single shared `Default` profile across every character on the account". Every character sees the same settings.
-
-If WhatGroup ever needs per-character settings, that arg becomes `false` (or omitted) and AceDB creates a per-character profile by default. The current design is intentionally account-wide — see [scope.md](./scope.md#out-of-scope).
+The third arg `true` means "start every character on one shared `Default` profile". Every character sees the same settings until the player picks another profile on the **Profiles** page ([profiles.md](./profiles.md)). With `false` (or omitted) AceDB would start each character on a profile of its own instead; `true` keeps the account-wide default a new character has always had.
 
 ## `BuildDefaults` runs every login
 
@@ -161,7 +159,7 @@ The fix for both: **defer them to actual user demand.** `modules/Frame.lua`'s en
 
 At PLAYER_LOGIN the addon now adds nothing to Blizzard's secure surface, GameMenu's `InitButtons` runs in a clean context during boot, and Logout works correctly. Any taint the addon does generate later (on first popup show) is contained to a session where the player has actively used the addon — and even then, GameMenu's button closures were already built with the clean context they captured at boot.
 
-The regression test for this lives in [smoke-tests.md → section 1.3 GameMenu Logout — no taint regression](./smoke-tests.md#13-gamemenu-logout--no-taint-regression-critical). Run it after any change that touches hooks, the popup, the Settings panel, or the StaticPopup table.
+The regression tests for this are INSTALL-3 and INSTALL-4 in [smoke-tests.md → Install](./smoke-tests.md#install), the GameMenu Logout check on a clean boot and after each surface. Run it after any change that touches hooks, the popup, the Settings panel, or the StaticPopup table.
 
 See `modules/Frame.lua`'s `buildFrame()`, `settings/Panel.lua`'s `Settings.Register()`, and `core/WhatGroup.lua`'s `runConfig()`.
 

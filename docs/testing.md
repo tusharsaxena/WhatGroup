@@ -59,7 +59,7 @@ label like **Enable WhatGroup** honest about which addon it is turning off.
 The suites, in run order: `test_harness`, `test_libka0s`,
 `test_surface_parity`, `test_mediasetup`, `test_envsetup`, `test_util`,
 `test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
-`test_capture`, `test_notify`, `test_frame`, `test_frame_visibility`, `test_frame_secure`, `test_panel`, `test_testmode`,
+`test_capture`, `test_notify`, `test_frame`, `test_frame_visibility`, `test_frame_secure`, `test_panel`, `test_profiles`, `test_testmode`,
 `test_snapshot`, `test_diagnostics`, `test_launcher`, `test_lifecycle`,
 `test_debuglog`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
 `test_register`, `test_disabled`, `test_vendor_sync`. Four more run last and arrive with the
@@ -134,7 +134,8 @@ Coverage extends past pure logic into the UI and event layers — the popup's
 field rendering and secure-teleport-button states (`test_frame`, with the master controls, the visibility gate's
 combat transition and Escape in combat in `test_frame_visibility`, and the combat reopen of a
 soft-hidden popup in `test_frame_secure`), the settings
-panel's deferred build and widget write-back (`test_panel`), the delayed
+panel's deferred build and widget write-back (`test_panel`), the Profiles page and the
+reaction to a profile switch, copy or reset (`test_profiles`), the delayed
 join-notify pipeline (`test_notify`), and the event/hook wiring
 (`test_lifecycle`). What genuinely **cannot** be reproduced headlessly stays in
 the manual [smoke-test checklist](./smoke-tests.md): real frame layout and
@@ -284,7 +285,7 @@ than the tag this addon has taken.
 Between a library release and the re-vendor that carries it they disagree, and that disagreement is
 the normal state rather than a defect. The same goes for untagged commits the library lands after
 the tag it released. As this is written the two agree: [`CLAUDE.md`](../CLAUDE.md) names
-**v1.62.0**, and `../LibKa0s`'s HEAD carries that tag's payload, so all four commands report nothing. Read a non-empty pair here as *the library has
+**v1.63.0**, and `../LibKa0s`'s HEAD carries that tag's payload, so all four commands report nothing. Read a non-empty pair here as *the library has
 moved past the tag this addon took* — a newer release, or post-tag follow-ups — not as a fault.
 Re-vendoring to quiet them would be the actual mistake: it would pull an untested library state for
 the sake of a clean diff.
@@ -442,5 +443,5 @@ The pieces that can't be exercised headlessly — AceGUI panel rendering, the
 secure teleport button, and the **GameMenu → Logout taint check** — are covered
 by the manual [smoke-test checklist](./smoke-tests.md). Run the relevant section
 after any non-trivial change, after an `## Interface:` bump, after refreshing
-`libs/`, and before tagging a release; the Quick-reference checklist at the
-bottom of that file is the minimum pre-release pass.
+`libs/`, and before tagging a release; the Release pass list in its Before you
+start section is the minimum pre-release pass.

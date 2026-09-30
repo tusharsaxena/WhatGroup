@@ -65,6 +65,13 @@ local COMMANDS = {
         function(rest) runReset(rest) end},
     {"resetall", L["Reset every setting to defaults"],
         function() runResetAll() end},
+    -- Switch profiles from chat (LibKa0s-Slash-1.0 minor 17). What the verb does is the library's
+    -- CliProfile: bare lists the profiles, a name switches to an EXISTING profile only (never
+    -- creates one), and a switch in combat is refused. The descriptor's `profiles` hands it this
+    -- addon's db. The one [Profile] log line is core/WhatGroup.lua's OnProfileChanged, which the
+    -- switch fires; the verb logs nothing of its own. Live while disabled (below).
+    {"profile",  L["List profiles, or switch to one: profile <name>"],
+        function(rest) Sl:CliProfile(rest) end},
     {"debug",    L["Open/close the debug window — `/wg debug on|off` toggles logging"],
         function(rest) runDebug(rest) end},
     -- The diagnostics dump (debug-logging-§14): one of exactly two forms, the other being
@@ -80,7 +87,7 @@ local COMMANDS = {
 -- ---------------------------------------------------------------------------
 --
 -- A DISABLED ADDON REFUSES A FEATURE VERB RATHER THAN ACTING ON IT, on one tagged line naming
--- `/wg enable` and nothing else. Two of this addon's fourteen verbs drive features — `show` and
+-- `/wg enable` and nothing else. Two of this addon's fifteen verbs drive features — `show` and
 -- `test`, the two that put the popup on screen — which is enough for a silent `/wg show` to read
 -- as a bug, so this addon takes slash-commands-§2's SHOULD.
 --
@@ -91,7 +98,7 @@ local COMMANDS = {
 -- that hides the off switch has mistaken which half of the pair it protects. So while this addon
 -- is off, `/wg` opens the panel, `config` and `version` and the whole schema CLI —
 -- `get` / `set` / `list` / `reset` / `resetall` — read and repair settings, `debug` runs as the
--- diagnostic it is, and `enable` above all still works.
+-- diagnostic it is, `profile` lists and switches profiles, and `enable` above all still works.
 --
 -- THIS FILE OWNS NONE OF THAT ANY MORE. It carried its own ALWAYS_LIVE table and its own refusal
 -- wording until today, wrapping every feature verb's handler as it built COMMANDS. Both are the
@@ -103,14 +110,17 @@ local COMMANDS = {
 -- host-side: one sentence is exactly the kind of thing eleven addons each end up writing their own
 -- of, and a player who runs four of them then reads four answers to the same question.
 --
--- WHAT THE HOST STILL OWNS is two descriptor fields, below: `isEnabled`, asked at DISPATCH time so
--- the command after an `enable` works, and `brandName`, the plain-text `Ka0s WhatGroup` that
+-- WHAT THE HOST STILL OWNS is three descriptor fields, below: `isEnabled`, asked at DISPATCH time
+-- so the command after an `enable` works; `brandName`, the plain-text `Ka0s WhatGroup` that
 -- core/LauncherSetup.lua already gives the LDB object as `label` — launcher-§1 forbids escape
--- sequences there, which is what makes it safe to drop into a colored line.
+-- sequences there, which is what makes it safe to drop into a colored line; and `liveVerbs`.
 --
--- `liveVerbs` is deliberately NOT passed. The library's default IS the standard's list; passing a
--- copy would be this addon's own opinion about which verbs a player may use on a disabled addon,
--- which is the opinion v2.57.0 settled.
+-- `liveVerbs` is the library's own list plus `profile`, and nothing else. `lib.LIVE_VERBS` IS the
+-- standard's reserved list, and it is read, never hand-copied, so a verb the standard reserves
+-- tomorrow reaches this addon on the next re-vendor. `profile` is a host verb rather than a
+-- reserved one (Slash minor 17), so the default would refuse it as a feature verb, and it is not
+-- one: `enabled` is profile-scoped, so switching to an enabled profile is a way back, and a refusal
+-- there is the one-way trap v2.57.0 settled.
 
 -- Published so settings/Panel.lua's landing page renders the same table the help index does. It
 -- crosses as plain data; neither library resolves the other.
@@ -130,8 +140,11 @@ if not lib then
     -- Nothing here re-implements a row formatter, a `key = value` shape or the parser. A degraded
     -- help row renders plainly and says so.
     local function unavailable() NS.Print(CLI_MISSING) end
+    local function profileAbsent()
+        NS.Print(L["%s is unavailable: the LibKa0s library did not load."]:format("/wg profile"))
+    end
 
-    -- A BYTE COPY of libs/LibKa0s/Slash.lua's `lib.DISABLED_LINE_FORMAT` (:84), and the only place
+    -- A BYTE COPY of libs/LibKa0s/Slash.lua's `lib.DISABLED_LINE_FORMAT` (:94), and the only place
     -- this addon may spell the refusal line (slash-commands-§7). It is a copy because this is the
     -- branch where the library is absent and there is nothing to ask; it is pinned to the live
     -- library's bytes by tests/test_libka0s.lua through Kit.assertLibraryConstant, so a library-side
@@ -192,6 +205,11 @@ if not lib then
         BuildListLines  = function() return { CLI_MISSING } end,
         SetRowAnnotator = function() end,
         Text            = function(_, key) return key end,
+        -- Slash minor 17's profile pair. With the library absent there is no store adapter to
+        -- trust, so both take options-ui-§1's route (b): the library-absent line for
+        -- `/wg profile`, and no switch.
+        CliProfile      = function() profileAbsent() end,
+        ProfileSwitch   = function() profileAbsent(); return false end,
     }
     NS.SlashCommands = Sl
 else
@@ -222,6 +240,12 @@ local function parseValue(row, text)
     return v, err
 end
 
+-- lib.LIVE_VERBS, copied rather than appended to: it is the library's table, shared by every
+-- addon that loads this major.
+local liveVerbs = {}
+for i, verb in ipairs(lib.LIVE_VERBS) do liveVerbs[i] = verb end
+liveVerbs[#liveVerbs + 1] = "profile"
+
 Sl = lib:New({
     slash        = "/wg",
     slashAliases = { "/whatgroup" },
@@ -235,6 +259,12 @@ Sl = lib:New({
     -- Required alongside `isEnabled`, and it is the same string core/LauncherSetup.lua gives the
     -- LDB object as `label`. One brand spelling per addon, not a second one invented for a message.
     brandName = "Ka0s WhatGroup",
+    -- The library's reserved list plus `profile` (see the gate note above).
+    liveVerbs = liveVerbs,
+
+    -- The profile store CliProfile lists and switches: this addon's AceDB. A function, asked at
+    -- call time, because this file runs at load and the db is built later, in OnInitialize.
+    profiles = function() return WhatGroup.db end,
 
     print   = function(line) NS.Print(line) end,
     -- The TOC first, then this addon's in-code constant, through the one seam that knows both

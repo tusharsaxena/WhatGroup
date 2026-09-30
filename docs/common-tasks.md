@@ -185,7 +185,7 @@ cp -r ../LibKa0s/testkit/. tests/_kit/
 - **Run the vendor gate afterwards** — all four diffs in [testing.md](./testing.md) — because nothing else can see a stale copy: the library's suite passes against the library and this addon's passes against a stale copy that still works, so both repos stay green while they diverge (anti-patterns #45).
 - **Move the `CLAUDE.md` provenance line in the same commit**, so "which LibKa0s does this ship?" stays answerable without grepping a minor constant out of every vendored library file.
 
-After either refresh, run the [Lib-refresh smoke](./smoke-tests.md#8-lib-refresh-smoke--2-min) section — and after a LibKa0s one, smoke sections 9 and 11 as well.
+After either refresh, run the `libs/` refresh row of [smoke-tests.md → Before you start](./smoke-tests.md#before-you-start) — and after a LibKa0s one, its re-vendor row as well (the post-adoption panel, reset-verb and window-position checks, the library-absent DEGRADED checks and the shared-art checks).
 
 ## Bump the Interface version
 
@@ -201,7 +201,7 @@ When a major WoW patch ships, the `## Interface:` line in `WhatGroup.toc` moves 
 
 **Move the README `[wow]` badge in the same change** (documentation-§1 / toc-file-§3). The static `WoW-<Expansion>_<X.Y.Z>-purple` badge and `## Interface:` MUST show the same patch and travel together — it renders fixed text, so it goes stale silently if deferred to a follow-up.
 
-After bumping, run the [Patch-day smoke](./smoke-tests.md#7-patch-day-smoke--5-min) section. If a Blizzard API broke (e.g. `C_LFGList.GetActivityInfoTable` fields renamed), [data-flow.md → Captured info](./data-flow.md#captured-info) is the table that lists every field WhatGroup reads.
+After bumping, run the `## Interface:` bump row of [smoke-tests.md → Before you start](./smoke-tests.md#before-you-start). If a Blizzard API broke (e.g. `C_LFGList.GetActivityInfoTable` fields renamed), [data-flow.md → Captured info](./data-flow.md#captured-info) is the table that lists every field WhatGroup reads.
 
 ## Bump the addon version
 

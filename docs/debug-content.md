@@ -4,7 +4,8 @@ The on-screen debug console is **LibKa0s-DebugLog-1.0**, wired by `core/DebugLog
 descriptor. The window, the line format, the buffer, the scrollbar and line counter, the copy and
 clear controls, the enable seam and the diagnostics report's frame are all the library's, and the
 library documents them once: LibKa0s `docs/api/DebugLog/` (major `LibKa0s-DebugLog-1.0`, minor 14 with
-its `DebugLogDiagnostics.lua` secondary file at the vendored v1.60.0, documented as version 14.1). This
+its `DebugLogDiagnostics.lua` secondary file since v1.60.0, unchanged in the vendored v1.63.0,
+documented as version 14.1). This
 page does not restate any of it.
 
 What this page holds is the part only WhatGroup knows: what the descriptor hands the library, the
@@ -99,6 +100,9 @@ Each console line carries its tag in brackets; the tag is the first argument at 
     N is the rows whose stored value changed.
 
   A bulk act that ends in an error still logs its one line, with ` (stopped by an error)` appended.
+- **Profile** — `[Profile] switched to '<name>'`, a profile switch, logged once by
+  `WhatGroup:OnProfileChanged` in `core/WhatGroup.lua`. A switch rewrites no row through the seam, so
+  it carries no `[Set]` line (debug-logging-§10, [profiles.md](./profiles.md)).
 - **Library lines through this addon's sink** — `Cfg` (`LibKa0s-Options-1.0`: the settings category
   parked in combat, opened, or refused in combat) and `Launcher` (`LibKa0s-Launcher-1.0`), both
   reaching the console through the `debug` forwarders `settings/OptionsSetup.lua` and
@@ -177,5 +181,5 @@ copying no formatter.
 
 The diagnostics report's cases are listed in [debug.md](./debug.md#where-else-this-is-pinned).
 
-The in-game scrollbar and counter checks are [smoke-tests.md](./smoke-tests.md) rows 2.8b-i and
-2.8b-ii (the counter pinning at 3000).
+The in-game scrollbar and counter checks are [smoke-tests.md](./smoke-tests.md) DIAG-4 and DIAG-5
+(the counter pinning at 3000).

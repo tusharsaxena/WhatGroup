@@ -21,6 +21,15 @@ libs\AceConsole-3.0\AceConsole-3.0.lua
 libs\AceTimer-3.0\AceTimer-3.0.lua
 libs\AceDB-3.0\AceDB-3.0.lua
 libs\AceGUI-3.0\AceGUI-3.0.xml
+# The Profiles page (settings\Profiles.lua, options-ui-§3): AceConfigDialog draws AceDBOptions'
+# table into the page. AceConfig-3.0.xml sits AFTER AceGUI, and that is load-bearing:
+# AceConfigDialog-3.0.lua:7 resolves AceGUI-3.0 with a non-silent LibStub at file load, so moving
+# this line above AceGUI-3.0.xml raises at load (unless another addon loaded AceGUI first). Its
+# AceConfigRegistry also resolves CallbackHandler-1.0 at load, which sits above. The silent
+# LibStub(..., true) lookups in settings\Profiles.lua at PLAYER_LOGIN do not change that.
+# AceDBOptions-3.0.lua resolves nothing at load beyond LibStub, so its slot is conventional.
+libs\AceConfig-3.0\AceConfig-3.0.xml
+libs\AceDBOptions-3.0\AceDBOptions-3.0.lua
 libs\LibSharedMedia-3.0\lib.xml
 # The launcher's two libraries (launcher-§1). LibKa0s-Launcher-1.0 resolves both with
 # LibStub(..., true) at Register time rather than at load, so this position is conventional --
@@ -49,8 +58,8 @@ core\Compat.lua
 core\EnvSetup.lua
 core\Database.lua
 core\WhatGroup.lua
-# After core\WhatGroup.lua, which assigns NS.FONT_MONO at load (core/WhatGroup.lua:182). The
-# LibKa0s-DebugLog :New here runs at file scope (core/DebugLogSetup.lua:120) and the library
+# After core\WhatGroup.lua, which assigns NS.FONT_MONO at load (core/WhatGroup.lua:200). The
+# LibKa0s-DebugLog :New here runs at file scope (core/DebugLogSetup.lua:136) and the library
 # validates `font` as a string, so above that line the console is built from nil. Load-bearing.
 core\DebugLogSetup.lua
 # The launcher (launcher-§1): one LibDataBroker object, the minimap button and the broker row.
@@ -77,18 +86,22 @@ modules\Frame.lua
 modules\Diagnostics.lua
 
 # Settings (conventional WITHIN the group apart from the three annotated lines; the group as a whole
-# must follow # Core, because settings\Slash.lua:122 builds CLI_MISSING from NS.LIBKA0S_MISSING at
+# must follow # Core, because settings\Slash.lua:132 builds CLI_MISSING from NS.LIBKA0S_MISSING at
 # file scope and core\CoreSetup.lua:34 publishes it)
 # Directly above settings\Schema.lua: this file publishes Settings.SchemaLib (LibKa0s-Schema-1.0,
 # or the host's degradation stub), and Schema.lua calls its :New at file scope
-# (settings/Schema.lua:407). Above it that member does not exist yet. Load-bearing.
+# (settings/Schema.lua:408). Above it that member does not exist yet. Load-bearing.
 settings\SchemaSetup.lua
 # Before settings\Panel.lua: this file creates Settings.Schema and its runtime NS.SchemaRuntime,
 # which Panel splices its master rows into at file scope (settings/Panel.lua:301). Load-bearing.
 settings\Schema.lua
 # Before settings\Panel.lua: this file publishes the LibKa0s-Options instance as Settings.Helpers
-# (settings/OptionsSetup.lua:303), and Panel calls Helpers.MasterControls at file scope
+# (settings/OptionsSetup.lua:324), and Panel calls Helpers.MasterControls at file scope
 # (settings/Panel.lua:207). Above it that member does not exist yet. Load-bearing.
 settings\OptionsSetup.lua
 settings\Panel.lua
 settings\Slash.lua
+# The Profiles page. LAST, so its RegisterOptionsPage call queues behind General's and the page is
+# the last subcategory in the tree (options-ui-§3). Its builder and renderer run at PLAYER_LOGIN
+# and on first show; at load it only registers the page.
+settings\Profiles.lua
