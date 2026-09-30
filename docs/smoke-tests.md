@@ -25,7 +25,7 @@ number out of use rather than handing it to a new one.
 | TELE-1 – TELE-6 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker |
 | LFG-1 – LFG-4 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving |
 | LAUNCH-1 – LAUNCH-13 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays |
-| DIAG-1 – DIAG-30 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link |
+| DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
 | LOC-1 – LOC-6 | [Non-English client](#non-english-client) | A deDE or frFR client, and the `IsSpellKnown` readers |
 
@@ -41,7 +41,7 @@ number out of use rather than handing it to a new one.
   | A non-trivial commit | The theme the change touches, plus INSTALL-3 and INSTALL-4 when it touches hooks, the popup, the panel or the StaticPopup table |
   | An `## Interface:` bump | INSTALL-1 to INSTALL-5, COMBAT-1, COMBAT-2, POPUP-1, POPUP-3 to POPUP-5, TELE-1 to TELE-4, TELE-6, COMBAT-6 to COMBAT-10, COMBAT-12, LFG-1 and LOC-5. If a Blizzard API broke, [data-flow.md → Captured info](./data-flow.md#captured-info) lists every field the capture reads |
   | A `libs/` refresh | INSTALL-2, PANEL-1, PANEL-2, POPUP-1. If an Ace3 module was added or removed, match `WhatGroup.toc`'s lib block to the folders (AceGUI's `.xml` loads last among Ace3, `LibKa0s.xml` after it) |
-  | A LibKa0s re-vendor, or a change to a seam file | The row above, plus PANEL-4, PANEL-5, PANEL-14 to PANEL-19, SLASH-9 to SLASH-11, POPUP-6 to POPUP-8, DIAG-11 to DIAG-16, DIAG-19, DIAG-25 to DIAG-30 and all of DEGRADED |
+  | A LibKa0s re-vendor, or a change to a seam file | The row above, plus PANEL-4, PANEL-5, PANEL-14 to PANEL-19, SLASH-9 to SLASH-11, POPUP-6 to POPUP-8, DIAG-11 to DIAG-16, DIAG-19, DIAG-25 to DIAG-33 and all of DEGRADED |
   | A release | The release pass below; the whole suite for a release carrying feature work |
 
 - **Release pass.** INSTALL-3, INSTALL-4, COMBAT-2, SLASH-1, SLASH-2, SLASH-9, SLASH-11, PANEL-5,
@@ -632,6 +632,20 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   `logging enabled` line. Flip the toggle between `ON` and `OFF` → the gap after it holds for either
   word. Drag the grip in as far as it goes (DIAG-26) → the link still fits beside the toggle and the
   title. Result:
+- **DIAG-31. A slash refusal shows in the console.** `/wg debug on`, `/wg debug`, then `/wg nope` →
+  chat says the command is unknown, as before, and the console gains one line,
+  `[Cmd] refused nope: unknown verb`. `/wg disable`, then `/wg show` → chat prints the disabled
+  line, and the console gains one `[Cmd] refused show: disabled` line and no second refusal line.
+  `/wg enable` afterwards. Result:
+- **DIAG-32. A stand-down and a stand-up show in the console, once each.** `/wg debug on`,
+  `/wg debug`, then `/wg disable` → the console gains
+  `[Lifecycle] stood down: added disabled (holds: disabled)`, before the teardown's own lines, and no
+  `[State]` line. `/wg enable` → one `[Lifecycle] stood up: released disabled (holds: none)` line.
+  A second `/wg enable` writes no `[Lifecycle]` line. Result:
+- **DIAG-33. The launcher's registration lands when logging is turned on.** `/reload`, then
+  `/wg debug on`, `/wg debug` → after `[Debug] logging enabled` and the `[Init]` line, the console
+  holds one `[Launcher] registered` line. `/wg debug off`, `/wg debug on` → no second
+  `[Launcher] registered` line. Result:
 
 ## Library-absent install
 
@@ -769,6 +783,7 @@ then remove its row here.
 | DIAG-19 | New | Passed on 2026-09-26 as "Ungated, flag untouched"; corrected on 2026-09-30: a run now turns logging on for the session (standard v2.71.0, DebugLogDiagnostics 2, DL-WG-03) |
 | DIAG-25 – DIAG-29 | New | New with LibKa0s v1.64.0 (the resizable console and copy window) |
 | DIAG-30 | New | New on 2026-09-30 with the console's Diagnostics link (LibKa0s v1.64.0, DebugLog 16 and up, DL-WG-03) |
+| DIAG-31 – DIAG-33 | New | New on 2026-10-01 with the library's own debug lines (LibKa0s v1.65.0: Slash 18, Lifecycle 3, Launcher 5, DebugLogGates 1; DG-WG-01) |
 | DEGRADED-1 – DEGRADED-5 | § 9, 12 closing, 2.19 | No result recorded; corrected: the other Ka0s addons disabled, DEGRADED-1's `/wg list`, DEGRADED-2's launcher notice, DEGRADED-4's `/wg profile` lines, DEGRADED-5's console |
 | LOC-1 – LOC-4, LOC-6 | § 12b steps 1 – 4 and 6 | Never run: no non-English client was available when the section landed |
 | LOC-5 | § 7a, and § 12b step 5 | Never run; issue #15 waits on the readings |
