@@ -25,7 +25,7 @@ number out of use rather than handing it to a new one.
 | TELE-1 – TELE-6 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker |
 | LFG-1 – LFG-4 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving |
 | LAUNCH-1 – LAUNCH-13 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays |
-| DIAG-1 – DIAG-24 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` |
+| DIAG-1 – DIAG-29 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics`, resizing the console and its copy window |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
 | LOC-1 – LOC-6 | [Non-English client](#non-english-client) | A deDE or frFR client, and the `IsSpellKnown` readers |
 
@@ -41,7 +41,7 @@ number out of use rather than handing it to a new one.
   | A non-trivial commit | The theme the change touches, plus INSTALL-3 and INSTALL-4 when it touches hooks, the popup, the panel or the StaticPopup table |
   | An `## Interface:` bump | INSTALL-1 to INSTALL-5, COMBAT-1, COMBAT-2, POPUP-1, POPUP-3 to POPUP-5, TELE-1 to TELE-4, TELE-6, COMBAT-6 to COMBAT-10, COMBAT-12, LFG-1 and LOC-5. If a Blizzard API broke, [data-flow.md → Captured info](./data-flow.md#captured-info) lists every field the capture reads |
   | A `libs/` refresh | INSTALL-2, PANEL-1, PANEL-2, POPUP-1. If an Ace3 module was added or removed, match `WhatGroup.toc`'s lib block to the folders (AceGUI's `.xml` loads last among Ace3, `LibKa0s.xml` after it) |
-  | A LibKa0s re-vendor, or a change to a seam file | The row above, plus PANEL-4, PANEL-5, PANEL-14 to PANEL-19, SLASH-9 to SLASH-11, POPUP-6 to POPUP-8, DIAG-11 to DIAG-16 and all of DEGRADED |
+  | A LibKa0s re-vendor, or a change to a seam file | The row above, plus PANEL-4, PANEL-5, PANEL-14 to PANEL-19, SLASH-9 to SLASH-11, POPUP-6 to POPUP-8, DIAG-11 to DIAG-16, DIAG-25 to DIAG-29 and all of DEGRADED |
   | A release | The release pass below; the whole suite for a release carrying feature work |
 
 - **Release pass.** INSTALL-3, INSTALL-4, COMBAT-2, SLASH-1, SLASH-2, SLASH-9, SLASH-11, PANEL-5,
@@ -507,7 +507,7 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 ## Debug console and diagnostics
 
 - **DIAG-1. `/wg debug` opens and closes the console.** → a window titled `Ka0s WhatGroup — Debug`,
-  700×344, monospace. Again → it closes. The logging state is untouched: the title-bar toggle still
+  700×344 by default, monospace. Again → it closes. The logging state is untouched: the title-bar toggle still
   reads `Debug: OFF`. Result:
 - **DIAG-2. `/wg debug on` and `off`.** → each prints `[WG] debug logging ON` / `OFF` with the word
   colored (ON green, OFF red, as on the title-bar toggle) and appends a `[Debug] logging enabled` /
@@ -597,6 +597,25 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **DIAG-24. The README steps.** `/reload`, close the console, and follow the README's
   `## Reporting a bug` word for word → every step works as written, and the one Copy holds the
   trace and the whole report. Result:
+- **DIAG-25. The console resizes from its grip.** `/wg debug` → a small size grip in the
+  bottom-right corner, clear of the `N / 3000 lines` counter. Drag it out on both axes → the window
+  follows the pointer; the log reflows to the new width, the scrollbar runs the full new height with
+  its thumb resynced, the counter stays bottom-right, and the title-bar controls stay placed. The
+  buffer and the scroll position are kept. Result:
+- **DIAG-26. The console's minimum holds.** Drag the grip as far up and left as it goes → it stops
+  where the title and every title-bar control still fit side by side without overlap, with the
+  status bar and a few log lines showing. Result:
+- **DIAG-27. The size lasts the session, and only the session.** Resize the console, close it,
+  `/wg debug` → it reopens at the size you left it. `/reload`, `/wg debug` → back at 700×344, and
+  nothing in `WhatGroupDB` holds a size. Result:
+- **DIAG-28. The copy window resizes too.** Click the copy control, then drag the copy window's
+  bottom-right grip → it resizes on both axes and the text re-wraps to the new width; it will not
+  shrink below 240×140. The scroll bar's down button sits above the grip and takes a click on its
+  whole face. Close it and copy again → the same size; after a `/reload` → its default size.
+  Result:
+- **DIAG-29. Another addon's console is its own.** Resize this console, then open another Ka0s
+  addon's debug console → it opens at its own default size; resize it → this one does not move.
+  Result:
 
 ## Library-absent install
 
@@ -730,6 +749,7 @@ then remove its row here.
 | LAUNCH-11 | § 12c.7 | No result recorded; the profile switch is now `/wg profile` |
 | DIAG-1 – DIAG-4, DIAG-6 – DIAG-10, DIAG-12 – DIAG-16 | § 2.8 – 2.8b-i, 2.8c, 2.8d, 2.19, 3.6, 12.1 – 12.3, 12.5, 12.6 | No result recorded; DIAG-6 now also logs the verbs' `[Set]` lines |
 | DIAG-11 | § 2.18, 11.10 | No result recorded; § 2.18's remembered console position corrected |
+| DIAG-25 – DIAG-29 | New | New with LibKa0s v1.64.0 (the resizable console and copy window) |
 | DEGRADED-1 – DEGRADED-5 | § 9, 12 closing, 2.19 | No result recorded; corrected: the other Ka0s addons disabled, DEGRADED-1's `/wg list`, DEGRADED-2's launcher notice, DEGRADED-4's `/wg profile` lines, DEGRADED-5's console |
 | LOC-1 – LOC-4, LOC-6 | § 12b steps 1 – 4 and 6 | Never run: no non-English client was available when the section landed |
 | LOC-5 | § 7a, and § 12b step 5 | Never run; issue #15 waits on the readings |

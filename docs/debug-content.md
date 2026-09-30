@@ -3,9 +3,8 @@
 The on-screen debug console is **LibKa0s-DebugLog-1.0**, wired by `core/DebugLogSetup.lua` from a
 descriptor. The window, the line format, the buffer, the scrollbar and line counter, the copy and
 clear controls, the enable seam and the diagnostics report's frame are all the library's, and the
-library documents them once: LibKa0s `docs/api/DebugLog/` (major `LibKa0s-DebugLog-1.0`, minor 14 with
-its `DebugLogDiagnostics.lua` secondary file since v1.60.0, unchanged in the vendored v1.63.0,
-documented as version 14.1). This
+library documents them once: LibKa0s `docs/api/DebugLog/` (major `LibKa0s-DebugLog-1.0`, minor 15 with
+its `DebugLogDiagnostics.lua` secondary file, as vendored from v1.64.0, documented as version 15.1). This
 page does not restate any of it.
 
 What this page holds is the part only WhatGroup knows: what the descriptor hands the library, the
