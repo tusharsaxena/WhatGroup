@@ -13,9 +13,9 @@ WhatGroup has two debug surfaces, and both write into the same window:
   console carries, what writes it and when, and which repeating paths stay quiet on purpose.
 
 The console and the report frame are the library's, and their contract lives in LibKa0s's
-[`docs/api/DebugLog/version-18.2.1-docs.md`](https://github.com/tusharsaxena/LibKa0s/blob/master/docs/api/DebugLog/version-18.2.1-docs.md)
-(DebugLog minor 18 with its `DebugLogDiagnostics.lua` secondary file at minor 2 and its
-`DebugLogGates.lua` secondary file at minor 1, as vendored from LibKa0s v1.65.0: the resizable
+[`docs/api/DebugLog/version-19.2.1-docs.md`](https://github.com/tusharsaxena/LibKa0s/blob/master/docs/api/DebugLog/version-19.2.1-docs.md)
+(DebugLog minor 19 with its `DebugLogDiagnostics.lua` secondary file at minor 2 and its
+`DebugLogGates.lua` secondary file at minor 1, as vendored from LibKa0s v1.66.0: the resizable
 console, the title bar's Diagnostics link, a report run that turns logging on for the session, and
 the change gates and at-enable queue).
 This page covers only what WhatGroup adds on top.

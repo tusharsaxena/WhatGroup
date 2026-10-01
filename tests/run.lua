@@ -187,5 +187,8 @@ Kit.run{
         -- The diagnostics-dump contract (debug-logging-§14), new in kit revision 27, runs against
         -- this addon's own dispatcher through Kit.diagnostics, set above.
         { name = "test_diagnostics_contract", dir = "tests/_kit/" },
+        -- The sighted complexity shadow (automated-tests-§3), new in kit revision 35: pins the
+        -- sanitizer the runner's complexity suite measures through, and the parity check.
+        { name = "test_lizard_sighted", dir = "tests/_kit/" },
     },
 }
