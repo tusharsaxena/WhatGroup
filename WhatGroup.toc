@@ -50,7 +50,7 @@ core\MediaSetup.lua
 # NS.Windows and NS.FormatDuration; reads nothing at load, so this slot is conventional.
 core\Util.lua
 # Before core\WhatGroup.lua: it calls NS.Compat.AddOnLinkType() at file scope
-# (core/WhatGroup.lua:107) to choose the chat-link route. Load-bearing.
+# (core/WhatGroup.lua:108) to choose the chat-link route. Load-bearing.
 core\Compat.lua
 # The LibKa0s-Env seam. After Compat, and before settings\Panel.lua and settings\Slash.lua,
 # the two files that read the TOC. Nothing here resolves at load beyond the LibStub lookup and
@@ -58,8 +58,8 @@ core\Compat.lua
 core\EnvSetup.lua
 core\Database.lua
 core\WhatGroup.lua
-# After core\WhatGroup.lua, which assigns NS.FONT_MONO at load (core/WhatGroup.lua:219). The
-# LibKa0s-DebugLog :New here runs at file scope (core/DebugLogSetup.lua:136) and the library
+# After core\WhatGroup.lua, which assigns NS.FONT_MONO at load (core/WhatGroup.lua:220). The
+# LibKa0s-DebugLog :New here runs at file scope (core/DebugLogSetup.lua:142) and the library
 # validates `font` as a string, so above that line the console is built from nil. Load-bearing.
 core\DebugLogSetup.lua
 # The launcher (launcher-§1): one LibDataBroker object, the minimap button and the broker row.
@@ -90,7 +90,7 @@ modules\Diagnostics.lua
 # file scope and core\CoreSetup.lua:34 publishes it)
 # Directly above settings\Schema.lua: this file publishes Settings.SchemaLib (LibKa0s-Schema-1.0,
 # or the host's degradation stub), and Schema.lua calls its :New at file scope
-# (settings/Schema.lua:408). Above it that member does not exist yet. Load-bearing.
+# (settings/Schema.lua:418). Above it that member does not exist yet. Load-bearing.
 settings\SchemaSetup.lua
 # Before settings\Panel.lua: this file creates Settings.Schema and its runtime NS.SchemaRuntime,
 # which Panel splices its master rows into at file scope (settings/Panel.lua:308). Load-bearing.
