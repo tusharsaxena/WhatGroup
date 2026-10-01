@@ -88,7 +88,7 @@ end)
 -- ---------------------------------------------------------------------------
 
 test("parity: the DebugLog stub carries the whole live surface", function()
-    -- The live half is the LibKa0s-DebugLog-1.0 instance core/DebugLogSetup.lua:120 builds, which
+    -- The live half is the LibKa0s-DebugLog-1.0 instance core/DebugLogSetup.lua:142 builds, which
     -- tests/run.lua registers under that name. Read off the built instance rather than off the
     -- library file, which is the same list as
     --   grep -nE "^function log[.:]|^ *log\.[A-Za-z]" libs/LibKa0s/DebugLog.lua
@@ -123,7 +123,7 @@ end)
 -- ---------------------------------------------------------------------------
 
 test("parity: the Options helpers stub carries the whole live surface", function()
-    -- The live half is the LibKa0s-Options-1.0 instance settings/OptionsSetup.lua:180 builds and
+    -- The live half is the LibKa0s-Options-1.0 instance settings/OptionsSetup.lua:187 builds and
     -- publishes as Settings.Helpers with the host's data seams copied onto it, registered under
     -- that name by tests/run.lua.
     --   grep -n "Helpers\.[A-Za-z_]" core modules settings   names the addon's call sites.
