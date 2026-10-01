@@ -284,6 +284,27 @@ test("options: Settings.Helpers IS the library instance, decorated in place", fu
     assertEqual(seen, onFirstTab, "once per row of the tab the page opens on")
 end)
 
+test("options: the library is told the FOLDER name, and the help-mark art is on disk", function()
+    -- LibKa0s#42. The Options descriptor's `addonName` is the route to the library's own `info`
+    -- help-mark art (Media.Icon(addonName, "info")); without it every IdList help mark draws the
+    -- client's blue disc. It must be the first vararg -- the folder -- and never the "Ka0s WhatGroup"
+    -- brand, which builds a well-formed path to a file that does not exist. Latent here: no IdList
+    -- in this addon carries help yet, so the first help line anyone adds is what this protects.
+    -- Asserted against the SOURCE because the descriptor is not published back.
+    -- red under: dropping the key, or putting `_` back as the first vararg.
+    local src = readFile("settings/OptionsSetup.lua")
+    assertTrue(src ~= nil, "settings/OptionsSetup.lua is readable")
+    local body = src:gsub("%-%-[^\r\n]*", "")
+    assertTrue(body:match("local%s+addonName%s*,%s*NS%s*=%s*%.%.%.") ~= nil,
+        "the first vararg is thrown away, so there is no folder name to pass")
+    assertTrue(body:match("lib:New%s*%(%s*{.-addonName%s*=%s*addonName%s*,.-}%s*%)") ~= nil,
+        "the Options descriptor does not pass addonName, so help marks draw the fallback glyph")
+    -- The one residual the library's loaded-addon guard cannot catch is a path with no file behind it.
+    local art = io.open("libs/LibKa0s/media/icons/info.tga", "rb")
+    assertTrue(art ~= nil, "libs/LibKa0s/media/icons/info.tga is missing from the vendored payload")
+    art:close()
+end)
+
 test("options: the host's data seams survived the move onto the instance", function()
     local NS = T.enableAddon()
     local H = NS.addon.Settings.Helpers

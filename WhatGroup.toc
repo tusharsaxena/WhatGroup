@@ -96,7 +96,7 @@ settings\SchemaSetup.lua
 # which Panel splices its master rows into at file scope (settings/Panel.lua:308). Load-bearing.
 settings\Schema.lua
 # Before settings\Panel.lua: this file publishes the LibKa0s-Options instance as Settings.Helpers
-# (settings/OptionsSetup.lua:330), and Panel calls Helpers.MasterControls at file scope
+# (settings/OptionsSetup.lua:333), and Panel calls Helpers.MasterControls at file scope
 # (settings/Panel.lua:214). Above it that member does not exist yet. Load-bearing.
 settings\OptionsSetup.lua
 settings\Panel.lua

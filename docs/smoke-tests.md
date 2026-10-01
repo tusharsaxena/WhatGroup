@@ -16,7 +16,7 @@ number out of use rather than handing it to a new one.
 |---|---|---|
 | INSTALL-1 – INSTALL-5 | [Install](#install) | Cold load, `/reload`, the GameMenu Logout taint check, patch day |
 | SLASH-1 – SLASH-12 | [Slash commands](#slash-commands) | Help, alias, the schema CLI, reset verbs, `show` with nothing captured |
-| PANEL-1 – PANEL-19 | [Settings panel](#settings-panel) | Landing page, the General tab strip, widgets, Defaults, the frame rows, raw-key trap, the pooled strip |
+| PANEL-1 – PANEL-20 | [Settings panel](#settings-panel) | Landing page, the General tab strip, widgets, Defaults, the frame rows, raw-key trap, the pooled strip, the folder name on the Options descriptor |
 | PROFILE-1 – PROFILE-14 | [Profiles](#profiles) | The Profiles page, `/wg profile`, persistence, what a switch leaves alone, the page in combat |
 | STATE-1 – STATE-8 | [Enable and disable](#enable-and-disable) | The stand-down, refusals while disabled, the way back, the chat-link callback |
 | COMBAT-1 – COMBAT-12 | [Combat](#combat) | Reset popup and Settings registration in combat, Close and ESC in combat, the visibility gate on combat edges |
@@ -179,6 +179,10 @@ number out of use rather than handing it to a new one.
 - **PANEL-19. Pooled tab strip: a fresh build.** **ESC**, `/wg config` again, walk the strip once
   more → PANEL-15 to PANEL-18 hold on the second build, where a released frame can come back
   dressed for another tab. Result:
+- **PANEL-20. The Options descriptor names the folder.** `/reload`, `/wg debug on`, then `/wg config`
+  → no Lua error on load or on open, and the landing page, every **General** tab and the
+  **Profiles** page render exactly as before. The console shows no `[Cfg] help art:` line: no list
+  in this addon carries help, so the library never asks for the art (LibKa0s#42, CA-WG-NM). Result:
 
 ## Profiles
 
@@ -785,6 +789,7 @@ then remove its row here.
 | PANEL-1 – PANEL-13 | § 3.1 – 3.7, 3.9 step 4, 11.1 – 11.4 | No result recorded; PANEL-2's Master controls order and PANEL-10's in-combat step corrected; PANEL-7's and PANEL-8's default height corrected to 280 (WhatGroup#1) |
 | PANEL-14 | § 10 | No result recorded; `/wg profile` added |
 | PANEL-15 – PANEL-19 | § 12a.1 – 12a.5 | Never run since the pooled tab strip arrived with LibKa0s v1.27.0 |
+| PANEL-20 | New | New on 2026-10-02: the Options descriptor passes `addonName` (LibKa0s v1.67.0, Options 28, OptionsIdList 3; CA-WG-NM) |
 | PROFILE-1 – PROFILE-14 | New; PROFILE-10 also carries § 6 | New in this rework (the `profile` verb and the Profiles page) |
 | STATE-1, STATE-2, STATE-4, STATE-7, STATE-8 | § 5.4, 5.5 steps 1 – 2 and 4, 5.5a | No result recorded |
 | STATE-3, STATE-5 | § 5.5 steps 3 and 6 | No result recorded; corrected: `/wg help` prints the refusal line under its header while disabled |

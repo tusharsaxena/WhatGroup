@@ -10,7 +10,7 @@
 -- TOC slot: after settings/Schema.lua, whose schema runtime the descriptor binds, and before
 -- settings/Panel.lua, which registers its page at file load (options-ui-§1).
 
-local _, NS = ...
+local addonName, NS = ...
 local WhatGroup = NS.addon
 local Settings  = WhatGroup.Settings
 
@@ -190,6 +190,9 @@ local O = lib:New({
     -- to this addon and any saved layout keyed on it survives. It is the one descriptor field the
     -- library validates, and it raises rather than defaulting.
     mainPanelName = "WhatGroupParentPanel",
+    -- The FOLDER (first vararg), not the brand: the library builds the IdList help-mark art path from
+    -- it (Media.Icon(addonName, "info")) and checks it against the client's loaded-addon list.
+    addonName = addonName,
 
     print = function(line) NS.Print(line) end,
     debug = function(tag, fmt, ...) NS.Debug(tag, fmt, ...) end,
