@@ -837,7 +837,9 @@ local function buildFrame()
     local lblInst,  valInst  = MakeLabel(content, lblGroup,  yGap, L["Instance:"],  "—")
     local lblType,  valType  = MakeLabel(content, lblInst,   yGap, L["Type:"],      "—")
     local lblLead,  valLead  = MakeLabel(content, lblType,   yGap, L["Leader:"],    "—")
-    local lblStyle, valStyle = MakeLabel(content, lblLead,   yGap, L["Playstyle:"], "—")
+    -- The signed-up role (WhatGroup#1). Always drawn: notify.showRole gates the chat row only.
+    local lblRole,  valRole  = MakeLabel(content, lblLead,   yGap, L["Role:"],      "—")
+    local lblStyle, valStyle = MakeLabel(content, lblRole,   yGap, L["Playstyle:"], "—")
 
     local lblPort = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     lblPort:SetPoint("TOPLEFT", lblStyle, "BOTTOMLEFT", 0, yGap)
@@ -923,6 +925,7 @@ local function buildFrame()
         instance     = valInst,
         type         = valType,
         leader       = valLead,
+        role         = valRole,
         playstyle    = valStyle,
         teleportBtn   = teleportBtn,
         teleportIcon  = teleportIcon,
@@ -982,6 +985,7 @@ local function PopulateFields()
         fields.instance:SetText(noData)
         fields.type:SetText(noData)
         fields.leader:SetText(noData)
+        fields.role:SetText("|cff888888—|r")
         fields.playstyle:SetText("|cff888888—|r")
         -- Through the configure, never a bare Hide: the button is a SecureActionButtonTemplate, and
         -- a popup soft-hidden at alpha 0 is still shown, so a reopen in combat reaches this branch
@@ -1002,6 +1006,11 @@ local function PopulateFields()
     fields.type:SetText(typeStr)
 
     fields.leader:SetText(info.leaderName)
+
+    -- Assigned, then the application's, then the offered roles (Labels.GetRoleLabel); "" when none
+    -- is known, which the popup draws as the dim em-dash, as it does an unknown playstyle.
+    local role = Labels.GetRoleLabel(info)
+    fields.role:SetText(role ~= "" and role or "|cff888888—|r")
 
     -- Through the sibling of the GetGroupTypeLabel call above, not open-coded: the helper already
     -- prefers the server-rendered playstyleString and falls back to the PLAYSTYLE enum lookup, and

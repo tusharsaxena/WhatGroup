@@ -38,11 +38,12 @@ None of these are persisted — capture state is recomputed from live LFG events
 Player clicks Apply
         │
         ▼
-hooksecurefunc on C_LFGList.ApplyToGroup ─► OnApplyToGroup(searchResultID)
+hooksecurefunc on C_LFGList.ApplyToGroup ─► OnApplyToGroup(searchResultID, tankOK, healerOK, damageOK)
                                           ├─ db.profile.enabled gate (early-return if false)
                                           ├─ CaptureGroupInfo(searchResultID)
                                           │    ├─ C_LFGList.GetSearchResultInfo
                                           │    └─ C_LFGList.GetActivityInfoTable (first activityID)
+                                          ├─ captured.appliedRoles = { tank, healer, damage }   offered roles
                                           └─ capturesByResult[searchResultID] = captured
         │
         ▼
@@ -59,12 +60,15 @@ LFG_LIST_APPLICATION_STATUS_UPDATED  status = "declined" / "declined_full" /
            its search-result id if "applied" never arrived)
         │
         ▼
-LFG_LIST_APPLICATION_STATUS_UPDATED  status = "invited"   no-op (waits for accept)
+LFG_LIST_APPLICATION_STATUS_UPDATED  status = "invited"   waits for accept
+        └─ pendingApplications[appID].role = ResolveSearchResultID(appID)'s role, when it has one
         │
         ▼
 LFG_LIST_APPLICATION_STATUS_UPDATED  status = "inviteaccepted"
-        ├─ fresh = CaptureGroupInfoFromApplication(appID)   re-fetch fresh from LFG API
-        ├─ WhatGroup.pendingInfo = fresh ?? pendingApplications[appID]
+        ├─ fresh = CaptureGroupInfoFromApplication(appID)   re-fetch fresh from LFG API (+ its role)
+        ├─ final = fresh ?? pendingApplications[appID]       (the mapID preference)
+        ├─ final.role = fresh.role ?? queued.role; final.appliedRoles ??= queued.appliedRoles
+        ├─ WhatGroup.pendingInfo = final
         ├─ notifiedFor = nil                       new pendingInfo → eligible to fire
         ├─ wipe(capturesByResult) + wipe(pendingApplications)
         └─ _TryFireJoinNotify("inviteaccepted")
@@ -109,6 +113,37 @@ It used to be a FIFO, on the reasoning that the LFG API fires `applied` in apply
 The join that actually exists is `C_LFGList.GetApplicationInfo(appID)`, whose first return is the search-result id the application was made against. So the capture is filed under the `searchResultID` the apply hook already has, and `applied` resolves its `appID` through that bridge to find it. Order stops mattering. `WhatGroup:ResolveSearchResultID(appID)` is the one implementation of the hop, shared with `CaptureGroupInfoFromApplication` (F-004).
 
 A capture that never receives an `applied` event is no longer displaced by later applies, so the decline and cancel statuses clear it explicitly; anything left after that is wiped on group-leave.
+
+## The signed-up role (WhatGroup#1)
+
+The Role row on the popup and in chat shows the role the player joined as, through
+`WhatGroup.Labels.GetRoleLabel(info)`, from the most authoritative source available:
+
+1. **Assigned.** `NS.Compat.AssignedRole()`, which wraps `UnitGroupRolesAssigned("player")` and answers
+   nil for `"NONE"` or a missing API. Read when the row is drawn, so it is the leader's current call.
+2. **The application's role.** `ResolveSearchResultID(appID)` returns it as its second value:
+   `C_LFGList.GetApplicationInfo`'s 5th multi-return (`id, appStatus, pendingStatus, appDuration,
+   role`) or `res.role` in the table shape. It is read at `invited` (stamped onto the paired capture)
+   and again at `inviteaccepted` (on the fresh capture); the fresh read wins only when it has a role.
+3. **The roles offered.** The apply hook's three flags, kept as `captured.appliedRoles = { tank,
+   healer, damage }` (plain booleans; a flag that is not a real `true` reads as not offered), shown
+   joined with `" / "`.
+
+Each token is shown as Blizzard's localized `TANK` / `HEALER` / `DAMAGER` with the tiny role icon
+(`NS.Compat.RoleIconMarkup`, `CreateAtlasMarkup` on `roleicon-tiny-tank` / `-healer` / `-dps`).
+Nothing known is `""`: the popup draws the dim em-dash and the chat row is omitted.
+
+**Secret-safe.** A client value is only ever passed to `type()` and `NS.SafeToString` before it is
+used: `NS.Compat.RoleToken(v)` keeps `v` only when it is a string whose safe rendering is one of
+the three tokens, so a secret value is never compared or used as a key.
+
+**Unverified position.** Blizzard does not document where the role sits in `GetApplicationInfo`'s
+returns; the 5th is current FrameXML usage. The assigned role and the offered roles cover a client
+where it moves, and `/wg diagnostics` prints `role=<5th return>` beside each client application so it
+can be checked in game.
+
+The apply hook's client signature is `C_LFGList.ApplyToGroup(searchResultID, tankOK, healerOK,
+damageOK, comment)`. The closure reads the first four; the applicant note is dropped.
 
 ## Why we re-capture at `inviteaccepted`
 
@@ -272,6 +307,8 @@ See [midnight-quirks.md](./midnight-quirks.md#hook-discipline) for the rules on 
 | `isHeroicRaid` | `actInfo.isHeroicRaidActivity` | `false` |
 | `categoryID` | `actInfo.categoryID` | `0` |
 | `mapID` | `actInfo.mapID` (the dungeon's instance map ID — stable across seasons; the key used by `WhatGroup.TeleportSpells`) | `nil` |
+| `appliedRoles` | the apply hook's `tankOK` / `healerOK` / `damageOK`, set by `OnApplyToGroup` rather than `CaptureGroupInfo` | absent on a capture the hook did not take (the `inviteaccepted` re-fetch carries it over from the queued capture) |
+| `role` | `GetApplicationInfo`'s role, set at `invited` and by `CaptureGroupInfoFromApplication` | absent until an application role is read |
 
 The activity-derived fields are only populated when `C_LFGList.GetActivityInfoTable(firstActivityID)` returns a non-nil table. If the activity table is missing the fields stay at their defaults — the popup and notification still render, just with placeholder values.
 

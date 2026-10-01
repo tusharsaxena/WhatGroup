@@ -24,10 +24,10 @@ exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "docs/revendor/", "_
 -- of them were not conventions at all: ten `local addonName, NS = ...` headers over a folder name
 -- the file never read, and five parameters carried into the two `hooksecurefunc` handlers in
 -- core/WhatGroup.lua and never used. All fifteen are fixed in the source rather than moved into a
--- narrower suppression. The NINE that remain are below -- eight `<code>/<variable>` entries across
--- three per-file stanzas, plus one `-- luacheck: ignore 542` on the single line in
--- core/WhatGroup.lua that earns it. tests/test_lintconfig.lua is what keeps the blanket from
--- re-entering.
+-- narrower suppression. The EIGHT that remain are below -- `<code>/<variable>` entries across
+-- three per-file stanzas. A ninth, the line-scoped `-- luacheck: ignore 542` on core/WhatGroup.lua's
+-- empty `invited` branch, went when that branch began stamping the application's role
+-- (WhatGroup#1). tests/test_lintconfig.lua is what keeps the blanket from re-entering.
 
 -- SavedVariables + the one global table the addon writes (lazily) to.
 globals = {
@@ -54,6 +54,9 @@ read_globals = {
   "GROUP_FINDER_GENERAL_PLAYSTYLE3", "GROUP_FINDER_GENERAL_PLAYSTYLE4",
   "Settings", "StaticPopup_Show",
   "GameTooltip", "YES", "NO",
+  -- The signed-up role (WhatGroup#1): read by core/Compat.lua (the two APIs) and by
+  -- core/WhatGroup.lua's Labels.GetRoleLabel (Blizzard's localized role names).
+  "UnitGroupRolesAssigned", "CreateAtlasMarkup", "TANK", "HEALER", "DAMAGER",
   "wipe", "tinsert",
 }
 

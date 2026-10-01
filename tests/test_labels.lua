@@ -271,3 +271,61 @@ test("teleport: Siege of Boralus offers the spellbook-verified spell first", fun
     assertEqual(sid, 445418, "an unknown-to-this-player row falls back to the verified candidate")
     assertFalse(known)
 end)
+
+-- ---------------------------------------------------------------------------
+-- GetRoleLabel (WhatGroup#1): assigned > application > offered
+-- ---------------------------------------------------------------------------
+
+test("labels: GetRoleLabel prefers the assigned role over the application role", function()
+    local NS, _, mock = T.bootAddon()
+    mock.assignedRole = "TANK"
+    local s = NS.addon.Labels.GetRoleLabel({ role = "HEALER" })
+    assertTrue(s:find("Tank", 1, true) ~= nil, "the assigned role is shown")
+    assertFalse(s:find("Healer", 1, true) ~= nil, "the application role is not")
+    assertTrue(s:find("roleicon-tiny-tank", 1, true) ~= nil, "with the tiny role icon")
+end)
+
+test("labels: GetRoleLabel falls back to the application role when none is assigned", function()
+    local NS, _, mock = T.bootAddon()
+    mock.assignedRole = "NONE"
+    local s = NS.addon.Labels.GetRoleLabel({ role = "HEALER",
+        appliedRoles = { tank = true, healer = true, damage = false } })
+    assertTrue(s:find("Healer", 1, true) ~= nil)
+    assertFalse(s:find("Tank", 1, true) ~= nil, "the application role beats the offered roles")
+    assertTrue(s:find("roleicon-tiny-healer", 1, true) ~= nil)
+end)
+
+test("labels: GetRoleLabel joins the offered roles when nothing else is known", function()
+    local NS = T.bootAddon()
+    local s = NS.addon.Labels.GetRoleLabel({
+        appliedRoles = { tank = true, healer = false, damage = true } })
+    assertTrue(s:find("Tank", 1, true) ~= nil)
+    assertTrue(s:find(" / ", 1, true) ~= nil, "two offered roles are joined with a slash")
+    assertTrue(s:find("Damage", 1, true) ~= nil)
+    assertTrue(s:find("roleicon-tiny-dps", 1, true) ~= nil)
+    assertFalse(s:find("Healer", 1, true) ~= nil)
+end)
+
+test("labels: GetRoleLabel answers the empty string when nothing is known", function()
+    local NS = T.bootAddon()
+    assertEqual(NS.addon.Labels.GetRoleLabel({}), "")
+    assertEqual(NS.addon.Labels.GetRoleLabel({
+        appliedRoles = { tank = false, healer = false, damage = false } }), "")
+end)
+
+test("labels: GetRoleLabel survives a client with no UnitGroupRolesAssigned", function()
+    local NS, _, mock = T.bootAddon()
+    mock.UnitGroupRolesAssigned = nil
+    local s = NS.addon.Labels.GetRoleLabel({ role = "DAMAGER" })
+    assertTrue(s:find("Damage", 1, true) ~= nil)
+end)
+
+test("labels: Compat.AssignedRole answers nil for NONE and the token otherwise", function()
+    local NS, _, mock = T.bootAddon()
+    mock.assignedRole = "NONE"
+    assertNil(NS.Compat.AssignedRole())
+    mock.assignedRole = "HEALER"
+    assertEqual(NS.Compat.AssignedRole(), "HEALER")
+    mock.assignedRole = 7
+    assertNil(NS.Compat.AssignedRole(), "a non-string answer is refused")
+end)

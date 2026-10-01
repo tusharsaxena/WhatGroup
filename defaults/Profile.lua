@@ -31,12 +31,13 @@ NS.C = {
     frame = {
         autoShow = true,            -- open the popup automatically on join
         -- The popup's own size, promoted out of modules/Frame.lua's FRAME_WIDTH /
-        -- FRAME_HEIGHT file-locals. THE NUMBERS ARE THE ONES THEY REPLACED, exactly:
-        -- a profile that touches neither slider draws the 420x260 popup that shipped.
+        -- FRAME_HEIGHT file-locals. The width is the number it replaced; the height was 260
+        -- until the Role row (WhatGroup#1) added one 18px row, rounded up to the slider's step.
+        -- AceDB stores no value equal to its default, so a profile on the default follows.
         -- modules/Frame.lua clamps both on read, because a value hand-edited into
         -- SavedVariables reaches SetSize with nothing else between it and the frame.
         width    = 420,             -- popup width  in pixels (clamped 320..700)
-        height   = 260,             -- popup height in pixels (clamped 200..520)
+        height   = 280,             -- popup height in pixels (clamped 200..520)
     },
     notify = {
         enabled      = true,        -- print the chat summary on join
@@ -47,5 +48,6 @@ NS.C = {
         showPlaystyle = true,
         showClickLink = true,
         showTeleport = true,
+        showRole     = true,        -- the Role line (WhatGroup#1); the popup row is always drawn
     },
 }

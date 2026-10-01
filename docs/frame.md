@@ -13,7 +13,7 @@ The pattern is borrowed from a similar reference addon that demonstrates the sam
 | Property | Value |
 |---|---|
 | Frame name | `WhatGroupFrame` (globally accessible) |
-| Size | `frame.width` × `frame.height` — **420 × 260** by default, which is the size the two file-locals they replaced held. Clamped on read to 320..700 and 200..520 in `popupSize()`, because a hand-edited SavedVariable or `/wg set frame.width 4000` reaches `SetSize` with nothing else in between. `WhatGroup:ApplyFrameSize()` resizes a live popup and refuses in combat (the secure teleport button is anchored off this frame's own edges); every `ShowFrame` re-applies, so a refused change lands on the next open. |
+| Size | `frame.width` × `frame.height` — **420 × 280** by default: the width the file-local it replaced held, and the height it held (260) plus the Role row's 18px, rounded up to the slider's step of 10 (WhatGroup#1). AceDB stores no value equal to its default, so a profile on the default follows. Clamped on read to 320..700 and 200..520 in `popupSize()`, because a hand-edited SavedVariable or `/wg set frame.width 4000` reaches `SetSize` with nothing else in between. `WhatGroup:ApplyFrameSize()` resizes a live popup and refuses in combat (the secure teleport button is anchored off this frame's own edges); every `ShowFrame` re-applies, so a refused change lands on the next open. |
 | Anchor | `CENTER` of UIParent, offset up by 25% of UIParent's height — the default; a position saved from a previous drag is restored over it on build (`NS.Windows.Restore("popup", …)`, WG-26) |
 | Strata | `DIALOG` |
 | Template | `BackdropTemplate` |
@@ -28,7 +28,7 @@ The pattern is borrowed from a similar reference addon that demonstrates the sam
 
 ## Layout
 
-A single content frame inset 14px from the title bar and 14px / 44px from the bottom (the 44px reserves space for the Close button). Inside it, six rows top-down:
+A single content frame inset 14px from the title bar and 14px / 44px from the bottom (the 44px reserves space for the Close button). Inside it, seven rows top-down:
 
 | Row | Label | Value source |
 |---|---|---|
@@ -36,8 +36,9 @@ A single content frame inset 14px from the title bar and 14px / 44px from the bo
 | 2 | `Instance:` | `info.fullName` (fallback `"Unknown"`) |
 | 3 | `Type:` | `info.shortName` (fallback `WhatGroup.Labels.GetGroupTypeLabel(info)`) |
 | 4 | `Leader:` | `info.leaderName` |
-| 5 | `Playstyle:` | `WhatGroup.Labels.GetPlaystyleLabel(info)` — `info.playstyleString` (server-rendered) → `WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle]` → `""`, which the popup renders as the dim em-dash |
-| 6 | `Teleport:` | 24×24 spell icon button (hidden when no spell mapped) |
+| 5 | `Role:` | `WhatGroup.Labels.GetRoleLabel(info)` — the assigned role (`NS.Compat.AssignedRole()`) → `info.role` (the application's) → `info.appliedRoles` joined with `" / "` → `""`, which the popup renders as the dim em-dash. Each role is Blizzard's localized name with the tiny role icon. Always drawn: `notify.showRole` gates the chat row only (WhatGroup#1, [data-flow.md](./data-flow.md#the-signed-up-role-whatgroup1)) |
+| 6 | `Playstyle:` | `WhatGroup.Labels.GetPlaystyleLabel(info)` — `info.playstyleString` (server-rendered) → `WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle]` → `""`, which the popup renders as the dim em-dash |
+| 7 | `Teleport:` | 24×24 spell icon button (hidden when no spell mapped) |
 
 Every row is anchored top-left against the content frame, and the content frame against `f`'s corners, so widening or heightening the popup moves nothing relative to the title bar — which is why the promoted size needed no offsets retuned. Labels use a fixed 72px column (`LABEL_WIDTH`) colored gold (`|cffFFD700`); values are anchored 6px to the right of the label and use `GameFontHighlight` (white). The 18px row gap (`yGap`) gives a clean vertical rhythm. The content frame's size is fully determined by its TOPLEFT + BOTTOMRIGHT anchors against `f` (insets `14, -38` and `-14, 44`), so no explicit `SetHeight` is needed — the row stack just has to fit inside that natural extent.
 
@@ -59,9 +60,10 @@ Called on every `ShowFrame()`. Reads `shownInfo()` — `WhatGroup.pendingInfo`, 
 
 Edge cases:
 
-- **`pendingInfo == nil`** — every text field shows `|cff888888No data|r` and the teleport button hides — through `ConfigureTeleportButton(btn, icon, nil)`, never a bare `Hide`, because a popup soft-hidden at alpha 0 is still shown and a combat reopen reaches this branch inside the lockdown (WHATGROUP-R-01). This shouldn't normally happen (`/wg show` and `/wg test notify` both set `pendingInfo` before calling `ShowFrame`), but the populator defends against it.
+- **`pendingInfo == nil`** — every text field shows `|cff888888No data|r` (Role and Playstyle show the dim em-dash) and the teleport button hides — through `ConfigureTeleportButton(btn, icon, nil)`, never a bare `Hide`, because a popup soft-hidden at alpha 0 is still shown and a combat reopen reaches this branch inside the lockdown (WHATGROUP-R-01). This shouldn't normally happen (`/wg show` and `/wg test notify` both set `pendingInfo` before calling `ShowFrame`), but the populator defends against it.
 - **`info.fullName == ""`** — Instance row falls back to `"Unknown"`.
 - **`info.shortName == ""`** — Type row falls back to `WhatGroup.Labels.GetGroupTypeLabel(info)`.
+- **no role known** — Role row falls back to a dim em-dash.
 - **`info.playstyleString == ""` AND `WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle] == nil`** — Playstyle row falls back to a dim em-dash. This is also the path taken when `generalPlaystyle == Enum.LFGEntryGeneralPlaystyle.None` (= 0).
 
 ## Teleport button
@@ -153,7 +155,7 @@ What alpha does not buy is the frame leaving hit-testing. Alpha 0 is invisible, 
 
 **Show is protected too, and this document said otherwise until 2026-09-09.** The rule is about changing a protected frame's visibility, and showing an ancestor changes it exactly as hiding one does; `/wg test` during a lockdown raised `ADDON_ACTION_BLOCKED` on `WhatGroupFrame:Show()`. So `ShowFrame` now refuses in combat and defers to `PLAYER_REGEN_ENABLED`, with the one exception that needs no protected call: a popup still shown at alpha 0 comes back on its alpha alone, which is what makes closing in combat reversible rather than one-way.
 
-**`inCombat` cannot be delivered from a hidden frame, and that is a limitation rather than a bug to fix quietly.** The value asks for a popup that appears *during* a lockdown, which is the one thing Show cannot do. Honoring it would mean keeping the frame shown at alpha 0 for the whole time the player is out of combat, so the combat edge needs only an alpha change — at the cost of an invisible 420x260 click-target at rest. That is a trade for the addon's owner to make; until it is made, `inCombat` builds the popup, keeps it off screen, and does not open it.
+**`inCombat` cannot be delivered from a hidden frame, and that is a limitation rather than a bug to fix quietly.** The value asks for a popup that appears *during* a lockdown, which is the one thing Show cannot do. Honoring it would mean keeping the frame shown at alpha 0 for the whole time the player is out of combat, so the combat edge needs only an alpha change — at the cost of an invisible 420x280 click-target at rest. That is a trade for the addon's owner to make; until it is made, `inCombat` builds the popup, keeps it off screen, and does not open it.
 
 **Every path off screen goes through `hidePopup()`**, and `gateWithheld` records *who* put it there — the gate, or the player. `OnHide` clears that flag on every real hide and the gate's two sites re-assert it immediately afterwards. The three **player** hides — the Close button's `OnClick`, the ESC proxy's `OnHide` and the launcher menu's **Show window** entry (`WhatGroup:ToggleFrame`, the descriptor's `toggleWindow`) — share one body, `dismissPopup()`, which takes the popup off screen, clears `gateWithheld` itself (in combat `hidePopup` takes the alpha route and no `OnHide` fires) and ends test mode. So ESC, the button and the launcher menu are exactly as durable as each other, in combat and out.
 

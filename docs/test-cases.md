@@ -214,7 +214,7 @@ badge and any count quoted in the docs must agree with it.
 - database: migrations run before any profile read (OnInitialize order)
 - database: the profile is untouched by a migration pass
 
-### test_settings.lua (56)
+### test_settings.lua (58)
 
 - settings: BuildDefaults threads profile + global defaults
 - settings: defaults source from NS.C (defaults/Profile.lua, WG-24)
@@ -272,6 +272,8 @@ badge and any count quoted in the docs must agree with it.
 - settings: a global reset closes the console a profile reset cannot reach (options-ui-§12)
 - settings: every row on every page carries a `group`
 - settings: every color row is followed by its class-color companion, and none is disabled
+- settings: notify.showRole is a Chat > Text bool row, default on
+- settings: the Role label string is in the locale
 
 ### test_slash.lua (61)
 
@@ -337,7 +339,7 @@ badge and any count quoted in the docs must agree with it.
 - slash: the refusal does not touch the help index or the landing page
 - slash: `perf` is reserved here but not registered (LIBKA0S-15)
 
-### test_labels.lua (34)
+### test_labels.lua (40)
 
 - labels: GetGroupTypeLabel Mythic+
 - labels: GetGroupTypeLabel Dungeon by categoryID
@@ -373,8 +375,14 @@ badge and any count quoted in the docs must agree with it.
 - teleport: the Midnight Keystone Hero rows match the spellbook-verified IDs
 - teleport: the Midnight season 2 rows match the spellbook-verified IDs
 - teleport: Siege of Boralus offers the spellbook-verified spell first
+- labels: GetRoleLabel prefers the assigned role over the application role
+- labels: GetRoleLabel falls back to the application role when none is assigned
+- labels: GetRoleLabel joins the offered roles when nothing else is known
+- labels: GetRoleLabel answers the empty string when nothing is known
+- labels: GetRoleLabel survives a client with no UnitGroupRolesAssigned
+- labels: Compat.AssignedRole answers nil for NONE and the token otherwise
 
-### test_capture.lua (35)
+### test_capture.lua (43)
 
 - capture: inviteaccepted prefers FRESH when both have mapID
 - capture: inviteaccepted falls back to QUEUED when fresh lacks mapID
@@ -411,8 +419,16 @@ badge and any count quoted in the docs must agree with it.
 - capture: a search field holding false takes the default, not the false
 - capture: an activity field holding false takes the default, not the false
 - capture: a stored zero survives the defaults, because 0 is truthy in Lua
+- capture: the ApplyToGroup role flags land on the capture as appliedRoles
+- capture: an apply flag that is not a boolean reads as not offered
+- capture: the invited status stamps GetApplicationInfo's role onto the paired capture
+- capture: inviteaccepted carries the application's role into the fresh capture
+- capture: the fresh capture's role wins over the queued one only when it has one
+- capture: ResolveSearchResultID answers the role from the multi-return
+- capture: a table-shaped GetApplicationInfo still resolves both the id and the role
+- capture: a role that is not one of the three tokens is refused
 
-### test_notify.lua (48)
+### test_notify.lua (53)
 
 - notify: no pendingInfo schedules no timer
 - notify: out of a group schedules no timer even with pendingInfo
@@ -462,8 +478,13 @@ badge and any count quoted in the docs must agree with it.
 - notify: a secret-like title degrades in place instead of raising
 - notify: the Leader row still prints when leaderName is nil
 - notify: Playstyle and Teleport drop their rows while Leader keeps its own
+- notify: the Role row prints the role when notify.showRole is on
+- notify: notify.showRole defaults on
+- notify: notify.showRole off drops the Role row
+- notify: the Role row is omitted when no role is known
+- notify: the Role row follows the Leader row
 
-### test_frame.lua (54)
+### test_frame.lua (58)
 
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
@@ -519,6 +540,10 @@ badge and any count quoted in the docs must agree with it.
 - frame: a size hand-edited past the clamp is drawn at the nearest legal value
 - frame: a non-numeric stored size falls back to the shipped default
 - frame: a size change taken in combat is refused, and lands on the next open
+- frame: the Role field renders the role with its icon
+- frame: the Role field shows even with notify.showRole off
+- frame: an unknown role renders the dim em-dash
+- frame: with no pendingInfo the Role field renders the dim em-dash
 
 ### test_frame_visibility.lua (36)
 
@@ -687,7 +712,7 @@ badge and any count quoted in the docs must agree with it.
 - snapshot: the frame copy is fresh, so a report cannot edit the queue
 - snapshot: every coerced frame flag is a strict boolean, built or not
 
-### test_diagnostics.lua (19)
+### test_diagnostics.lua (20)
 
 - diagnostics: the host identity names schema, profile, enabled, stood-down, holds, test mode
 - diagnostics: always-print rows print at default, a changed row prints path = value (default)
@@ -695,6 +720,7 @@ badge and any count quoted in the docs must agree with it.
 - diagnostics: the report reads and never acts: no registration, hold, timer or save
 - diagnostics: registration health names every event and the chat-link route
 - diagnostics: the client's applications print beside the capture tables
+- diagnostics: each client application prints the role GetApplicationInfo returns
 - diagnostics: pending info prints leader, voice chat and title, and the notify timer
 - diagnostics: teleport resolution names the spell, known flag, table entry and cooldown
 - diagnostics: an unreadable cooldown is named, never computed on
@@ -1014,19 +1040,19 @@ badge and any count quoted in the docs must agree with it.
 | test_util.lua | 31 |
 | test_compat.lua | 42 |
 | test_database.lua | 11 |
-| test_settings.lua | 56 |
+| test_settings.lua | 58 |
 | test_slash.lua | 61 |
-| test_labels.lua | 34 |
-| test_capture.lua | 35 |
-| test_notify.lua | 48 |
-| test_frame.lua | 54 |
+| test_labels.lua | 40 |
+| test_capture.lua | 43 |
+| test_notify.lua | 53 |
+| test_frame.lua | 58 |
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_panel.lua | 54 |
 | test_profiles.lua | 19 |
 | test_testmode.lua | 23 |
 | test_snapshot.lua | 10 |
-| test_diagnostics.lua | 19 |
+| test_diagnostics.lua | 20 |
 | test_launcher.lua | 36 |
 | test_lifecycle.lua | 46 |
 | test_debuglog.lua | 72 |
@@ -1042,4 +1068,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **888** |
+| **Total** | **914** |

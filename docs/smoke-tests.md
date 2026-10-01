@@ -20,10 +20,10 @@ number out of use rather than handing it to a new one.
 | PROFILE-1 – PROFILE-14 | [Profiles](#profiles) | The Profiles page, `/wg profile`, persistence, what a switch leaves alone, the page in combat |
 | STATE-1 – STATE-8 | [Enable and disable](#enable-and-disable) | The stand-down, refusals while disabled, the way back, the chat-link callback |
 | COMBAT-1 – COMBAT-12 | [Combat](#combat) | Reset popup and Settings registration in combat, Close and ESC in combat, the visibility gate on combat edges |
-| POPUP-1 – POPUP-8 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome |
-| TEST-1 – TEST-11 | [Test mode](#test-mode) | The sample popup, its checkbox and verb, and every way it ends |
+| POPUP-1 – POPUP-9 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome, the Role row at the minimum height |
+| TEST-1 – TEST-12 | [Test mode](#test-mode) | The sample popup, its checkbox and verb, every way it ends, the sample role |
 | TELE-1 – TELE-6 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker |
-| LFG-1 – LFG-4 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving |
+| LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-13 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
@@ -117,8 +117,8 @@ number out of use rather than handing it to a new one.
   *Enable WhatGroup | General visibility*, *Master scale | Master alpha*, *Lock frame | Debug
   console*, *Minimap button | Test mode*, then the **Reset position | Reset all settings** buttons.
   **Chat**: a **Timing** heading over *Notification Delay* alone, a **Text** heading over *Print to
-  Chat* alone, then *Instance | Type*, *Leader | Playstyle*, *Details link | Teleport spell*, then
-  the **Test** button. **Popup**: a **Behavior** heading over *Open Automatically* alone, then a
+  Chat* alone, then *Instance | Type*, *Leader | Playstyle*, *Details link | Teleport spell*,
+  *Role* alone, then the **Test** button. **Popup**: a **Behavior** heading over *Open Automatically* alone, then a
   **Layout** heading over *Width | Height*. Each tab swaps the content rather than scrolling;
   clicking the current tab does nothing; the **Test** button shows on Chat only and the reset pair
   on Master controls only. Result:
@@ -315,7 +315,7 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   `WhatGroupFrameEscape` proxy and is exactly as durable as the button. Result:
 - **COMBAT-9. *Only out of combat* follows the pull.** Set it, `/wg test notify`, then pull without
   closing the popup → it goes off screen on the pull, with no taint line. Drop combat → it comes
-  back by itself, all six rows still filled in (not "No data"). Result:
+  back by itself, all seven rows still filled in (not "No data"). Result:
 - **COMBAT-10. *Only in combat*.** Set it, `/wg test notify` out of combat → the chat summary
   prints and nothing shows; `/wg show` → nothing shows. Pull a dummy → no error; the popup does
   **not** open, because Show is protected in combat and a hidden frame cannot be revealed there
@@ -327,7 +327,7 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   nothing is captured, then pull and drop combat → nothing opens: an empty popup must never
   appear on a combat edge. Restore *Always*. Result:
 - **COMBAT-12. A popup requested in combat is deferred.** With the popup closed, pull a dummy,
-  `/wg test notify` → no error and no popup; chat prints the join summary (POPUP-1's eight
+  `/wg test notify` → no error and no popup; chat prints the join summary (POPUP-1's nine
   lines), then one more line, `Popup deferred until combat ends.` Drop combat → the popup opens
   now, with that capture. Result:
 
@@ -341,13 +341,15 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   [WG]   - Instance: Dungeons > Mythic+ > Windrunner Spire
   [WG]   - Type: Mythic+
   [WG]   - Leader: Testadin-Silvermoon
+  [WG]   - Role: <damage icon>Damage
   [WG]   - Playstyle: Fun (Serious)
   [WG]   - Teleport: [Path of the Windrunners]
   [WG]   - [Click here to view details]
   ```
 
-  The Teleport row adds `(not learned)` or `(on cooldown)` when either applies. The popup shows all
-  six rows (Group, Instance, Type, Leader, Playstyle, Teleport); the teleport icon is at full alpha
+  The Teleport row adds `(not learned)` or `(on cooldown)` when either applies; in a group where the
+  leader assigned you a role, Role shows that one instead. The popup shows all seven rows (Group,
+  Instance, Type, Leader, Role, Playstyle, Teleport); the teleport icon is at full alpha
   when the spell is learned and ready, desaturated at 50% otherwise. Result:
 - **POPUP-2. `/wg show` reopens.** Close the popup, `/wg show` → the same popup with the same data.
   Result:
@@ -366,6 +368,10 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   `docs/ARCHITECTURE.md` → `## Documented deviations` needs revisiting. Result:
 - **POPUP-8. The shared window edge.** Open the popup and the debug console side by side → both
   wear the same edge: a hard 1px black outer border with a lighter gray line inside it. Result:
+- **POPUP-9. The Role row at the minimum height.** `/wg set frame.height 200`, `/wg test notify` →
+  all seven rows (Group to Teleport, Role fifth) fit above the Close button with nothing clipped or
+  overlapping, and the teleport button sits beside the `Teleport:` label. `/wg reset frame.height`
+  → the popup is 280 tall again. Result:
 
 ## Test mode
 
@@ -396,6 +402,9 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **TEST-11. A real join during test mode.** Tick it, then join a group through the Group Finder
   → the chat summary prints, the popup keeps the sample, and the box stays ticked. Click the
   summary's details link → the real group's popup replaces the sample and the box unticks. Result:
+- **TEST-12. The sample role.** Out of a group, `/wg test` → the popup's `Role:` row reads the
+  damage icon and `Damage`, and `/wg test notify` prints `Role: Damage` in the summary. In a group
+  where the leader assigned you a role, the assigned role shows instead. Result:
 
 ## The teleport button
 
@@ -460,6 +469,20 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **LFG-4. Leaving the group.** Leave (portrait → **Leave Group**, or `/leavegroup`) → the console
   shows `[Roster] inGroup=false wasInGroup=true hasPending=true`, and `/wg show` then prints
   `No group info available. …`: the capture is cleared on leave. Result:
+- **LFG-5. DPS only.** Sign up for a premade as **Damage** only and get invited and accept → the
+  popup and the chat summary both show `Role:` with the damage icon and `Damage`. Result:
+- **LFG-6. Two roles offered, one assigned.** Sign up as **Tank** and **Healer**, and have the
+  leader set you to healer after the join → the popup shows `Healer` (reopen it with `/wg show`
+  if it opened before the leader's change). Before any assignment, record what it showed (the
+  application's role, or `Tank / Healer`). Result:
+- **LFG-7. The chat row's toggle.** **Chat** → *Role* off, then repeat LFG-5 or `/wg test notify`
+  → the chat summary has no `Role:` line and the popup still shows the role. Turn it back on.
+  Result:
+- **LFG-8. Where the client keeps the role.** With an application pending (after the invite,
+  before accepting), `/wg diagnostics` → the `client applications:` line reads
+  `<id>=invited role=TANK` (or `HEALER` / `DAMAGER`). Record exactly what `role=` shows: anything
+  but one of the three tokens means `GetApplicationInfo`'s 5th return is not the role on this
+  client, and the Role row is living on its other two sources. Result:
 
 ## The launcher
 
@@ -773,9 +796,12 @@ then remove its row here.
 | COMBAT-10 | § 3.7h, 3.8 step 4, 4.5 step 9, 4.6 steps 5 – 6 | No result recorded; the pull's expectation corrected per frame.md |
 | COMBAT-12 | § 4.5 steps 7 – 8 | No result recorded; corrected: the join summary prints before the deferred line |
 | POPUP-1 – POPUP-8 | § 2.10, 2.11, 2.18, 4, 4.2 – 4.4, 11.8, 11.9, 12.4 | No result recorded |
+| POPUP-9 | New | New on 2026-10-01 with the Role row (WhatGroup#1, GI-WG-01) |
 | TEST-1 – TEST-11 | § 2.10a, 3.9 | No result recorded |
+| TEST-12 | New | New on 2026-10-01 with the Role row (WhatGroup#1, GI-WG-01) |
 | TELE-1 – TELE-6 | § 3.8 "Also here", 4.1, 4.1a, 4.1b | No result recorded |
 | LFG-1 – LFG-4 | § 5.1 – 5.3 | No result recorded |
+| LFG-5 – LFG-8 | New | New on 2026-10-01 with the Role row (WhatGroup#1, GI-WG-01) |
 | LAUNCH-1 – LAUNCH-10, LAUNCH-12, LAUNCH-13 | § 5.5 step 5, 12c | No result recorded |
 | LAUNCH-11 | § 12c.7 | No result recorded; the profile switch is now `/wg profile` |
 | DIAG-1 – DIAG-4, DIAG-6 – DIAG-10, DIAG-12 – DIAG-16 | § 2.8 – 2.8b-i, 2.8c, 2.8d, 2.19, 3.6, 12.1 – 12.3, 12.5, 12.6 | No result recorded; DIAG-6 now also logs the verbs' `[Set]` lines |

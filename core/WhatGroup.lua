@@ -73,16 +73,17 @@ NS.PREFIX = "|cff00FFFF[WG]|r"
 -- taint and rejecting their secure-execute calls with ADDON_ACTION_FORBIDDEN.
 -- File-load registration runs before GameMenu's InitButtons builds those
 -- closures, so they remain taint-free.
--- Both closures take ONLY what they read. The client passes more -- ApplyToGroup also carries the
--- role flags and the applicant note, the link click the link text, the mouse button and the chat
--- frame -- and a closure that declares fewer parameters simply drops the rest, which is what
--- happens to them here anyway. Until `M4c-04` these mirrored the client's full signatures and
--- forwarded them on, so `text`, `button` and two varargs traveled into handler bodies that read
--- none of them, on every apply and every link click. The client's signatures are recorded in
--- docs/data-flow.md, which is where a signature nothing reads belongs.
-hooksecurefunc(C_LFGList, "ApplyToGroup", function(searchResultID)
+-- Both closures take ONLY what they read. The client passes more -- ApplyToGroup's trailing
+-- applicant note, the link click the link text, the mouse button and the chat frame -- and a
+-- closure that declares fewer parameters simply drops the rest, which is what happens to them here
+-- anyway. Until `M4c-04` these mirrored the client's full signatures and forwarded them on, so
+-- `text`, `button` and two varargs traveled into handler bodies that read none of them, on every
+-- apply and every link click. The apply hook reads the three role flags since WhatGroup#1: they
+-- are the roles the player offered, the last fallback the Role row shows. Reading arguments is
+-- taint-neutral. The client's signatures are recorded in docs/data-flow.md.
+hooksecurefunc(C_LFGList, "ApplyToGroup", function(searchResultID, tankOK, healerOK, damageOK)
     if WhatGroup.OnApplyToGroup then
-        WhatGroup:OnApplyToGroup(searchResultID)
+        WhatGroup:OnApplyToGroup(searchResultID, tankOK, healerOK, damageOK)
     end
 end)
 
@@ -651,24 +652,32 @@ end
 -- degrades to the old behavior instead of going dark. Both returns shapes are
 -- accepted — the multi-return form (id, appStatus, …) and a table, in case a
 -- future patch converts it like it did GetActivityInfoTable.
+--
+-- The second return is the role the application carries (WhatGroup#1): the 5th multi-return
+-- (`id, appStatus, pendingStatus, appDuration, role`) or `res.role` in the table shape, kept only
+-- when it is one of the three tokens (NS.Compat.RoleToken), so a secret is never compared. Blizzard
+-- does not document the position; the Role row's fallbacks and `/wg diagnostics`' application dump
+-- are why that is survivable.
 -- This is a resolver rather than part of the capture wrapper because two callers need the id
 -- and only one of them wants a capture: the "applied" status event uses it to find the capture
 -- the apply hook already took, and re-capturing there would be a second LFG round-trip for a
 -- table that is already in hand.
 function WhatGroup:ResolveSearchResultID(appID)
-    local resultID = appID
+    local resultID, role = appID, nil
     local getAppInfo = C_LFGList and C_LFGList.GetApplicationInfo
 
     if getAppInfo then
-        local ok, res = pcall(getAppInfo, appID)
+        local ok, res, _, _, _, rawRole = pcall(getAppInfo, appID)
         if not ok then
             -- The site and the message, once per distinct message (debug-logging-§8): a client that
             -- raises here raises on every status event, and the fallback below is the same each time.
             NS.DebugErrorOnce("Capture", "GetApplicationInfo raised (falling back to appID)", res)
         else
             if type(res) == "table" then
+                rawRole = res.role
                 res = res.searchResultID or res.id
             end
+            role = NS.Compat.RoleToken(rawRole)
             if res then
                 resultID = res
             else
@@ -681,12 +690,15 @@ function WhatGroup:ResolveSearchResultID(appID)
         NS.DebugErrorOnce("Capture", "GetApplicationInfo unavailable", "falling back to appID")
     end
 
-    return resultID
+    return resultID, role
 end
 
--- Re-capture from an application id: resolve, then capture.
+-- Re-capture from an application id: resolve, then capture, with the application's role on it.
 function WhatGroup:CaptureGroupInfoFromApplication(appID)
-    return self:CaptureGroupInfo(self:ResolveSearchResultID(appID))
+    local resultID, role = self:ResolveSearchResultID(appID)
+    local captured = self:CaptureGroupInfo(resultID)
+    if captured then captured.role = role end
+    return captured
 end
 
 -- Resolve a TeleportSpells value (number OR list) to (spellID, isKnown).
@@ -760,6 +772,32 @@ function WhatGroup.Labels.GetPlaystyleLabel(info)
     return WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle] or ""
 end
 
+-- The role the player signed up as (WhatGroup#1), as Blizzard's localized role name with the tiny
+-- role icon in front. Most authoritative first: the role the leader assigned (read now, so a
+-- leader's change after the join shows), then the role the application carried at the invite,
+-- then the roles offered at apply time joined with " / ". "" when none of the three is known.
+local ROLE_NAMES = { TANK = TANK, HEALER = HEALER, DAMAGER = DAMAGER }
+local OFFERED = { { "tank", "TANK" }, { "healer", "HEALER" }, { "damage", "DAMAGER" } }
+
+local function roleText(token)
+    return NS.Compat.RoleIconMarkup(token) .. (ROLE_NAMES[token] or token)
+end
+
+local function offeredText(applied)
+    if type(applied) ~= "table" then return "" end
+    local parts = {}
+    for _, pair in ipairs(OFFERED) do
+        if applied[pair[1]] == true then parts[#parts + 1] = roleText(pair[2]) end
+    end
+    return table.concat(parts, " / ")
+end
+
+function WhatGroup.Labels.GetRoleLabel(info)
+    local token = NS.Compat.AssignedRole() or NS.Compat.RoleToken(info.role)
+    if token then return roleText(token) end
+    return offeredText(info.appliedRoles)
+end
+
 local Labels = WhatGroup.Labels
 
 -- ---------------------------------------------------------------------------
@@ -798,8 +836,9 @@ end
 -- (after `Labels` is bound above), never per notification. `flag` is the db.profile.notify key that
 -- gates the row; `label` is looked up in NS.L at print time, so a locale swap still applies.
 --
--- `omitWhenNil` is opt-IN, and only Playstyle and Teleport declare it, because only those two ever
--- had a second inner `if` suppressing their own row. Instance, Type and Leader print whenever their
+-- `omitWhenNil` is opt-IN, and only Playstyle, Role and Teleport declare it: Playstyle and Teleport
+-- because only those two ever had a second inner `if` suppressing their own row, and Role because a
+-- role nobody knows is an absent row, not a row reading nothing. Instance, Type and Leader print whenever their
 -- flag is on — Leader in particular printed a nil leaderName straight through NS.SafeToString, and
 -- a blanket nil gate here would have silently deleted that row. An absent row and a row reading
 -- "nil" are different outputs; the flag keeps them apart.
@@ -812,6 +851,12 @@ local NOTIFY_ROWS = {
       end },
     { flag = "showLeader",    label = "Leader:",
       value = function(_, info) return info.leaderName end },
+    { flag = "showRole",      label = "Role:", omitWhenNil = true,
+      value = function(_, info)
+          local role = Labels.GetRoleLabel(info)
+          if role == "" then return nil end
+          return role
+      end },
     { flag = "showPlaystyle", label = "Playstyle:", omitWhenNil = true,
       value = function(_, info)
           local playStyle = Labels.GetPlaystyleLabel(info)
@@ -863,7 +908,13 @@ end
 -- Hooks
 -- ---------------------------------------------------------------------------
 
-function WhatGroup:OnApplyToGroup(searchResultID)
+-- A flag counts as offered only when it is a real `true`: type() first, so anything else the
+-- client might pass reads as not offered rather than reaching a comparison.
+local function offered(flag)
+    return type(flag) == "boolean" and flag == true
+end
+
+function WhatGroup:OnApplyToGroup(searchResultID, tankOK, healerOK, damageOK)
     -- Master enable gate: when disabled, the addon ignores the apply
     -- entirely so no capture → no pendingInfo → no notification or
     -- popup later. /wg test notify and /wg show still work (they bypass the
@@ -879,6 +930,9 @@ function WhatGroup:OnApplyToGroup(searchResultID)
     end
     local captured = self:CaptureGroupInfo(searchResultID)
     if captured then
+        captured.appliedRoles = {
+            tank = offered(tankOK), healer = offered(healerOK), damage = offered(damageOK),
+        }
         capturesByResult[searchResultID] = captured
         NS.Debug("Apply", 'id=%s captured "%s" (activity=%s map=%s m+=%s)', searchResultID,
             captured.title, captured.activityID, captured.mapID, captured.isMythicPlus)
@@ -1099,6 +1153,23 @@ end
 
 -- Clear BOTH sides: "applied" may never have arrived, in which case the capture is still filed
 -- under its search-result id and has no application id at all.
+-- "invited": stamp the role the application now carries onto its paired capture, and nothing
+-- else -- the capture itself must survive untouched (see the arm below).
+local function stampInviteRole(self, appID)
+    local capture = pendingApplications[appID]
+    if not capture then return end
+    local _, role = self:ResolveSearchResultID(appID)
+    if role then capture.role = role end
+end
+
+-- "inviteaccepted": the merge picks its capture by mapID, and the role travels separately. The
+-- fresh read's role wins only when it has one; the offered roles exist on the queued capture alone.
+local function carryRole(final, fresh, queued)
+    if not final then return end
+    final.role = (fresh and fresh.role) or (queued and queued.role)
+    final.appliedRoles = final.appliedRoles or (queued and queued.appliedRoles)
+end
+
 local function dropApplication(self, appID, newStatus)
     local resultID = self:ResolveSearchResultID(appID)
     local dropped  = pendingApplications[appID] or capturesByResult[resultID]
@@ -1116,14 +1187,12 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
         pairApplication(self, appID)
     elseif APPLICATION_ENDED[newStatus] then
         dropApplication(self, appID, newStatus)
-    elseif newStatus == "invited" then -- luacheck: ignore 542
-        -- Deliberately empty, and the emptiness is the behavior: "invited" is the client asking
-        -- the player, not an answer, and the capture must survive untouched until "inviteaccepted"
-        -- or one of APPLICATION_ENDED arrives -- multiple invites can arrive for one application.
-        -- Named rather than folded into the `else` so a status this addon has no arm for still
-        -- falls through to nothing by accident and this one falls through to nothing on purpose.
-        -- The pragma is on the branch line and covers that line alone: the next empty branch
-        -- written anywhere in this file, or this one, still reports.
+    elseif newStatus == "invited" then
+        -- "invited" is the client asking the player, not an answer: the capture must survive
+        -- untouched until "inviteaccepted" or one of APPLICATION_ENDED arrives -- multiple invites
+        -- can arrive for one application. The one thing taken here is the role the application
+        -- now carries (WhatGroup#1), stamped onto the paired capture and nothing else.
+        stampInviteRole(self, appID)
     elseif newStatus == "inviteaccepted" then
         -- Belt and braces, and deliberately kept after the stand-down landed. A disabled addon
         -- has UNREGISTERED LFG_LIST_APPLICATION_STATUS_UPDATED, so nothing dispatches into this
@@ -1157,6 +1226,7 @@ function WhatGroup:LFG_LIST_APPLICATION_STATUS_UPDATED(event, appID, newStatus)
         elseif queued then
             final, source = queued, "queued"
         end
+        carryRole(final, fresh, queued)
         self.pendingInfo = final
         notifiedFor      = nil  -- new pendingInfo identity → eligible to fire again
 
@@ -1225,6 +1295,9 @@ function WhatGroup:SampleInfo()
         playstyle         = Enum.LFGEntryGeneralPlaystyle.FunSerious,
         playstyleString   = "",
         shortName         = "Mythic+",
+        -- The application's role, so test mode exercises the Role row (WhatGroup#1). A role the
+        -- leader assigned in a real group still wins, as it does for a live capture.
+        role              = "DAMAGER",
     }
 end
 

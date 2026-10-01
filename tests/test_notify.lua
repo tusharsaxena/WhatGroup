@@ -524,3 +524,58 @@ test("notify: Playstyle and Teleport drop their rows while Leader keeps its own"
     assertFalse(anyLine(lines, "Teleport:"), "no teleport spell means no row")
     assertTrue(anyLine(lines, "Leader:"), "Leader is not subject to the same suppression")
 end)
+
+-- ---------------------------------------------------------------------------
+-- The Role row (WhatGroup#1), behind notify.showRole
+-- ---------------------------------------------------------------------------
+
+test("notify: the Role row prints the role when notify.showRole is on", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.Settings.Helpers.Set("notify.showRole", true)
+    NS.addon.pendingInfo = pending({ role = "DAMAGER" })
+    local mark = #mock.prints
+    NS.addon:ShowNotification()
+    local lines = linesSince(mock, mark)
+    assertTrue(anyLine(lines, "Role:"), "the row is there")
+    assertTrue(anyLine(lines, "Damage"), "carrying Blizzard's role name")
+end)
+
+test("notify: notify.showRole defaults on", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.pendingInfo = pending({ role = "TANK" })
+    local mark = #mock.prints
+    NS.addon:ShowNotification()
+    assertTrue(anyLine(linesSince(mock, mark), "Role:"))
+end)
+
+test("notify: notify.showRole off drops the Role row", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.Settings.Helpers.Set("notify.showRole", false)
+    NS.addon.pendingInfo = pending({ role = "TANK" })
+    local mark = #mock.prints
+    NS.addon:ShowNotification()
+    assertFalse(anyLine(linesSince(mock, mark), "Role:"))
+end)
+
+test("notify: the Role row is omitted when no role is known", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.Settings.Helpers.Set("notify.showRole", true)
+    NS.addon.pendingInfo = pending()
+    local mark = #mock.prints
+    NS.addon:ShowNotification()
+    assertFalse(anyLine(linesSince(mock, mark), "Role:"))
+end)
+
+test("notify: the Role row follows the Leader row", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.pendingInfo = pending({ role = "HEALER" })
+    local mark = #mock.prints
+    NS.addon:ShowNotification()
+    local lines = linesSince(mock, mark)
+    local leaderAt, roleAt
+    for i, line in ipairs(lines) do
+        if line:find("Leader:", 1, true) then leaderAt = i end
+        if line:find("Role:", 1, true) then roleAt = i end
+    end
+    assertEqual(roleAt, leaderAt + 1)
+end)

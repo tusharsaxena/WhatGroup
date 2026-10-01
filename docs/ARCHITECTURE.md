@@ -87,13 +87,14 @@ owns the STRUCTURE and `NS.C` owns the VALUES (savedvariables-§2 / WG-24). The 
 | `global.minimap.shown` | bool | Master controls — **global**, stored at LibDBIcon's OWN key `db.global.minimap.hide`: the path and the row say *shown* and the stored boolean says hidden, so `Helpers.Get` / `Helpers.Set` invert and `Set` calls `NS.Launcher:SetShown` so the button follows the checkbox now rather than at the next reload (launcher-§3) |
 | `state.testMode` | bool | Master controls — **session-only**; the popup's test mode: sample group info on the popup until it is turned off, closed, asked to show the real capture, or combat starts (`modules/Frame.lua`) |
 | `notify.delay` | number | Chat — seconds to wait before notify **and** popup (`0` = instant) |
-| `notify.enabled` | bool | Chat — print the chat summary on join; the master for the six below |
+| `notify.enabled` | bool | Chat — print the chat summary on join; the master for the seven below |
 | `notify.showInstance` | bool | Chat — line toggles |
 | `notify.showType` | bool | Chat |
 | `notify.showLeader` | bool | Chat |
 | `notify.showPlaystyle` | bool | Chat |
 | `notify.showClickLink` | bool | Chat |
 | `notify.showTeleport` | bool | Chat |
+| `notify.showRole` | bool | Chat — the Role line (WhatGroup#1); the popup's Role row is always drawn |
 | `frame.autoShow` | bool | Popup — open the popup automatically on join |
 | `frame.width` | number | Popup — popup width in pixels, clamped 320..700 (was `FRAME_WIDTH`) |
 | `frame.height` | number | Popup — popup height in pixels, clamped 200..520 (was `FRAME_HEIGHT`) |

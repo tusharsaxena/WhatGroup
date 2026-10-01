@@ -230,6 +230,15 @@ add{
     default = C.notify.showTeleport,
 }
 
+-- Last in the Text subgroup, so the six toggles before it keep the pairs they have always had.
+add{
+    section = "notify",  group = "Chat",  subgroup = "Text",
+    path    = "notify.showRole",  type = "bool",
+    label   = "Role",
+    tooltip = "Include the Role line (the role you signed up as: the one the leader assigned, else the one your application carried, else the roles you offered) in the chat notification. The popup always shows it.",
+    default = C.notify.showRole,
+}
+
 -- ---------------------------------------------------------------------------
 -- Popup -- the group-info window
 -- ---------------------------------------------------------------------------
@@ -245,8 +254,9 @@ add{
 
 -- WIDTH AND HEIGHT ARE TWO SETTINGS AND ONE LINE. They were `FRAME_WIDTH` and
 -- `FRAME_HEIGHT`, two file-locals in modules/Frame.lua, and they ship as their
--- own defaults: 420 and 260, the numbers they replaced, so a popup nobody has
--- touched is drawn exactly as it was. They sit ACROSS one line rather than down
+-- own defaults: 420 and 260, the numbers they replaced (the height is 280 since
+-- the Role row, WhatGroup#1, added one row), so a popup nobody has touched is
+-- drawn as it was. They sit ACROSS one line rather than down
 -- a column because the question a player has is the shape of the window, which
 -- is both numbers at once.
 --

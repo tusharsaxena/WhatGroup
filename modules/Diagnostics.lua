@@ -109,9 +109,12 @@ local function clientApplications()
     if not ok or type(ids) ~= "table" then return nil end
     local parts = {}
     for i, id in ipairs(ids) do
-        -- Multi-return (id, appStatus, pendingStatus, ...): the status is the second value.
-        local okInfo, _, status = pcall(api.GetApplicationInfo, id)
+        -- Multi-return (id, appStatus, pendingStatus, appDuration, role): the status is the
+        -- second value, and the role (WhatGroup#1) the fifth, printed raw so the owner can confirm
+        -- in game where the Role row's middle source actually sits.
+        local okInfo, _, status, _, _, role = pcall(api.GetApplicationInfo, id)
         parts[i] = NS.SafeToString(id) .. "=" .. NS.SafeToString(okInfo and status or "unreadable")
+            .. " role=" .. NS.SafeToString(okInfo and role or nil)
     end
     return parts
 end
