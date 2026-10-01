@@ -137,13 +137,13 @@ number out of use rather than handing it to a new one.
 - **PANEL-6. Test button.** **Chat** tab → **Test** → the same chat summary and popup as
   `/wg test notify` (POPUP-1); the button runs `WhatGroup:RunTest()`. Result:
 - **PANEL-7. Popup size defaults and live resize.** On a profile that never touched them, the
-  **Popup** tab reads **Width** `420 px` and **Height** `260 px`. `/wg test notify`, leave the popup
+  **Popup** tab reads **Width** `420 px` and **Height** `280 px`. `/wg test notify`, leave the popup
   open, drag **Width** to 600 and release, then **Height** to 340 → the open popup resizes on
   release, its rows and teleport button stay anchored to its corners, and the Close button stays
   12px off the bottom edge. Result:
 - **PANEL-8. Popup size clamps.** `/wg set frame.width 4000`, `/wg show` → drawn 700 wide, not off
   screen; `/wg set frame.height 10` → drawn 200 high. `/wg reset frame.width` and
-  `/wg reset frame.height` → back to 420 × 260. Result:
+  `/wg reset frame.height` → back to 420 × 280. Result:
 - **PANEL-9. Master scale.** With the popup open, **Master scale** → 1.5 → the popup grows at once
   and `/wg get scale` reads `1.5`. `/wg set scale 40` → drawn at 2×, not 40×. `/wg set scale 1`.
   Result:
@@ -371,7 +371,7 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **POPUP-9. The Role row at the minimum height.** `/wg set frame.height 200`, `/wg test notify` →
   all seven rows (Group to Teleport, Role fifth) fit above the Close button with nothing clipped or
   overlapping, and the teleport button sits beside the `Teleport:` label. `/wg reset frame.height`
-  → the popup is 280 tall again. Result:
+  → the popup is 280 tall again. Result: pass (owner, 2026-10-02)
 
 ## Test mode
 
@@ -404,7 +404,7 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   summary's details link → the real group's popup replaces the sample and the box unticks. Result:
 - **TEST-12. The sample role.** Out of a group, `/wg test` → the popup's `Role:` row reads the
   damage icon and `Damage`, and `/wg test notify` prints `Role: Damage` in the summary. In a group
-  where the leader assigned you a role, the assigned role shows instead. Result:
+  where the leader assigned you a role, the assigned role shows instead. Result: pass (owner, 2026-10-02)
 
 ## The teleport button
 
@@ -470,19 +470,19 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   shows `[Roster] inGroup=false wasInGroup=true hasPending=true`, and `/wg show` then prints
   `No group info available. …`: the capture is cleared on leave. Result:
 - **LFG-5. DPS only.** Sign up for a premade as **Damage** only and get invited and accept → the
-  popup and the chat summary both show `Role:` with the damage icon and `Damage`. Result:
+  popup and the chat summary both show `Role:` with the damage icon and `Damage`. Result: pass (owner, 2026-10-02)
 - **LFG-6. Two roles offered, one assigned.** Sign up as **Tank** and **Healer**, and have the
   leader set you to healer after the join → the popup shows `Healer` (reopen it with `/wg show`
   if it opened before the leader's change). Before any assignment, record what it showed (the
-  application's role, or `Tank / Healer`). Result:
+  application's role, or `Tank / Healer`). Result: pass (owner, 2026-10-02)
 - **LFG-7. The chat row's toggle.** **Chat** → *Role* off, then repeat LFG-5 or `/wg test notify`
   → the chat summary has no `Role:` line and the popup still shows the role. Turn it back on.
-  Result:
+  Result: pass (owner, 2026-10-02)
 - **LFG-8. Where the client keeps the role.** With an application pending (after the invite,
   before accepting), `/wg diagnostics` → the `client applications:` line reads
   `<id>=invited role=TANK` (or `HEALER` / `DAMAGER`). Record exactly what `role=` shows: anything
   but one of the three tokens means `GetApplicationInfo`'s 5th return is not the role on this
-  client, and the Role row is living on its other two sources. Result:
+  client, and the Role row is living on its other two sources. Result: pass (owner, 2026-10-02)
 
 ## The launcher
 
@@ -782,7 +782,7 @@ then remove its row here.
 | SLASH-9, SLASH-10 | § 11.6, 11.7 | No result recorded |
 | SLASH-11 | § 2.13, 11.5 | No result recorded; § 2.13's bare `/wg reset` corrected to `/wg resetall` |
 | SLASH-12 | § 2.9 | No result recorded |
-| PANEL-1 – PANEL-13 | § 3.1 – 3.7, 3.9 step 4, 11.1 – 11.4 | No result recorded; PANEL-2's Master controls order and PANEL-10's in-combat step corrected |
+| PANEL-1 – PANEL-13 | § 3.1 – 3.7, 3.9 step 4, 11.1 – 11.4 | No result recorded; PANEL-2's Master controls order and PANEL-10's in-combat step corrected; PANEL-7's and PANEL-8's default height corrected to 280 (WhatGroup#1) |
 | PANEL-14 | § 10 | No result recorded; `/wg profile` added |
 | PANEL-15 – PANEL-19 | § 12a.1 – 12a.5 | Never run since the pooled tab strip arrived with LibKa0s v1.27.0 |
 | PROFILE-1 – PROFILE-14 | New; PROFILE-10 also carries § 6 | New in this rework (the `profile` verb and the Profiles page) |
@@ -796,12 +796,9 @@ then remove its row here.
 | COMBAT-10 | § 3.7h, 3.8 step 4, 4.5 step 9, 4.6 steps 5 – 6 | No result recorded; the pull's expectation corrected per frame.md |
 | COMBAT-12 | § 4.5 steps 7 – 8 | No result recorded; corrected: the join summary prints before the deferred line |
 | POPUP-1 – POPUP-8 | § 2.10, 2.11, 2.18, 4, 4.2 – 4.4, 11.8, 11.9, 12.4 | No result recorded |
-| POPUP-9 | New | New on 2026-10-01 with the Role row (WhatGroup#1, GI-WG-01) |
 | TEST-1 – TEST-11 | § 2.10a, 3.9 | No result recorded |
-| TEST-12 | New | New on 2026-10-01 with the Role row (WhatGroup#1, GI-WG-01) |
 | TELE-1 – TELE-6 | § 3.8 "Also here", 4.1, 4.1a, 4.1b | No result recorded |
 | LFG-1 – LFG-4 | § 5.1 – 5.3 | No result recorded |
-| LFG-5 – LFG-8 | New | New on 2026-10-01 with the Role row (WhatGroup#1, GI-WG-01) |
 | LAUNCH-1 – LAUNCH-10, LAUNCH-12, LAUNCH-13 | § 5.5 step 5, 12c | No result recorded |
 | LAUNCH-11 | § 12c.7 | No result recorded; the profile switch is now `/wg profile` |
 | DIAG-1 – DIAG-4, DIAG-6 – DIAG-10, DIAG-12 – DIAG-16 | § 2.8 – 2.8b-i, 2.8c, 2.8d, 2.19, 3.6, 12.1 – 12.3, 12.5, 12.6 | No result recorded; DIAG-6 now also logs the verbs' `[Set]` lines |
