@@ -286,7 +286,7 @@ than the tag this addon has taken.
 Between a library release and the re-vendor that carries it they disagree, and that disagreement is
 the normal state rather than a defect. The same goes for untagged commits the library lands after
 the tag it released. As this is written the two agree: [`CLAUDE.md`](../CLAUDE.md) names
-**v1.65.0**, and `../LibKa0s`'s HEAD carries that tag's payload, so all four commands report nothing. Read a non-empty pair here as *the library has
+**v1.66.0**, and `../LibKa0s`'s HEAD carries that tag's payload, so all four commands report nothing. Read a non-empty pair here as *the library has
 moved past the tag this addon took* — a newer release, or post-tag follow-ups — not as a fault.
 Re-vendoring to quiet them would be the actual mistake: it would pull an untested library state for
 the sake of a clean diff.
@@ -377,11 +377,12 @@ Why it exists here. `.luacheckrc` carried
 lines turned up **twenty-four** findings, and **fifteen were not conventions at
 all** — ten files opening `local addonName, NS = ...` over a folder name they
 never read, and five parameters carried into the two `hooksecurefunc` handlers
-and never used. All fifteen were fixed in the source. The **nine** that remain
-are eight receivers a calling convention forces (`212/self` on method-sugar
-bodies that read upvalues, `212/event` on the AceEvent handler) plus one
-deliberately empty `invited` branch, and they now sit in three per-file
-`<code>/<variable>` stanzas and one line-scoped `-- luacheck: ignore 542`.
+and never used. All fifteen were fixed in the source. The **eight** that remain
+are receivers a calling convention forces (`212/self` on method-sugar bodies
+that read upvalues, `212/event` on the AceEvent handler), and they sit in three
+per-file `<code>/<variable>` stanzas. A ninth, the line-scoped
+`-- luacheck: ignore 542` on the deliberately empty `invited` branch, went when
+that branch began stamping the application's role (WhatGroup#1).
 
 The narrowing is **measured, not asserted**: adding a dead second parameter to
 `WhatGroup:RunTest` reports under the current config and reported nothing under
@@ -407,7 +408,7 @@ contradicts.
 | `lint` | `luacheck .` | **yes** | **yes** — must be `pass` |
 | `tests` | `lua tests/run.lua` | **yes** | **yes** — must be `pass` |
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** — must be `pass`; a `skip` is *not evaluated* |
-| `complexity` | `lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .` | no — recorded only | **yes** — `pass` plus zero functions above CCN 15 |
+| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (lizard over the kit's sighted shadow, `-L 1500`, with function-count parity; kit revision 35) | no — recorded only | **yes** — `pass` plus zero functions above CCN 15 and `blindFiles` 0 |
 
 **`perf` and `complexity` never fail a run and never block a commit.** They are measured, recorded
 and diffed — a threshold that fails a run teaches everyone to reach for `--no-verify`, after which

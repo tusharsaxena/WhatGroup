@@ -300,7 +300,7 @@ profile = {
   scale      = 1,          -- 0.5 .. 2
   alpha      = 1,          -- 0 .. 1
   locked     = false,
-  frame   = { autoShow = true, width = 420, height = 260 },
+  frame   = { autoShow = true, width = 420, height = 280 },
   notify  = {
     enabled       = true,
     delay         = 0,
@@ -310,6 +310,7 @@ profile = {
     showPlaystyle = true,
     showClickLink = true,
     showTeleport  = true,
+    showRole      = true,
   },
 }
 global = {
@@ -342,7 +343,7 @@ The page is **tabbed** (`options-ui-§13`). `LibKa0s-Options-1.0`'s `RenderTabbe
 | # | Tab | Rows | Subgroups | What it is for |
 |---|---|---|---|---|
 | 1 | **Master controls** | 8 | — | options-ui-§15's canonical block, composed rather than written: enable, general visibility, master scale, master alpha, lock frame, debug console, minimap button, test mode — closed by the **Reset position | Reset all settings** button pair (`afterGroup`). It is the **first** tab, and the name is the literal options-ui-§15 mandates. |
-| 2 | **Chat** | 8 | `Timing`, `Text` | When the join summary fires (`notify.delay`) and what it says: the **Print to Chat** master and the six lines it can contain. Plus the **Test** button (`afterGroup`). |
+| 2 | **Chat** | 9 | `Timing`, `Text` | When the join summary fires (`notify.delay`) and what it says: the **Print to Chat** master and the seven lines it can contain. Plus the **Test** button (`afterGroup`). |
 | 3 | **Popup** | 3 | `Behavior`, `Layout` | The group-info window: whether it opens by itself, and how big it is. |
 
 Two tabs mix control kinds and therefore carry **subsection headings** (options-ui-§7): a slider that says *when* standing among seven checkboxes that say *what*, and a behavior toggle above two size sliders. The headings are declared by the rows (`subgroup`), never drawn by the builder, and a `subgroup` never repeats its own tab's name.
@@ -368,16 +369,17 @@ Rows on the **Master controls** tab are emitted by `Helpers.MasterControls` and 
 | Master controls | general | `global.minimap.shown` | bool | true (the ROW's sense: *shown*) | startsLine, (paired) | *Minimap button*, composed from `minimapPath` (compose minor 7). The one **global** row, stored at `db.global.minimap.hide` — see [The minimap button row](#the-minimap-button-row) below. |
 | Master controls | general | `state.testMode` | bool | false | (paired) | *Test mode*, `sessionOnly`, composed from `testModePath`; the tooltip is overridden in `settings/Panel.lua`. `/wg test` drives the same row (bare toggles, `on\|off` sets). Ticked, the popup shows sample group info (`WhatGroup:SampleInfo()`) from a record of its own, never `pendingInfo`, whatever `frame.autoShow` and `visibility` say; `locked` still applies to dragging. Refused in combat: a click on the box is refused by the library's combat lock (its one gray `COMBAT_LOCKED_NOTICE` line; the row's set never runs), and `/wg test` by the host's own `startTestMode` guard (one gray line, `cannot start test mode during combat`). Ends on untick, on Close / ESC, on an explicit show (`/wg show`, `/wg test notify`, the chat link), on *Reset all settings* (the declared `default = false`), and at `PLAYER_REGEN_DISABLED` with `Test mode off — combat started`. The join popup does not end it: that capture waits. Never `db.profile`. |
 | Chat | notify | `notify.delay` | number | 0 | subgroup `Timing`, solo | Seconds (0–10, step 0.5) between joining and notifying **and** showing the popup. Default 0 = immediately; raise it to let the zone-in settle. Not one of options-ui-§15's canonical nine, so it moved off the first tab to the one named for the notification it delays. |
-| Chat | notify | `notify.enabled` | bool | true | subgroup `Text`, solo | Print the chat summary on group join. The master for the six rows under it. |
+| Chat | notify | `notify.enabled` | bool | true | subgroup `Text`, solo | Print the chat summary on group join. The master for the seven rows under it. |
 | Chat | notify | `notify.showInstance` | bool | true | subgroup `Text`, (paired) | Include the Instance line in chat. |
 | Chat | notify | `notify.showType` | bool | true | subgroup `Text`, (paired) | Include the Type line in chat. |
 | Chat | notify | `notify.showLeader` | bool | true | subgroup `Text`, (paired) | Include the Leader line in chat. |
 | Chat | notify | `notify.showPlaystyle` | bool | true | subgroup `Text`, (paired) | Include the Playstyle line in chat. |
 | Chat | notify | `notify.showClickLink` | bool | true | subgroup `Text`, (paired) | Include the green "[Click here to view details]" chat link. |
 | Chat | notify | `notify.showTeleport` | bool | true | subgroup `Text`, (paired) | Include a Teleport line; skipped silently when `WhatGroup:GetTeleportSpell` returns nil. |
+| Chat | notify | `notify.showRole` | bool | true | subgroup `Text`, solo (last, so the six before it keep their pairs) | Include the Role line (WhatGroup#1): the role the leader assigned, else the application's, else the roles offered; skipped when none is known. The popup's Role row is always drawn. |
 | Popup | frame | `frame.autoShow` | bool | true | subgroup `Behavior`, solo | Auto-open the popup on group join. With this off, the chat notification still prints and the user can re-open via the chat link or `/wg show`. |
 | Popup | frame | `frame.width` | number | 420 | subgroup `Layout`, (paired) | Popup width in pixels (320–700, step 10). Was `FRAME_WIDTH`, a file-local in `modules/Frame.lua`; the default is the number it replaced. |
-| Popup | frame | `frame.height` | number | 260 | subgroup `Layout`, (paired) | Popup height in pixels (200–520, step 10). Was `FRAME_HEIGHT`, same story. |
+| Popup | frame | `frame.height` | number | 280 | subgroup `Layout`, (paired) | Popup height in pixels (200–520, step 10). Was `FRAME_HEIGHT` (260); 280 since the Role row added one 18px row, rounded up to the step. |
 
 The popup dialog always renders every field; the `notify.show*` rows gate **chat output only**. See [scope.md](./scope.md#resolved-decisions) for why.
 
@@ -405,6 +407,7 @@ Rendered panel layout:
 [Instance]            | [Type]
 [Leader]              | [Playstyle]
 [Details link]        | [Teleport spell]
+[Role]
   <Test button (160 px, left-aligned, afterGroup["Chat"])>
 
 --- Popup ---

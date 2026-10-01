@@ -35,6 +35,9 @@ local LIBKA0S = {
     "libs/LibKa0s/Item.lua",
     "libs/LibKa0s/Media.lua",
     "libs/LibKa0s/Widgets.lua",
+    -- New in LibKa0s v1.66.0: ReorderList peeled out of Widgets.lua (WidgetsReorder minor 1),
+    -- loaded right after it and before the drag handle, as the XML has it. Nothing here adopts it.
+    "libs/LibKa0s/WidgetsReorder.lua",
     -- New in LibKa0s v1.48.0: the drag handle peeled out of Widgets.lua into its own file and
     -- its own LibStub minor. This addon adopts nothing from it, but the client loads every
     -- file of the XML, so this list carries it or the XML-order check fails.
@@ -47,6 +50,9 @@ local LIBKA0S = {
     -- (DebugLogGates minor 1). It attaches to the DebugLog shell after the diagnostics file.
     "libs/LibKa0s/DebugLogGates.lua",
     "libs/LibKa0s/Slash.lua",
+    -- New in LibKa0s v1.66.0: the value parsers peeled out of Slash.lua (SlashParse minor 1).
+    -- settings/Slash.lua's parse adapter calls lib.ParseValue, which now lives here.
+    "libs/LibKa0s/SlashParse.lua",
     "libs/LibKa0s/Launcher.lua",
     "libs/LibKa0s/Options.lua",
     -- New in LibKa0s v1.62.0: four files peeled out of the Options major (OptionsRegistry out of
@@ -62,6 +68,11 @@ local LIBKA0S = {
     "libs/LibKa0s/OptionsScroll.lua",
     "libs/LibKa0s/OptionsNav.lua",
     "libs/LibKa0s/Perf.lua",
+    -- New in LibKa0s v1.66.0: Perf's capture and its command surface peeled to two files of their
+    -- own (PerfSampler minor 1, PerfCommands minor 1). Perf is declined here; the client loads
+    -- every file of the XML, so the list carries both in XML order.
+    "libs/LibKa0s/PerfSampler.lua",
+    "libs/LibKa0s/PerfCommands.lua",
     "libs/LibKa0s/PerfPanel.lua",
 }
 

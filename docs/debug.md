@@ -13,9 +13,9 @@ WhatGroup has two debug surfaces, and both write into the same window:
   console carries, what writes it and when, and which repeating paths stay quiet on purpose.
 
 The console and the report frame are the library's, and their contract lives in LibKa0s's
-[`docs/api/DebugLog/version-18.2.1-docs.md`](https://github.com/tusharsaxena/LibKa0s/blob/master/docs/api/DebugLog/version-18.2.1-docs.md)
-(DebugLog minor 18 with its `DebugLogDiagnostics.lua` secondary file at minor 2 and its
-`DebugLogGates.lua` secondary file at minor 1, as vendored from LibKa0s v1.65.0: the resizable
+[`docs/api/DebugLog/version-19.2.1-docs.md`](https://github.com/tusharsaxena/LibKa0s/blob/master/docs/api/DebugLog/version-19.2.1-docs.md)
+(DebugLog minor 19 with its `DebugLogDiagnostics.lua` secondary file at minor 2 and its
+`DebugLogGates.lua` secondary file at minor 1, as vendored from LibKa0s v1.66.0: the resizable
 console, the title bar's Diagnostics link, a report run that turns logging on for the session, and
 the change gates and at-enable queue).
 This page covers only what WhatGroup adds on top.
@@ -95,7 +95,7 @@ order. Every line is tagged `[Diag]` except the settings rows, which carry `[Set
 | settings | Every schema row that differs from its default, as `path = value (default)`. `enabled`, `notify.enabled` and `frame.autoShow` always print, whatever their value, because they are the three switches a "nothing happened" report turns on. The session-only rows (`state.debugConsole`, `state.testMode`) are skipped |
 | registration | The four feature events (`GROUP_ROSTER_UPDATE`, `LFG_LIST_APPLICATION_STATUS_UPDATED`, `PLAYER_REGEN_DISABLED`, `PLAYER_REGEN_ENABLED`), each `=yes`, `=no` or `=unknown`, read from AceEvent's own registry; the chat-link route (`EventRegistry addon link`, or `SetItemRef post-hook (degraded client)`); the events this client refused to register |
 | group | `inGroup`, `inRaid` and the member count, each read under `pcall` |
-| capture | The client's own applications as `C_LFGList` holds them, `id=status`, beside what the addon captured: `capturesByResult` and `pendingApplications` as `key=title`, keys sorted so two reports diff cleanly. Then `wasInGroup` and whether the join notice already fired for the current group. Stood down, the section is one line: `capture: stood down, runtime state released` |
+| capture | The client's own applications as `C_LFGList` holds them, `id=status role=<role>` (the role is `GetApplicationInfo`'s 5th return, printed raw so its position can be checked in game, WhatGroup#1), beside what the addon captured: `capturesByResult` and `pendingApplications` as `key=title`, keys sorted so two reports diff cleanly. Then `wasInGroup` and whether the join notice already fired for the current group. Stood down, the section is one line: `capture: stood down, runtime state released` |
 | pending | The captured group the popup would show: title, leader, voice chat, activity id, map id and full name, or `pending: none`. Then whether the notify timer is armed and its time left, and whether the first popup build is queued behind combat |
 | teleport | For the pending group: the resolved Path-of spell id, whether it is known, and whether `TeleportSpells` has an entry. The cooldown prints as its raw `start` and `duration` when both are readable numbers, and as `teleport cooldown unreadable` otherwise. With no pending group: `teleport: no pending group` |
 | popup | `popup: not built` until the first show. Once built: shown, on screen, soft-hidden, a pending hide, whether the visibility gate is withholding it, test mode, a deferred teleport configure, the cooldown ticker, the ESC proxy, and the combat-end queue. Then the saved point from `db.global.windows.popup` beside the live one |

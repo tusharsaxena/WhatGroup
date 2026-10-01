@@ -14,7 +14,8 @@
 -- the activity table and the chat-link detection. So this file and the library
 -- are between them the SOLE callers of the variant APIs (C_Spell.*, the global
 -- GetSpell* fallbacks, C_SpellBook.IsSpellKnown and the IsSpellKnown global,
--- C_LFGList.GetActivityInfoTable, LinkTypes.AddOn plus EventRegistry).
+-- C_LFGList.GetActivityInfoTable, LinkTypes.AddOn plus EventRegistry, UnitGroupRolesAssigned and
+-- CreateAtlasMarkup).
 -- When a patch renames or moves one of these, one of the two changes. Every
 -- shim degrades to a safe default (nil / false / 0) rather than throwing when
 -- the underlying API, or the library, is absent.
@@ -137,6 +138,44 @@ function Compat.GetActivityInfoTable(activityID)
         return C_LFGList.GetActivityInfoTable(activityID)
     end
     return nil
+end
+
+-- ---------------------------------------------------------------------------
+-- Group roles (WhatGroup#1)
+-- ---------------------------------------------------------------------------
+
+-- The three role tokens the client spells, and the tiny atlas each one draws with. A lookup only
+-- ever indexes this table with a string NS.SafeToString has already vetted, so a secret value is
+-- never a key or an operand here.
+local ROLE_ATLAS = {
+    TANK    = "roleicon-tiny-tank",
+    HEALER  = "roleicon-tiny-healer",
+    DAMAGER = "roleicon-tiny-dps",
+}
+
+--- `v` when it is one of the three role tokens, else nil. type() is legal on any value, and
+--- NS.SafeToString answers its own placeholder for a secret, which is no token, so the raw value is
+--- never compared.
+function Compat.RoleToken(v)
+    if type(v) ~= "string" then return nil end
+    local s = NS.SafeToString(v)
+    if ROLE_ATLAS[s] then return s end
+    return nil
+end
+
+--- The role the group leader assigned the player ("TANK" / "HEALER" / "DAMAGER"), or nil for
+--- "NONE", a non-token answer, or a client without UnitGroupRolesAssigned.
+function Compat.AssignedRole()
+    if not UnitGroupRolesAssigned then return nil end
+    return Compat.RoleToken(UnitGroupRolesAssigned("player"))
+end
+
+--- Inline markup for a role token's tiny icon, or "" when the token is unknown or the client has
+--- no CreateAtlasMarkup.
+function Compat.RoleIconMarkup(token)
+    local atlas = ROLE_ATLAS[token]
+    if not (atlas and CreateAtlasMarkup) then return "" end
+    return CreateAtlasMarkup(atlas, 14, 14)
 end
 
 -- ---------------------------------------------------------------------------

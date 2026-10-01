@@ -21,7 +21,7 @@ db.profile = {
   frame = {
     autoShow = true,              -- open the popup automatically on join
     width    = 420,               -- popup width  in pixels (clamped 320..700)
-    height   = 260,               -- popup height in pixels (clamped 200..520)
+    height   = 280,               -- popup height in pixels (clamped 200..520)
   },
   notify = {
     enabled       = true,         -- print the chat summary on join
@@ -32,6 +32,7 @@ db.profile = {
     showPlaystyle = true,
     showClickLink = true,
     showTeleport  = true,
+    showRole      = true,         -- the Role line (WhatGroup#1)
   },
 }
 

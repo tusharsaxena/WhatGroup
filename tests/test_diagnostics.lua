@@ -133,6 +133,16 @@ test("diagnostics: the client's applications print beside the capture tables", f
     assertTrue(has(lines, "capturesByResult: -"), "and nothing left waiting on a search result")
 end)
 
+-- WhatGroup#1: the role the client hands back in GetApplicationInfo's 5th return is printed raw
+-- (through SafeToString), so the owner can confirm in game where the Role row's middle source sits.
+test("diagnostics: each client application prints the role GetApplicationInfo returns", function()
+    local NS, _, mock = T.enableAddon()
+    mock.applications[100] = 100
+    mock.applicationRoles[100] = "HEALER"
+    mock.C_LFGList.GetApplications = function() return { 100 } end
+    assertTrue(has(report(NS), "client applications: 100=applied role=HEALER"))
+end)
+
 test("diagnostics: pending info prints leader, voice chat and title, and the notify timer", function()
     local NS, _, mock = T.enableAddon()
     NS.addon.pendingInfo = { title = "Keys", leaderName = "Testadin", voiceChat = "Discord",

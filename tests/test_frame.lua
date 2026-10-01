@@ -17,11 +17,11 @@ local F = dofile("tests/frame_fixture.lua")
 local pending, popup, closeButton, dragHandle, PROXY, proxy =
     F.pending, F.popup, F.closeButton, F.dragHandle, F.PROXY, F.proxy
 
--- The popup's five value FontStrings, by name. buildFrame creates them on the
+-- The popup's six value FontStrings, by name. buildFrame creates them on the
 -- `content` frame in a fixed label/value/label/value order (MakeLabel emits the
 -- gold label then its value), followed by the standalone "Teleport:" label and
--- the cooldown note that sits beside the button — so content holds 12
--- FontStrings and the five row values sit at the even indices. Locating
+-- the cooldown note that sits beside the button — so content holds 14
+-- FontStrings and the six row values sit at the even indices. Locating
 -- `content` as the frame carrying the most FontStrings keeps this independent of
 -- how many frames buildFrame creates around it.
 local function fields(mock)
@@ -36,8 +36,9 @@ local function fields(mock)
         instance  = fs[4],
         type      = fs[6],
         leader    = fs[8],
-        playstyle = fs[10],
-        note      = fs[12],
+        role      = fs[10],
+        playstyle = fs[12],
+        note      = fs[14],
     }
 end
 
@@ -695,12 +696,12 @@ end)
 -- ---------------------------------------------------------------------------
 
 test("frame: the popup is built at the profile's width and height", function()
-    -- FRAME_WIDTH / FRAME_HEIGHT used to be file-locals. The shipped defaults are the numbers they
-    -- were, so this case also pins that an untouched profile draws the popup that shipped.
+    -- FRAME_WIDTH / FRAME_HEIGHT used to be file-locals. The shipped width is the number it was;
+    -- the height is 280 since the Role row (WhatGroup#1) added one 18px row to the 260 that shipped.
     local NS, _, mock = T.bootAddon()
     NS.addon:ShowFrame()
     assertEqual(popup(mock):GetWidth(), 420)
-    assertEqual(popup(mock):GetHeight(), 260)
+    assertEqual(popup(mock):GetHeight(), 280)
 end)
 
 test("frame: a stored size is honored on build", function()
@@ -738,7 +739,7 @@ test("frame: a non-numeric stored size falls back to the shipped default", funct
     NS.addon.db.profile.frame.height = nil
     NS.addon:ShowFrame()
     assertEqual(popup(mock):GetWidth(), 420)
-    assertEqual(popup(mock):GetHeight(), 260)
+    assertEqual(popup(mock):GetHeight(), 280)
 end)
 
 test("frame: a size change taken in combat is refused, and lands on the next open", function()
@@ -753,4 +754,39 @@ test("frame: a size change taken in combat is refused, and lands on the next ope
     mock.combat = false
     NS.addon:ShowFrame()
     assertEqual(popup(mock):GetWidth(), 600, "and the next open picks the value up")
+end)
+
+-- ---------------------------------------------------------------------------
+-- The Role row (WhatGroup#1): always on the popup, whatever notify.showRole says
+-- ---------------------------------------------------------------------------
+
+test("frame: the Role field renders the role with its icon", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.pendingInfo = pending({ role = "HEALER" })
+    NS.addon:ShowFrame()
+    local text = fields(mock).role:GetText()
+    assertTrue(text:find("Healer", 1, true) ~= nil)
+    assertTrue(text:find("roleicon-tiny-healer", 1, true) ~= nil)
+end)
+
+test("frame: the Role field shows even with notify.showRole off", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.Settings.Helpers.Set("notify.showRole", false)
+    NS.addon.pendingInfo = pending({ role = "TANK" })
+    NS.addon:ShowFrame()
+    assertTrue(fields(mock).role:GetText():find("Tank", 1, true) ~= nil)
+end)
+
+test("frame: an unknown role renders the dim em-dash", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    assertTrue(fields(mock).role:GetText():find("\226\128\148", 1, true) ~= nil)
+end)
+
+test("frame: with no pendingInfo the Role field renders the dim em-dash", function()
+    local NS, _, mock = T.bootAddon()
+    NS.addon.pendingInfo = nil
+    NS.addon:ShowFrame()
+    assertTrue(fields(mock).role:GetText():find("\226\128\148", 1, true) ~= nil)
 end)

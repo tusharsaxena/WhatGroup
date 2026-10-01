@@ -220,13 +220,13 @@ When the user does ask, the version sites are:
 
 The user has a `/wow-addon:bump-version <X.Y.Z>` slash command in their personal `wow-addon` plugin that updates every site in one pass. Prefer that over manual edits.
 
-**In the same change, before the tag:** regenerate the complexity report and read its diff —
+**In the same change, before the tag:** regenerate the complexity report through the kit and read its diff —
 
 ```sh
-lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .
+bash tests/_kit/run-automated-tests.sh --suite complexity
 ```
 
-— writing anything that newly crossed a threshold into `docs/automated-tests/RESULTS.md`'s watch list. This is a **release** checkpoint and **not** a commit gate; see [testing.md → The complexity report](./testing.md#the-complexity-report--a-release-checkpoint-not-a-commit-gate) and performance-§10.
+— lizard over the kit's sighted shadow, `-L 1500`, with function-count parity. Raw `lizard` run on the tree is blind in Lua and is not the gate; the tag needs `pass`, zero functions above CCN 15 and `blindFiles` 0. Write anything that newly crossed a threshold into `docs/automated-tests/RESULTS.md`'s watch list. This is a **release** checkpoint and **not** a commit gate; see [testing.md → The complexity report](./testing.md#the-complexity-report--a-release-checkpoint-not-a-commit-gate) and performance-§10.
 
 ## Add a captured-info field
 
@@ -237,7 +237,7 @@ If `C_LFGList.GetSearchResultInfo` or `C_LFGList.GetActivityInfoTable` exposes a
    - Add a new `MakeLabel` call after the existing rows, anchored against the previous label.
    - Add a `fields.<name>` entry to the storage table.
    - Add a populator branch in `PopulateFields` reading `info.<field>`.
-   - The `content` frame's size is fixed by its TOPLEFT + BOTTOMRIGHT anchors, so no SetHeight tweak is needed for layout. If the new row would push past `frame.height - 38 - 44` (≈ 178 px at the shipped 260), the popup needs to be taller — see step 5 below.
+   - The `content` frame's size is fixed by its TOPLEFT + BOTTOMRIGHT anchors, so no SetHeight tweak is needed for layout. If the new row would push past `frame.height - 38 - 44` (≈ 198 px at the shipped 280), the popup needs to be taller — see step 5 below.
 3. If it's surfaced in chat, add an entry to the module-level `NOTIFY_ROWS` table above `ShowNotification` — `{ flag = "show<Name>", label = "<Name>:", value = function(self, info) ... end }` — placed at the position in the table where you want the row printed, since the table order *is* the chat order. `ShowNotification` itself no longer carries a branch per row; it loops the table and gates each entry on `n[row.flag]`. Add `omitWhenNil = true` only if the row should vanish entirely when there is nothing to show — the default is to print the row with the value degraded by the `NS.SafeToString` seam, which is what the Leader row relies on. Add the matching `notify.show<Name>` schema row.
 4. Update the captured-info table in [data-flow.md](./data-flow.md#captured-info).
 5. If the popup's height needs to grow to fit a new row, the height is a **setting**, not a file-local: raise `frame.height`'s shipped default in `defaults/Profile.lua` (`NS.C.frame.height`) and, if the new floor is above it, the schema row's `min` in `settings/Schema.lua` together with `FRAME_H_MIN` / `FRAME_H_MAX` at the top of `modules/Frame.lua` — the clamp pair and the slider bounds are mirrored on purpose and must move together.

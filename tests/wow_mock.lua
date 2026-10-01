@@ -94,6 +94,8 @@ local function build()
     -- everything it reads back afterwards.
     mock.searchResults = {}   -- [id] -> C_LFGList.GetSearchResultInfo table
     mock.applications  = {}   -- [appID] -> searchResultID (GetApplicationInfo)
+    mock.applicationRoles = {} -- [appID] -> GetApplicationInfo's 5th return, the role ("TANK"...)
+    mock.assignedRole  = "NONE" -- UnitGroupRolesAssigned("player")'s answer
     mock.activities    = {}   -- [id] -> C_LFGList.GetActivityInfoTable table
     mock.knownSpells   = {}   -- [spellID] -> true when learned (C_SpellBook and the global)
     mock.spellNames    = {}   -- [spellID] -> localized name (optional override)
@@ -582,9 +584,21 @@ local function build()
         GetApplicationInfo   = function(appID)
             local id = mock.applications[appID]
             if id == nil then return nil end
-            return id, "applied", nil, 0, nil
+            return id, "applied", nil, 0, mock.applicationRoles[appID]
         end,
     }
+
+    -- The role surface (WhatGroup#1): the leader-assigned role, Blizzard's localized role names,
+    -- and the atlas markup the role icon is drawn with. The markup echoes the atlas name so a suite
+    -- can assert which icon was asked for.
+    mock.UnitGroupRolesAssigned = function(unit)
+        if unit ~= "player" then return "NONE" end
+        return mock.assignedRole
+    end
+    mock.CreateAtlasMarkup = function(atlas) return "|A:" .. tostring(atlas) .. ":0:0|a" end
+    mock.TANK    = "Tank"
+    mock.HEALER  = "Healer"
+    mock.DAMAGER = "Damage"
 
     mock.Enum = {
         LFGEntryGeneralPlaystyle = {

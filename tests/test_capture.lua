@@ -542,3 +542,106 @@ test("capture: a stored zero survives the defaults, because 0 is truthy in Lua",
     assertEqual(c.maxNumPlayers, 0)
     assertEqual(c.categoryID, 0)
 end)
+
+-- ---------------------------------------------------------------------------
+-- The signed-up role (WhatGroup#1): the apply flags, the application's role, and the merge
+-- ---------------------------------------------------------------------------
+
+-- apply (through the real hook) -> applied, with the application mapped so GetApplicationInfo
+-- answers. Returns the addon.
+local function applyAndPair(NS, mock, tankOK, healerOK, damageOK)
+    local addon = NS.addon
+    mock.searchResults[100] = baseInfo({ name = "Queued", activityIDs = { 500 } })
+    mock.activities[500] = { fullName = "Q", mapID = 111 }
+    mock.applications[100] = 100
+    mock.fireHook("ApplyToGroup", 100, tankOK, healerOK, damageOK)
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "applied")
+    return addon
+end
+
+test("capture: the ApplyToGroup role flags land on the capture as appliedRoles", function()
+    local NS, _, mock = T.bootAddon()
+    local addon = applyAndPair(NS, mock, true, false, true)
+    mock.searchResults[100] = nil      -- the accept keeps the queued capture
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+    local roles = addon.pendingInfo.appliedRoles
+    assertTrue(roles ~= nil, "the capture carries the offered roles")
+    assertEqual(roles.tank, true)
+    assertEqual(roles.healer, false)
+    assertEqual(roles.damage, true)
+end)
+
+test("capture: an apply flag that is not a boolean reads as not offered", function()
+    local NS, _, mock = T.bootAddon()
+    local addon = applyAndPair(NS, mock, 1, "yes", nil)
+    mock.searchResults[100] = nil
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+    local roles = addon.pendingInfo.appliedRoles
+    assertEqual(roles.tank, false)
+    assertEqual(roles.healer, false)
+    assertEqual(roles.damage, false)
+end)
+
+test("capture: the invited status stamps GetApplicationInfo's role onto the paired capture", function()
+    local NS, _, mock = T.bootAddon()
+    local addon = applyAndPair(NS, mock, true, true, false)
+    mock.applicationRoles[100] = "HEALER"
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "invited")
+    mock.applicationRoles[100] = nil   -- the accept's own read answers no role
+    mock.searchResults[100] = nil      -- and no fresh capture: the queued one is final
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+    assertEqual(addon.pendingInfo.role, "HEALER")
+end)
+
+test("capture: inviteaccepted carries the application's role into the fresh capture", function()
+    local NS, _, mock = T.bootAddon()
+    local addon = applyAndPair(NS, mock, true, true, false)
+    mock.searchResults[100] = baseInfo({ name = "Fresh", activityIDs = { 501 } })
+    mock.activities[501] = { fullName = "F", mapID = 222 }
+    mock.applicationRoles[100] = "TANK"
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+    assertEqual(addon.pendingInfo.title, "Fresh")
+    assertEqual(addon.pendingInfo.role, "TANK")
+    assertEqual(addon.pendingInfo.appliedRoles.tank, true, "the offered roles follow the merge")
+end)
+
+test("capture: the fresh capture's role wins over the queued one only when it has one", function()
+    local NS, _, mock = T.bootAddon()
+    local addon = applyAndPair(NS, mock, true, true, false)
+    mock.applicationRoles[100] = "HEALER"
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "invited")
+    mock.applicationRoles[100] = nil
+    mock.searchResults[100] = baseInfo({ name = "Fresh", activityIDs = { 501 } })
+    mock.activities[501] = { fullName = "F", mapID = 222 }
+    addon:LFG_LIST_APPLICATION_STATUS_UPDATED("evt", 100, "inviteaccepted")
+    assertEqual(addon.pendingInfo.title, "Fresh")
+    assertEqual(addon.pendingInfo.role, "HEALER", "a role-less fresh read keeps the invited role")
+end)
+
+test("capture: ResolveSearchResultID answers the role from the multi-return", function()
+    local NS, _, mock = T.bootAddon()
+    mock.applications[9] = 77
+    mock.applicationRoles[9] = "DAMAGER"
+    local id, role = NS.addon:ResolveSearchResultID(9)
+    assertEqual(id, 77)
+    assertEqual(role, "DAMAGER")
+end)
+
+test("capture: a table-shaped GetApplicationInfo still resolves both the id and the role", function()
+    local NS, _, mock = T.bootAddon()
+    mock.C_LFGList.GetApplicationInfo = function() return { searchResultID = 7, role = "TANK" } end
+    local id, role = NS.addon:ResolveSearchResultID(3)
+    assertEqual(id, 7)
+    assertEqual(role, "TANK")
+end)
+
+test("capture: a role that is not one of the three tokens is refused", function()
+    local NS, _, mock = T.bootAddon()
+    mock.applications[9] = 77
+    for _, bad in ipairs({ 12, "NONE", "BOGUS", true }) do
+        mock.applicationRoles[9] = bad
+        local id, role = NS.addon:ResolveSearchResultID(9)
+        assertEqual(id, 77)
+        assertNil(role, "role " .. tostring(bad) .. " is refused")
+    end
+end)

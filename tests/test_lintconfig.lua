@@ -20,8 +20,8 @@
 -- twenty-four findings, and fifteen of them were not conventions at all. Ten files opened
 -- `local addonName, NS = ...` and never read the folder name; the two hook handlers carried five
 -- parameters they never used. All fifteen are gone from the source as of `M4c-04` rather than
--- re-parked in a narrower suppression, and the nine that remain are eight receivers a calling
--- convention forces plus one deliberately empty branch. The measurement that says the difference
+-- re-parked in a narrower suppression, and the nine that remained were eight receivers a calling
+-- convention forces plus one deliberately empty branch (which WhatGroup#1 filled, leaving eight). The measurement that says the difference
 -- is real: a dead second parameter added to
 -- `WhatGroup:RunTest` reports under the config this gate guards, and reported nothing under the
 -- blanket.
@@ -300,8 +300,8 @@ test("lintconfig: no source file carries a bare inline luacheck ignore", functio
             lineNo = lineNo + 1
             -- `-- luacheck: ignore` with nothing after it silences every warning in scope. With a
             -- code after it — `ignore 542` — it is the narrowest suppression luacheck offers, and
-            -- is the form this rule steers towards; core/WhatGroup.lua's `invited` branch is the
-            -- repository's one user of it.
+            -- is the form this rule steers towards. core/WhatGroup.lua's `invited` branch was the
+            -- repository's one user of it until that branch began stamping the role (WhatGroup#1).
             local tail = line:match("%-%-%s*luacheck:%s*ignore(.*)$")
             if tail and tail:match("^%s*$") then
                 bare[#bare + 1] = path .. ":" .. lineNo

@@ -106,6 +106,21 @@ has, and it runs after Blizzard's fallthrough. What the shim cannot probe is whe
 itself is registered: `LinkUtil.IsLinkHandlerRegistered` exists, but asking it would couple this
 file to a second Blizzard internal for a case no client has shipped.
 
+## The role shims: `RoleToken`, `AssignedRole`, `RoleIconMarkup` (WhatGroup#1)
+
+Three shims serve the popup's and the chat's Role row ([data-flow.md](./data-flow.md#the-signed-up-role-whatgroup1)).
+
+- **`RoleToken(v)`** answers `v` when it is `"TANK"`, `"HEALER"` or `"DAMAGER"`, else nil. It calls
+  `type()` first and compares only `NS.SafeToString(v)`, whose answer for a secret is a placeholder
+  that is no token, so a client value is never compared or used as a key raw. This addon wires none
+  of LibKa0s-Compat's secret guards (`tests/test_surface_parity.lua` says why); this is the one
+  place a client string is matched, and the safe rendering is enough for it.
+- **`AssignedRole()`** wraps `UnitGroupRolesAssigned("player")` through `RoleToken`: nil for
+  `"NONE"`, for a non-token answer, or on a client without the API.
+- **`RoleIconMarkup(token)`** answers `CreateAtlasMarkup` on `roleicon-tiny-tank` / `-healer` /
+  `-dps` at 14 px, or `""` for an unknown token or a client without `CreateAtlasMarkup`, so the row
+  degrades to the bare role name.
+
 ## Why the two cooldown readers are not one reader
 
 `GetSpellCooldownRemaining` and `GetSpellCooldownTimes` read the same client API through the same

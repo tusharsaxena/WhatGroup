@@ -515,7 +515,7 @@ end)
 --- One page, so one entry. WhatGroup registers a single settings sub-page ("general"); every row
 --- carries `section` for `/wg list` and `group` for the tab, and no row is hidden.
 local PARTITION = {
-    general = { { "Master controls", 8 }, { "Chat", 8 }, { "Popup", 3 } },
+    general = { { "Master controls", 8 }, { "Chat", 9 }, { "Popup", 3 } },
 }
 
 test("settings: the page's tabs are the designed ones, in order, at the designed size",
@@ -547,7 +547,7 @@ end)
 test("settings: no tab holds fewer than two controls", function()
     -- A tab over one control is a click that reveals a single checkbox. Nothing is exempt here:
     -- every tab on this page is schema rows all the way down, and the one bespoke control the page
-    -- still draws (the Test button) sits on Chat, which carries eight rows of its own.
+    -- still draws (the Test button) sits on Chat, which carries nine rows of its own.
     -- red under: a tab losing rows until one is left, or a new one-row group.
     local NS = T.newAddon()
     local counts = {}
@@ -575,13 +575,15 @@ end)
 
 test("settings: the popup size defaults are the literals they replaced", function()
     -- modules/Frame.lua's FRAME_WIDTH / FRAME_HEIGHT were 420 and 260. A default that is not the
-    -- number it replaced would silently resize every existing install's popup.
+    -- number it replaced would silently resize every existing install's popup. The one move made on
+    -- purpose: the height is 280 since the Role row (WhatGroup#1) added one 18px row, rounded up to
+    -- the slider's step of 10 so the default stays a value the slider can reach.
     local NS = T.newAddon()
     local d = NS.addon.Settings.BuildDefaults()
     assertEqual(d.profile.frame.width, 420)
-    assertEqual(d.profile.frame.height, 260)
+    assertEqual(d.profile.frame.height, 280)
     assertEqual(NS.C.frame.width, 420, "and the value itself lives in defaults/Profile.lua")
-    assertEqual(NS.C.frame.height, 260)
+    assertEqual(NS.C.frame.height, 280)
 end)
 
 test("settings: the size sliders cannot travel outside the frame's own clamp", function()
@@ -759,4 +761,26 @@ function()
                 row.path .. "'s companion does not declare whose class it means")
         end
     end
+end)
+
+-- ---------------------------------------------------------------------------
+-- notify.showRole (WhatGroup#1)
+-- ---------------------------------------------------------------------------
+
+test("settings: notify.showRole is a Chat > Text bool row, default on", function()
+    local NS = T.newAddon()
+    local row = NS.addon.Settings.Helpers.FindSchema("notify.showRole")
+    assertTrue(row ~= nil, "the row exists")
+    assertEqual(row.type, "bool")
+    assertEqual(row.group, "Chat")
+    assertEqual(row.subgroup, "Text")
+    assertEqual(row.label, "Role")
+    assertEqual(row.default, true)
+    assertEqual(NS.C.notify.showRole, true, "the value lives in defaults/Profile.lua")
+    assertEqual(NS.addon.Settings.BuildDefaults().profile.notify.showRole, true)
+end)
+
+test("settings: the Role label string is in the locale", function()
+    local NS = T.newAddon()
+    assertEqual(rawget(NS.L, "Role:"), "Role:")
 end)
