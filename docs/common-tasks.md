@@ -220,13 +220,13 @@ When the user does ask, the version sites are:
 
 The user has a `/wow-addon:bump-version <X.Y.Z>` slash command in their personal `wow-addon` plugin that updates every site in one pass. Prefer that over manual edits.
 
-**In the same change, before the tag:** regenerate the complexity report and read its diff —
+**In the same change, before the tag:** regenerate the complexity report through the kit and read its diff —
 
 ```sh
-lizard -l lua -x "./libs/*" -x "./tests/_kit/*" .
+bash tests/_kit/run-automated-tests.sh --suite complexity
 ```
 
-— writing anything that newly crossed a threshold into `docs/automated-tests/RESULTS.md`'s watch list. This is a **release** checkpoint and **not** a commit gate; see [testing.md → The complexity report](./testing.md#the-complexity-report--a-release-checkpoint-not-a-commit-gate) and performance-§10.
+— lizard over the kit's sighted shadow, `-L 1500`, with function-count parity. Raw `lizard` run on the tree is blind in Lua and is not the gate; the tag needs `pass`, zero functions above CCN 15 and `blindFiles` 0. Write anything that newly crossed a threshold into `docs/automated-tests/RESULTS.md`'s watch list. This is a **release** checkpoint and **not** a commit gate; see [testing.md → The complexity report](./testing.md#the-complexity-report--a-release-checkpoint-not-a-commit-gate) and performance-§10.
 
 ## Add a captured-info field
 
