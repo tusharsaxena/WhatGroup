@@ -1151,8 +1151,6 @@ local function pairApplication(self, appID)
     end
 end
 
--- Clear BOTH sides: "applied" may never have arrived, in which case the capture is still filed
--- under its search-result id and has no application id at all.
 -- "invited": stamp the role the application now carries onto its paired capture, and nothing
 -- else -- the capture itself must survive untouched (see the arm below).
 local function stampInviteRole(self, appID)
@@ -1170,6 +1168,8 @@ local function carryRole(final, fresh, queued)
     final.appliedRoles = final.appliedRoles or (queued and queued.appliedRoles)
 end
 
+-- Clear BOTH sides: "applied" may never have arrived, in which case the capture is still filed
+-- under its search-result id and has no application id at all.
 local function dropApplication(self, appID, newStatus)
     local resultID = self:ResolveSearchResultID(appID)
     local dropped  = pendingApplications[appID] or capturesByResult[resultID]
