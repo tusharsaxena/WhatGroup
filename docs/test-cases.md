@@ -26,7 +26,7 @@ badge and any count quoted in the docs must agree with it.
 - degraded: the Core stub's SafeRegisterEvent survives a bad name
 - events: a stand-up after a rejection records the name once
 
-### test_libka0s.lua (55)
+### test_libka0s.lua (56)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
@@ -45,6 +45,7 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: the console's user-visible strings resolve to prose, not to their own keys
 - debuglog: the gated sink survives a format its arguments cannot satisfy (WG-22)
 - options: Settings.Helpers IS the library instance, decorated in place
+- options: the library is told the FOLDER name, and the help-mark art is on disk
 - options: the host's data seams survived the move onto the instance
 - options: the host's RestoreAllDefaults deliberately overrides the library's
 - options: a panel write takes the addon's single write seam
@@ -1033,7 +1034,7 @@ badge and any count quoted in the docs must agree with it.
 | Suite | Cases |
 |-------|------:|
 | test_harness.lua | 17 |
-| test_libka0s.lua | 55 |
+| test_libka0s.lua | 56 |
 | test_surface_parity.lua | 9 |
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
@@ -1068,4 +1069,4 @@ badge and any count quoted in the docs must agree with it.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 9 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **914** |
+| **Total** | **915** |
