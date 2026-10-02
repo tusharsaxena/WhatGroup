@@ -74,10 +74,11 @@ vendored kit rather than living in `tests/`, each declared by the pair form
 `test_libka0s` is the integration suite for the adopted LibKa0s majors: that
 each really registers, that each descriptor is well-formed, that the degraded
 install answers rather than errors, and the two halves of the `L`-trap guard. It
-also carries the two cases that pin the ARGUMENT nothing else can see — that
+also carries the three cases that pin the ARGUMENT nothing else can see — that
 `NS.MakeCloseButton` forwards the addon **folder** name as the library's third
-argument, and that the DebugLog descriptor passes `addonName` beside `name`.
-Both are invisible in game except by comparison: the factory receives no name,
+argument, that the DebugLog descriptor passes `addonName` beside `name`, and that
+the Options descriptor passes it too (LibKa0s#42, the IdList help-mark art).
+All three are invisible in game except by comparison: the factory receives no name,
 builds no texture path, and draws a perfectly good button.
 
 `test_surface_parity` is the degradation gate. Each of the eight adopted seams
