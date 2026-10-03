@@ -1,115 +1,46 @@
 # CLAUDE.md — Ka0s WhatGroup
 
-**Ka0s WoW addon.** A retail WoW addon: Ace3 vendored under `libs/`, AceDB
-profiles (one shared `Default` until a player picks another on the Profiles page).
+**Ka0s WoW addon.** Adheres to the **Ka0s WoW Addon Standard** —
+https://github.com/tusharsaxena/WowAddonStandards
 
 ## Standards compliance (read first)
 
-This addon is built to the **Ka0s WoW Addon Standard** —
-<https://github.com/tusharsaxena/WowAddonStandards>. Treat that repo (its
-`standards/STANDARDS.md`) as the source of truth for structure, conventions,
-metadata, testing, and layout. All development here — features, refactors,
-doc changes — **MUST conform to it.**
+This repo is built to the **Ka0s WoW Addon Standard** (URL above). All development here — features,
+refactors, doc changes — MUST conform to it. The standard is the source of truth for layout, TOC
+shape, the Ace substrate, schema-driven settings, slash/prefix conventions, locales, Compat,
+tests/lint, and doc structure.
 
-**Deviation rule (MUST).** If a change would deviate from the standard — or you
-notice existing code/docs that already deviate — **stop and flag it to the
-user.** Never silently conform and never silently deviate. The user decides
-whether it should be:
-1. an **accepted deviation** — this addon intentionally differs; record it as a
-   row in `docs/ARCHITECTURE.md` → `## Documented deviations`, shaped
-   `| Rule | What differs | Why | Decided | Re-check trigger |`, where Rule is
-   the `filename-§N` reference. That register is the single home: the reasoning
-   may live in the issue-audit GitHub issue or an audit bundle and the row cites
-   it, but a deviation not in the register is not ratified; or
-2. a **change to the standard definition** itself — the update belongs upstream
-   in the WowAddonStandards repo, after which this addon conforms to the new rule.
+**If a change would deviate from the standard, STOP and flag the deviation explicitly.** Do not
+silently deviate and do not silently "fix" to match. Surface it and let the user decide which of
+two things it is:
 
-Do not resolve a standards conflict on your own — surface it and let the user
-choose. (See the frozen compliance snapshot in `docs/audits/2026-08-04/`.)
+1. **An accepted deviation** — this addon intentionally differs; record it as a row in
+   `docs/ARCHITECTURE.md` -> `## Documented deviations`, shaped
+   `| Rule | What differs | Why | Decided | Re-check trigger |`, where Rule is the `filename-§N`
+   reference. That register is the single home: the reasoning may live in the issue-audit GitHub
+   issue or an audit bundle and the row cites it, but a deviation not in the register is not ratified.
+2. **A change to the standard itself** — the standard's definition should evolve; the update
+   belongs upstream in the WowAddonStandards repo, after which this addon conforms to the new rule.
+
+The newest frozen compliance snapshot is `docs/audits/2026-09-23/`.
 
 When in doubt, treat standard conformance as a hard requirement and ask.
 
-## The `docs/` set — there is no `agent-context.md`
+Start here, then read the docs:
 
-The canonical `docs/` set (documentation-§3) is the trio **`ARCHITECTURE.md`** (what this addon
-is), **`testing.md`** (how to verify) and **`smoke-tests.md`** (in-game checks); the
-verification-and-record docs `test-cases.md` (generated), `performance.md`,
-`automated-tests/README.md` and `automated-tests/RESULTS.md` (generated) — `perf-analysis/README.md`
-is the conditional fifth, not shipped here because no performance harness is wired; the six Tier 1
-topic-detail docs `scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`, `data-flow.md` and
-`common-tasks.md`; and the Tier 2 and Tier 3 docs that `ARCHITECTURE.md` → `## Documentation map`
-registers.
+- **`docs/ARCHITECTURE.md`** — what this addon is: module map, settings schema, slash surface,
+  event wiring, taint notes, the invariants (observation-only, no AceHook), the working environment
+  (never edit `libs/` or `tests/_kit/`), the LibKa0s majors it takes, known limitations and the
+  documented deviations. **Read first.**
+- **`docs/testing.md`** — how to verify: the headless harness, lint, the vendor gate, the generated
+  `docs/test-cases.md` inventory and the README `tests` badge.
+- Topic detail in `docs/` as needed (`scope.md`, `module-map.md`, `schema.md`, `settings-panel.md`,
+  `data-flow.md`, `common-tasks.md`, `smoke-tests.md`, …), registered in `docs/ARCHITECTURE.md` ->
+  `## Documentation map`.
+- **`DEPENDENCIES.md`** — the toolchain contract: what to install to build, run, test or release.
 
-**`docs/agent-context.md` does not exist in this repo and MUST NOT be created.** The standard
-deleted it in **v2.17.0**; shipping it is **anti-pattern #49**. It held `NEW_ADDON_CONTEXT.md` —
-the scaffolding pack — which is fetched at runtime and never stored: a copy in the repo describes
-the addon on the day it was born, forever, and because it loads as *working context* a stale copy
-does not go quiet, it gets **followed** (documentation-§3). This root `CLAUDE.md` is the repo's
-only agent brief.
+Green gate before every commit: `lua tests/run.lua` and `luacheck .` (0/0); the suite includes the
+vendor gate against the tag below (`tests/test_vendor_sync.lua`). Never auto-stage/commit/push and
+never bump the version without an explicit instruction.
 
-Older audit bundles, review bundles and plans under `docs/` predate v2.17.0 and still
-name the file, and some describe a four-file or a pre-v2.3.0 `agent-context.md`-based set. Those
-are **frozen history** — never treat them as a live requirement, and never "restore" the file.
-
-## Hard rules
-
-- **Never auto-stage, auto-commit, or auto-push.** Leave edits modified-but-unstaged and
-  describe them. Only an explicit instruction in the *current* turn authorizes `git add` /
-  `commit` / `push` — a prior approval does not carry forward. Invoking `/wow-addon:commit`
-  (or plainly saying "commit this") IS that instruction, for that turn only.
-- **Never bump the version** — TOC `## Version:`, `WhatGroup.VERSION`, the README badge or
-  Version History — without being told to in the current turn. Refactors and doc changes
-  don't justify a bump; mention it in the summary and leave the edit to the user.
-- **Observation-only. No AceHook** — its wrappers taint the secure-execute chain and break
-  Logout. Hooks are direct `hooksecurefunc`. The chat link is an `EventRegistry` `"SetItemRef"`
-  callback on Blizzard's `addon` link type, and a `SetItemRef` post-hook remains only as the
-  degraded-client fallback. See the invariants in `docs/ARCHITECTURE.md`.
-- **Never edit `libs/` or `tests/_kit/`.** Both are whole-folder, byte-identical copies of
-  `../LibKa0s`'s ship folders. A library problem is a finding to fix **upstream** and
-  re-vendor — a local patch is a fork nobody knows about, and the next re-vendor silently
-  reverts it. The addon takes ten of LibKa0s's majors (Compat, Core, DebugLog, Env, Launcher,
-  Lifecycle, Media, Options, Schema, Slash) through the ten seam files `core/Compat.lua`,
-  `core/CoreSetup.lua`, `core/EnvSetup.lua`, `core/MediaSetup.lua`, `core/DebugLogSetup.lua`,
-  `core/LauncherSetup.lua`, `core/LifecycleSetup.lua`, `settings/OptionsSetup.lua`,
-  `settings/SchemaSetup.lua` and `settings/Slash.lua`; **Perf is
-  declined** on structural grounds ([`LIBKA0S-15`](https://github.com/tusharsaxena/WhatGroup/issues/7)).
-
-## Bundled LibKa0s
-
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.68.0 (MIT). That line is the
-repo's provenance claim — the tag `libs/LibKa0s/` and `tests/_kit/` were copied from — and
-`tests/test_vendor_sync.lua` reads it out of *this* file and compares both payloads against
-that tag in the sibling checkout. It is an input to the gate, not a comment: bump the version
-here in the **same commit** as the vendored bytes, or the gate fails. LibKa0s's own license
-travels with the code at `libs/LibKa0s/LICENSE`.
-
-## Response style
-
-Terse — state the change, not the deliberation. Cite `file_path:line_number`. Don't write
-summaries the diff already shows, don't create docs or planning files unless asked, and
-only comment the non-obvious *why*.
-
-This root file is a **stub** (documentation-§2). The real detail lives in `docs/`:
-
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — what this addon is: design
-  overview, subsystem map, invariants, working environment, load order. **Read first.**
-- **[docs/testing.md](docs/testing.md)** — how to verify: the green gate, mock fidelity,
-  the generated `docs/test-cases.md` inventory and the README `tests` badge.
-- Topic detail (module map, scope, schema, capture pipeline, settings system, profiles, slash
-  dispatch, stand-down, compat layer, debug console and diagnostics, frame, WoW quirks, performance,
-  common tasks, smoke tests) sits alongside them —
-  including the generated **[docs/automated-tests/RESULTS.md](docs/automated-tests/RESULTS.md)**, refreshed at
-  every release and never hand-edited (performance-§10).
-- **[DEPENDENCIES.md](DEPENDENCIES.md)** — the root toolchain contract (documentation-§7):
-  what to install to build, run, test or release this addon, with WSL2/Ubuntu commands.
-
-Green gate before every commit: `lua tests/run.lua` and `luacheck .` (0/0), plus the
-**vendor gate** — `diff -r --strip-trailing-cr` and plain `diff -r` of `../LibKa0s/LibKa0s`
-against `libs/LibKa0s` and of `../LibKa0s/testkit` against `tests/_kit`. Against the
-**tag `CLAUDE.md` names** a non-empty *content* diff is a real fork and a bytes-only one
-is a line-ending divergence; against the sibling's *working tree* a non-empty diff means
-only that the library has tagged a release this addon has not taken yet, which it
-usually has — `tests/test_vendor_sync.lua` runs the tag comparison inside the suite
-([docs/testing.md](docs/testing.md)). Plus the
-in-game [smoke tests](docs/smoke-tests.md) before tagging a release, after an
-`## Interface:` bump, or after a `libs/` refresh.
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.68.0 (MIT).

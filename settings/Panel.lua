@@ -343,13 +343,13 @@ local AFTER_GROUP = {
 -- The Master controls hook is added SEPARATELY rather than declared above, and both halves of that
 -- are deliberate.
 --
--- The KEY is Helpers.MASTER_GROUP, the constant OptionsCompose.lua:50 defines and :189 publishes,
--- rather than a second spelling of it typed out here. The two agree today; that is why the copy
--- lasted. What a copy cannot survive is a library-side rename, which moves `group` on every
--- composed row while leaving this key pointing at a group that no longer exists -- and because
--- RenderTabbedSchema fires afterGroup PER GROUP, the hook would simply never fire. The reset
--- button pair would stop being drawn, with nothing raised, no row missing and a tab that looks
--- perfectly ordinary (options-ui-§8).
+-- The KEY is Helpers.MASTER_GROUP, the constant libs/LibKa0s/OptionsCompose.lua defines and
+-- publishes as O.MASTER_GROUP, rather than a second spelling of it typed out here. The two agree
+-- today; that is why the copy lasted. What a copy cannot survive is a library-side rename, which
+-- moves `group` on every composed row while leaving this key pointing at a group that no longer
+-- exists -- and because RenderTabbedSchema fires afterGroup PER GROUP, the hook would simply never
+-- fire. The reset button pair would stop being drawn, with nothing raised, no row missing and a tab
+-- that looks perfectly ordinary (options-ui-§8).
 --
 -- The GUARD is what makes that legal at file load. settings/OptionsSetup.lua's degraded stub
 -- carries the composer FUNCTIONS and none of their published data, on purpose, so MASTER_GROUP is

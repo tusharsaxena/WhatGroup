@@ -62,14 +62,15 @@ The suites, in run order: `test_harness`, `test_libka0s`,
 `test_capture`, `test_notify`, `test_frame`, `test_frame_visibility`, `test_frame_secure`, `test_panel`, `test_profiles`, `test_testmode`,
 `test_snapshot`, `test_diagnostics`, `test_launcher`, `test_lifecycle`,
 `test_debuglog`, `test_library_lines`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
-`test_register`, `test_disabled`, `test_vendor_sync`. Four more run last and arrive with the
+`test_register`, `test_disabled`, `test_vendor_sync`. Five more run last and arrive with the
 vendored kit rather than living in `tests/`, each declared by the pair form
 `{ name = ..., dir = "tests/_kit/" }` (testing-§9): `test_eol` (line-endings-§7), `test_prose`
 (localization-§5, reading this repo's per-file, per-word waivers from `tests/prose_waivers.lua`),
-`test_layout_cap` (layout-§1, holding the census in `docs/ARCHITECTURE.md` to the tree) and
+`test_layout_cap` (layout-§1, holding the census in `docs/ARCHITECTURE.md` to the tree),
 `test_diagnostics_contract` (debug-logging-§14, run against this addon's own dispatcher through
 `Kit.diagnostics` in `tests/run.lua`, down to the run turning logging on for the session;
-`test_diagnostics` holds the report's sections).
+`test_diagnostics` holds the report's sections) and `test_lizard_sighted` (automated-tests-§3, the
+cases behind the sighted complexity shadow `run-automated-tests.sh` builds).
 
 `test_libka0s` is the integration suite for the adopted LibKa0s majors: that
 each really registers, that each descriptor is well-formed, that the degraded
@@ -229,8 +230,8 @@ unchanged.
 
 The README's `tests` badge is a **static, hand-maintained** shields.io X/Y
 (`img.shields.io/badge/Tests-<X>%2F<Y>_passing-green`) — no CI, no
-dynamic/endpoint badge, no GitHub Action (testing-§5). Its number is the grand
-total from `docs/test-cases.md`.
+dynamic/endpoint badge, no GitHub Action (testing-§5). Both figures are the pass
+count from `docs/test-cases.md`: a skipped case counts in neither (testing-§5).
 
 ## Keeping the inventory & badge in sync
 
