@@ -28,7 +28,7 @@
 -- WHAT IT DOES NOT DO, DELIBERATELY. It does not assert the 400-line whole-file SHOULD: the two
 -- registers are legitimately large here and the section says an audit "reports the shape, not the
 -- arithmetic". It does not check heading ORDER inside ARCHITECTURE.md, does not check that
--- `## Version History`'s top row names the TOC's version (that is `wow-addon:bump-version`'s, and
+-- `## Version History`'s top row names the TOC's version (that is `dev-copilot:bump-version`'s, and
 -- pinning it here would redden the tree between that command's own two edits), and does not count links per section
 -- — "exactly one link" is the spill's shape, but a compliant section may also cite a second doc, as
 -- documentation-§3's own Module Map example does.

@@ -33,7 +33,7 @@ used to block a commit.** A threshold that fails a run teaches everyone to reach
 after which the gate protects nothing and the habit remains. They contribute `amber`, which is a
 signal rather than a stop. The **tag** is a different question: it is gated on all four suites at
 `pass` plus zero functions above CCN 15 (`automated-tests-§3`, *The release gate*), evaluated by
-`/wow-addon:bump-version` from the release run's `manifest.json` — not by the runner, whose exit
+`/dev-copilot:bump-version` from the release run's `manifest.json` — not by the runner, whose exit
 code is unchanged.
 
 **A missing tool is a skip, not a failure**, and the skip is recorded with its reason — so a green
