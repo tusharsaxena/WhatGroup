@@ -197,7 +197,7 @@ When a major WoW patch ships, the `## Interface:` line in `WhatGroup.toc` moves 
 
 **One number, never a comma-separated list.** This addon is Retail-only (toc-file-§3, [scope.md](./scope.md)), so there is exactly one supported build at a time and a multi-build list is anti-pattern #15 — it is the shape an addon carries when it also ships Classic, which this one deliberately does not. Blizzard rejects the addon at load if the live client's build number is not the one named (or the user opts in via the AddOns "Load out-of-date" checkbox), which is the intended signal on patch day: the addon goes quiet until someone has actually checked the API surface still holds.
 
-`/wow-addon:bump-interface` does this and tells you the current Live value.
+`/dev-copilot:wow-bump-interface` does this and tells you the current Live value.
 
 **Move the README `[wow]` badge in the same change** (documentation-§1 / toc-file-§3). The static `WoW-<Expansion>_<X.Y.Z>-purple` badge and `## Interface:` MUST show the same patch and travel together — it renders fixed text, so it goes stale silently if deferred to a follow-up.
 
@@ -218,7 +218,7 @@ When the user does ask, the version sites are:
 | Settings parent panel subtitle | derived from `WhatGroup.VERSION` at runtime — no hard-coded copy |
 | `/wg help` output | derived from `WhatGroup.VERSION` at runtime — no hard-coded copy |
 
-The user has a `/wow-addon:bump-version <X.Y.Z>` slash command in their personal `wow-addon` plugin that updates every site in one pass. Prefer that over manual edits.
+The user has a `/dev-copilot:bump-version <X.Y.Z>` slash command in their personal `dev-copilot` plugin that updates every site in one pass. Prefer that over manual edits.
 
 **In the same change, before the tag:** regenerate the complexity report through the kit and read its diff —
 

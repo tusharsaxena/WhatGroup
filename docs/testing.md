@@ -431,7 +431,7 @@ upstream and is re-vendored.
 **At release, not at commit.** A full bundle is produced as part of every version bump, before the
 tag, with an `ANALYSIS.md` write-up. Commits are gated on lint + tests only; the **tag** is gated on
 all four suites at `pass` plus zero functions above CCN 15 (`automated-tests-§3`, *The release
-gate*), evaluated by `/wow-addon:bump-version` from that run's `manifest.json`.
+gate*), evaluated by `/dev-copilot:bump-version` from that run's `manifest.json`.
 
 Results live in [`automated-tests/`](./automated-tests/): `RESULTS.md` is one row per run across all
 four suites plus the current complexity watch list — **one file, overwritten in place**, so its git
