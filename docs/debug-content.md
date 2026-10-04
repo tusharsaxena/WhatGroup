@@ -5,7 +5,7 @@ descriptor. The window, the line format, the buffer, the scrollbar and line coun
 clear controls, the enable seam and the diagnostics report's frame are all the library's, and the
 library documents them once: LibKa0s `docs/api/DebugLog/` (major `LibKa0s-DebugLog-1.0`, minor 19 with
 its `DebugLogDiagnostics.lua` secondary file at minor 2 and its `DebugLogGates.lua` secondary file at minor 1,
-as vendored from v1.68.0, documented as version 19.2.1). This page does not restate any of it.
+as vendored from v1.68.1, documented as version 19.2.1). This page does not restate any of it.
 
 What this page holds is the part only WhatGroup knows: what the descriptor hands the library, the
 tags this addon logs under, where the session flag lives, what `/wg debug` does, and how to add a
