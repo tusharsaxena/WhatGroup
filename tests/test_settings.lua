@@ -597,6 +597,17 @@ test("settings: the size sliders cannot travel outside the frame's own clamp", f
     assertEqual(h.min, 200); assertEqual(h.max, 520); assertEqual(h.step, 10)
 end)
 
+test("settings: the size tooltips do not restate a default number", function()
+    -- The Height tooltip once said "The default 260" after the default had moved to 280. The
+    -- slider already shows the value, so the prose names no figure and cannot drift again.
+    local NS = T.newAddon()
+    local H = NS.addon.Settings.Helpers
+    for _, path in ipairs({ "frame.width", "frame.height" }) do
+        local tip = H.FindSchema(path).tooltip
+        assertTrue(not tip:find("%d"), path .. " tooltip states a number: " .. tip)
+    end
+end)
+
 -- ---------------------------------------------------------------------------
 -- The Master controls tab (options-ui-§15)
 -- ---------------------------------------------------------------------------

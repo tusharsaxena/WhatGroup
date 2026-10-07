@@ -61,10 +61,10 @@ local function refreshPanel()
     if H and H.RefreshAll then H.RefreshAll() end
 end
 
--- THE POPUP'S SIZE IS A SETTING NOW. `FRAME_WIDTH = 420` and `FRAME_HEIGHT = 260` used to be two
--- file-locals here; they are `frame.width` and `frame.height` in the schema, and their shipped
--- defaults ARE those two numbers (defaults/Profile.lua), so a profile that never touches either
--- slider draws the popup that shipped.
+-- THE POPUP'S SIZE IS A SETTING NOW. `FRAME_WIDTH` and `FRAME_HEIGHT` used to be two file-locals
+-- here; they are `frame.width` and `frame.height` in the schema, and their shipped defaults live in
+-- defaults/Profile.lua (`C.frame.width` / `C.frame.height`), so a profile that never touches either
+-- slider draws the popup at those defaults.
 --
 -- CLAMPED ON READ, not on write. The slider cannot produce an illegal value, but SavedVariables
 -- and `/wg set frame.width 4000` both can, and a popup wider than the monitor reads as the setting

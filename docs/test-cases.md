@@ -222,7 +222,7 @@ Total.
 - database: migrations run before any profile read (OnInitialize order)
 - database: the profile is untouched by a migration pass
 
-### test_settings.lua (58)
+### test_settings.lua (59)
 
 - settings: BuildDefaults threads profile + global defaults
 - settings: defaults source from NS.C (defaults/Profile.lua, WG-24)
@@ -271,6 +271,7 @@ Total.
 - settings: every row's group is one of the designed tabs
 - settings: the popup size defaults are the literals they replaced
 - settings: the size sliders cannot travel outside the frame's own clamp
+- settings: the size tooltips do not restate a default number
 - settings: the Master controls block is the FIRST group, in canonical order
 - settings: the Master controls rows are the COMPOSER's, not hand-written
 - settings: Enable names the addon, and visibility is a four-value dropdown
@@ -1059,7 +1060,7 @@ Total.
 | test_util.lua | 31 |
 | test_compat.lua | 47 |
 | test_database.lua | 11 |
-| test_settings.lua | 58 |
+| test_settings.lua | 59 |
 | test_slash.lua | 61 |
 | test_labels.lua | 40 |
 | test_capture.lua | 43 |
@@ -1088,4 +1089,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **930** |
+| **Total** | **931** |
