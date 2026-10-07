@@ -686,7 +686,7 @@ Total.
 - profile verb: surrounding quotes are stripped, case and inner spaces kept
 - profile verb: a switch in combat is refused and nothing moves
 
-### test_testmode.lua (23)
+### test_testmode.lua (26)
 
 - testmode: bare /wg test toggles test mode, and the checkbox follows
 - testmode: /wg test on|off sets it, and repeating either changes nothing
@@ -708,6 +708,9 @@ Total.
 - testmode: combat with test mode off prints nothing about it
 - testmode: Reset all settings ends it
 - testmode: /wg test notify is the one-shot notify + popup flow, and ends test mode
+- testmode: /wg test notify previews without replacing the real capture
+- testmode: the preview is one-shot under ESC and the launcher's Show window too
+- testmode: a preview asked for in combat lands as the preview at combat end
 - testmode: /wg show ends it and shows the real capture
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
@@ -825,9 +828,9 @@ Total.
 - lifecycle: /wg config opens the parent settings category
 - lifecycle: /wg config is refused during combat (options-ui-§2)
 - lifecycle: a login taken in combat registers the panel at combat end
-- lifecycle: /wg test notify injects a synthetic capture and runs the full flow
+- lifecycle: /wg test notify previews a synthetic capture through the full flow
 - lifecycle: /wg test notify refuses while the master switch is off
-- lifecycle: the panel Test button previews while the addon is disabled
+- lifecycle: the panel Test button previews in chat only while the addon is disabled
 - lifecycle: /wg test notify fires immediately, without the notify delay
 - lifecycle: /wg show opens the popup when a capture exists
 - lifecycle: /wg show with no capture prints a hint and opens nothing
@@ -882,7 +885,7 @@ Total.
 - debuglog: pin — an accepted invite with nothing pending logs the [Notify] skip line
 - debuglog: pin — a scheduled join notify logs the [Notify] scheduling line
 - debuglog: pin — a wipe with a reason and something in flight logs the [Capture] wiped line
-- debuglog: pin — /wg test notify logs the [Test] injection line
+- debuglog: pin — /wg test notify logs the [Test] preview line
 - debuglog: pin — showing a capture logs the [Frame] popup-shown and teleport lines
 - debuglog: pin — showing with no capture logs the [Frame] fallback and nil teleport lines
 - debuglog: pin — a show the visibility gate withholds logs the [Frame] not-shown line
@@ -1063,7 +1066,7 @@ Total.
 | test_frame_secure.lua | 7 |
 | test_panel.lua | 54 |
 | test_profiles.lua | 19 |
-| test_testmode.lua | 23 |
+| test_testmode.lua | 26 |
 | test_snapshot.lua | 10 |
 | test_diagnostics.lua | 20 |
 | test_launcher.lua | 36 |
@@ -1082,4 +1085,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **924** |
+| **Total** | **927** |

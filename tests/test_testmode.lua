@@ -387,10 +387,60 @@ test("testmode: /wg test notify is the one-shot notify + popup flow, and ends te
     local mark = #mock.prints
     wgTest(NS, "notify")
     assertFalse(isOn(NS), "the real flow takes the popup back")
-    assertEqual(NS.addon.pendingInfo.mapID, 2805, "RunTest's capture was injected")
+    assertNil(NS.addon.pendingInfo, "the sample is previewed, never made the pending capture")
     assertTrue(printedSince(mock, mark, "You have joined a group!"), "the chat summary printed")
-    assertTrue(onScreen(mock), "and the popup is up, showing that capture")
-    assertEqual(groupText(mock), NS.addon.pendingInfo.title)
+    assertTrue(printedSince(mock, mark, NS.addon:SampleInfo().title), "about the sample group")
+    assertTrue(onScreen(mock), "and the popup is up, showing the sample")
+    assertEqual(groupText(mock), NS.addon:SampleInfo().title)
+end)
+
+-- The one-shot preview leaves the player's real capture alone (WG-R-03): it is shown through the
+-- popup's preview record, not written to pendingInfo, and it is gone once the popup is closed, so
+-- `/wg show`, the details link and the launcher's Show window open the real group again.
+-- red under: RunTest writing pendingInfo
+test("testmode: /wg test notify previews without replacing the real capture", function()
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pending({ title = "Real Group" })
+    local mark = #mock.prints
+    wgTest(NS, "notify")
+    assertEqual(NS.addon.pendingInfo.title, "Real Group", "the real capture is still pending")
+    assertTrue(printedSince(mock, mark, NS.addon:SampleInfo().title), "the notice names the sample")
+    assertFalse(printedSince(mock, mark, "Real Group"), "and not the real group")
+    assertTrue(onScreen(mock), "the popup is up")
+    assertEqual(groupText(mock), NS.addon:SampleInfo().title, "showing the sample")
+    local btn = closeButton(mock)
+    btn.__scripts.OnClick(btn)
+    assertFalse(onScreen(mock), "closed")
+    for _, c in ipairs(NS.addon.COMMANDS) do
+        if c[1] == "show" then c[3]("") end
+    end
+    assertTrue(onScreen(mock), "/wg show opens the popup again")
+    assertEqual(groupText(mock), "Real Group", "on the real capture, not the sample")
+end)
+
+test("testmode: the preview is one-shot under ESC and the launcher's Show window too", function()
+    -- red under: RunTest writing pendingInfo
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pending({ title = "Real Group" })
+    NS.addon:RunTest()
+    pressEscape(mock)
+    assertFalse(onScreen(mock), "ESC closed the preview")
+    assertTrue(NS.addon:ToggleFrame(), "the launcher's Show window opens the popup")
+    assertEqual(groupText(mock), "Real Group", "on the real capture")
+end)
+
+test("testmode: a preview asked for in combat lands as the preview at combat end", function()
+    -- red under: replaying the deferred show without the preview (it would open the real capture)
+    local NS, _, mock = T.enableAddon()
+    NS.addon.pendingInfo = pending({ title = "Real Group" })
+    mock.combat = true
+    NS.addon:RunTest()
+    assertFalse(onScreen(mock), "nothing opens in combat")
+    mock.combat = false
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    assertTrue(onScreen(mock), "the deferred preview opens at combat end")
+    assertEqual(groupText(mock), NS.addon:SampleInfo().title, "showing the sample")
+    assertEqual(NS.addon.pendingInfo.title, "Real Group", "and the real capture is untouched")
 end)
 
 test("testmode: /wg show ends it and shows the real capture", function()

@@ -37,16 +37,22 @@ local f, fields, ConfigureTeleportButton
 -- the secure button and clears its action; this sentinel carries "no capture" through the stash.
 local NO_CAPTURE = {}
 
--- TEST MODE's placeholder capture (options-ui-§15, preview-mode), and nil exactly while test mode is
--- off. A record of its own rather than a write to `pendingInfo`, so a real capture the player is
--- still holding survives a round of placing the popup. Every reader of "what does the popup show"
--- asks shownInfo(), so the placeholder goes through the same render path as live data.
+-- The PREVIEW the popup shows instead of the real capture, set by two callers: TEST MODE's
+-- placeholder (options-ui-§15, preview-mode), held until test mode ends, and the ONE-SHOT preview
+-- `/wg test notify` and the panel's Test button hand ShowFrame (core/WhatGroup.lua's RunTest),
+-- held until the popup is put away (endPreview). A record of its own rather than a write to
+-- `pendingInfo`, so a real capture the player is still holding survives either one. Every reader
+-- of "what does the popup show" asks shownInfo(), so a preview goes through the same render path
+-- as live data. NS.State.testMode, not this, is what says test mode is on.
 local previewInfo
 local function shownInfo() return previewInfo or WhatGroup.pendingInfo end
 
 -- Ends test mode, returning true when it was on. Assigned in the test-mode section below; declared
 -- here because the Close button and the ESC proxy, both built earlier in this file, end it too.
 local endTestMode
+-- Ends a one-shot preview (endPreview, beside PopulateFields below); declared here for f's OnHide
+-- and dismissPopup, both earlier in this file.
+local endPreview
 
 -- The Master controls checkbox reads NS.State.testMode, so every stop that is not a write through
 -- the settings seam (which refreshes on its own) repaints the panel here.
@@ -404,6 +410,9 @@ local function dismissPopup()
     local before = NS.State.debug and popupState()
     hidePopup()
     gateWithheld = false
+    -- In combat hidePopup took the soft route and f's OnHide never fired, so the one-shot preview
+    -- is ended here: the next show is a real one.
+    endPreview()
     if before then logPopupChange(before, "closed by the player") end
     if endTestMode("closed") then refreshPanel() end
 end
@@ -444,8 +453,9 @@ function applyVisibility(inCombat)
         gateWithheld = wasGate
     end
     -- Test mode is an explicit request to see the popup, so the gate leaves it alone. It cannot
-    -- outlive a combat edge: PLAYER_REGEN_DISABLED ends it before this runs.
-    if previewInfo then return end
+    -- outlive a combat edge: PLAYER_REGEN_DISABLED ends it before this runs. A one-shot preview is
+    -- an ordinary show and meets the gate like one.
+    if NS.State.testMode then return end
     if not visibilityAllows(inCombat) then
         local down = hidePopup()
         -- After the hide, never before: the real Hide fires OnHide, which clears the flag for every
@@ -752,6 +762,7 @@ local function buildFrame()
     -- menu. By now f:IsShown() is false, so the proxy's OnHide sees the popup off screen and stops.
     f:SetScript("OnHide", function(self)
         gateWithheld = false
+        endPreview()
         stopCooldownTicker()
         if escProxy then escProxy:Hide() end
     end)
@@ -1039,6 +1050,18 @@ local function PopulateFields()
     ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, info)
 end
 
+-- THE ONE-SHOT PREVIEW ENDS when the popup is put away: every real hide (f's OnHide), the
+-- player's dismissal (dismissPopup, which covers the soft hide in combat), the next show request
+-- (ShowFrame) and the stand-down. The fields are refilled from the real capture out of combat, so
+-- a gate re-show (applyVisibility) never puts the sample back up; in combat the next show refills
+-- them. Test mode's placeholder is not a one-shot and is left to endTestMode.
+function endPreview()
+    if not previewInfo or NS.State.testMode then return end
+    previewInfo = nil
+    if fields and not InCombatLockdown() then PopulateFields() end
+    NS.Debug("Test", "one-shot preview ended")
+end
+
 -- Build (once), apply the size, scale and opacity, and fill the fields: everything a show does
 -- short of putting the popup on screen. ShowFrame and test mode share it, so a change taken while
 -- the popup was closed -- or refused because it was taken in combat -- lands on either path.
@@ -1144,19 +1167,41 @@ end
 
 -- The first-show defer's combat-end replay (ShowFrame, below). It restores the stashed pendingInfo
 -- only if it was cleared (e.g. group-leave) during the wait window: the player's intent was to see
--- *this* group's popup.
+-- *this* group's popup. A one-shot preview asked for in the fight is replayed as that preview.
 local function replayFirstShow()
     WhatGroup._frameBuildQueued = nil
     WhatGroup.pendingInfo = WhatGroup.pendingInfo or WhatGroup._deferredShowInfo
     WhatGroup._deferredShowInfo = nil
-    WhatGroup:ShowFrame()
+    local preview = WhatGroup._deferredPreview
+    WhatGroup._deferredPreview = nil
+    WhatGroup:ShowFrame(preview)
 end
 
--- Public API
-function WhatGroup:ShowFrame()
-    -- A real show takes the popup from test mode: whatever called this wants the real capture on it.
-    -- (The join popup never gets here while test mode is on; _TryFireJoinNotify holds it.)
+-- The gate DECLINED a show (ShowFrame, below). A requested real show is withheld: that is the second
+-- of the two states the re-show arm is allowed to act on, and without it `Only in combat` would
+-- show once on the next pull and never again -- the request would be forgotten the moment it was
+-- refused. A one-shot preview is dropped instead, never withheld: the re-show arm would otherwise
+-- put the sample on screen on some later combat edge, long after the player asked for it.
+local function declineShow(preview)
+    local v = WhatGroup.db and WhatGroup.db.profile and WhatGroup.db.profile.visibility
+    if preview then
+        endPreview()
+        NS.Debug("Frame", "preview not shown: visibility = %s", v)
+        return
+    end
+    gateWithheld = true
+    NS.Debug("Frame", "popup built but not shown: visibility = %s", v)
+end
+
+-- Public API. `preview`, when given, is a ONE-SHOT PREVIEW (core/WhatGroup.lua's RunTest): the
+-- popup shows it through previewInfo instead of pendingInfo, and it ends when the popup is put away
+-- (endPreview). Every other caller passes nothing and gets the real capture.
+function WhatGroup:ShowFrame(preview)
+    -- A show takes the popup from test mode, and from any earlier one-shot preview: whatever called
+    -- this wants the real capture on it, or its own preview. (The join popup never gets here while
+    -- test mode is on; _TryFireJoinNotify holds it.)
     if endTestMode("a real show") then refreshPanel() end
+    endPreview()
     -- THE VISIBILITY GATE (options-ui-§15), and it is TWO checks rather than one because the
     -- question is time-varying. Every way the popup reaches the screen -- the join notify,
     -- `/wg show`, the chat link, `/wg test notify` -- comes through here, so gating covers them all.
@@ -1191,20 +1236,15 @@ function WhatGroup:ShowFrame()
             WhatGroup._deferredShowInfo = WhatGroup.pendingInfo
             NS.FrameQueueForCombatEnd("firstShow", replayFirstShow)
         end
+        -- The latest request wins: a real show after a preview in the same fight replays real.
+        WhatGroup._deferredPreview = preview
         return
     end
 
     -- Every open re-applies the size, the scale and the opacity (preparePopup).
+    previewInfo = preview
     preparePopup()
-    if not visibilityAllows() then
-        -- The gate DECLINED a show the player asked for, which is the second of the two states the
-        -- re-show arm is allowed to act on. Without this, `Only in combat` would show once on the
-        -- next pull and never again — the request would be forgotten the moment it was refused.
-        gateWithheld = true
-        NS.Debug("Frame", "popup built but not shown: visibility = %s",
-            self.db and self.db.profile and self.db.profile.visibility)
-        return
-    end
+    if not visibilityAllows() then return declineShow(preview) end
     showPopup()
 end
 
@@ -1264,6 +1304,7 @@ function NS.FrameStandDown()
     -- unticks the Master controls checkbox, so the panel does not read "test mode on" over an addon
     -- that is off.
     if endTestMode("addon disabled") then refreshPanel() end
+    endPreview()
 
     stopCooldownTicker()
 
@@ -1283,6 +1324,7 @@ function NS.FrameStandDown()
     wipe(combatEndQueue)
     if f then f._pendingTeleportInfo = nil end
     WhatGroup._deferredShowInfo = nil
+    WhatGroup._deferredPreview = nil
     WhatGroup._frameBuildQueued = nil
 end
 
@@ -1303,7 +1345,7 @@ function NS.FrameSnapshot()
         softHidden       = softHidden,
         pendingHide      = pendingHide,
         gateWithheld     = gateWithheld,
-        testMode         = previewInfo ~= nil,
+        testMode         = NS.State.testMode == true,
         combatQueue      = queue,
         teleportDeferred = (f and f._pendingTeleportInfo ~= nil) or false,
         cooldownTicking  = cooldownTimer ~= nil,

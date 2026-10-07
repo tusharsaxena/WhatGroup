@@ -243,7 +243,8 @@ end
 -- every stored value at once. At file scope, so the OnProfileChanged and OnProfileCopied methods
 -- below and the reset closure OnInitialize registers share one copy.
 local function reloadProfile(self)
-    -- The incoming profile may predate the current schema version.
+    -- Idempotent; normally a no-op once the account-wide schema stamp is current. Profile-scoped
+    -- steps walk every stored profile (core/Database.lua).
     self:RunMigrations()
     -- And every open panel is showing the outgoing profile's values: General's widgets re-read
     -- their rows, and the Profiles page (settings/Profiles.lua) is re-drawn, because AceConfigDialog
@@ -875,8 +876,10 @@ local NOTIFY_ROWS = {
     { flag = "showTeleport",  label = "Teleport:", omitWhenNil = true, value = teleportValue },
 }
 
-function WhatGroup:ShowNotification()
-    local info = self.pendingInfo
+-- `info` defaults to the pending capture. RunTest passes its sample here instead, so a preview
+-- prints the sample without ever becoming the pending capture.
+function WhatGroup:ShowNotification(info)
+    info = info or self.pendingInfo
     if not info then
         NS.Debug("Notify", "skip: no pendingInfo (notification)")
         return
@@ -1272,8 +1275,8 @@ end
 -- through the other's entry point.
 
 -- The sample capture: a fresh table on every call, so no caller hands another one it then mutates.
--- `/wg test notify` makes it the pending capture; test mode (modules/Frame.lua, bare `/wg test`)
--- shows it WITHOUT touching pendingInfo.
+-- Neither `/wg test notify` (RunTest, below) nor test mode (modules/Frame.lua, bare `/wg test`)
+-- ever makes it the pending capture: both show it WITHOUT touching pendingInfo.
 function WhatGroup:SampleInfo()
     -- mapID 2805 is Windrunner Spire — exercises the mapID-keyed teleport
     -- lookup (1254400, Path of the Windrunners). generalPlaystyle exercises
@@ -1312,11 +1315,23 @@ end
 
 -- Public method so the Settings panel's Test button can invoke the
 -- same code path as /wg test notify without going through the slash dispatch.
--- One-shot: the sample becomes the pending capture and the full notify + popup flow runs once. Its
--- ShowFrame ends test mode if it is on, so the two never overlap.
+-- One-shot: the full notify + popup flow runs once ON THE SAMPLE, which is passed to both halves
+-- and never written to pendingInfo, so a real capture the player is holding is what `/wg show`, the
+-- details link and the launcher's Show window open afterwards (WG-R-03). The popup renders it as a
+-- one-shot preview that ends when the popup is closed. Its ShowFrame ends test mode if it is on,
+-- so the two never overlap.
+--
+-- STOOD DOWN, IT IS THE CHAT PREVIEW ONLY. The panel's Test button still reaches here with the
+-- addon off, and a popup built then would add the secure teleport button and the UISpecialFrames
+-- proxy to a disabled addon's session, be withheld by the gate, and come back unasked on the
+-- re-enable (WG-R-04). So no frame is built, shown or withheld.
 function WhatGroup:RunTest()
-    self.pendingInfo = self:SampleInfo()
-    NS.Debug("Test", 'synthetic capture injected "%s"', self.pendingInfo.title)
-    self:ShowNotification()
-    self:ShowFrame()
+    local sample = self:SampleInfo()
+    NS.Debug("Test", 'synthetic capture previewed "%s"', sample.title)
+    self:ShowNotification(sample)
+    if NS.IsStoodDown() then
+        NS.Debug("Test", "popup skipped: addon stood down (chat preview only)")
+        return
+    end
+    self:ShowFrame(sample)
 end

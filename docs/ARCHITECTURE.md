@@ -148,7 +148,7 @@ landing page renders exactly what the dispatcher runs.
 |---|---|---|
 | `help` | library | Lists every row |
 | `show` | host | Re-opens the popup for the current group |
-| `test` | host | Toggles test mode (`on\|off` sets it) through the Test mode checkbox's own setter; `test notify` injects synthetic group info and runs the full notify + frame flow once, ending test mode if it is on |
+| `test` | host | Toggles test mode (`on\|off` sets it) through the Test mode checkbox's own setter; `test notify` previews synthetic group info through the full notify + frame flow once, without writing `pendingInfo`, ending test mode if it is on |
 | `config` | host | Opens the settings panel on its landing page (refused in combat, inside `OpenOptionsPanel`). A bare `/wg` runs it too, and the launcher's left click calls the same `WhatGroup:OpenSettings` |
 | `enable` / `disable` | host | The reserved pair (`slash-commands-§2`): **aliases** for the `enabled` row, written through the same `Helpers.Set` the Master controls checkbox writes through, holding no state of their own. The dispatcher answers in either state, so the switch is never one-way — and while `enabled` is false a **feature verb** (`show`, `test`) refuses on one tagged line naming `/wg enable` and does nothing else, gated once in the dispatcher rather than per verb (`slash-commands-§2`, [slash-dispatch.md](./slash-dispatch.md#and-a-feature-verb-refuses-instead-of-acting)) |
 | `version` | library | Prints the addon version |
