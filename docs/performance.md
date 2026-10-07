@@ -135,7 +135,7 @@ lua tests/perf.lua
 ```
 
 **Measured 2026-09-16, at v1.4.0.** Three consecutive runs produced identical figures in every
-column but `ms/iter`.
+column but `ms/iter`. Rows marked *Re-measured* were re-run on that date and replace their earlier figures.
 
 | Scenario | iters | api/iter | bytes/iter | What it is |
 |---|---|---|---|---|
@@ -143,8 +143,8 @@ column but `ms/iter`.
 | `formatDurationLong` | 2000 | 0.0 | 34.5 | `NS.FormatDuration` on the `h > 0` branch — what a real teleport cooldown takes |
 | `formatDurationShort` | 2000 | 0.0 | 0.8 | The same on the seconds-only branch |
 | `combatGateSteady` | 2000 | **0.0** | **0.0** | A combat transition that changes nothing. Asserted at zero |
-| `combatGateFlipping` | 2000 | 7.0 | 1064.1 | A transition that genuinely flips the popup, on `visibility = inCombat` |
-| `showFrameRepeat` | 500 | 18.0 | 1744.5 | A group capture arriving: repopulate and show. Re-measured 2026-09-24 |
+| `combatGateFlipping` | 2000 | 7.0 | 960.0 | A transition that genuinely flips the popup, on `visibility = inCombat`. Re-measured 2026-10-07 |
+| `showFrameRepeat` | 500 | 19.0 | 1744.2 | A group capture arriving: repopulate and show. Re-measured 2026-10-07; 18.0 -> 19.0 api/iter bisected to WhatGroup@2ed2aa5, whose popup Role row adds one `SetText` to every repopulate |
 | `applyScale` | 500 | 1.0 | 0.0 | Dragging the scale slider |
 | `applyAlpha` | 500 | 1.0 | 0.0 | Dragging the alpha slider |
 
