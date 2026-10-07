@@ -1,8 +1,9 @@
 -- core/Compat.lua
 -- Thin compatibility shims for the version-variant spell / LFG APIs the
--- addon consumes. Loaded first among the addon files (see WhatGroup.toc)
--- so every later file can reach NS.Compat.* without doing its own
--- C_Spell-vs-legacy detection inline.
+-- addon consumes. Loaded in # Core after core/CoreSetup.lua, core/MediaSetup.lua
+-- and core/Util.lua, none of which reads NS.Compat, and before core/WhatGroup.lua
+-- (see WhatGroup.toc), so every later file can reach NS.Compat.* without doing
+-- its own C_Spell-vs-legacy detection inline.
 --
 -- NS.Compat stays the ONE surface the rest of the addon calls, and this file
 -- the one place that decides who answers. Since LibKa0s v1.55.0 the spell

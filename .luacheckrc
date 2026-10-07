@@ -71,8 +71,8 @@ read_globals = {
 files["tests/"] = {
   globals = {
     "_G.WHATGROUP_TEST",
-    -- The SavedVariables table, named as a field rather than bare because tests/loader.lua:129
-    -- CLEARS it before each boot -- the kit's AceDB fake resolves the name against the real _G, so
+    -- The SavedVariables table, named as a field rather than bare because tests/loader.lua's
+    -- `build` (the function its returned loader calls per boot) CLEARS it before each boot -- the kit's AceDB fake resolves the name against the real _G, so
     -- a previous instance's table would otherwise be adopted by the next one. The bare name is
     -- already writable above, for the shipped files that own it.
     "_G.WhatGroupDB",
@@ -102,7 +102,8 @@ files["tests/"] = {
 -- `212/event` is the AceEvent-3.0 handler convention: the library invokes a handler as
 -- `self[event](self, event, ...)`, so `event` arrives ahead of `appID` and `newStatus` whether the
 -- body reads it or not. It is not read here because the method IS the event -- one handler, one
--- event name. The sibling handler at :707 does read it, to tell the two combat edges apart.
+-- event name. The sibling handler WhatGroup:OnCombatStateChanged (in this file) does read it, to
+-- tell the two combat edges apart.
 files["core/WhatGroup.lua"] = {
   ignore = { "212/self", "212/event" },
 }

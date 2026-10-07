@@ -42,9 +42,10 @@ The headless harness loads each addon file into a sandboxed environment with **`
 was **removed in Lua 5.2**. "5.2 will probably work" is false, and it fails in a way that looks like
 a broken test rather than a wrong interpreter.
 
-- Evidence: `tests/_kit/loader.lua:72` and `:91` call `setfenv(chunk, makeEnv(mocks))`;
-  `tests/loader.lua:134` calls `setfenv(chunk, env)`. `tests/_kit/loader.lua:89` uses **`loadstring`**,
-  also 5.1-only.
+- Evidence: `Loader.load` and `Loader.loadSource` in `tests/_kit/loader.lua` call
+  `setfenv(chunk, makeEnv(mocks))`; `build` in `tests/loader.lua` (the function its returned loader
+  calls per boot) calls `setfenv(chunk, env)`. `Loader.loadSource` also uses **`loadstring`**, also
+  5.1-only.
 - Evidence: `.luacheckrc:4` pins `std = "lua51"`, so lint and the runtime agree on the dialect.
 - **LuaJIT is an acceptable substitute** — it implements the 5.1 API including `setfenv` and
   `loadstring`. It is *not* what this repo is verified with (the box these docs were written on runs

@@ -17,8 +17,9 @@ ignore:
   # byte. It stays because packaging MUSTs every root dot-entry present in
   # the repo be named or justified, tracked or not.
   - .claude     # untracked; listed under packaging
-  # Tracked, and the only entries here that change a download. Three screenshots,
-  # 880K, project-page art the CurseForge CDN already serves. CLAUDE.md and
+  # Tracked, and with the media/logos lines below, the entries here that change a
+  # download. The screenshots are project-page art the CurseForge CDN already
+  # serves (`git ls-files media/screenshots` is the current set). CLAUDE.md and
   # DEPENDENCIES.md are developer documentation; README.md and LICENSE stay,
   # because players do read those.
   - media/screenshots

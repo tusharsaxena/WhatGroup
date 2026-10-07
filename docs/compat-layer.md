@@ -3,8 +3,10 @@
 `core/Compat.lua` is the one surface the rest of the addon reads the version-variant APIs through —
 `C_Spell.*`, the legacy `GetSpell*` globals, `C_SpellBook.IsSpellKnown` and the `IsSpellKnown` global,
 and `C_LFGList.GetActivityInfoTable` — and the one place that asks whether the client has Blizzard's
-addon chat-link path (`LinkTypes.AddOn` and `EventRegistry`). It loads first among the addon's own
-files, so every later file reaches `NS.Compat.X` without doing its own detection inline.
+addon chat-link path (`LinkTypes.AddOn` and `EventRegistry`); it also reads the group role
+(`UnitGroupRolesAssigned`) and draws its icon (`CreateAtlasMarkup`). It loads in `# Core` after
+`core/CoreSetup.lua`, `core/MediaSetup.lua` and `core/Util.lua`, none of which reads it, and before
+`core/WhatGroup.lua`, so every later file reaches `NS.Compat.X` without doing its own detection inline.
 
 Since LibKa0s v1.55.0 it answers in two ways. The spell readers two or more Ka0s addons wrote alike
 come from **`LibKa0s-Compat-1.0`**: `GetSpellName` and `GetSpellTexture` *are* the library's members,
@@ -13,9 +15,10 @@ and the two cooldown shims read `startTime, duration, isEnabled` from the librar
 when a patch renames or moves one of these APIs, the fix lands in the library (and reaches this addon
 on the re-vendor) or in this file, and nowhere else.
 
-**Six shims**, counted the way `documentation-§3` counts them
-(`grep -cE '^\s*function\s+[A-Za-z_.]+\.' core/Compat.lua`): entry points this file defines on the
-addon's own `Compat` table. The threshold is three. `NS.Compat.GetSpellName` and
+**Nine shims**, counted the way `documentation-§3` counts them
+(`grep -cE '^\s*function\s+[A-Za-z_][A-Za-z0-9_]*\.' core/Compat.lua`, which answers `9`, the three
+role shims included): entry points this file defines on the addon's own `Compat` table. The threshold
+is three. `NS.Compat.GetSpellName` and
 `NS.Compat.GetSpellTexture` are the library's own members, wired by identity, so they are not counted
 and not documented here: their ladders, degrade values and secret handling are LibKa0s
 `docs/api/Compat/version-1-docs.md`.
@@ -27,6 +30,9 @@ and not documented here: their ladders, degrade values and secret handling are L
 | Cooldown | `GetSpellCooldownRemaining(spellID)` | the library's `GetSpellCooldown`, then this file's GCD floor; answers `remaining, isActive` | `0, false` |
 | | `GetSpellCooldownTimes(spellID)` | the library's `GetSpellCooldown`, truncated to two values | `0, 0` |
 | LFG | `GetActivityInfoTable(activityID)` | `C_LFGList.GetActivityInfoTable` | `nil` |
+| Role | `RoleToken(v)` | none: `v` itself when it is `"TANK"`, `"HEALER"` or `"DAMAGER"`, vetted through `NS.SafeToString` so a secret is never compared | `nil` |
+| | `AssignedRole()` | `UnitGroupRolesAssigned("player")`, through `RoleToken` (so `"NONE"` answers `nil`) | `nil` |
+| | `RoleIconMarkup(token)` | `CreateAtlasMarkup` over the token's tiny role atlas, 14×14 | `""` |
 | Chat link | `AddOnLinkType()` | `LinkTypes.AddOn`, only when `EventRegistry.RegisterCallback` is there too; see below | `nil` |
 
 **The secret arm (WG-01).** `NS.Compat.IsSecret` is the library's `IsSecret`, or without the library the
