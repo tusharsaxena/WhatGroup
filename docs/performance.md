@@ -54,12 +54,12 @@ Every call site, with the per-hit work:
 | `core/WhatGroup.lua:381` | `RegisterEvent("PLAYER_REGEN_DISABLED", "OnCombatStateChanged")` | Fires **once per pull**, on the edge into the lockdown. It first asks whether test mode is on: one boolean read when it is off, and when it is on one `hidePopup()`, one chat line and a panel refresh, once. Until the first popup is built `f` is `nil` and the whole handler is one comparison. With a popup built: `visibilityAllows` — one profile read and up to three string compares — and then at most one `Show`, which needs `visibility = inCombat` and a capture still pending. **No `Hide` runs on this edge, and none can.** `f` parents a `SecureActionButtonTemplate` child, so the client refuses `Hide` on it under lockdown; the one `hidePopup()` seam returns `false` rather than calling into that refusal, and the `outOfCombat` gate's hide is honored one edge late, on the row below (`M2-28`). Nothing walks, nothing allocates. |
 | `core/WhatGroup.lua:382` | `RegisterEvent("PLAYER_REGEN_ENABLED", "OnCombatStateChanged")` | The same handler on the other edge, running strictly *after* combat, where both directions are legal — so this is where every deferred hide lands, and where `modules/Frame.lua`'s combat-end queue is drained first (`NS.FrameDrainCombatEnd`: a deferred teleport configure, a deferred first show; two table reads and no allocation when nothing is queued, and `modules/Frame.lua` registers no event of its own): a `Close` the player pressed during the fight, which outranks the gate, or the `outOfCombat` gate's own hide. The same one gate evaluation, then at most one `Hide` **or** one `Show`, the `Show` only when a capture is still pending. Still nothing that walks or allocates. |
 | `core/WhatGroup.lua:436` | `RegisterEvent("PLAYER_REGEN_ENABLED", "OnDisabledCombatEnded")` | Registered **only** by `StandDown`, and only when the addon is disabled in combat while the popup still owes a protected `Hide` — the one registration `slash-commands-§7` lets a disabled addon keep. `OnDisabledCombatEnded` unregisters it first thing on the one fire, then finishes the stand-down. Fires at most once, strictly *after* combat. |
-| `core/WhatGroup.lua:1018` | `self:ScheduleTimer(…)` | **One-shot** AceTimer, armed once per group join, for the notify delay. Not repeating. |
-| `modules/Frame.lua:587` | `WhatGroup:ScheduleRepeatingTimer(…, 1)` | **The one repeating timer in the addon**, and the reason criterion (a) no longer holds. Armed only when the popup is **on screen** *and* the dungeon's teleport is on cooldown — the arm sits behind an `f:IsShown()` check and is re-run from the popup's `OnShow`, so it cannot exist against a hidden frame. Canceled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. Per tick: one `C_Spell.GetSpellCooldown` call, one `NS.FormatDuration` string build, and one `SetText`. It can fire during combat — the popup can be open then — so this is the addon's first in-combat repeating work, however small. |
+| `core/WhatGroup.lua:1027` | `self:ScheduleTimer(…)` | **One-shot** AceTimer, armed once per group join, for the notify delay. Not repeating. |
+| `modules/Frame.lua:589` | `WhatGroup:ScheduleRepeatingTimer(…, 1)` | **The one repeating timer in the addon**, and the reason criterion (a) no longer holds. Armed only when the popup is **on screen** *and* the dungeon's teleport is on cooldown — the arm sits behind an `f:IsShown()` check and is re-run from the popup's `OnShow`, so it cannot exist against a hidden frame. Canceled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. Per tick: one `C_Spell.GetSpellCooldown` call, one `NS.FormatDuration` string build, and one `SetText`. It can fire during combat — the popup can be open then — so this is the addon's first in-combat repeating work, however small. |
 | `settings/OptionsSetup.lua:292`, `:300` | `C_Timer.After(0, …)` | Two **next-frame** secure-defer hops in the settings panel build. One-shot, and only ever reached from a settings-panel `OnShow`. |
 
 **Zero `OnUpdate` handlers. One repeating timer** — the cooldown countdown at
-`modules/Frame.lua:587`, added 2026-08-06. Everything else above is one-shot or self-unregistering.
+`modules/Frame.lua:589`, added 2026-08-06. Everything else above is one-shot or self-unregistering.
 Three *event* handlers are reachable inside or on the edge of a combat window: `GROUP_ROSTER_UPDATE`,
 whose body is an `IsInGroup()` and three comparisons, and the two combat-transition registrations
 sharing `OnCombatStateChanged`, whose body is one gate evaluation and then at most one `Show` on the
@@ -135,7 +135,7 @@ lua tests/perf.lua
 ```
 
 **Measured 2026-09-16, at v1.4.0.** Three consecutive runs produced identical figures in every
-column but `ms/iter`.
+column but `ms/iter`. Rows marked *Re-measured* were re-run on that date and replace their earlier figures.
 
 | Scenario | iters | api/iter | bytes/iter | What it is |
 |---|---|---|---|---|
@@ -143,8 +143,8 @@ column but `ms/iter`.
 | `formatDurationLong` | 2000 | 0.0 | 34.5 | `NS.FormatDuration` on the `h > 0` branch — what a real teleport cooldown takes |
 | `formatDurationShort` | 2000 | 0.0 | 0.8 | The same on the seconds-only branch |
 | `combatGateSteady` | 2000 | **0.0** | **0.0** | A combat transition that changes nothing. Asserted at zero |
-| `combatGateFlipping` | 2000 | 7.0 | 1064.1 | A transition that genuinely flips the popup, on `visibility = inCombat` |
-| `showFrameRepeat` | 500 | 18.0 | 1744.5 | A group capture arriving: repopulate and show. Re-measured 2026-09-24 |
+| `combatGateFlipping` | 2000 | 7.0 | 960.0 | A transition that genuinely flips the popup, on `visibility = inCombat`. Re-measured 2026-10-07 |
+| `showFrameRepeat` | 500 | 19.0 | 1744.2 | A group capture arriving: repopulate and show. Re-measured 2026-10-07; 18.0 -> 19.0 api/iter bisected to WhatGroup@2ed2aa5, whose popup Role row adds one `SetText` to every repopulate |
 | `applyScale` | 500 | 1.0 | 0.0 | Dragging the scale slider |
 | `applyAlpha` | 500 | 1.0 | 0.0 | Dragging the alpha slider |
 

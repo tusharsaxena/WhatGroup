@@ -50,7 +50,7 @@ core\MediaSetup.lua
 # NS.Windows and NS.FormatDuration; reads nothing at load, so this slot is conventional.
 core\Util.lua
 # Before core\WhatGroup.lua: it calls NS.Compat.AddOnLinkType() at file scope
-# (core/WhatGroup.lua:108) to choose the chat-link route. Load-bearing.
+# (core/WhatGroup.lua's ADDON_LINK_TYPE) to choose the chat-link route. Load-bearing.
 core\Compat.lua
 # The LibKa0s-Env seam. After Compat, and before settings\Panel.lua and settings\Slash.lua,
 # the two files that read the TOC. Nothing here resolves at load beyond the LibStub lookup and
@@ -58,7 +58,7 @@ core\Compat.lua
 core\EnvSetup.lua
 core\Database.lua
 core\WhatGroup.lua
-# After core\WhatGroup.lua, which assigns NS.FONT_MONO at load (core/WhatGroup.lua:220). The
+# After core\WhatGroup.lua, which assigns NS.FONT_MONO at file scope, not in a function. The
 # LibKa0s-DebugLog :New here runs at file scope (core/DebugLogSetup.lua:142) and the library
 # validates `font` as a string, so above that line the console is built from nil. Load-bearing.
 core\DebugLogSetup.lua

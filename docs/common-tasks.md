@@ -248,7 +248,7 @@ If `C_LFGList.GetSearchResultInfo` or `C_LFGList.GetActivityInfoTable` exposes a
 /wg test notify
 ```
 
-Injects synthetic `pendingInfo` (a Mythic+ Windrunner Spire group) and runs `ShowNotification` + `ShowFrame` directly. Bypasses `OnApplyToGroup`, the queue, the LFG event sequence, and the `wasInGroup` join gate.
+Previews a synthetic group (a Mythic+ Windrunner Spire group) through `ShowNotification(sample)` + `ShowFrame(sample)` directly, without writing `pendingInfo`: a real capture you are holding is what `/wg show` and the chat link open once the preview popup is closed. With the addon disabled, the panel's Test button prints the chat preview only and builds no popup. Bypasses `OnApplyToGroup`, the queue, the LFG event sequence, and the `wasInGroup` join gate.
 
 The Settings panel's Test button runs the same code path — both invoke `WhatGroup:RunTest()`. See [slash-dispatch.md](./slash-dispatch.md#why-wg-test-notify-and-the-test-button-share-whatgroupruntest).
 

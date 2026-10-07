@@ -3,8 +3,10 @@
 `core/Compat.lua` is the one surface the rest of the addon reads the version-variant APIs through —
 `C_Spell.*`, the legacy `GetSpell*` globals, `C_SpellBook.IsSpellKnown` and the `IsSpellKnown` global,
 and `C_LFGList.GetActivityInfoTable` — and the one place that asks whether the client has Blizzard's
-addon chat-link path (`LinkTypes.AddOn` and `EventRegistry`). It loads first among the addon's own
-files, so every later file reaches `NS.Compat.X` without doing its own detection inline.
+addon chat-link path (`LinkTypes.AddOn` and `EventRegistry`); it also reads the group role
+(`UnitGroupRolesAssigned`) and draws its icon (`CreateAtlasMarkup`). It loads in `# Core` after
+`core/CoreSetup.lua`, `core/MediaSetup.lua` and `core/Util.lua`, none of which reads it, and before
+`core/WhatGroup.lua`, so every later file reaches `NS.Compat.X` without doing its own detection inline.
 
 Since LibKa0s v1.55.0 it answers in two ways. The spell readers two or more Ka0s addons wrote alike
 come from **`LibKa0s-Compat-1.0`**: `GetSpellName` and `GetSpellTexture` *are* the library's members,
@@ -13,9 +15,10 @@ and the two cooldown shims read `startTime, duration, isEnabled` from the librar
 when a patch renames or moves one of these APIs, the fix lands in the library (and reaches this addon
 on the re-vendor) or in this file, and nowhere else.
 
-**Six shims**, counted the way `documentation-§3` counts them
-(`grep -cE '^\s*function\s+[A-Za-z_.]+\.' core/Compat.lua`): entry points this file defines on the
-addon's own `Compat` table. The threshold is three. `NS.Compat.GetSpellName` and
+**Nine shims**, counted the way `documentation-§3` counts them
+(`grep -cE '^\s*function\s+[A-Za-z_][A-Za-z0-9_]*\.' core/Compat.lua`, which answers `9`, the three
+role shims included): entry points this file defines on the addon's own `Compat` table. The threshold
+is three. `NS.Compat.GetSpellName` and
 `NS.Compat.GetSpellTexture` are the library's own members, wired by identity, so they are not counted
 and not documented here: their ladders, degrade values and secret handling are LibKa0s
 `docs/api/Compat/version-1-docs.md`.
@@ -24,10 +27,20 @@ and not documented here: their ladders, degrade values and secret handling are L
 |---|---|---|---|
 | Spell | `GetSpellLink(spellID)` | `C_Spell.GetSpellLink` | `nil` |
 | | `IsSpellKnown(spellID)` | `C_SpellBook.IsSpellKnown` → `IsSpellKnown`; see below | `false` |
-| Cooldown | `GetSpellCooldownRemaining(spellID)` | the library's `GetSpellCooldown`, then this file's GCD floor | `0` |
+| Cooldown | `GetSpellCooldownRemaining(spellID)` | the library's `GetSpellCooldown`, then this file's GCD floor; answers `remaining, isActive` | `0, false` |
 | | `GetSpellCooldownTimes(spellID)` | the library's `GetSpellCooldown`, truncated to two values | `0, 0` |
 | LFG | `GetActivityInfoTable(activityID)` | `C_LFGList.GetActivityInfoTable` | `nil` |
+| Role | `RoleToken(v)` | none: `v` itself when it is `"TANK"`, `"HEALER"` or `"DAMAGER"`, vetted through `NS.SafeToString` so a secret is never compared | `nil` |
+| | `AssignedRole()` | `UnitGroupRolesAssigned("player")`, through `RoleToken` (so `"NONE"` answers `nil`) | `nil` |
+| | `RoleIconMarkup(token)` | `CreateAtlasMarkup` over the token's tiny role atlas, 14×14 | `""` |
 | Chat link | `AddOnLinkType()` | `LinkTypes.AddOn`, only when `EventRegistry.RegisterCallback` is there too; see below | `nil` |
+
+**The secret arm (WG-01).** `NS.Compat.IsSecret` is the library's `IsSecret`, or without the library the
+three-line `issecretvalue` stub (anti-patterns #47). `GetSpellCooldownRemaining` asks it of `startTime`
+and `duration` before any comparison: a secret pair (the client may answer one in combat) returns
+`nil, isActive`, an unknown remainder, never `0`, and callers decide "on cooldown" from the plain
+`isActive` flag. `GetSpellCooldownTimes` hands a secret pair to the swipe unchanged, because
+`Cooldown:SetCooldown` accepts secrets.
 
 Callers: `modules/Frame.lua` draws the teleport buttons from the name, texture, cooldown remaining
 and cooldown times; `core/WhatGroup.lua` builds the chat teleport line from the link and the known
@@ -133,8 +146,9 @@ remainder is one addon's policy, not a shape two addons agree on.
 as the API is concerned, and it is the one every spell shares. Without the floor, casting anything at
 all would make a teleport with an hours-long cooldown report "on cooldown" for a second and a half — a flicker that
 says nothing true. No real teleport cooldown is anywhere near that short, so the floor costs no
-accuracy. It also never returns nil and never returns a negative, so a caller can treat any positive
-number as "cannot cast yet" without a second guard.
+accuracy. It never returns a negative, so a caller can treat any positive number as "cannot cast
+yet". It returns `nil` in exactly one case, a secret cooldown pair (the secret arm above), and every
+caller handles that case explicitly by deciding from `isActive`.
 
 **`GetSpellCooldownTimes` applies no floor at all.** It hands the raw `(start, duration)` pair to the
 cooldown swipe, which draws whatever it is given — a swipe is the one readout that can afford to be
@@ -156,7 +170,9 @@ Each default is chosen from its caller's direction, not from habit:
 - **`false` for `IsSpellKnown`**, normalized to a plain boolean so the teleport known/unknown branch
   can use it directly rather than asking about truthiness at two call sites.
 - **`0` and `0, 0` for the cooldown readers**, because their callers do arithmetic and comparison on
-  the result. A `nil` there is a guard at every call site for a case the caller cannot act on.
+  the result. A `nil` there is a guard at every call site for a case the caller cannot act on. The
+  one `nil` the remainder does answer, a secret reading, is a case the callers can act on (from
+  `isActive`), which is why it is not folded into `0`.
 - **`nil` for `GetActivityInfoTable`**, because "this activity is unknown" and "this client has no
   LFG reader" are the same thing to `CaptureGroupInfo`: there is no group to describe either way.
 - **`nil` for `AddOnLinkType`**, because `core/WhatGroup.lua` reads it as the fork itself: a type

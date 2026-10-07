@@ -101,6 +101,10 @@ _G.WHATGROUP_TEST = Kit.expose{
     loadAddon   = loadAddon,
     root        = root,
     LibStub     = surfaceMock.LibStub,
+    -- The secret-value simulator (kit revision 38): a case that reads secrets installs the global
+    -- `issecretvalue` with this and restores it with the function it returns (WG-01).
+    installSecretValue = Kit.installSecretValue,
+    isSecret    = Kit.isSecret,
 }
 
 -- The diagnostics-dump contract's consumer facts (debug-logging-§14, kit revision 27). The kit case

@@ -37,16 +37,22 @@ local f, fields, ConfigureTeleportButton
 -- the secure button and clears its action; this sentinel carries "no capture" through the stash.
 local NO_CAPTURE = {}
 
--- TEST MODE's placeholder capture (options-ui-§15, preview-mode), and nil exactly while test mode is
--- off. A record of its own rather than a write to `pendingInfo`, so a real capture the player is
--- still holding survives a round of placing the popup. Every reader of "what does the popup show"
--- asks shownInfo(), so the placeholder goes through the same render path as live data.
+-- The PREVIEW the popup shows instead of the real capture, set by two callers: TEST MODE's
+-- placeholder (options-ui-§15, preview-mode), held until test mode ends, and the ONE-SHOT preview
+-- `/wg test notify` and the panel's Test button hand ShowFrame (core/WhatGroup.lua's RunTest),
+-- held until the popup is put away (endPreview). A record of its own rather than a write to
+-- `pendingInfo`, so a real capture the player is still holding survives either one. Every reader
+-- of "what does the popup show" asks shownInfo(), so a preview goes through the same render path
+-- as live data. NS.State.testMode, not this, is what says test mode is on.
 local previewInfo
 local function shownInfo() return previewInfo or WhatGroup.pendingInfo end
 
 -- Ends test mode, returning true when it was on. Assigned in the test-mode section below; declared
 -- here because the Close button and the ESC proxy, both built earlier in this file, end it too.
 local endTestMode
+-- Ends a one-shot preview (endPreview, beside PopulateFields below); declared here for f's OnHide
+-- and dismissPopup, both earlier in this file.
+local endPreview
 
 -- The Master controls checkbox reads NS.State.testMode, so every stop that is not a write through
 -- the settings seam (which refreshes on its own) repaints the panel here.
@@ -55,10 +61,10 @@ local function refreshPanel()
     if H and H.RefreshAll then H.RefreshAll() end
 end
 
--- THE POPUP'S SIZE IS A SETTING NOW. `FRAME_WIDTH = 420` and `FRAME_HEIGHT = 260` used to be two
--- file-locals here; they are `frame.width` and `frame.height` in the schema, and their shipped
--- defaults ARE those two numbers (defaults/Profile.lua), so a profile that never touches either
--- slider draws the popup that shipped.
+-- THE POPUP'S SIZE IS A SETTING NOW. `FRAME_WIDTH` and `FRAME_HEIGHT` used to be two file-locals
+-- here; they are `frame.width` and `frame.height` in the schema, and their shipped defaults live in
+-- defaults/Profile.lua (`C.frame.width` / `C.frame.height`), so a profile that never touches either
+-- slider draws the popup at those defaults.
 --
 -- CLAMPED ON READ, not on write. The slider cannot produce an illegal value, but SavedVariables
 -- and `/wg set frame.width 4000` both can, and a popup wider than the monitor reads as the setting
@@ -404,6 +410,9 @@ local function dismissPopup()
     local before = NS.State.debug and popupState()
     hidePopup()
     gateWithheld = false
+    -- In combat hidePopup took the soft route and f's OnHide never fired, so the one-shot preview
+    -- is ended here: the next show is a real one.
+    endPreview()
     if before then logPopupChange(before, "closed by the player") end
     if endTestMode("closed") then refreshPanel() end
 end
@@ -444,13 +453,22 @@ function applyVisibility(inCombat)
         gateWithheld = wasGate
     end
     -- Test mode is an explicit request to see the popup, so the gate leaves it alone. It cannot
-    -- outlive a combat edge: PLAYER_REGEN_DISABLED ends it before this runs.
-    if previewInfo then return end
+    -- outlive a combat edge: PLAYER_REGEN_DISABLED ends it before this runs. A one-shot preview is
+    -- an ordinary show and meets the gate like one, except in what the hide leaves behind.
+    if NS.State.testMode then return end
     if not visibilityAllows(inCombat) then
+        local preview = previewInfo
         local down = hidePopup()
         -- After the hide, never before: the real Hide fires OnHide, which clears the flag for every
-        -- hide including this one. Setting it first would be undone by our own call.
-        if down then gateWithheld = true end
+        -- hide including this one. Setting it first would be undone by our own call. A one-shot
+        -- preview is dropped instead, never withheld (declineShow's rule): the soft hide fires no
+        -- OnHide, and the real Hide that settles it at combat end would end the preview and leave
+        -- the re-show arm to open the REAL capture the player never asked to see.
+        if down and preview then
+            endPreview()
+        elseif down then
+            gateWithheld = true
+        end
         return down
     end
     if gateWithheld and WhatGroup.pendingInfo and not onScreen() then
@@ -556,11 +574,13 @@ end
 
 -- The note beneath the button: three states, one line of text, and the only place the cooldown
 -- countdown lives.
-local function applyTeleportNote(spellID, known, remaining, info)
+local function applyTeleportNote(spellID, known, remaining, onCooldown, info)
     local note = fields.teleportNote
+    -- nil secondsLeft is an UNKNOWN reading (a secret cooldown pair, WG-01): the state is still
+    -- said, with no figure, because there is no figure to give.
     local function renderNote(secondsLeft)
-        note:SetText("|cff888888" .. L["On cooldown"] .. " — "
-            .. NS.FormatDuration(secondsLeft) .. "|r")
+        local figure = secondsLeft and (" — " .. NS.FormatDuration(secondsLeft)) or ""
+        note:SetText("|cff888888" .. L["On cooldown"] .. figure .. "|r")
         note:Show()
     end
 
@@ -570,7 +590,7 @@ local function applyTeleportNote(spellID, known, remaining, info)
     if not known then
         note:SetText("|cff888888" .. L["Teleport spell not learned"] .. "|r")
         note:Show()
-    elseif remaining > 0 then
+    elseif onCooldown then
         renderNote(remaining)
         -- ARMED ONLY AGAINST A POPUP THAT IS ACTUALLY ON SCREEN, and that condition is the whole
         -- of the `performance-§12` deviation row's argument rather than a tidiness. `OnHide` — the
@@ -586,6 +606,11 @@ local function applyTeleportNote(spellID, known, remaining, info)
         -- identical string and a slower one would visibly skip.
         cooldownTimer = WhatGroup:ScheduleRepeatingTimer(function()
             local left = NS.Compat.GetSpellCooldownRemaining(spellID)
+            -- UNKNOWN (a secret reading in combat, WG-01): keep the last text and stay armed. A
+            -- raise here would kill the repeating timer for good, since AceTimer re-arms only after
+            -- the callback returns, and reading it as zero would reconfigure into "ready". The
+            -- next readable tick picks the countdown back up.
+            if left == nil then return end
             if left > 0 then return renderNote(left) end
             -- Reaching zero is the interesting tick: stop first so the reconfigure below sees
             -- no live handle, then re-run the whole state machine rather than hand-reversing
@@ -621,13 +646,13 @@ end
 -- DG-WG-01; a Clear never re-armed it.
 local TELEPORT_GATE_KEY = "teleport"
 
-local function logTeleportState(spellID, known, remaining, info)
+local function logTeleportState(spellID, known, remaining, onCooldown, info)
     if not NS.State.debug then return end
     local activityID, mapID = info and info.activityID, info and info.mapID
     local wrote = NS.DebugLog.DebugChanged(TELEPORT_GATE_KEY, "Frame",
         "teleport spellID=%s known=%s (activity=%s map=%s)%s", spellID, known, activityID, mapID,
-        remaining > 0 and " on cooldown" or "")
-    if wrote and remaining > 0 then
+        onCooldown and " on cooldown" or "")
+    if wrote and remaining and remaining > 0 then
         NS.Debug("Frame", "teleport on cooldown, %s remaining (spellID=%s)",
             NS.FormatDuration(remaining), NS.SafeToString(spellID))
     end
@@ -636,17 +661,23 @@ end
 local function resolveTeleportState(info)
     local spellID, known = WhatGroup:GetTeleportSpell(info and info.activityID, info and info.mapID)
     -- GetTeleportSpell answers `known` only with a spellID, so this is 0 whenever there is none.
-    local remaining = known and NS.Compat.GetSpellCooldownRemaining(spellID) or 0
-    logTeleportState(spellID, known, remaining, info)
+    -- `remaining` is nil when the cooldown pair is secret (WG-01); `onCooldown` then comes from the
+    -- plain isActive flag alone: on cooldown with no figure, or ready.
+    local remaining, active = 0, false
+    if known then remaining, active = NS.Compat.GetSpellCooldownRemaining(spellID) end
+    local onCooldown
+    if remaining == nil then onCooldown = active and true or false else onCooldown = remaining > 0 end
+    logTeleportState(spellID, known, remaining, onCooldown, info)
     if not spellID then return nil end
 
     return {
-        spellID   = spellID,
-        known     = known,
-        remaining = remaining,
-        ready     = known and remaining <= 0,
-        spellName = NS.Compat.GetSpellName(spellID),
-        texID     = NS.Compat.GetSpellTexture(spellID) or 134400,
+        spellID    = spellID,
+        known      = known,
+        remaining  = remaining,
+        onCooldown = onCooldown,
+        ready      = known and not onCooldown,
+        spellName  = NS.Compat.GetSpellName(spellID),
+        texID      = NS.Compat.GetSpellTexture(spellID) or 134400,
     }
 end
 
@@ -739,6 +770,7 @@ local function buildFrame()
     -- menu. By now f:IsShown() is false, so the proxy's OnHide sees the popup off screen and stops.
     f:SetScript("OnHide", function(self)
         gateWithheld = false
+        endPreview()
         stopCooldownTicker()
         if escProxy then escProxy:Hide() end
     end)
@@ -953,6 +985,7 @@ local function buildFrame()
             return
         end
         local spellID, known, remaining, ready = st.spellID, st.known, st.remaining, st.ready
+        local onCooldown = st.onCooldown
         local spellName, texID = st.spellName, st.texID
 
         icon:SetTexture(texID)
@@ -961,15 +994,16 @@ local function buildFrame()
 
         -- Armed with the RAW pair, not the GCD-floored one: the widget draws what it is handed,
         -- and (0, 0) is how a Cooldown frame is cleared. Both branches call it, so a swipe never
-        -- outlives the cooldown that armed it.
+        -- outlives the cooldown that armed it. A secret pair (combat, WG-01) goes to the widget
+        -- unchanged: SetCooldown accepts secrets, so the swipe drains even when no figure can.
         local swipe = fields.teleportSwipe
-        if remaining > 0 then
+        if onCooldown then
             swipe:SetCooldown(NS.Compat.GetSpellCooldownTimes(spellID))
         else
             swipe:SetCooldown(0, 0)
         end
 
-        applyTeleportNote(spellID, known, remaining, info)
+        applyTeleportNote(spellID, known, remaining, onCooldown, info)
 
         applyTeleportAction(btn, spellID, spellName, known, ready)
 
@@ -1022,6 +1056,18 @@ local function PopulateFields()
     fields.playstyle:SetText(playStyle ~= "" and playStyle or "|cff888888—|r")
 
     ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, info)
+end
+
+-- THE ONE-SHOT PREVIEW ENDS when the popup is put away: every real hide (f's OnHide), the
+-- player's dismissal (dismissPopup, which covers the soft hide in combat), the next show request
+-- (ShowFrame) and the stand-down. The fields are refilled from the real capture out of combat, so
+-- a gate re-show (applyVisibility) never puts the sample back up; in combat the next show refills
+-- them. Test mode's placeholder is not a one-shot and is left to endTestMode.
+function endPreview()
+    if not previewInfo or NS.State.testMode then return end
+    previewInfo = nil
+    if fields and not InCombatLockdown() then PopulateFields() end
+    NS.Debug("Test", "one-shot preview ended")
 end
 
 -- Build (once), apply the size, scale and opacity, and fill the fields: everything a show does
@@ -1129,19 +1175,41 @@ end
 
 -- The first-show defer's combat-end replay (ShowFrame, below). It restores the stashed pendingInfo
 -- only if it was cleared (e.g. group-leave) during the wait window: the player's intent was to see
--- *this* group's popup.
+-- *this* group's popup. A one-shot preview asked for in the fight is replayed as that preview.
 local function replayFirstShow()
     WhatGroup._frameBuildQueued = nil
     WhatGroup.pendingInfo = WhatGroup.pendingInfo or WhatGroup._deferredShowInfo
     WhatGroup._deferredShowInfo = nil
-    WhatGroup:ShowFrame()
+    local preview = WhatGroup._deferredPreview
+    WhatGroup._deferredPreview = nil
+    WhatGroup:ShowFrame(preview)
 end
 
--- Public API
-function WhatGroup:ShowFrame()
-    -- A real show takes the popup from test mode: whatever called this wants the real capture on it.
-    -- (The join popup never gets here while test mode is on; _TryFireJoinNotify holds it.)
+-- The gate DECLINED a show (ShowFrame, below). A requested real show is withheld: that is the second
+-- of the two states the re-show arm is allowed to act on, and without it `Only in combat` would
+-- show once on the next pull and never again -- the request would be forgotten the moment it was
+-- refused. A one-shot preview is dropped instead, never withheld: the re-show arm would otherwise
+-- put the sample on screen on some later combat edge, long after the player asked for it.
+local function declineShow(preview)
+    local v = WhatGroup.db and WhatGroup.db.profile and WhatGroup.db.profile.visibility
+    if preview then
+        endPreview()
+        NS.Debug("Frame", "preview not shown: visibility = %s", v)
+        return
+    end
+    gateWithheld = true
+    NS.Debug("Frame", "popup built but not shown: visibility = %s", v)
+end
+
+-- Public API. `preview`, when given, is a ONE-SHOT PREVIEW (core/WhatGroup.lua's RunTest): the
+-- popup shows it through previewInfo instead of pendingInfo, and it ends when the popup is put away
+-- (endPreview). Every other caller passes nothing and gets the real capture.
+function WhatGroup:ShowFrame(preview)
+    -- A show takes the popup from test mode, and from any earlier one-shot preview: whatever called
+    -- this wants the real capture on it, or its own preview. (The join popup never gets here while
+    -- test mode is on; _TryFireJoinNotify holds it.)
     if endTestMode("a real show") then refreshPanel() end
+    endPreview()
     -- THE VISIBILITY GATE (options-ui-§15), and it is TWO checks rather than one because the
     -- question is time-varying. Every way the popup reaches the screen -- the join notify,
     -- `/wg show`, the chat link, `/wg test notify` -- comes through here, so gating covers them all.
@@ -1176,20 +1244,15 @@ function WhatGroup:ShowFrame()
             WhatGroup._deferredShowInfo = WhatGroup.pendingInfo
             NS.FrameQueueForCombatEnd("firstShow", replayFirstShow)
         end
+        -- The latest request wins: a real show after a preview in the same fight replays real.
+        WhatGroup._deferredPreview = preview
         return
     end
 
     -- Every open re-applies the size, the scale and the opacity (preparePopup).
+    previewInfo = preview
     preparePopup()
-    if not visibilityAllows() then
-        -- The gate DECLINED a show the player asked for, which is the second of the two states the
-        -- re-show arm is allowed to act on. Without this, `Only in combat` would show once on the
-        -- next pull and never again — the request would be forgotten the moment it was refused.
-        gateWithheld = true
-        NS.Debug("Frame", "popup built but not shown: visibility = %s",
-            self.db and self.db.profile and self.db.profile.visibility)
-        return
-    end
+    if not visibilityAllows() then return declineShow(preview) end
     showPopup()
 end
 
@@ -1249,6 +1312,7 @@ function NS.FrameStandDown()
     -- unticks the Master controls checkbox, so the panel does not read "test mode on" over an addon
     -- that is off.
     if endTestMode("addon disabled") then refreshPanel() end
+    endPreview()
 
     stopCooldownTicker()
 
@@ -1268,6 +1332,7 @@ function NS.FrameStandDown()
     wipe(combatEndQueue)
     if f then f._pendingTeleportInfo = nil end
     WhatGroup._deferredShowInfo = nil
+    WhatGroup._deferredPreview = nil
     WhatGroup._frameBuildQueued = nil
 end
 
@@ -1288,7 +1353,7 @@ function NS.FrameSnapshot()
         softHidden       = softHidden,
         pendingHide      = pendingHide,
         gateWithheld     = gateWithheld,
-        testMode         = previewInfo ~= nil,
+        testMode         = NS.State.testMode == true,
         combatQueue      = queue,
         teleportDeferred = (f and f._pendingTeleportInfo ~= nil) or false,
         cooldownTicking  = cooldownTimer ~= nil,

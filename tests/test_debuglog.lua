@@ -604,11 +604,11 @@ test("debuglog: pin — a wipe with a reason and something in flight logs the [C
     assertLogged(NS, "[Capture] wiped (master switch off)")
 end)
 
-test("debuglog: pin — /wg test notify logs the [Test] injection line", function()
+test("debuglog: pin — /wg test notify logs the [Test] preview line", function()
     local NS = T.bootAddon()
     NS.State.debug = true
     NS.addon:RunTest()
-    assertLogged(NS, '[Test] synthetic capture injected "' .. NS.addon:SampleInfo().title .. '"')
+    assertLogged(NS, '[Test] synthetic capture previewed "' .. NS.addon:SampleInfo().title .. '"')
 end)
 
 test("debuglog: pin — showing a capture logs the [Frame] popup-shown and teleport lines", function()

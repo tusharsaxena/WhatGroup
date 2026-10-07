@@ -472,6 +472,85 @@ test("frame: the ticker rearms the cast the moment the cooldown expires", functi
     assertEqual(mock.__fireTimers(), 0, "and the ticker stops itself once there is nothing left")
 end)
 
+-- Secret cooldowns (WG-01). The popup can be open in combat, and in combat the client may answer
+-- the teleport's startTime and duration as secret values. The ticker must neither raise (AceTimer
+-- re-arms a repeating timer only after the callback returns, so a raise kills it for good) nor
+-- treat an unreadable tick as "ready". isActive stays plain and decides on-cooldown on its own.
+
+local function withSecrets(fn)
+    local restore = T.installSecretValue()
+    local ok, err = pcall(fn)
+    restore()
+    if not ok then error(err, 0) end
+end
+
+test("frame: a secret tick keeps the note and leaves the ticker armed", function()
+    -- red under: the ticker comparing the secret reading (the raise kills the repeating timer)
+    withSecrets(function()
+        local NS, _, mock = T.bootAddon()
+        mock.knownSpells[445269] = true
+        NS.TeleportSpells[2652] = 445269
+        onCooldown(mock, 445269, 12)
+        NS.addon.pendingInfo = pending({ mapID = 2652 })
+        NS.addon:ShowFrame()
+        local before = fields(mock).note:GetText()
+        assertTrue(before:find("12s", 1, true) ~= nil)
+
+        mock.secretCooldown(445269, mock.now - 60, 72, true)
+        mock.now = mock.now + 1
+        local ok, err = pcall(mock.__fireTimers)
+        assertTrue(ok, "an unreadable tick must not raise: " .. tostring(err))
+        assertEqual(fields(mock).note:GetText(), before, "the last countdown stays on screen")
+        assertTrue(NS.FrameSnapshot().cooldownTicking, "the ticker handle is still live")
+        assertEqual(mock.__fireTimers(), 1, "and it is still the one repeating timer")
+
+        -- Readable again (out of combat): the countdown resumes from the live reading.
+        onCooldown(mock, 445269, 9)
+        mock.__fireTimers()
+        assertTrue(fields(mock).note:GetText():find("9s", 1, true) ~= nil,
+            "got: " .. tostring(fields(mock).note:GetText()))
+    end)
+end)
+
+test("frame: a secret active cooldown renders the cooldown state with no figure", function()
+    -- red under: a secret reading treated as ready (0), which would arm the cast
+    withSecrets(function()
+        local NS, _, mock = T.bootAddon()
+        mock.spellNames[445269] = "Path of the Corrupted Foundry"
+        mock.knownSpells[445269] = true
+        NS.TeleportSpells[2652] = 445269
+        mock.secretCooldown(445269, mock.now - 60, 28800, true)
+        NS.addon.pendingInfo = pending({ mapID = 2652 })
+        NS.addon:ShowFrame()
+        local btn = teleportBtn(mock)
+        assertNil(btn:GetAttribute("macrotext"), "an on-cooldown teleport arms no cast")
+        assertEqual(btn:GetAlpha(), 0.5)
+        local note = fields(mock).note
+        assertTrue(note:IsShown())
+        assertTrue(note:GetText():find("On cooldown", 1, true) ~= nil)
+        assertNil(note:GetText():find("%d+s"), "no figure from an unreadable cooldown")
+        local cd = teleportCooldown(mock).__cooldown
+        assertTrue(T.isSecret(cd.start) and T.isSecret(cd.duration),
+            "the swipe is handed the secret pair as-is")
+        assertEqual(mock.__fireTimers(), 1, "the ticker is armed to pick up the figure later")
+    end)
+end)
+
+test("frame: a secret cooldown that is not active reads as ready", function()
+    withSecrets(function()
+        local NS, _, mock = T.bootAddon()
+        mock.spellNames[445269] = "Path of the Corrupted Foundry"
+        mock.knownSpells[445269] = true
+        NS.TeleportSpells[2652] = 445269
+        mock.secretCooldown(445269, 0, 0, false)
+        NS.addon.pendingInfo = pending({ mapID = 2652 })
+        NS.addon:ShowFrame()
+        assertEqual(teleportBtn(mock):GetAttribute("macrotext"), "/cast Path of the Corrupted Foundry")
+        assertFalse(fields(mock).note:IsShown())
+        assertEqual(mock.__fireTimers(), 0)
+    end)
+end)
+
 -- The note carries BOTH reasons a teleport is unusable, in the same place, so the popup never just
 -- grays out and says nothing.
 test("frame: an unlearned teleport says so beside the button", function()

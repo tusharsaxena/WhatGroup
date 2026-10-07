@@ -409,9 +409,11 @@ end)
 test("panel: the Test button runs the same path as /wg test notify", function()
     local NS, _, mock = openGeneral()
     selectTab(mock, "Chat")
+    local mark = #mock.prints
     widget(mock, "Button", "Test"):Fire("OnClick")
-    assertTrue(NS.addon.pendingInfo ~= nil, "a synthetic capture was injected")
-    assertEqual(NS.addon.pendingInfo.mapID, 2805, "RunTest's fixture: Windrunner Spire")
+    assertNil(NS.addon.pendingInfo, "the sample is previewed, never made the pending capture")
+    assertTrue(#mock.prints > mark, "the chat summary printed")
+    assertTrue(mock.frames["WhatGroupFrame"]:IsShown(), "and the popup opened")
 end)
 
 test("panel: a throwing button onClick is caught, not propagated", function()

@@ -1,8 +1,10 @@
 # Test Cases
 
 The full inventory of every headless test case in this repo, grouped by the suite file it
-lives in. The `## Totals` table below is the **authoritative pass count** — the README test
-badge and any count quoted in the docs must agree with it.
+lives in. The `## Totals` table below counts the cases that run: its **Total** is the
+authoritative pass count, and the README test badge and any count quoted in the docs must equal
+it. A declared skip is listed by name in its group and counted on the `Skipped` row, never in
+Total.
 
 **Generated — do not hand-edit.** Regenerate with `lua tests/run.lua --list > docs/test-cases.md`.
 
@@ -111,7 +113,7 @@ badge and any count quoted in the docs must agree with it.
 - mediasetup: with no library there is no art and no face, and that is not an error
 - mediasetup: a degraded install still gets a REAL font, never nil and never a dead path
 
-### test_envsetup.lua (8)
+### test_envsetup.lua (10)
 
 - envsetup: NS.Meta reads this addon's TOC
 - envsetup: NS.Meta asks about this addon's FOLDER, not its title or its frame prefix
@@ -119,7 +121,9 @@ badge and any count quoted in the docs must agree with it.
 - envsetup: NS.Version prefers the TOC over this addon's own constant
 - envsetup: NS.Version falls back to this addon's own constant
 - envsetup degraded: an install with no LibKa0s still reads its own TOC
+- envsetup degraded: Meta never reads the bare GetAddOnMetadata global
 - envsetup: no file inlines its own C_AddOns ladder any more
+- envsetup: the library-absent ladder has two rungs, Env then C_AddOns
 - envsetup: the ladder did not land in Compat either
 
 ### test_util.lua (31)
@@ -156,7 +160,7 @@ badge and any count quoted in the docs must agree with it.
 - util: FormatDuration rounds fractional seconds up
 - util: FormatDuration renders a non-positive duration as 0s
 
-### test_compat.lua (42)
+### test_compat.lua (47)
 
 - compat: GetSpellName returns the C_Spell name
 - compat: GetSpellTexture is non-nil (caller supplies default)
@@ -170,6 +174,11 @@ badge and any count quoted in the docs must agree with it.
 - compat: GetSpellCooldownRemaining ignores a global-cooldown-length window
 - compat: GetSpellCooldownRemaining reports 0 when the cooldown is disabled
 - compat: GetSpellCooldownRemaining returns 0 when the API is missing
+- compat: GetSpellCooldownRemaining answers unknown, not a raise, for a secret cooldown
+- compat: a secret cooldown that is not active reads unknown and inactive, never 0
+- compat: GetSpellCooldownTimes hands a secret pair through untouched
+- compat: IsSecret is the library's guard, and false for a plain value
+- compat: IsSecret falls back to the issecretvalue stub without the library
 - compat: GetActivityInfoTable passes the table through
 - compat: GetSpellName falls back to the legacy GetSpellInfo global
 - compat: GetSpellName falls through when the modern API returns nil
@@ -215,7 +224,7 @@ badge and any count quoted in the docs must agree with it.
 - database: migrations run before any profile read (OnInitialize order)
 - database: the profile is untouched by a migration pass
 
-### test_settings.lua (58)
+### test_settings.lua (59)
 
 - settings: BuildDefaults threads profile + global defaults
 - settings: defaults source from NS.C (defaults/Profile.lua, WG-24)
@@ -264,6 +273,7 @@ badge and any count quoted in the docs must agree with it.
 - settings: every row's group is one of the designed tabs
 - settings: the popup size defaults are the literals they replaced
 - settings: the size sliders cannot travel outside the frame's own clamp
+- settings: the size tooltips do not restate a default number
 - settings: the Master controls block is the FIRST group, in canonical order
 - settings: the Master controls rows are the COMPOSER's, not hand-written
 - settings: Enable names the addon, and visibility is a four-value dropdown
@@ -429,7 +439,7 @@ badge and any count quoted in the docs must agree with it.
 - capture: a table-shaped GetApplicationInfo still resolves both the id and the role
 - capture: a role that is not one of the three tokens is refused
 
-### test_notify.lua (53)
+### test_notify.lua (55)
 
 - notify: no pendingInfo schedules no timer
 - notify: out of a group schedules no timer even with pendingInfo
@@ -473,6 +483,8 @@ badge and any count quoted in the docs must agree with it.
 - notify: a learned teleport carries no '(not learned)' tag
 - notify: a teleport on cooldown is tagged '(on cooldown)'
 - notify: the cooldown tag carries no countdown to go stale
+- notify: a secret active cooldown still prints the Teleport row tagged '(on cooldown)'
+- notify: a secret inactive cooldown omits the tag
 - notify: an unlearned teleport outranks a cooldown in chat too
 - notify: a ready teleport carries neither tag
 - notify: every summary line carries the shared [WG] prefix
@@ -485,7 +497,7 @@ badge and any count quoted in the docs must agree with it.
 - notify: the Role row is omitted when no role is known
 - notify: the Role row follows the Leader row
 
-### test_frame.lua (58)
+### test_frame.lua (61)
 
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
@@ -519,6 +531,9 @@ badge and any count quoted in the docs must agree with it.
 - frame: a popup the gate keeps off screen arms no ticker
 - frame: a popup that reaches the screen later still gets its ticker
 - frame: the ticker rearms the cast the moment the cooldown expires
+- frame: a secret tick keeps the note and leaves the ticker armed
+- frame: a secret active cooldown renders the cooldown state with no figure
+- frame: a secret cooldown that is not active reads as ready
 - frame: an unlearned teleport says so beside the button
 - frame: an unlearned teleport is never labeled as on cooldown
 - frame: a map with no teleport hides the button entirely
@@ -674,7 +689,7 @@ badge and any count quoted in the docs must agree with it.
 - profile verb: surrounding quotes are stripped, case and inner spaces kept
 - profile verb: a switch in combat is refused and nothing moves
 
-### test_testmode.lua (23)
+### test_testmode.lua (28)
 
 - testmode: bare /wg test toggles test mode, and the checkbox follows
 - testmode: /wg test on|off sets it, and repeating either changes nothing
@@ -696,6 +711,11 @@ badge and any count quoted in the docs must agree with it.
 - testmode: combat with test mode off prints nothing about it
 - testmode: Reset all settings ends it
 - testmode: /wg test notify is the one-shot notify + popup flow, and ends test mode
+- testmode: /wg test notify previews without replacing the real capture
+- testmode: the preview is one-shot under ESC and the launcher's Show window too
+- testmode: a preview asked for in combat lands as the preview at combat end
+- testmode: a preview the gate hides in a fight is dropped, not brought back at combat end
+- testmode: a preview the gate hides with no real capture leaves nothing withheld
 - testmode: /wg show ends it and shows the real capture
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
@@ -813,9 +833,9 @@ badge and any count quoted in the docs must agree with it.
 - lifecycle: /wg config opens the parent settings category
 - lifecycle: /wg config is refused during combat (options-ui-§2)
 - lifecycle: a login taken in combat registers the panel at combat end
-- lifecycle: /wg test notify injects a synthetic capture and runs the full flow
+- lifecycle: /wg test notify previews a synthetic capture through the full flow
 - lifecycle: /wg test notify refuses while the master switch is off
-- lifecycle: the panel Test button previews while the addon is disabled
+- lifecycle: the panel Test button previews in chat only while the addon is disabled
 - lifecycle: /wg test notify fires immediately, without the notify delay
 - lifecycle: /wg show opens the popup when a capture exists
 - lifecycle: /wg show with no capture prints a hint and opens nothing
@@ -870,7 +890,7 @@ badge and any count quoted in the docs must agree with it.
 - debuglog: pin — an accepted invite with nothing pending logs the [Notify] skip line
 - debuglog: pin — a scheduled join notify logs the [Notify] scheduling line
 - debuglog: pin — a wipe with a reason and something in flight logs the [Capture] wiped line
-- debuglog: pin — /wg test notify logs the [Test] injection line
+- debuglog: pin — /wg test notify logs the [Test] preview line
 - debuglog: pin — showing a capture logs the [Frame] popup-shown and teleport lines
 - debuglog: pin — showing with no capture logs the [Frame] fallback and nil teleport lines
 - debuglog: pin — a show the visibility gate withholds logs the [Frame] not-shown line
@@ -939,7 +959,7 @@ badge and any count quoted in the docs must agree with it.
 
 - every evidence id the register cites is assigned by its bundle in docs/audits/ or docs/reviews/
 
-### test_disabled.lua (19)
+### test_disabled.lua (20)
 
 - disabled 1: enabled, the addon holds a NON-EMPTY registration set
 - disabled 3: the registration set is EMPTY, by count and by name
@@ -960,6 +980,7 @@ badge and any count quoted in the docs must agree with it.
 - disabled: the chat command, the panel, the db callbacks and the launcher all survive
 - disabled: a profile switch that flips `enabled` is re-evaluated, both ways
 - disabled: a stand-down in combat holds the protected Hide pending, and one event with it
+- disabled: the owed Hide's PLAYER_REGEN_ENABLED goes through the pcalled helper, so a client that refuses the name still finishes the stand-down
 
 ### test_vendor_sync.lua (3)
 
@@ -1037,21 +1058,21 @@ badge and any count quoted in the docs must agree with it.
 | test_libka0s.lua | 56 |
 | test_surface_parity.lua | 9 |
 | test_mediasetup.lua | 11 |
-| test_envsetup.lua | 8 |
+| test_envsetup.lua | 10 |
 | test_util.lua | 31 |
-| test_compat.lua | 42 |
+| test_compat.lua | 47 |
 | test_database.lua | 11 |
-| test_settings.lua | 58 |
+| test_settings.lua | 59 |
 | test_slash.lua | 61 |
 | test_labels.lua | 40 |
 | test_capture.lua | 43 |
-| test_notify.lua | 53 |
-| test_frame.lua | 58 |
+| test_notify.lua | 55 |
+| test_frame.lua | 61 |
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_panel.lua | 54 |
 | test_profiles.lua | 19 |
-| test_testmode.lua | 23 |
+| test_testmode.lua | 28 |
 | test_snapshot.lua | 10 |
 | test_diagnostics.lua | 20 |
 | test_launcher.lua | 36 |
@@ -1062,11 +1083,12 @@ badge and any count quoted in the docs must agree with it.
 | test_lintconfig.lua | 6 |
 | test_doc_structure.lua | 9 |
 | test_register.lua | 1 |
-| test_disabled.lua | 19 |
+| test_disabled.lua | 20 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
-| test_diagnostics_contract.lua | 9 |
+| test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
-| **Total** | **915** |
+| Skipped | 1 |
+| **Total** | **933** |

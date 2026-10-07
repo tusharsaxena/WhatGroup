@@ -131,7 +131,8 @@ NS.SafeToString = lib.SafeToString
 -- The collection's one pcalled event registration (Core minor 8, events-frames-taint-§1): the
 -- C_EventUtils.IsEventValid front gate, then a private probe frame, then a pcall on the target. A
 -- refused name is appended once to the caller's list and never raises. A bind, like the two
--- above; core/WhatGroup.lua's registerFeatureEvents is the one caller. Only this member of the
+-- above; core/WhatGroup.lua's registerFeatureEvents and NS.StandDown's owed-Hide completion are its
+-- two callers, and there is no bare self:RegisterEvent anywhere in the addon. Only this member of the
 -- three is published -- see the degraded branch for why.
 NS.SafeRegisterEvent = lib.SafeRegisterEvent
 

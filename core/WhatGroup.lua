@@ -42,8 +42,9 @@ NS.State.debug = false
 
 -- Every event name the client refused at registration, in refusal order, each once. Session-only
 -- and never persisted: it describes this client build, and the next patch may answer differently.
--- Filled by registerFeatureEvents through NS.SafeRegisterEvent; read by InitSummary, which is the
--- only place the player sees it (events-frames-taint-§1).
+-- Filled through NS.SafeRegisterEvent by registerFeatureEvents and by NS.StandDown's owed-Hide
+-- completion; read by InitSummary, which is the only place the player sees it
+-- (events-frames-taint-§1).
 NS.RejectedEvents = {}
 
 -- ONE LINE PER DISTINCT CAUGHT ERROR (debug-logging-§8, Diagnosis): a pcall this addon owns logs its
@@ -243,7 +244,8 @@ end
 -- every stored value at once. At file scope, so the OnProfileChanged and OnProfileCopied methods
 -- below and the reset closure OnInitialize registers share one copy.
 local function reloadProfile(self)
-    -- The incoming profile may predate the current schema version.
+    -- Idempotent; normally a no-op once the account-wide schema stamp is current. Profile-scoped
+    -- steps walk every stored profile (core/Database.lua).
     self:RunMigrations()
     -- And every open panel is showing the outgoing profile's values: General's widgets re-read
     -- their rows, and the Profiles page (settings/Profiles.lua) is re-drawn, because AceConfigDialog
@@ -432,8 +434,10 @@ function NS.StandDown()
 
     -- Owed a protected Hide. This is the one registration slash-commands-§7 permits a disabled
     -- addon to keep, and OnDisabledCombatEnded below drops it the moment it fires.
+    -- Through the pcalled helper like every other registration (events-frames-taint-§1): a
+    -- refused name is recorded in NS.RejectedEvents and the rest of the stand-down still stands.
     if InCombatLockdown() and NS.FrameOwesHide and NS.FrameOwesHide() then
-        self:RegisterEvent("PLAYER_REGEN_ENABLED", "OnDisabledCombatEnded")
+        NS.SafeRegisterEvent(self, "PLAYER_REGEN_ENABLED", "OnDisabledCombatEnded", NS.RejectedEvents)
     end
 end
 
@@ -816,6 +820,10 @@ local GOLD = "FFD700"
 -- The cooldown tag deliberately carries NO time remaining. This line is printed once into the
 -- player's scrollback with no way to refresh itself, so a figure here would be wrong a second
 -- later and stay wrong. The popup's countdown is the live one.
+--
+-- An UNKNOWN remaining (nil: the client answered the cooldown pair as secret, as it may in combat,
+-- WG-01) is decided by the plain isActive flag alone: tagged when a cooldown is running, untagged
+-- when not, and never compared, so the row and the popup after it survive a join in combat.
 local function teleportValue(self, info)
     local spellID, known = self:GetTeleportSpell(info.activityID, info.mapID)
     if not spellID then return nil end
@@ -825,8 +833,13 @@ local function teleportValue(self, info)
     local tag
     if not known then
         tag = NS.L["(not learned)"]
-    elseif NS.Compat.GetSpellCooldownRemaining(spellID) > 0 then
-        tag = NS.L["(on cooldown)"]
+    else
+        local remaining, active = NS.Compat.GetSpellCooldownRemaining(spellID)
+        if remaining == nil then
+            if active then tag = NS.L["(on cooldown)"] end
+        elseif remaining > 0 then
+            tag = NS.L["(on cooldown)"]
+        end
     end
 
     return spellLink .. (tag and (" |cff888888" .. tag .. "|r") or "")
@@ -866,8 +879,10 @@ local NOTIFY_ROWS = {
     { flag = "showTeleport",  label = "Teleport:", omitWhenNil = true, value = teleportValue },
 }
 
-function WhatGroup:ShowNotification()
-    local info = self.pendingInfo
+-- `info` defaults to the pending capture. RunTest passes its sample here instead, so a preview
+-- prints the sample without ever becoming the pending capture.
+function WhatGroup:ShowNotification(info)
+    info = info or self.pendingInfo
     if not info then
         NS.Debug("Notify", "skip: no pendingInfo (notification)")
         return
@@ -1263,8 +1278,8 @@ end
 -- through the other's entry point.
 
 -- The sample capture: a fresh table on every call, so no caller hands another one it then mutates.
--- `/wg test notify` makes it the pending capture; test mode (modules/Frame.lua, bare `/wg test`)
--- shows it WITHOUT touching pendingInfo.
+-- Neither `/wg test notify` (RunTest, below) nor test mode (modules/Frame.lua, bare `/wg test`)
+-- ever makes it the pending capture: both show it WITHOUT touching pendingInfo.
 function WhatGroup:SampleInfo()
     -- mapID 2805 is Windrunner Spire — exercises the mapID-keyed teleport
     -- lookup (1254400, Path of the Windrunners). generalPlaystyle exercises
@@ -1303,11 +1318,23 @@ end
 
 -- Public method so the Settings panel's Test button can invoke the
 -- same code path as /wg test notify without going through the slash dispatch.
--- One-shot: the sample becomes the pending capture and the full notify + popup flow runs once. Its
--- ShowFrame ends test mode if it is on, so the two never overlap.
+-- One-shot: the full notify + popup flow runs once ON THE SAMPLE, which is passed to both halves
+-- and never written to pendingInfo, so a real capture the player is holding is what `/wg show`, the
+-- details link and the launcher's Show window open afterwards (WG-R-03). The popup renders it as a
+-- one-shot preview that ends when the popup is closed. Its ShowFrame ends test mode if it is on,
+-- so the two never overlap.
+--
+-- STOOD DOWN, IT IS THE CHAT PREVIEW ONLY. The panel's Test button still reaches here with the
+-- addon off, and a popup built then would add the secure teleport button and the UISpecialFrames
+-- proxy to a disabled addon's session, be withheld by the gate, and come back unasked on the
+-- re-enable (WG-R-04). So no frame is built, shown or withheld.
 function WhatGroup:RunTest()
-    self.pendingInfo = self:SampleInfo()
-    NS.Debug("Test", 'synthetic capture injected "%s"', self.pendingInfo.title)
-    self:ShowNotification()
-    self:ShowFrame()
+    local sample = self:SampleInfo()
+    NS.Debug("Test", 'synthetic capture previewed "%s"', sample.title)
+    self:ShowNotification(sample)
+    if NS.IsStoodDown() then
+        NS.Debug("Test", "popup skipped: addon stood down (chat preview only)")
+        return
+    end
+    self:ShowFrame(sample)
 end

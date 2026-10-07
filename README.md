@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-914%2F914_passing-green)
+![Tests](https://img.shields.io/badge/Tests-933%2F933_passing-green)
 
 WhatGroup remembers the group you signed up for through the Group Finder tool. You get accepted, you shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who's leading, and the playstyle.
 
@@ -49,7 +49,7 @@ The group info doesn't outlive the session. WhatGroup drops it the moment you le
 |---|---|
 | Does this work for cross-realm or cross-faction groups? | Yes. WhatGroup reads whatever the group finder shows it, so realm, faction and category don't matter. |
 | Is anything saved between sessions? | Your settings, plus the place you dragged the popup to. The debug console's position isn't saved. The group info itself is session-only. It clears the moment you leave the group, so `/wg show` only works while you're still in it. |
-| How do I preview the popup without joining a real group? | `/wg test notify`, or the **Test** button in Settings. Both run the full message and popup on sample data, once. To keep the popup up while you move it, type `/wg test` or tick **Test mode** on the **Master controls** tab. |
+| How do I preview the popup without joining a real group? | `/wg test notify`, or the **Test** button in Settings. Both run the full message and popup on sample data, once, and leave your real group info alone, so `/wg show` still opens it afterwards. To keep the popup up while you move it, type `/wg test` or tick **Test mode** on the **Master controls** tab. |
 | Can I delay the message and popup instead of getting them instantly? | Yes. They appear instantly by default; set a pause under **Chat → Notification Delay** (0-10 seconds). |
 | What is the **Debug console**, and how do I turn on debug logging? | `/wg debug` opens the on-screen window; `/wg debug on` starts logging into it, `off` stops it. Logging is session-only and starts off after every login. The **Debug console** checkbox only shows or hides the window; it doesn't turn logging on. |
 | Why is the teleport button or teleport line grayed out or missing? | Three reasons, and the popup says which: you haven't learned the spell (`Teleport spell not learned` beside the button), you have it but it's still recharging (`On cooldown — 7h 58m 12s`, counting down, with a cooldown swipe over the icon), or that dungeon has no teleport at all, in which case the row is skipped. |

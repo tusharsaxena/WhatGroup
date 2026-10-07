@@ -222,7 +222,8 @@ without the pipeline.
 
 `--list` loads every suite, stamps each registered case with its origin
 `test_*.lua` file, prints the Markdown inventory (per-suite sections in
-**declared suite order** + a Totals table with the grand total), and exits
+**declared suite order** + a Totals table whose **Total** counts only the cases that
+run, a declared skip sitting on its own `Skipped` row since kit revision 38), and exits
 **without running any test**. It is a pure filter over the registry: the kit
 **collects** every case and runs nothing until `Kit.run`, so the inventory
 cannot disagree with the run. Default `lua tests/run.lua` behavior is
@@ -287,8 +288,8 @@ than the tag this addon has taken.
 
 Between a library release and the re-vendor that carries it they disagree, and that disagreement is
 the normal state rather than a defect. The same goes for untagged commits the library lands after
-the tag it released. As this is written the two agree: [`CLAUDE.md`](../CLAUDE.md) names
-**v1.68.1**, and `../LibKa0s`'s HEAD carries that tag's payload, so all four commands report nothing. Read a non-empty pair here as *the library has
+the tag it released. When `../LibKa0s`'s checkout carries the payload of the tag on the
+[`CLAUDE.md`](../CLAUDE.md) provenance line, all four commands report nothing. Read a non-empty pair here as *the library has
 moved past the tag this addon took* — a newer release, or post-tag follow-ups — not as a fault.
 Re-vendoring to quiet them would be the actual mistake: it would pull an untested library state for
 the sake of a clean diff.

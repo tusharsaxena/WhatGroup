@@ -446,12 +446,11 @@ end)
 -- /wg test and /wg show
 -- ---------------------------------------------------------------------------
 
-test("lifecycle: /wg test notify injects a synthetic capture and runs the full flow", function()
+test("lifecycle: /wg test notify previews a synthetic capture through the full flow", function()
     local NS, _, mock = T.bootAddon()
     local mark = #mock.prints
     runCmd(NS, "test", "notify")
-    assertTrue(NS.addon.pendingInfo ~= nil)
-    assertEqual(NS.addon.pendingInfo.mapID, 2805, "RunTest's fixture: Windrunner Spire")
+    assertNil(NS.addon.pendingInfo, "the sample is previewed, never made the pending capture")
     assertTrue(#mock.prints > mark, "the chat summary printed")
     assertTrue(mock.frames["WhatGroupFrame"]:IsShown(), "and the popup opened")
 end)
@@ -482,14 +481,29 @@ test("lifecycle: /wg test notify refuses while the master switch is off", functi
         "naming the verb that turns the addon back on")
 end)
 
-test("lifecycle: the panel Test button previews while the addon is disabled", function()
+test("lifecycle: the panel Test button previews in chat only while the addon is disabled", function()
     -- The surviving preview route, and the reason the verb can afford to refuse. The button is a
     -- panel control rather than a slash verb, so slash-commands-§2 does not reach it, and a
     -- player who is in the panel can see the Enable checkbox from where they clicked.
-    local NS = T.bootAddon()
+    --
+    -- CHAT ONLY. A stood-down addon builds no popup for it: no secure teleport button, no
+    -- UISpecialFrames proxy, and nothing withheld by the gate, whose re-show arm would otherwise
+    -- put the sample on screen unasked the moment the addon is enabled again (WG-R-04).
+    -- red under: gateWithheld re-show arm
+    local NS, _, mock = T.bootAddon()
     NS.addon.Settings.Helpers.Set("enabled", false)
+    local mark = #mock.prints
     NS.addon:RunTest()
-    assertTrue(NS.addon.pendingInfo ~= nil, "the preview still runs from the panel")
+    local printed = false
+    for i = mark + 1, #mock.prints do
+        if mock.prints[i]:find(NS.addon:SampleInfo().title, 1, true) then printed = true end
+    end
+    assertTrue(printed, "the chat preview still runs from the panel")
+    assertNil(mock.frames["WhatGroupFrame"], "no popup frame was built")
+    assertNil(NS.addon.pendingInfo, "and no capture was injected")
+    NS.addon.Settings.Helpers.Set("enabled", true)
+    local f = mock.frames["WhatGroupFrame"]
+    assertTrue(f == nil or not f:IsShown(), "re-enabling shows nothing unasked")
 end)
 
 test("lifecycle: /wg test notify fires immediately, without the notify delay", function()

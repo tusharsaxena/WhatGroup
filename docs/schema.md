@@ -56,7 +56,7 @@ existing user. The default is the pre-versioning 0 instead: a fresh install walk
 any old one, and the stamp `RunMigrations` writes (1 today) always differs from the default, so it
 persists (`savedvariables-§1`).
 
-Sixteen persisted profile settings, all of them user-facing, all of them schema rows — plus one
+The persisted profile settings, all of them user-facing, all of them schema rows — plus one
 **global** row, `global.minimap.shown` (the launcher's visibility, stored at LibDBIcon's own
 `db.global.minimap.hide` and inverted at the write seam: the path and the row say *shown*), and two **session-only** rows,
 `state.debugConsole` and `state.testMode`, which are schema rows and deliberately not persisted (see

@@ -18,7 +18,9 @@
 -- SECRET-SAFE. `out:add` runs every argument through NS.SafeToString and formats `%s`-only, so the
 -- sections pass RAW values and never build a string with `..` or a `%d`. The one number this addon
 -- would do arithmetic on, the teleport cooldown, is printed as its raw readable pair or named
--- unreadable; Compat.GetSpellCooldownRemaining is not called here, because it subtracts.
+-- unreadable. Compat.GetSpellCooldownRemaining is not called here: it now guards its arithmetic
+-- with Compat.IsSecret (WG-01), but on a secret pair it answers only "unknown" (nil, isActive),
+-- and the report wants the raw pair itself.
 --
 -- TOC slot: after modules/Frame.lua. Conventional: the DebugLog descriptor reads
 -- NS.Diagnostics.Sections at RUN time (core/DebugLogSetup.lua), and every read below is at call time.

@@ -644,3 +644,27 @@ function()
     assertEqual(#regNames(mock), 0, "the debt is settled and the last registration is gone")
     assertFalse(f:IsShown(), "and the popup is genuinely hidden, not merely transparent")
 end)
+
+test("disabled: the owed Hide's PLAYER_REGEN_ENABLED goes through the pcalled helper, so a client "
+    .. "that refuses the name still finishes the stand-down", function()
+    -- events-frames-taint-§1: every registration in the addon goes through NS.SafeRegisterEvent,
+    -- including StandDown's transient one (WG-A-01). The name is refused only AFTER the enable, so
+    -- the login registration succeeded and the one entry in NS.RejectedEvents is StandDown's own.
+    -- red under: the bare self:RegisterEvent raising
+    local NS, mock = up()
+    NS.addon:OnSlashCommand("test on")
+    local f = mock.frames["WhatGroupFrame"]
+    assertTrue(f ~= nil and f:IsShown(), "the popup is up")
+    assertEqual(#NS.RejectedEvents, 0, "nothing refused at login")
+
+    mock.__badEvents = { PLAYER_REGEN_ENABLED = true }
+    mock.combat = true
+    local ok, err = pcall(switchOff, NS)
+    assertTrue(ok, "the stand-down completes without raising: " .. tostring(err))
+
+    assertTrue(NS.Lifecycle:IsDown(), "the addon is stood down")
+    assertEqual(joined(regNames(mock)), "", "the refused completion leaves nothing registered")
+    assertEqual(f:GetAlpha(), 0, "the popup is still made invisible")
+    assertEqual(#NS.RejectedEvents, 1, "one name refused")
+    assertEqual(NS.RejectedEvents[1], "PLAYER_REGEN_ENABLED", "and it is the owed completion")
+end)
