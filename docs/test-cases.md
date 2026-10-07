@@ -956,7 +956,7 @@ Total.
 
 - every evidence id the register cites is assigned by its bundle in docs/audits/ or docs/reviews/
 
-### test_disabled.lua (19)
+### test_disabled.lua (20)
 
 - disabled 1: enabled, the addon holds a NON-EMPTY registration set
 - disabled 3: the registration set is EMPTY, by count and by name
@@ -977,6 +977,7 @@ Total.
 - disabled: the chat command, the panel, the db callbacks and the launcher all survive
 - disabled: a profile switch that flips `enabled` is re-evaluated, both ways
 - disabled: a stand-down in combat holds the protected Hide pending, and one event with it
+- disabled: the owed Hide's PLAYER_REGEN_ENABLED goes through the pcalled helper, so a client that refuses the name still finishes the stand-down
 
 ### test_vendor_sync.lua (3)
 
@@ -1079,7 +1080,7 @@ Total.
 | test_lintconfig.lua | 6 |
 | test_doc_structure.lua | 9 |
 | test_register.lua | 1 |
-| test_disabled.lua | 19 |
+| test_disabled.lua | 20 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
@@ -1087,4 +1088,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **929** |
+| **Total** | **930** |

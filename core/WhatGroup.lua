@@ -42,8 +42,9 @@ NS.State.debug = false
 
 -- Every event name the client refused at registration, in refusal order, each once. Session-only
 -- and never persisted: it describes this client build, and the next patch may answer differently.
--- Filled by registerFeatureEvents through NS.SafeRegisterEvent; read by InitSummary, which is the
--- only place the player sees it (events-frames-taint-§1).
+-- Filled through NS.SafeRegisterEvent by registerFeatureEvents and by NS.StandDown's owed-Hide
+-- completion; read by InitSummary, which is the only place the player sees it
+-- (events-frames-taint-§1).
 NS.RejectedEvents = {}
 
 -- ONE LINE PER DISTINCT CAUGHT ERROR (debug-logging-§8, Diagnosis): a pcall this addon owns logs its
@@ -433,8 +434,10 @@ function NS.StandDown()
 
     -- Owed a protected Hide. This is the one registration slash-commands-§7 permits a disabled
     -- addon to keep, and OnDisabledCombatEnded below drops it the moment it fires.
+    -- Through the pcalled helper like every other registration (events-frames-taint-§1): a
+    -- refused name is recorded in NS.RejectedEvents and the rest of the stand-down still stands.
     if InCombatLockdown() and NS.FrameOwesHide and NS.FrameOwesHide() then
-        self:RegisterEvent("PLAYER_REGEN_ENABLED", "OnDisabledCombatEnded")
+        NS.SafeRegisterEvent(self, "PLAYER_REGEN_ENABLED", "OnDisabledCombatEnded", NS.RejectedEvents)
     end
 end
 
