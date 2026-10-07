@@ -90,6 +90,74 @@ test("compat: GetSpellCooldownRemaining returns 0 when the API is missing", func
     assertEqual(NS.Compat.GetSpellCooldownRemaining(445269), 0)
 end)
 
+-- Secret cooldowns (WG-01). In combat the client may hand startTime and duration back as secret
+-- values; LibKa0s-Compat-1.0's GetSpellCooldown passes them through untouched and says to gate with
+-- IsSecret before any arithmetic. isActive stays a plain boolean, and it is the only thing the shim
+-- may decide "on cooldown" from. The kit's wrappers raise on every compare and every operator, so
+-- a reader that so much as tests `start <= 0` turns these red.
+
+-- Installs the kit's `issecretvalue` for the body only, and puts back whatever was there before
+-- even when the body fails, so no later case inherits a secrets system it did not ask for.
+local function withSecrets(fn)
+    local restore = T.installSecretValue()
+    local ok, err = pcall(fn)
+    restore()
+    if not ok then error(err, 0) end
+end
+
+test("compat: GetSpellCooldownRemaining answers unknown, not a raise, for a secret cooldown", function()
+    -- red under: the unguarded start <= 0 compare (it raises "secret value" on the wrapper)
+    withSecrets(function()
+        local NS, _, mock = T.newAddon()
+        mock.secretCooldown(445269, mock.now - 60, 28800, true)
+        local ok, remaining, active = pcall(NS.Compat.GetSpellCooldownRemaining, 445269)
+        assertTrue(ok, "a secret reading must not raise: " .. tostring(remaining))
+        assertNil(remaining, "a secret reading is unknown, never a number")
+        assertEqual(active, true, "isActive is plain and carried through")
+    end)
+end)
+
+test("compat: a secret cooldown that is not active reads unknown and inactive, never 0", function()
+    -- red under: returning 0 for a secret reading (an on-cooldown teleport would read READY)
+    withSecrets(function()
+        local NS, _, mock = T.newAddon()
+        mock.secretCooldown(445269, mock.now - 60, 28800, false)
+        local remaining, active = NS.Compat.GetSpellCooldownRemaining(445269)
+        assertNil(remaining)
+        assertEqual(active, false)
+    end)
+end)
+
+test("compat: GetSpellCooldownTimes hands a secret pair through untouched", function()
+    withSecrets(function()
+        local NS, _, mock = T.newAddon()
+        mock.secretCooldown(445269, mock.now - 60, 28800, true)
+        local start, duration = NS.Compat.GetSpellCooldownTimes(445269)
+        assertTrue(T.isSecret(start) and T.isSecret(duration),
+            "the swipe takes the secret pair as-is; the widget accepts secrets")
+    end)
+end)
+
+test("compat: IsSecret is the library's guard, and false for a plain value", function()
+    withSecrets(function()
+        local NS, _, mock = T.newAddon()
+        mock.secretCooldown(445269, 1, 2, true)
+        assertTrue(NS.Compat.IsSecret(mock.spellCooldowns[445269].startTime))
+        assertFalse(NS.Compat.IsSecret(5))
+    end)
+end)
+
+test("compat: IsSecret falls back to the issecretvalue stub without the library", function()
+    withSecrets(function()
+        local NS, _, mock = T.newAddon{ skip = T.loadAddon.libFiles }
+        mock.secretCooldown(445269, 1, 2, true)
+        assertTrue(NS.Compat.IsSecret(mock.spellCooldowns[445269].startTime))
+        assertFalse(NS.Compat.IsSecret("x"))
+    end)
+    local NS = T.newAddon{ skip = T.loadAddon.libFiles }
+    assertFalse(NS.Compat.IsSecret(5), "no issecretvalue global: nothing is secret")
+end)
+
 test("compat: GetActivityInfoTable passes the table through", function()
     local NS, _, mock = T.newAddon()
     mock.activities[500] = { mapID = 2652, fullName = "The Stonevault" }

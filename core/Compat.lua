@@ -58,6 +58,17 @@ Compat.GetSpellName = CompatLib and CompatLib.GetSpellName or function() return 
 --- dropped), so it can be spread into SetTexture.
 Compat.GetSpellTexture = CompatLib and CompatLib.GetSpellTexture or function() return nil end
 
+--- Whether `v` is a secret value: the gate every comparison or arithmetic on a value the client may
+--- answer as secret in combat (the teleport's cooldown pair) goes behind.
+---
+--- THE GUARD ARM, not the reader arm: without the library this re-implements the three-line body
+--- (anti-patterns #47, LibKa0s docs/api/Compat/version-1-docs.md "Guards"). "The library is absent"
+--- is not "the client has no secrets system", and a stub answering false on a 12.x client would
+--- send a secret into the very compare this exists to stop.
+Compat.IsSecret = CompatLib and CompatLib.IsSecret or function(v)
+    return issecretvalue ~= nil and issecretvalue(v) or false
+end
+
 -- `startTime, duration, isEnabled, modRate, isActive` -- always five values. Kept file-local
 -- rather than published: the two cooldown shims below are this addon's call surface, and each
 -- keeps its own contract on top of it.
@@ -97,9 +108,14 @@ end
 -- short, so the floor costs no accuracy.
 local GCD_SECONDS = 1.5
 
---- Seconds left on a spell's cooldown, or 0 when it is ready, unavailable, or
---- only the GCD is running. Never negative and never nil, so the caller can
---- treat any positive number as "cannot cast yet" without a second guard.
+--- `remaining, isActive`: seconds left on a spell's cooldown, and the client's plain "is a cooldown
+--- running" flag. `remaining` is 0 when the spell is ready, unavailable, or only the GCD is
+--- running, and never negative, so a caller can treat any positive number as "cannot cast yet".
+---
+--- `remaining` is nil -- UNKNOWN -- when the client answered startTime or duration as a secret
+--- value (it may in combat). No comparison or arithmetic runs on such a reading, and it never
+--- answers 0: 0 would report a teleport that is on cooldown as READY. A caller decides on-cooldown
+--- from `isActive` alone in that case and shows no figure (WG-01).
 ---
 --- The reading of the client is LibKa0s-Compat-1.0's GetSpellCooldown, which normalizes retail's
 --- table form and the legacy multi-return (a legacy `isEnabled` of 0 reads disabled, nil reads
@@ -107,17 +123,22 @@ local GCD_SECONDS = 1.5
 --- stays here: `isEnabled` false means "do not draw a cooldown" (the spell is mid-cast), which is
 --- not a wait the player can be told to sit out, so it reads as ready; and the GCD floor above.
 function Compat.GetSpellCooldownRemaining(spellID)
-    local start, duration, enabled = spellCooldown(spellID)
-    if not enabled then return 0 end
-    if start <= 0 or duration <= GCD_SECONDS then return 0 end
+    local start, duration, enabled, _, active = spellCooldown(spellID)
+    if not enabled then return 0, active end
+    if Compat.IsSecret(start) or Compat.IsSecret(duration) then return nil, active end
+    if start <= 0 or duration <= GCD_SECONDS then return 0, active end
 
     local remaining = (start + duration) - GetTime()
-    return remaining > 0 and remaining or 0
+    return remaining > 0 and remaining or 0, active
 end
 
 --- The raw (start, duration) pair the cooldown swipe needs, straight through
 --- with no GCD floor — the widget draws whatever it is handed, and a swipe is
 --- the one readout that can afford to be literal. Returns 0, 0 when ready.
+---
+--- A SECRET pair (combat) is handed through unchanged and never compared: Cooldown:SetCooldown is a
+--- C-side setter, and widgets accept secrets, so the swipe keeps draining when the figure cannot be
+--- read (WG-01).
 ---
 --- Truncated to TWO values on purpose: the caller spreads this into Cooldown:SetCooldown, whose
 --- third parameter is modRate, and the library's third return is the enabled flag.

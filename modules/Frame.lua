@@ -556,11 +556,13 @@ end
 
 -- The note beneath the button: three states, one line of text, and the only place the cooldown
 -- countdown lives.
-local function applyTeleportNote(spellID, known, remaining, info)
+local function applyTeleportNote(spellID, known, remaining, onCooldown, info)
     local note = fields.teleportNote
+    -- nil secondsLeft is an UNKNOWN reading (a secret cooldown pair, WG-01): the state is still
+    -- said, with no figure, because there is no figure to give.
     local function renderNote(secondsLeft)
-        note:SetText("|cff888888" .. L["On cooldown"] .. " — "
-            .. NS.FormatDuration(secondsLeft) .. "|r")
+        local figure = secondsLeft and (" — " .. NS.FormatDuration(secondsLeft)) or ""
+        note:SetText("|cff888888" .. L["On cooldown"] .. figure .. "|r")
         note:Show()
     end
 
@@ -570,7 +572,7 @@ local function applyTeleportNote(spellID, known, remaining, info)
     if not known then
         note:SetText("|cff888888" .. L["Teleport spell not learned"] .. "|r")
         note:Show()
-    elseif remaining > 0 then
+    elseif onCooldown then
         renderNote(remaining)
         -- ARMED ONLY AGAINST A POPUP THAT IS ACTUALLY ON SCREEN, and that condition is the whole
         -- of the `performance-§12` deviation row's argument rather than a tidiness. `OnHide` — the
@@ -586,6 +588,11 @@ local function applyTeleportNote(spellID, known, remaining, info)
         -- identical string and a slower one would visibly skip.
         cooldownTimer = WhatGroup:ScheduleRepeatingTimer(function()
             local left = NS.Compat.GetSpellCooldownRemaining(spellID)
+            -- UNKNOWN (a secret reading in combat, WG-01): keep the last text and stay armed. A
+            -- raise here would kill the repeating timer for good, since AceTimer re-arms only after
+            -- the callback returns, and reading it as zero would reconfigure into "ready". The
+            -- next readable tick picks the countdown back up.
+            if left == nil then return end
             if left > 0 then return renderNote(left) end
             -- Reaching zero is the interesting tick: stop first so the reconfigure below sees
             -- no live handle, then re-run the whole state machine rather than hand-reversing
@@ -621,13 +628,13 @@ end
 -- DG-WG-01; a Clear never re-armed it.
 local TELEPORT_GATE_KEY = "teleport"
 
-local function logTeleportState(spellID, known, remaining, info)
+local function logTeleportState(spellID, known, remaining, onCooldown, info)
     if not NS.State.debug then return end
     local activityID, mapID = info and info.activityID, info and info.mapID
     local wrote = NS.DebugLog.DebugChanged(TELEPORT_GATE_KEY, "Frame",
         "teleport spellID=%s known=%s (activity=%s map=%s)%s", spellID, known, activityID, mapID,
-        remaining > 0 and " on cooldown" or "")
-    if wrote and remaining > 0 then
+        onCooldown and " on cooldown" or "")
+    if wrote and remaining and remaining > 0 then
         NS.Debug("Frame", "teleport on cooldown, %s remaining (spellID=%s)",
             NS.FormatDuration(remaining), NS.SafeToString(spellID))
     end
@@ -636,17 +643,23 @@ end
 local function resolveTeleportState(info)
     local spellID, known = WhatGroup:GetTeleportSpell(info and info.activityID, info and info.mapID)
     -- GetTeleportSpell answers `known` only with a spellID, so this is 0 whenever there is none.
-    local remaining = known and NS.Compat.GetSpellCooldownRemaining(spellID) or 0
-    logTeleportState(spellID, known, remaining, info)
+    -- `remaining` is nil when the cooldown pair is secret (WG-01); `onCooldown` then comes from the
+    -- plain isActive flag alone: on cooldown with no figure, or ready.
+    local remaining, active = 0, false
+    if known then remaining, active = NS.Compat.GetSpellCooldownRemaining(spellID) end
+    local onCooldown
+    if remaining == nil then onCooldown = active and true or false else onCooldown = remaining > 0 end
+    logTeleportState(spellID, known, remaining, onCooldown, info)
     if not spellID then return nil end
 
     return {
-        spellID   = spellID,
-        known     = known,
-        remaining = remaining,
-        ready     = known and remaining <= 0,
-        spellName = NS.Compat.GetSpellName(spellID),
-        texID     = NS.Compat.GetSpellTexture(spellID) or 134400,
+        spellID    = spellID,
+        known      = known,
+        remaining  = remaining,
+        onCooldown = onCooldown,
+        ready      = known and not onCooldown,
+        spellName  = NS.Compat.GetSpellName(spellID),
+        texID      = NS.Compat.GetSpellTexture(spellID) or 134400,
     }
 end
 
@@ -953,6 +966,7 @@ local function buildFrame()
             return
         end
         local spellID, known, remaining, ready = st.spellID, st.known, st.remaining, st.ready
+        local onCooldown = st.onCooldown
         local spellName, texID = st.spellName, st.texID
 
         icon:SetTexture(texID)
@@ -961,15 +975,16 @@ local function buildFrame()
 
         -- Armed with the RAW pair, not the GCD-floored one: the widget draws what it is handed,
         -- and (0, 0) is how a Cooldown frame is cleared. Both branches call it, so a swipe never
-        -- outlives the cooldown that armed it.
+        -- outlives the cooldown that armed it. A secret pair (combat, WG-01) goes to the widget
+        -- unchanged: SetCooldown accepts secrets, so the swipe drains even when no figure can.
         local swipe = fields.teleportSwipe
-        if remaining > 0 then
+        if onCooldown then
             swipe:SetCooldown(NS.Compat.GetSpellCooldownTimes(spellID))
         else
             swipe:SetCooldown(0, 0)
         end
 
-        applyTeleportNote(spellID, known, remaining, info)
+        applyTeleportNote(spellID, known, remaining, onCooldown, info)
 
         applyTeleportAction(btn, spellID, spellName, known, ready)
 

@@ -440,6 +440,46 @@ test("notify: the cooldown tag carries no countdown to go stale", function()
         "no '7h 58m 12s' in a line that never updates: " .. teleportLine)
 end)
 
+-- A secret cooldown (WG-01): a join in combat may read the teleport's startTime and duration as
+-- secret values. The row must print in full, tagged from the plain isActive flag, and the popup
+-- must still be asked for: a raise here used to abort ShowNotification before ShowFrame.
+test("notify: a secret active cooldown still prints the Teleport row tagged '(on cooldown)'", function()
+    -- red under: the unguarded compare in GetSpellCooldownRemaining (the notice aborts mid-print)
+    local restore = T.installSecretValue()
+    local ok, err = pcall(function()
+        local NS, _, mock = T.bootAddon()
+        NS.TeleportSpells[770007] = 424248
+        mock.knownSpells[424248] = true
+        mock.secretCooldown(424248, mock.now - 60, 28800, true)
+        NS.addon.pendingInfo = pending({ mapID = 770007 })
+        local mark = #mock.prints
+        NS.addon:ShowNotification()
+        local lines = linesSince(mock, mark)
+        assertTrue(anyLine(lines, "Teleport:"))
+        assertTrue(anyLine(lines, "(on cooldown)"))
+    end)
+    restore()
+    if not ok then error(err, 0) end
+end)
+
+test("notify: a secret inactive cooldown omits the tag", function()
+    local restore = T.installSecretValue()
+    local ok, err = pcall(function()
+        local NS, _, mock = T.bootAddon()
+        NS.TeleportSpells[770008] = 424249
+        mock.knownSpells[424249] = true
+        mock.secretCooldown(424249, 0, 0, false)
+        NS.addon.pendingInfo = pending({ mapID = 770008 })
+        local mark = #mock.prints
+        NS.addon:ShowNotification()
+        local lines = linesSince(mock, mark)
+        assertTrue(anyLine(lines, "Teleport:"))
+        assertFalse(anyLine(lines, "(on cooldown)"))
+    end)
+    restore()
+    if not ok then error(err, 0) end
+end)
+
 test("notify: an unlearned teleport outranks a cooldown in chat too", function()
     local NS, _, mock = T.bootAddon()
     NS.TeleportSpells[770005] = 424246    -- never marked known

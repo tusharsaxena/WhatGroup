@@ -85,6 +85,12 @@
 
 local base = dofile("tests/_kit/mock_base.lua")
 
+-- The kit's secret-value simulator (kit revision 38), loaded into a table of this file's own. Its
+-- registry lives in `package.loaded`, so a wrapper minted here is the same kind of secret
+-- `Kit.isSecret` (and so `Kit.installSecretValue`'s `issecretvalue`) recognizes in a suite.
+local Secrets = {}
+dofile("tests/_kit/secrets.lua")(Secrets)
+
 local function build()
     local M = base()
 
@@ -100,6 +106,17 @@ local function build()
     mock.knownSpells   = {}   -- [spellID] -> true when learned (C_SpellBook and the global)
     mock.spellNames    = {}   -- [spellID] -> localized name (optional override)
     mock.spellCooldowns = {}  -- [spellID] -> C_Spell.GetSpellCooldown table; absent = ready
+    -- The combat-shaped reading (WG-01): startTime and duration as Kit.secret wrappers, isEnabled
+    -- and isActive plain, which is the split LibKa0s-Compat-1.0's GetSpellCooldown documents. Any
+    -- comparison or arithmetic on either wrapper raises "secret value". A case that seeds this also
+    -- installs `issecretvalue` (Kit.installSecretValue) and restores it, because nothing does so
+    -- by default.
+    function mock.secretCooldown(spellID, startTime, duration, isActive)
+        mock.spellCooldowns[spellID] = {
+            startTime = Secrets.secret(startTime), duration = Secrets.secret(duration),
+            isEnabled = true, modRate = 1, isActive = isActive ~= false,
+        }
+    end
     mock.now           = 10000 -- GetTime()'s answer; seed cooldown starts relative to this
     mock.inGroup       = false
     mock.combat        = false

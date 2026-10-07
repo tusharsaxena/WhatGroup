@@ -24,10 +24,17 @@ and not documented here: their ladders, degrade values and secret handling are L
 |---|---|---|---|
 | Spell | `GetSpellLink(spellID)` | `C_Spell.GetSpellLink` | `nil` |
 | | `IsSpellKnown(spellID)` | `C_SpellBook.IsSpellKnown` → `IsSpellKnown`; see below | `false` |
-| Cooldown | `GetSpellCooldownRemaining(spellID)` | the library's `GetSpellCooldown`, then this file's GCD floor | `0` |
+| Cooldown | `GetSpellCooldownRemaining(spellID)` | the library's `GetSpellCooldown`, then this file's GCD floor; answers `remaining, isActive` | `0, false` |
 | | `GetSpellCooldownTimes(spellID)` | the library's `GetSpellCooldown`, truncated to two values | `0, 0` |
 | LFG | `GetActivityInfoTable(activityID)` | `C_LFGList.GetActivityInfoTable` | `nil` |
 | Chat link | `AddOnLinkType()` | `LinkTypes.AddOn`, only when `EventRegistry.RegisterCallback` is there too; see below | `nil` |
+
+**The secret arm (WG-01).** `NS.Compat.IsSecret` is the library's `IsSecret`, or without the library the
+three-line `issecretvalue` stub (anti-patterns #47). `GetSpellCooldownRemaining` asks it of `startTime`
+and `duration` before any comparison: a secret pair (the client may answer one in combat) returns
+`nil, isActive`, an unknown remainder, never `0`, and callers decide "on cooldown" from the plain
+`isActive` flag. `GetSpellCooldownTimes` hands a secret pair to the swipe unchanged, because
+`Cooldown:SetCooldown` accepts secrets.
 
 Callers: `modules/Frame.lua` draws the teleport buttons from the name, texture, cooldown remaining
 and cooldown times; `core/WhatGroup.lua` builds the chat teleport line from the link and the known
@@ -133,8 +140,9 @@ remainder is one addon's policy, not a shape two addons agree on.
 as the API is concerned, and it is the one every spell shares. Without the floor, casting anything at
 all would make a teleport with an hours-long cooldown report "on cooldown" for a second and a half — a flicker that
 says nothing true. No real teleport cooldown is anywhere near that short, so the floor costs no
-accuracy. It also never returns nil and never returns a negative, so a caller can treat any positive
-number as "cannot cast yet" without a second guard.
+accuracy. It never returns a negative, so a caller can treat any positive number as "cannot cast
+yet". It returns `nil` in exactly one case, a secret cooldown pair (the secret arm above), and every
+caller handles that case explicitly by deciding from `isActive`.
 
 **`GetSpellCooldownTimes` applies no floor at all.** It hands the raw `(start, duration)` pair to the
 cooldown swipe, which draws whatever it is given — a swipe is the one readout that can afford to be
@@ -156,7 +164,9 @@ Each default is chosen from its caller's direction, not from habit:
 - **`false` for `IsSpellKnown`**, normalized to a plain boolean so the teleport known/unknown branch
   can use it directly rather than asking about truthiness at two call sites.
 - **`0` and `0, 0` for the cooldown readers**, because their callers do arithmetic and comparison on
-  the result. A `nil` there is a guard at every call site for a case the caller cannot act on.
+  the result. A `nil` there is a guard at every call site for a case the caller cannot act on. The
+  one `nil` the remainder does answer, a secret reading, is a case the callers can act on (from
+  `isActive`), which is why it is not folded into `0`.
 - **`nil` for `GetActivityInfoTable`**, because "this activity is unknown" and "this client has no
   LFG reader" are the same thing to `CaptureGroupInfo`: there is no group to describe either way.
 - **`nil` for `AddOnLinkType`**, because `core/WhatGroup.lua` reads it as the fork itself: a type

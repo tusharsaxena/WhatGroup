@@ -158,7 +158,7 @@ Total.
 - util: FormatDuration rounds fractional seconds up
 - util: FormatDuration renders a non-positive duration as 0s
 
-### test_compat.lua (42)
+### test_compat.lua (47)
 
 - compat: GetSpellName returns the C_Spell name
 - compat: GetSpellTexture is non-nil (caller supplies default)
@@ -172,6 +172,11 @@ Total.
 - compat: GetSpellCooldownRemaining ignores a global-cooldown-length window
 - compat: GetSpellCooldownRemaining reports 0 when the cooldown is disabled
 - compat: GetSpellCooldownRemaining returns 0 when the API is missing
+- compat: GetSpellCooldownRemaining answers unknown, not a raise, for a secret cooldown
+- compat: a secret cooldown that is not active reads unknown and inactive, never 0
+- compat: GetSpellCooldownTimes hands a secret pair through untouched
+- compat: IsSecret is the library's guard, and false for a plain value
+- compat: IsSecret falls back to the issecretvalue stub without the library
 - compat: GetActivityInfoTable passes the table through
 - compat: GetSpellName falls back to the legacy GetSpellInfo global
 - compat: GetSpellName falls through when the modern API returns nil
@@ -431,7 +436,7 @@ Total.
 - capture: a table-shaped GetApplicationInfo still resolves both the id and the role
 - capture: a role that is not one of the three tokens is refused
 
-### test_notify.lua (53)
+### test_notify.lua (55)
 
 - notify: no pendingInfo schedules no timer
 - notify: out of a group schedules no timer even with pendingInfo
@@ -475,6 +480,8 @@ Total.
 - notify: a learned teleport carries no '(not learned)' tag
 - notify: a teleport on cooldown is tagged '(on cooldown)'
 - notify: the cooldown tag carries no countdown to go stale
+- notify: a secret active cooldown still prints the Teleport row tagged '(on cooldown)'
+- notify: a secret inactive cooldown omits the tag
 - notify: an unlearned teleport outranks a cooldown in chat too
 - notify: a ready teleport carries neither tag
 - notify: every summary line carries the shared [WG] prefix
@@ -487,7 +494,7 @@ Total.
 - notify: the Role row is omitted when no role is known
 - notify: the Role row follows the Leader row
 
-### test_frame.lua (58)
+### test_frame.lua (61)
 
 - frame: nothing is created at addon load
 - frame: the first ShowFrame builds and shows the popup
@@ -521,6 +528,9 @@ Total.
 - frame: a popup the gate keeps off screen arms no ticker
 - frame: a popup that reaches the screen later still gets its ticker
 - frame: the ticker rearms the cast the moment the cooldown expires
+- frame: a secret tick keeps the note and leaves the ticker armed
+- frame: a secret active cooldown renders the cooldown state with no figure
+- frame: a secret cooldown that is not active reads as ready
 - frame: an unlearned teleport says so beside the button
 - frame: an unlearned teleport is never labeled as on cooldown
 - frame: a map with no teleport hides the button entirely
@@ -1041,14 +1051,14 @@ Total.
 | test_mediasetup.lua | 11 |
 | test_envsetup.lua | 8 |
 | test_util.lua | 31 |
-| test_compat.lua | 42 |
+| test_compat.lua | 47 |
 | test_database.lua | 11 |
 | test_settings.lua | 58 |
 | test_slash.lua | 61 |
 | test_labels.lua | 40 |
 | test_capture.lua | 43 |
-| test_notify.lua | 53 |
-| test_frame.lua | 58 |
+| test_notify.lua | 55 |
+| test_frame.lua | 61 |
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_panel.lua | 54 |
@@ -1072,4 +1082,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **914** |
+| **Total** | **924** |

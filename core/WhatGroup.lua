@@ -816,6 +816,10 @@ local GOLD = "FFD700"
 -- The cooldown tag deliberately carries NO time remaining. This line is printed once into the
 -- player's scrollback with no way to refresh itself, so a figure here would be wrong a second
 -- later and stay wrong. The popup's countdown is the live one.
+--
+-- An UNKNOWN remaining (nil: the client answered the cooldown pair as secret, as it may in combat,
+-- WG-01) is decided by the plain isActive flag alone: tagged when a cooldown is running, untagged
+-- when not, and never compared, so the row and the popup after it survive a join in combat.
 local function teleportValue(self, info)
     local spellID, known = self:GetTeleportSpell(info.activityID, info.mapID)
     if not spellID then return nil end
@@ -825,8 +829,13 @@ local function teleportValue(self, info)
     local tag
     if not known then
         tag = NS.L["(not learned)"]
-    elseif NS.Compat.GetSpellCooldownRemaining(spellID) > 0 then
-        tag = NS.L["(on cooldown)"]
+    else
+        local remaining, active = NS.Compat.GetSpellCooldownRemaining(spellID)
+        if remaining == nil then
+            if active then tag = NS.L["(on cooldown)"] end
+        elseif remaining > 0 then
+            tag = NS.L["(on cooldown)"]
+        end
     end
 
     return spellLink .. (tag and (" |cff888888" .. tag .. "|r") or "")

@@ -49,6 +49,9 @@ read_globals = {
   "C_Spell", "C_SpellBook", "C_LFGList",
   "IsSpellKnown",
   "GetTime",
+  -- The client's secret test (12.0+): read only by core/Compat.lua's IsSecret guard arm, the
+  -- three-line stub that answers when LibKa0s-Compat-1.0 is absent (WG-01).
+  "issecretvalue",
   "Enum",
   "GROUP_FINDER_GENERAL_PLAYSTYLE1", "GROUP_FINDER_GENERAL_PLAYSTYLE2",
   "GROUP_FINDER_GENERAL_PLAYSTYLE3", "GROUP_FINDER_GENERAL_PLAYSTYLE4",
@@ -108,7 +111,7 @@ files["core/WhatGroup.lua"] = {
 -- upvalue rather than through the addon table, so the receiver is unused -- but the method form is
 -- load-bearing at the call sites, not decoration. Two of them are reached through a PROBE of the
 -- member on the addon table before the colon call -- settings/Schema.lua:275 (`if
--- WhatGroup.ApplyFrameSize then`) and core/WhatGroup.lua:1091 (`if not self.ApplyFrameVisibility
+-- WhatGroup.ApplyFrameSize then`) and core/WhatGroup.lua:1100 (`if not self.ApplyFrameVisibility
 -- then return end`) -- which is how a settings row and a combat-edge handler survive
 -- modules/Frame.lua failing to load. A plain local would have nothing for those probes to find.
 files["modules/Frame.lua"] = {
