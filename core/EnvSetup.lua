@@ -28,8 +28,8 @@ local addonName, NS = ...
 -- ── WHY THE FALLBACKS ARE WRITTEN OUT RATHER THAN LEFT TO ANSWER nil ─────────────────────────
 --
 -- Because this is a seam, not a feature. An install missing LibKa0s must get exactly what this
--- addon got before the library existed: both helpers below repeat the ladder the deleted inline
--- copies ran, so such an install still reads its own TOC. Nil here would raise nothing and look
+-- addon got before the library existed: both helpers below repeat the C_AddOns rung the deleted
+-- inline copies ran, so such an install still reads its own TOC. Nil here would raise nothing and look
 -- fine — it is a blank Notes line on the options panel and a blank version in the slash banner.
 --
 -- ── TOC SLOT ─────────────────────────────────────────────────────────────────────────────────
@@ -42,6 +42,9 @@ local Env = LibStub and LibStub("LibKa0s-Env-1.0", true)
 
 --- One field of this addon's TOC manifest, or nil.
 ---
+--- Two rungs: LibKa0s-Env-1.0, else C_AddOns.GetAddOnMetadata. There is no third rung for the bare
+--- global — the 11.0 AddOns purge removed it, so no client this addon admits could ever reach one.
+---
 --- NIL IS A REAL ANSWER, twice over: the library may be absent AND the client may expose no reader
 --- at all, which is what a headless run looks like. A field the TOC does not carry also answers nil
 --- on a perfectly healthy client. Callers that need a value supply their own — settings/Panel.lua
@@ -53,9 +56,6 @@ function NS.Meta(field)
     if Env then return Env.GetAddOnMetadata(addonName, field) end
     if C_AddOns and C_AddOns.GetAddOnMetadata then
         return C_AddOns.GetAddOnMetadata(addonName, field)
-    end
-    if type(GetAddOnMetadata) == "function" then
-        return GetAddOnMetadata(addonName, field)
     end
     return nil
 end

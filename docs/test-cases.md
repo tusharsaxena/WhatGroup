@@ -113,7 +113,7 @@ Total.
 - mediasetup: with no library there is no art and no face, and that is not an error
 - mediasetup: a degraded install still gets a REAL font, never nil and never a dead path
 
-### test_envsetup.lua (8)
+### test_envsetup.lua (10)
 
 - envsetup: NS.Meta reads this addon's TOC
 - envsetup: NS.Meta asks about this addon's FOLDER, not its title or its frame prefix
@@ -121,7 +121,9 @@ Total.
 - envsetup: NS.Version prefers the TOC over this addon's own constant
 - envsetup: NS.Version falls back to this addon's own constant
 - envsetup degraded: an install with no LibKa0s still reads its own TOC
+- envsetup degraded: Meta never reads the bare GetAddOnMetadata global
 - envsetup: no file inlines its own C_AddOns ladder any more
+- envsetup: the library-absent ladder has two rungs, Env then C_AddOns
 - envsetup: the ladder did not land in Compat either
 
 ### test_util.lua (31)
@@ -1056,7 +1058,7 @@ Total.
 | test_libka0s.lua | 56 |
 | test_surface_parity.lua | 9 |
 | test_mediasetup.lua | 11 |
-| test_envsetup.lua | 8 |
+| test_envsetup.lua | 10 |
 | test_util.lua | 31 |
 | test_compat.lua | 47 |
 | test_database.lua | 11 |
@@ -1089,4 +1091,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **931** |
+| **Total** | **933** |

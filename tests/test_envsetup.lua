@@ -93,6 +93,21 @@ test("envsetup degraded: an install with no LibKa0s still reads its own TOC", fu
     assertEqual(NS.Version(), "1.5.0")
 end)
 
+test("envsetup degraded: Meta never reads the bare GetAddOnMetadata global", function()
+    -- red under: the bare-global rung
+    -- The 11.0 AddOns purge removed the global, and no client this addon admits (## Interface
+    -- 120100) carries it, so a rung below C_AddOns could only ever answer on a client that is not
+    -- supported. Without LibKa0s and without C_AddOns the seam answers nil, as a headless run does;
+    -- a planted global must not be consulted on the way there.
+    local calls = 0
+    local NS = T.newAddon{ skip = NO_LIBKA0S, mock = function(m)
+        m.C_AddOns = nil
+        m.GetAddOnMetadata = function() calls = calls + 1; return "6.6.6" end
+    end }
+    assertNil(NS.Meta("Version"))
+    assertEqual(calls, 0, "the bare global is not a rung of the ladder")
+end)
+
 -- ---------------------------------------------------------------------------
 -- The copies are gone
 -- ---------------------------------------------------------------------------
@@ -111,6 +126,15 @@ test("envsetup: no file inlines its own C_AddOns ladder any more", function()
         hits = hits + n + m
     end
     assertEqual(hits, 0, "the ladder belongs in core/EnvSetup.lua and nowhere else")
+end)
+
+test("envsetup: the library-absent ladder has two rungs, Env then C_AddOns", function()
+    -- The bare GetAddOnMetadata global went in the 11.0 AddOns purge, so a third rung reading it is
+    -- dead on every admitted client; LibKa0s-Env-1.0 dropped its own copy of that rung too.
+    local f = io.open("core/EnvSetup.lua")
+    local body = f:read("*a"); f:close()
+    local _, bare = body:gsub("[^%.%w_]GetAddOnMetadata%s*[%(%)]", "")
+    assertEqual(bare, 0, "no bare-global GetAddOnMetadata rung in core/EnvSetup.lua")
 end)
 
 test("envsetup: the ladder did not land in Compat either", function()
