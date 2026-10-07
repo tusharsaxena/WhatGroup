@@ -22,7 +22,7 @@ two things it is:
 2. **A change to the standard itself** — the standard's definition should evolve; the update
    belongs upstream in the WowAddonStandards repo, after which this addon conforms to the new rule.
 
-The newest frozen compliance snapshot is `docs/audits/2026-09-23/`.
+The newest frozen compliance snapshot is `docs/audits/2026-10-07/`.
 
 When in doubt, treat standard conformance as a hard requirement and ask.
 

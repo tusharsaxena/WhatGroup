@@ -222,7 +222,8 @@ without the pipeline.
 
 `--list` loads every suite, stamps each registered case with its origin
 `test_*.lua` file, prints the Markdown inventory (per-suite sections in
-**declared suite order** + a Totals table with the grand total), and exits
+**declared suite order** + a Totals table whose **Total** counts only the cases that
+run, a declared skip sitting on its own `Skipped` row since kit revision 38), and exits
 **without running any test**. It is a pure filter over the registry: the kit
 **collects** every case and runs nothing until `Kit.run`, so the inventory
 cannot disagree with the run. Default `lua tests/run.lua` behavior is

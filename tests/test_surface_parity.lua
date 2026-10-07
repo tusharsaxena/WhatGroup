@@ -237,9 +237,11 @@ test("parity: the Compat reader arm carries every library member the addon wires
     -- it goes (LibKa0s docs/api/Compat/version-1-docs.md, "How a host wires it").
     local degraded = T.newAddon{ skip = NO_LIBKA0S }
     T.assertSurfaceParity(degraded.Compat, "LibKa0s-Compat-1.0", {
-        -- The secret guards: nothing this addon reads is combat-protected (docs/ARCHITECTURE.md's
-        -- events-frames-taint-§8 row measures zero trigger-set APIs), so it compares no secret.
-        "IsSecret", "CanAccess", "IsSafeKey",
+        -- The secret guards it has no use for. IsSecret IS wired (core/Compat.lua; F-001 of
+        -- docs/reviews/2026-10-07/): the teleport cooldown pair is in events-frames-taint-§8's
+        -- trigger set and is tested before any compare. Nothing here indexes by, or reads through,
+        -- a value that could be secret.
+        "CanAccess", "IsSafeKey",
         -- Readers with no caller here: no spell info beyond name and icon, and no spec.
         "GetSpellInfo", "GetSpecialization", "GetSpecializationInfo",
         -- Wired, but file-locally: GetSpellCooldownRemaining and GetSpellCooldownTimes are this
