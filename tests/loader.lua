@@ -43,6 +43,8 @@ local LIBKA0S = {
     -- file of the XML, so this list carries it or the XML-order check fails.
     "libs/LibKa0s/WidgetsDragHandle.lua",
     "libs/LibKa0s/WidgetsLineChart.lua",
+    -- New in LibKa0s v1.70.0: the Autocomplete widget, one file per widget like the chart above. Nothing here adopts it.
+    "libs/LibKa0s/WidgetsAutocomplete.lua",
     "libs/LibKa0s/DebugLog.lua",
     -- New in LibKa0s v1.60.0: DebugLog's second file, the diagnostics report (debug-logging-§14).
     -- It attaches to the DebugLog shell, so it loads right after it, as the XML has it.
