@@ -686,7 +686,7 @@ Total.
 - profile verb: surrounding quotes are stripped, case and inner spaces kept
 - profile verb: a switch in combat is refused and nothing moves
 
-### test_testmode.lua (26)
+### test_testmode.lua (28)
 
 - testmode: bare /wg test toggles test mode, and the checkbox follows
 - testmode: /wg test on|off sets it, and repeating either changes nothing
@@ -711,6 +711,8 @@ Total.
 - testmode: /wg test notify previews without replacing the real capture
 - testmode: the preview is one-shot under ESC and the launcher's Show window too
 - testmode: a preview asked for in combat lands as the preview at combat end
+- testmode: a preview the gate hides in a fight is dropped, not brought back at combat end
+- testmode: a preview the gate hides with no real capture leaves nothing withheld
 - testmode: /wg show ends it and shows the real capture
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
@@ -1066,7 +1068,7 @@ Total.
 | test_frame_secure.lua | 7 |
 | test_panel.lua | 54 |
 | test_profiles.lua | 19 |
-| test_testmode.lua | 26 |
+| test_testmode.lua | 28 |
 | test_snapshot.lua | 10 |
 | test_diagnostics.lua | 20 |
 | test_launcher.lua | 36 |
@@ -1085,4 +1087,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **927** |
+| **Total** | **929** |

@@ -454,13 +454,21 @@ function applyVisibility(inCombat)
     end
     -- Test mode is an explicit request to see the popup, so the gate leaves it alone. It cannot
     -- outlive a combat edge: PLAYER_REGEN_DISABLED ends it before this runs. A one-shot preview is
-    -- an ordinary show and meets the gate like one.
+    -- an ordinary show and meets the gate like one, except in what the hide leaves behind.
     if NS.State.testMode then return end
     if not visibilityAllows(inCombat) then
+        local preview = previewInfo
         local down = hidePopup()
         -- After the hide, never before: the real Hide fires OnHide, which clears the flag for every
-        -- hide including this one. Setting it first would be undone by our own call.
-        if down then gateWithheld = true end
+        -- hide including this one. Setting it first would be undone by our own call. A one-shot
+        -- preview is dropped instead, never withheld (declineShow's rule): the soft hide fires no
+        -- OnHide, and the real Hide that settles it at combat end would end the preview and leave
+        -- the re-show arm to open the REAL capture the player never asked to see.
+        if down and preview then
+            endPreview()
+        elseif down then
+            gateWithheld = true
+        end
         return down
     end
     if gateWithheld and WhatGroup.pendingInfo and not onScreen() then

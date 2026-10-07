@@ -443,6 +443,39 @@ test("testmode: a preview asked for in combat lands as the preview at combat end
     assertEqual(NS.addon.pendingInfo.title, "Real Group", "and the real capture is untouched")
 end)
 
+test("testmode: a preview the gate hides in a fight is dropped, not brought back at combat end", function()
+    -- The gate-hide half of declineShow's rule: a one-shot preview is dropped, never withheld, or
+    -- the re-show arm puts the popup back up on the next combat edge -- on the real capture, since
+    -- the real Hide that settles the debt ends the preview first.
+    -- red under: applyVisibility setting gateWithheld for a one-shot preview
+    local NS, _, mock = T.enableAddon()
+    NS.addon.db.profile.visibility = "outOfCombat"
+    NS.addon.pendingInfo = pending({ title = "Real Group" })
+    NS.addon:RunTest()
+    assertTrue(onScreen(mock), "the preview is up")
+    mock.combat = true
+    mock.__fireEvent("PLAYER_REGEN_DISABLED")
+    assertFalse(onScreen(mock), "the gate took it down for the fight")
+    mock.combat = false
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    assertFalse(onScreen(mock), "and nothing comes back unasked after it")
+    assertFalse(NS.FrameSnapshot().gateWithheld, "the preview was never withheld")
+    assertEqual(NS.addon.pendingInfo.title, "Real Group", "the real capture is still pending")
+end)
+
+test("testmode: a preview the gate hides with no real capture leaves nothing withheld", function()
+    -- red under: applyVisibility setting gateWithheld for a one-shot preview
+    local NS, _, mock = T.enableAddon()
+    NS.addon.db.profile.visibility = "outOfCombat"
+    NS.addon:RunTest()
+    mock.combat = true
+    mock.__fireEvent("PLAYER_REGEN_DISABLED")
+    mock.combat = false
+    mock.__fireEvent("PLAYER_REGEN_ENABLED")
+    assertFalse(onScreen(mock), "nothing comes back")
+    assertFalse(NS.FrameSnapshot().gateWithheld, "and the gate holds no debt after the fight")
+end)
+
 test("testmode: /wg show ends it and shows the real capture", function()
     local NS, _, mock = T.enableAddon()
     on(NS)
