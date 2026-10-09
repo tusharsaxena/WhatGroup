@@ -150,7 +150,7 @@ function Settings.BuildDefaults()
 end
 ```
 
-**The seed is not redundant.** On a full load the two halves agree key for key and the walk writes back what the seed already put there. What it buys is the *degraded* load: the Master controls block is composed by LibKa0s, so with the library absent those six rows are not in the schema at all — and a schema-only sweep would hand AceDB a profile with no `enabled` key, which reads as false and silently turns the addon off for exactly the install that is already missing a library. `tests/test_libka0s.lua` compares the two `BuildDefaults` outputs shape for shape.
+**The seed is not redundant.** On a full load the two halves agree key for key and the walk writes back what the seed already put there. What it buys is the *degraded* load: the Master controls block is composed by LibKa0s, so with the library absent those rows are not in the schema at all — and a schema-only sweep would hand AceDB a profile with no `enabled` key, which reads as false and silently turns the addon off for exactly the install that is already missing a library. `tests/test_libka0s.lua` compares the two `BuildDefaults` outputs shape for shape.
 
 A `sessionOnly` row is skipped outright: its storage is its own `set()`, and threading a default for it would materialize the very `db.profile` branch WG-12 keeps empty.
 

@@ -32,7 +32,7 @@ end
 -- ---------------------------------------------------------------------------
 --
 -- The library's InlineButtonPair lays TWO buttons across one Flow row at BUTTON_PAIR_REL (0.492)
--- each. This addon has exactly one such button — "Test", under the General group — and it is a
+-- each. This addon has exactly one such button — "Test", under the Chat tab — and it is a
 -- fixed 160px left-aligned control, which that maker cannot express: passing a single spec renders
 -- it at half the panel width. Declining is the smaller change (issue #9,
 -- LIBKA0S-09 (issue #9)); converging would be a visible resize of the only button on the page.

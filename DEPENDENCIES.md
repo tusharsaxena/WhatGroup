@@ -135,8 +135,8 @@ lizard --version
 
 ### 2.4 git and diff — **required for the vendor gate**
 
-- Evidence: `docs/testing.md:275-278` runs four `diff -r` comparisons of `libs/LibKa0s` and
-  `tests/_kit` against a **sibling checkout at `../LibKa0s`**; `docs/testing.md:319` uses
+- Evidence: `docs/testing.md:276-279` runs four `diff -r` comparisons of `libs/LibKa0s` and
+  `tests/_kit` against a **sibling checkout at `../LibKa0s`**; `docs/testing.md:320` uses
   `git add --renormalize .` to fix a line-ending divergence.
 - Both ship with Ubuntu (`git` may need installing on a minimal image):
 
@@ -166,11 +166,11 @@ Stated explicitly, because each of these is a reasonable guess that happens to b
 - **No Python scripts, no `Makefile`, no `scripts/` directory.** The repo contains no `.py` file of
   its own, no `Makefile` and no `scripts/`. There is **one** shell script:
   `tests/_kit/run-automated-tests.sh`, the vendored automated-test runner that ships whole with the
-  LibKa0s test kit (`docs/testing.md:393-401`, [`docs/automated-tests/README.md`](docs/automated-tests/README.md)).
+  LibKa0s test kit (`docs/testing.md:394-403`, [`docs/automated-tests/README.md`](docs/automated-tests/README.md)).
   It needs **bash**, which Ubuntu already has, and it is a convenience wrapper — it shells out to
   the same `luacheck` / `lua tests/run.lua` / `lizard` above and treats a missing tool as a `skip`,
   never a failure. Every other documented command is typed directly.
-- **No CI.** There is no `.github/` directory and no workflow. `docs/testing.md:231-233` says so
+- **No CI.** There is no `.github/` directory and no workflow. `docs/testing.md:232-234` says so
   outright: the README `tests` badge is static and hand-maintained, with no GitHub Action behind it.
 - **No test dependency beyond `git` and a shell.** The suites `require` nothing outside `tests/`, and
   every shell-out needs only `git` or a POSIX shell, because the collection takes no LuaFileSystem
@@ -179,7 +179,7 @@ Stated explicitly, because each of these is a reasonable guess that happens to b
   and layout-cap gates read the tracked set with `git ls-files` (`tests/test_doc_structure.lua:141`,
   `tests/test_lintconfig.lua:264`, `tests/_kit/test_prose.lua:379`,
   `tests/_kit/test_layout_cap.lua:171`); `--jobs` fans the suites out as backgrounded `sh` children
-  (`tests/_kit/framework.lua:626`, with `nproc` at `:478` for `--jobs auto`); and the
+  (`tests/_kit/framework.lua:555`, run through `os.execute` at `:559`, with `nproc` at `:481` for `--jobs auto`); and the
   vendored-payload gate reads the sibling checkout with `git` — `tests/_kit/vendor_sync.lua:195`
   (the `git -C <sibling> …` runner behind its `show` and `ls-tree` reads) and `:236`
   (`git cat-file --batch`). With `git` or `../LibKa0s`
@@ -195,7 +195,7 @@ to fix a typo.
 
 - **Packaging** is done by the **CurseForge/WoWAce packager**, a hosted service — not a local tool.
   Evidence: `.pkgmeta` (its config) declares `package-as: WhatGroup` (`:1`) and an `ignore:` list
-  (`:6-32`), and `.pkgmeta:3-4` records that there is **no `externals:` block** because every
+  (`:6-33`), and `.pkgmeta:3-4` records that there is **no `externals:` block** because every
   library is vendored.
   There is nothing to install locally for this.
 - **Media** — `media/logos` and `media/screenshots` are **committed binary assets**,

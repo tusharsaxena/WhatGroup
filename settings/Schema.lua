@@ -82,7 +82,7 @@ end
 --   [Enable WhatGroup]    | [General visibility]
 --   [Master scale]        | [Master alpha]
 --   [Lock frame]          | [Debug console]
---   [Test mode]                                session-only, on its own line
+--   [Minimap button]      | [Test mode]        session-only
 --     <afterGroup: Reset position | Reset all settings>
 --
 --   --- Chat ---               when the summary fires, and what it says
@@ -93,6 +93,7 @@ end
 --   [Instance]            | [Type]
 --   [Leader]              | [Playstyle]
 --   [Details link]        | [Teleport spell]
+--   [Role]
 --     <afterGroup: Test button (160 px, left-aligned)>
 --
 --   --- Popup ---              the group-info window
@@ -161,11 +162,11 @@ add{
 
 -- THE VERTICAL CHECKLIST IS OVER, and only half of the argument for it expired.
 -- Every row here used to carry `solo = true` so the section read as a column of
--- "include this line" ticks. The tab now says that: six of these rows are the
+-- "include this line" ticks. The tab now says that: seven of these rows are the
 -- only thing on the Chat tab under their master, so the reader no longer needs a
 -- column to tell them apart from the rest of the panel -- and six half-empty
 -- lines is a scroll where three full ones are a glance. What survives is the
--- solo on the MASTER: "Print to Chat" governs the six, and a master paired
+-- solo on the MASTER: "Print to Chat" governs the seven, and a master paired
 -- against the first thing it governs reads as its equal.
 --
 -- The labels lost their "Show " prefix with the same move: under a tab called

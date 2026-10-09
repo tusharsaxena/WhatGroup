@@ -48,5 +48,6 @@ release gate a `skip` is **not evaluated** rather than passed.
   `ANALYSIS.md` (the write-up). Bundles are **never edited** once written and **never pruned**.
 
 Offline perf records live in the bundle with the run that produced them. **In-game** captures cannot
-be produced by a script — a human runs the `perf` verb in a live client and exports the record — so
-they keep their own standing store at [`../perf-analysis/`](../perf-analysis/).
+be produced by a script, and this addon wires no in-game perf harness (no `perf` verb, no
+`docs/perf-analysis/`; see [`../performance.md`](../performance.md) and `docs/ARCHITECTURE.md` →
+`## Documented deviations`).

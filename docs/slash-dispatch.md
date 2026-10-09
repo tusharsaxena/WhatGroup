@@ -1,6 +1,6 @@
 # Slash dispatch
 
-`/wg` and `/whatgroup` are aliases for the same command set. The dispatcher, the help renderer, the schema CLI and the type-aware value parser are **LibKa0s-Slash-1.0**'s (`libs/LibKa0s/Slash.lua`). `settings/Slash.lua` — last in the TOC — supplies the descriptor, owns the `COMMANDS` table, and implements the verbs whose behavior is genuinely this addon's.
+`/wg` and `/whatgroup` are aliases for the same command set. The dispatcher, the help renderer, the schema CLI and the type-aware value parser are **LibKa0s-Slash-1.0**'s (`libs/LibKa0s/Slash.lua`). `settings/Slash.lua` — next to last in the TOC, before `settings/Profiles.lua` — supplies the descriptor, owns the `COMMANDS` table, and implements the verbs whose behavior is genuinely this addon's.
 
 ## Registration
 
