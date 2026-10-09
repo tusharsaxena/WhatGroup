@@ -610,7 +610,7 @@ Total.
 - frame: a stand-down in combat drops a queued first show and a queued teleport configure
 - frame: reconfiguring the teleport button reuses the same three script handlers
 
-### test_panel.lua (54)
+### test_panel.lua (55)
 
 - panel: OnEnable registers the parent category and the General subcategory
 - panel: the parent category is added to the AddOns list
@@ -666,6 +666,7 @@ Total.
 - panel: the landing logo path is built from the folder this copy loaded from
 - panel: the landing page adds logo, notes, heading and command rows in that order
 - panel: a dirty landing page re-renders in place instead of stacking a second copy
+- panel: the landing page is drawn by the library's BuildLandingPage, logo and commands
 
 ### test_profiles.lua (19)
 
@@ -1070,7 +1071,7 @@ Total.
 | test_frame.lua | 61 |
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
-| test_panel.lua | 54 |
+| test_panel.lua | 55 |
 | test_profiles.lua | 19 |
 | test_testmode.lua | 28 |
 | test_snapshot.lua | 10 |
@@ -1091,4 +1092,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **933** |
+| **Total** | **934** |

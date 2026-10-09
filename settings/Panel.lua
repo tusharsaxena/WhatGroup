@@ -79,11 +79,11 @@ end
 -- Parent (landing) page content
 -- ---------------------------------------------------------------------------
 --
--- Logo + TOC notes one-liner + Slash Commands heading + per-command Labels, all rendered as AceGUI
--- widgets inside the library's lazy ScrollFrame. The library owns WHEN this draws (first OnShow,
--- against a container that has a width by then); what it draws is the host's half by design
--- (options-ui-§5), because the logo and the command list are the two things about a Ka0s panel that
--- are genuinely per-addon.
+-- Logo + TOC notes one-liner + Slash Commands heading + per-command Labels, all rendered by
+-- LibKa0s-Options' O.BuildLandingPage inside the library's lazy ScrollFrame. The library owns WHEN
+-- this draws (first OnShow, against a container that has a width by then) and now HOW; what it
+-- draws is the host's half by design (options-ui-§5), because the logo and the command list are the
+-- two things about a Ka0s panel that are genuinely per-addon, so they are this file's spec DATA.
 
 -- WG-21 (Blizzard-default-only — accepted deviation): the settings landing page shows the addon's
 -- own brand logo, a vendored TGA under media/logos/. It's the only non-Blizzard default texture in
@@ -95,101 +95,33 @@ end
 -- installed under another folder name still finds its own logo (library-stack-§8).
 local MAIN_LOGO_TEXTURE   = ("Interface\\AddOns\\%s\\media\\logos\\%s.logo.tga")
     :format(addonName, addonName:lower())
--- The landing page's own constants (options-ui-§8 lists these as the host's, because the body is).
 local MAIN_LOGO_SIZE      = 300
-local MAIN_GAP_AFTER_LOGO = 8
-local MAIN_GAP_AFTER_DESC = 12
-local MAIN_GAP_BELOW_HEAD = 6
 
--- Left-justify a text widget's own FontString. The notes line and every command row share this;
--- it used to be written out twice, once at each call site, and the guard is carried over from
--- them verbatim.
+-- The landing page body, through the library's builder. It replaced a private copy that drew the
+-- logo as a texture straight on a pooled AceGUI SimpleGroup frame and never took it off: AceGUI
+-- recycles frames, so after a re-render that frame came back as another SimpleGroup (the spacer
+-- under the Slash Commands heading) still carrying the logo, and the page showed it twice. The
+-- builder keeps one texture per frame, hides it in the group's OnRelease, and owns the ClearScroll
+-- that keeps a re-render from stacking a second copy of the page.
 --
--- The guard is defensive, NOT load-order-sensitive: AceGUI's Label creates its `.label`
--- FontString in the constructor (libs/AceGUI-3.0/widgets/AceGUIWidget-Label.lua), so for the
--- Labels this page makes, both halves are always true. It stays because `.label` is a
--- per-widget-type field rather than part of the AceGUI widget contract — hand this a widget type
--- that has no text FontString and it must skip, not raise.
-local function justifyLeft(widget)
-    local fs = widget.label
-    if fs and fs.SetJustifyH then
-        fs:SetJustifyH("LEFT")
-    end
-end
-
--- Logo. SimpleGroup is a full-width child so AceGUI's List layout gives it the scroll's full
--- width; the texture inside is anchored TOPLEFT at the source TGA's native dimensions, so it
--- renders pixel-exact and left-aligned regardless of panel width.
-local function addLogo(AceGUI, scroll)
-    local logoGroup = AceGUI:Create("SimpleGroup")
-    logoGroup:SetLayout(nil)
-    logoGroup:SetFullWidth(true)
-    logoGroup:SetHeight(MAIN_LOGO_SIZE)
-
-    local logoTex = logoGroup.frame:CreateTexture(nil, "ARTWORK")
-    logoTex:SetTexture(MAIN_LOGO_TEXTURE)
-    logoTex:SetSize(MAIN_LOGO_SIZE, MAIN_LOGO_SIZE)
-    logoTex:SetPoint("TOPLEFT", logoGroup.frame, "TOPLEFT", 0, 0)
-    scroll:AddChild(logoGroup)
-
-    Helpers.AddSpacer(scroll, MAIN_GAP_AFTER_LOGO)
-end
-
--- TOC Notes one-liner — full-width Label, left-justified.
-local function addNotesLine(AceGUI, scroll)
-    local notes = NS.Meta("Notes") or ""
-
-    local desc = AceGUI:Create("Label")
-    desc:SetFullWidth(true)
-    desc:SetText(notes)
-    if desc.label and desc.label.SetFontObject and _G.GameFontHighlight then
-        desc.label:SetFontObject(_G.GameFontHighlight)
-    end
-    justifyLeft(desc)
-    scroll:AddChild(desc)
-
-    Helpers.AddSpacer(scroll, MAIN_GAP_AFTER_DESC)
-end
-
--- One Label per command, rendered through LibKa0s-Slash-1.0's ONE command-row formatter
--- (convergence #2). This page used to carry a second formatter for the same data — double
--- spaces around the em dash, the dash explicitly white-wrapped and the description bare —
--- which is exactly the silent drift between a panel and its chat help that a shared renderer
--- exists to end. Un-indented, because a landing-page row is its own label; the chat form
--- (Sl:HelpRows) is the same rows with a two-space indent.
---
--- Still generated from WhatGroup.COMMANDS, so the list stays in lockstep with `/wg help`:
--- LandingRows walks the same table this page used to walk directly.
-local function addCommandRows(AceGUI, scroll)
-    local Sl = NS.SlashCommands
-    for _, line in ipairs(Sl and Sl:LandingRows() or {}) do
-        local row = AceGUI:Create("Label")
-        row:SetFullWidth(true)
-        row:SetText(line)
-        justifyLeft(row)
-        scroll:AddChild(row)
-    end
-end
-
+-- The rows still come from LibKa0s-Slash-1.0's ONE command-row formatter (convergence #2), so the
+-- list stays in lockstep with `/wg help`: LandingRows walks WhatGroup.COMMANDS. Both the notes and
+-- the rows are functions, read at RENDER time. The heading is routed through NS.L because it is
+-- pure chrome the addon authors — it carries no structural role, unlike "General", which is
+-- simultaneously this page's id, its schema `group` key and its subcategory label.
 function Helpers.BuildMainContent(ctx)
-    local AceGUI = Helpers.AceGUI
-    local scroll = Helpers.EnsureScroll(ctx)
-    if not (AceGUI and scroll) then return end
-    -- Re-rendered pages must not stack: the library re-runs a renderer when a hidden page is
-    -- marked dirty and shown again. This has to happen before any widget is created below.
-    Helpers.ClearScroll(ctx)
-    scroll = Helpers.EnsureScroll(ctx)
-
-    addLogo(AceGUI, scroll)
-    addNotesLine(AceGUI, scroll)
-    -- "Slash Commands" heading — the library's own Section, so it is the same AceGUI Heading (and
-    -- the same font bump and spacers) every sub-page's section headers use. It takes `ctx`, not
-    -- `scroll`, so it stays here where the page's outline reads. Routed through NS.L because it is
-    -- pure chrome the addon authors — it carries no structural role, unlike "General", which is
-    -- simultaneously this page's id, its schema `group` key and its subcategory label.
-    Helpers.Section(ctx, NS.L["Slash Commands"])
-    Helpers.AddSpacer(scroll, MAIN_GAP_BELOW_HEAD)
-    addCommandRows(AceGUI, scroll)
+    Helpers.BuildLandingPage(ctx, {
+        logo     = MAIN_LOGO_TEXTURE,
+        logoSize = MAIN_LOGO_SIZE,
+        notes    = function() return NS.Meta("Notes") or "" end,
+        sections = { {
+            heading = NS.L["Slash Commands"],
+            rows    = function()
+                local Sl = NS.SlashCommands
+                return Sl and Sl:LandingRows() or {}
+            end,
+        } },
+    })
 end
 
 -- ---------------------------------------------------------------------------

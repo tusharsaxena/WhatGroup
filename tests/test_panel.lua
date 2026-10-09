@@ -726,23 +726,25 @@ test("panel: the landing page adds logo, notes, heading and command rows in that
     assertEqual(kids[1].height, 300, "at the texture's native size")
     assertTrue(kids[1].fullWidth)
     assertNil(kids[1].layout, "with the deliberate nil layout, so the texture stays pixel-exact")
-    assertEqual(kids[2].height, 8, "MAIN_GAP_AFTER_LOGO")
+    assertEqual(kids[2].height, 8, "LANDING_GAP_LOGO")
 
     assertEqual(kids[3].type, "Label")
     assertEqual(kids[3].text, mock.metadata.Notes, "the TOC Notes one-liner")
     assertEqual(kids[3].justifyH, "LEFT")
     assertTrue(kids[3].fullWidth)
-    assertEqual(kids[4].height, 12, "MAIN_GAP_AFTER_DESC")
+    assertEqual(kids[4].height, 12, "LANDING_GAP_DESC")
 
     assertEqual(kids[5].type, "Heading")
     assertEqual(kids[5].text, "Slash Commands")
-    assertEqual(kids[7].height, 6, "MAIN_GAP_BELOW_HEAD, after the Section's own trailing spacer")
+    -- One 6 under the heading, not two: the library's Section emits it (LANDING_GAP_HEAD), and
+    -- BuildLandingPage does not stack the private body's MAIN_GAP_BELOW_HEAD on top of it.
+    assertEqual(kids[6].height, 6, "the Section's own trailing spacer")
 
     local rows = NS.SlashCommands:LandingRows()
     assertTrue(#rows > 0, "there is at least one command row to render")
-    assertEqual(#kids, 7 + #rows, "and nothing beyond the rows")
+    assertEqual(#kids, 6 + #rows, "and nothing beyond the rows")
     for i, line in ipairs(rows) do
-        local row = kids[7 + i]
+        local row = kids[6 + i]
         assertEqual(row.type, "Label")
         assertEqual(row.text, line, "row " .. i .. " comes from LandingRows()")
         assertEqual(row.justifyH, "LEFT")
@@ -779,4 +781,25 @@ test("panel: a dirty landing page re-renders in place instead of stacking a seco
     open(mock, main)                               -- which re-renders it on show
 
     assertEqual(#landingScroll().children, first, "one logo and one command list, not two")
+end)
+
+-- Owner report: the landing page showed the logo twice, the second under the Slash Commands
+-- heading. A private body drew it as a texture on a pooled AceGUI frame and never took it off, so
+-- the frame came back from the pool as another SimpleGroup still carrying it; the library's
+-- BuildLandingPage hides it on release. The page body must go through the library's builder.
+test("panel: the landing page is drawn by the library's BuildLandingPage, logo and commands", function()
+    local NS = T.enableAddon()
+    local H = NS.addon.Settings.Helpers
+    local seen
+    local real = H.BuildLandingPage
+    H.BuildLandingPage = function(ctx, spec) seen = spec; return real(ctx, spec) end
+    H.BuildMainContent({})
+    H.BuildLandingPage = real
+    -- red under: the private addLogo / addCommandRows body in settings/Panel.lua
+    assertTrue(seen ~= nil, "BuildMainContent delegates to the library")
+    assertTrue(seen.logo:find("media\\logos\\whatgroup.logo.tga", 1, true) ~= nil, seen.logo)
+    assertEqual(seen.logoSize, 300)
+    assertEqual(#seen.sections, 1)
+    assertEqual(seen.sections[1].heading, "Slash Commands")
+    assertEqual(#seen.sections[1].rows(), #NS.addon.COMMANDS)
 end)
