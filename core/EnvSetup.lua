@@ -8,7 +8,7 @@ local addonName, NS = ...
 -- ── WHAT THIS REPLACED ───────────────────────────────────────────────────────────────────────
 --
 -- Two INLINE copies of the TOC-metadata ladder — settings/Slash.lua's `version()` and
--- settings/Panel.lua's `addNotesLine`. Neither was ever in core/Compat.lua, which is exactly what
+-- settings/Panel.lua's landing-page notes line. Neither was ever in core/Compat.lua, which is exactly what
 -- made them worth finding: an audit of the shim files would have reported this addon as having no
 -- copy at all. Collection-wide the same ladder had been written ELEVEN times across nine addons
 -- before the library had it, six in a core/Compat.lua in four different spellings and five more
