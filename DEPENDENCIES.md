@@ -20,7 +20,7 @@ separate library addon and no dependency manager.
 
 | Need | Version | Evidence |
 |---|---|---|
-| World of Warcraft, Retail | Interface `120100` (Midnight 12.1.0) | `WhatGroup.toc:1` — `## Interface: 120100` |
+| World of Warcraft, Retail | Interface `120105` (Midnight 12.1.5) | `WhatGroup.toc:1` — `## Interface: 120105` |
 | Ace3 (AceAddon/AceEvent/AceConsole/AceTimer/AceDB/AceGUI/AceConfig/AceDBOptions), LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1, LibDBIcon-1.0, LibKa0s | as vendored | `WhatGroup.toc:16-39` lists each `libs\…` file directly; the folders exist under `libs/`. AceConfig (with its Registry, Cmd and Dialog parts) and AceDBOptions serve the Profiles page alone |
 
 `WhatGroup.toc:8` declares those libraries under `## OptionalDeps:` rather than `## Dependencies:`

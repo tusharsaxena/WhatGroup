@@ -96,7 +96,7 @@ end)
 test("envsetup degraded: Meta never reads the bare GetAddOnMetadata global", function()
     -- red under: the bare-global rung
     -- The 11.0 AddOns purge removed the global, and no client this addon admits (## Interface
-    -- 120100) carries it, so a rung below C_AddOns could only ever answer on a client that is not
+    -- 120105) carries it, so a rung below C_AddOns could only ever answer on a client that is not
     -- supported. Without LibKa0s and without C_AddOns the seam answers nil, as a headless run does;
     -- a planted global must not be consulted on the way there.
     local calls = 0
