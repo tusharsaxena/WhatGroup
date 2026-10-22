@@ -1,0 +1,4 @@
+<Bindings>
+	<!-- The Show window key (launcher-§6): clicks the plain, hidden WhatGroupTogglePopup button that modules/Frame.lua creates at load, which runs WhatGroup:ToggleFrame, the handler the launcher menu's Show window entry runs. Its two labels are set there. No default key: the player picks one under Key Bindings, AddOns. The button name is permanent; renaming it unbinds every player's key. -->
+	<Binding name="CLICK WhatGroupTogglePopup:LeftButton" header="WHATGROUP" category="ADDONS"/>
+</Bindings>

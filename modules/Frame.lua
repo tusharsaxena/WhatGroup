@@ -1292,6 +1292,49 @@ function WhatGroup:IsFrameOnScreen()
 end
 
 -- ---------------------------------------------------------------------------
+-- The Show window key binding (launcher-§6)
+-- ---------------------------------------------------------------------------
+--
+-- Bindings.xml (the addon root, never in the TOC) carries ONE `CLICK <button>:LeftButton` line,
+-- and this is the button. A CLICK binding on a named frame rather than a Lua body or a global
+-- function, so the key, the launcher menu's Show window entry and the Close button all reach one
+-- handler, WhatGroup:ToggleFrame, the one core/LauncherSetup.lua's toggleWindow calls.
+--
+--   * NO SECURE TEMPLATE. The popup is non-secure; ToggleFrame already knows how to close it in
+--     combat (the alpha-0 soft hide) and when to defer opening it. A secure button would add
+--     combat rules the window does not have.
+--   * AnyDown, and only that: the client's default is the up edge, and registering both would
+--     toggle twice per press.
+--   * THE NAME IS PERMANENT. The client stores a player's key against the binding's name, so
+--     renaming this button silently unbinds every player's key.
+--   * Not the taint source buildEscapeProxy and buildFrame keep off the load path: this frame is
+--     created at load but is plain and is NEVER added to UISpecialFrames, so it enters no Blizzard
+--     secure-execute list.
+--
+-- While stood down the press refuses through NS.StandDownRefusal, the addon's one refusal helper
+-- (slash-commands-§7), because a key cannot be grayed the way the menu entry is. ToggleFrame itself
+-- does not refuse: the menu grays Show window while disabled, so it never needed to.
+NS.TOGGLE_BUTTON  = "WhatGroupTogglePopup"
+NS.TOGGLE_COMMAND = ("CLICK %s:LeftButton"):format(NS.TOGGLE_BUTTON)
+
+do
+    local button = CreateFrame("Button", NS.TOGGLE_BUTTON, UIParent)
+    button:RegisterForClicks("AnyDown")
+    button:SetScript("OnClick", function()
+        local line = NS.StandDownRefusal()
+        if line then return NS.Print(line) end
+        NS.addon:ToggleFrame()
+    end)
+    button:Hide()
+end
+
+-- The two labels the client's Key Bindings -> AddOns list shows: the header is the brand
+-- (launcher-§1), the action comes through the locale. The second name holds a space and a colon,
+-- hence rawset.
+BINDING_HEADER_WHATGROUP = "Ka0s WhatGroup"
+rawset(_G, "BINDING_NAME_" .. NS.TOGGLE_COMMAND, L["Toggle group popup"])
+
+-- ---------------------------------------------------------------------------
 -- The stand-down, frame half (slash-commands-§7)
 -- ---------------------------------------------------------------------------
 --

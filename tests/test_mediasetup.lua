@@ -13,10 +13,19 @@ local test, assertEqual, assertTrue, assertNil, fail =
 
 local VENDORED = "Interface\\AddOns\\WhatGroup\\libs\\LibKa0s\\media\\"
 
--- Every icon name this addon's own source hands to NS.Icon. None does today: the mark beside the
--- popup's footer Close button was removed. "close" stays as the seam's probe, and this list is the
--- thing to extend when an addon-drawn icon returns, so the cross-check below covers all of them.
-local DRAWN = { "close" }
+-- Every icon the LIBRARY draws for this addon, by the surfaces this addon wires. The addon draws
+-- none of its own: NS.Icon has no caller outside this file's tests (the mark beside the popup's
+-- footer Close button was removed, and modules/Frame.lua's Close is a text button). Each name here
+-- must also be on the CLAUDE.md `LibKa0s icons:` line, because the re-vendor prunes the vendored
+-- icons/ folder to that line, and a pruned icon still resolves to a path and draws blank.
+--   close  Core.MakeCloseButton given the folder name (libs/LibKa0s/Core.lua, Media.Icon(addonName,
+--          "close")): the debug console and its copy window, because core/DebugLogSetup.lua passes
+--          addonName; and NS.MakeCloseButton (core/CoreSetup.lua), which has no caller today.
+--   copy   the debug console's title bar (libs/LibKa0s/DebugLog.lua, makeIconButton "copy").
+--   clear  the debug console's title bar (libs/LibKa0s/DebugLog.lua, makeIconButton "clear").
+-- Not here: info, drawn only by an Options id list's help mark, and this addon builds no id list
+-- (tests/test_libka0s.lua holds that line).
+local LIBRARY_DRAWN = { "clear", "close", "copy" }
 
 -- The library files that ARE the payload, for the degraded case. Core.lua absent means every other
 -- major returns before LibStub:NewLibrary too, which makes this the whole-library-missing scenario
@@ -111,7 +120,7 @@ test("mediasetup: every icon this addon draws is one the library ships", functio
     local known = {}
     for _, name in ipairs(Media.ICONS) do known[name] = true end
 
-    for _, name in ipairs(DRAWN) do
+    for _, name in ipairs(LIBRARY_DRAWN) do
         assertTrue(known[name] == true,
             "this addon draws '" .. name .. "', which LibKa0s-Media does not ship")
         assertTrue(NS.Icon(name) ~= nil, "NS.Icon answered nil for " .. name)
@@ -124,25 +133,72 @@ test("mediasetup: every icon this addon draws has a file in the vendored copy", 
     -- catalog naming art this build does not carry.
     local root = (T.root or ".") .. "/libs/LibKa0s/media/icons/"
     local missing = {}
-    for _, name in ipairs(DRAWN) do
+    for _, name in ipairs(LIBRARY_DRAWN) do
         local fh = io.open(root .. name .. ".tga", "rb")
         if fh then fh:close() else missing[#missing + 1] = name end
     end
     assertEqual(table.concat(missing, ", "), "")
 end)
 
-test("mediasetup: the whole catalog has a file in the vendored copy", function()
-    -- Wider than the case above and for a different failure: this one catches a partial re-vendor
-    -- before the addon happens to ask for the file that went missing.
-    local _, env = T.newAddon()
-    local Media = env.LibStub("LibKa0s-Media-1.0", true)
+-- The CLAUDE.md `LibKa0s icons:` declaration, parsed by the kit's own parser (never a second one
+-- here), as a sorted list of names.
+local function declaredIcons()
+    local VendorSync = dofile((T.root or ".") .. "/tests/_kit/vendor_sync.lua")
+    local doc = source("CLAUDE.md")
+    assertTrue(doc ~= nil, "CLAUDE.md is readable")
+    local decl, err = VendorSync.iconDeclaration(doc)
+    assertTrue(decl ~= nil, "CLAUDE.md carries no usable `LibKa0s icons:` line: " .. tostring(err))
+    assertEqual(decl.mode, "list", "this addon declares a list, not none or all")
+    return decl.names
+end
+
+-- The .tga files on disk directly under the vendored icons folder, extensionless and sorted. On
+-- disk rather than tracked, so a re-vendor is checked before it is committed; and it FAILS when it
+-- cannot look, for the reason trackedMedia below gives.
+local function shippedIcons()
+    if not io.popen then fail("io.popen is unavailable, so the vendored icons cannot be listed") end
+    local pipe = io.popen("ls -1A '" .. (T.root or ".") .. "/libs/LibKa0s/media/icons'")
+    if not pipe then fail("could not list libs/LibKa0s/media/icons") end
+    local names, entries = {}, 0
+    for line in pipe:lines() do
+        entries = entries + 1
+        local name = line:match("^(.+)%.tga$")
+        if name then names[#names + 1] = name end
+    end
+    pipe:close()
+    if entries == 0 then fail("libs/LibKa0s/media/icons lists nothing, which cannot be true here") end
+    table.sort(names)
+    return names
+end
+
+test("mediasetup: every declared icon has a file in the vendored copy, and nothing undeclared ships",
+function()
+    -- The re-vendor prunes the icons folder to the declaration (LibKa0s v1.75.0,
+    -- library-stack-§7). Declared and missing draws blank; shipped and undeclared is dead weight
+    -- the next prune removes. tests/test_vendor_sync.lua gates the same equality against the tag;
+    -- this case says it in this addon's terms, and needs no sibling checkout.
+    -- red under: dropping clear.tga from the folder, or adding an undeclared mark to it.
+    local declared = declaredIcons()
     local root = (T.root or ".") .. "/libs/LibKa0s/media/icons/"
     local missing = {}
-    for _, name in ipairs(Media.ICONS) do
+    for _, name in ipairs(declared) do
         local fh = io.open(root .. name .. ".tga", "rb")
         if fh then fh:close() else missing[#missing + 1] = name end
     end
-    assertEqual(table.concat(missing, ", "), "")
+    assertEqual(table.concat(missing, ", "), "", "declared icons missing from the vendored copy")
+    assertEqual(table.concat(shippedIcons(), ", "), table.concat(declared, ", "),
+        "the vendored icons folder ships exactly the declared set")
+end)
+
+test("mediasetup: the declaration names every icon the library draws for this addon", function()
+    -- The hand list above and the CLAUDE.md line are two spellings of one fact, and the prune
+    -- follows only the line. A name the library draws and the line forgets is pruned and draws a
+    -- blank square, which nothing headless sees.
+    -- red under: dropping a name from the CLAUDE.md `LibKa0s icons:` line.
+    local want = {}
+    for i, name in ipairs(LIBRARY_DRAWN) do want[i] = name end
+    table.sort(want)
+    assertEqual(table.concat(declaredIcons(), ", "), table.concat(want, ", "))
 end)
 
 -- Every path git tracks under media/, forward-slash and repo-relative.

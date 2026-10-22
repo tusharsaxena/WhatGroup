@@ -449,7 +449,7 @@ function()
 end)
 
 -- ---------------------------------------------------------------------------
--- 8. The launcher (launcher-§2, slash-commands-§7)
+-- 8. The launcher and the key binding (launcher-§2, launcher-§6, slash-commands-§7)
 -- ---------------------------------------------------------------------------
 
 test("disabled 8: left-click opens the panel; right-click's menu grays every feature entry",
@@ -481,6 +481,79 @@ function()
     assertEqual(#mock.__svWrites(), 0, "a click on a disabled addon writes NOTHING")
     assertEqual(#visibleFrames(mock), shown, "and shows nothing")
     assertFalse(helpers(NS).Get("state.testMode"), "test mode never started")
+end)
+
+test("disabled 8: the Show window key press refuses by hold: the disabled line, then the perf line",
+function()
+    -- launcher-§6: the press calls the toggle's handler, and since WhatGroup:ToggleFrame relies on
+    -- the gray menu entry and the dispatcher rather than refusing itself, the button asks the one
+    -- refusal helper (NS.StandDownRefusal) first. A key cannot be grayed, so a silent press is a
+    -- finding; under the perf hold alone it must NOT name `/wg enable` (Which refusal, by hold).
+    -- red under: an OnClick that calls ToggleFrame without asking NS.StandDownRefusal (the popup
+    -- opens, nothing prints), or a helper keyed on IsStoodDown alone (the perf press prints the
+    -- disabled line).
+    local NS, mock = up()
+    local button = mock.frames["WhatGroupTogglePopup"]
+    assertTrue(button ~= nil, "the binding's button survives the stand-down")
+    local function press() return button:GetScript("OnClick")(button, "LeftButton", true) end
+
+    switchOff(NS)
+    mock.__resetSvWrites()
+    local mark, shown = #mock.prints, #visibleFrames(mock)
+    press()
+    assertEqual(#mock.prints - mark, 1, "a press while disabled answers on exactly one line")
+    assertTrue(mock.prints[#mock.prints]:find("WhatGroup is disabled", 1, true) ~= nil,
+        "the disabled line")
+    assertTrue(mock.prints[#mock.prints]:find("/wg enable", 1, true) ~= nil,
+        "naming the verb that undoes the state")
+    assertEqual(#mock.__svWrites(), 0, "and the press wrote NOTHING")
+    assertEqual(#visibleFrames(mock), shown, "and showed nothing")
+    assertEqual(shown, 0)
+
+    switchOn(NS)
+    NS.Lifecycle:Hold(NS.HOLD_PERF)
+    assertTrue(NS.IsStoodDown(), "the perf hold alone stands it down")
+    mark = #mock.prints
+    press()
+    assertEqual(#mock.prints - mark, 1, "a press under the perf hold answers on exactly one line")
+    assertEqual(mock.prints[#mock.prints], NS.PREFIX .. " Not available during a performance capture.",
+        "the collection's perf line, pinned, trailing period and all")
+    assertNil(mock.prints[#mock.prints]:find("WhatGroup is disabled", 1, true), "never the disabled line")
+    assertEqual(#visibleFrames(mock), 0, "and the popup stayed down")
+
+    -- Both holds: the disabled line wins.
+    switchOff(NS)
+    mark = #mock.prints
+    press()
+    assertTrue(mock.prints[#mock.prints]:find("/wg enable", 1, true) ~= nil, "both held: disabled wins")
+    assertEqual(#mock.prints - mark, 1)
+    switchOn(NS)
+    NS.Lifecycle:Release(NS.HOLD_PERF)
+    assertFalse(NS.IsStoodDown())
+end)
+
+test("disabled 8: with LibKa0s absent the button still exists and a press refuses on the stub's line",
+function()
+    -- The degraded latch (core/LifecycleSetup.lua's stub) and the degraded Slash surface's
+    -- DisabledLine answer the helper, so the press refuses on a library-less install too.
+    -- red under: NS.StandDownRefusal defined after the `if not lib` return, or the button created
+    -- only on the library path.
+    local NS, _, mock = T.newAddon{ skip = T.loadAddon.libFiles }
+    local button = mock.frames["WhatGroupTogglePopup"]
+    assertTrue(button ~= nil, "the button is created without the library")
+    NS.Lifecycle:Hold(NS.HOLD_DISABLED)
+    local mark = #mock.prints
+    button:GetScript("OnClick")(button, "LeftButton", true)
+    -- The degraded printer says once, on its first line, that the library is missing; that notice
+    -- is core/CoreSetup.lua's, not the press's, so it is set aside here.
+    local own = {}
+    for i = mark + 1, #mock.prints do
+        if not mock.prints[i]:find("library is missing", 1, true) then own[#own + 1] = mock.prints[i] end
+    end
+    assertEqual(#own, 1, "one line")
+    assertEqual(own[1], NS.PREFIX .. " " .. NS.SlashCommands:DisabledLine(),
+        "the stub's disabled line")
+    NS.Lifecycle:Release(NS.HOLD_DISABLED)
 end)
 
 -- ---------------------------------------------------------------------------

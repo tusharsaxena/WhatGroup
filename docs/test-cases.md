@@ -47,7 +47,7 @@ Total.
 - debuglog: the console's user-visible strings resolve to prose, not to their own keys
 - debuglog: the gated sink survives a format its arguments cannot satisfy (WG-22)
 - options: Settings.Helpers IS the library instance, decorated in place
-- options: the library is told the FOLDER name, and the help-mark art is on disk
+- options: the library is told the FOLDER name, and the help-mark art is declared if drawn
 - options: the host's data seams survived the move onto the instance
 - options: the host's RestoreAllDefaults deliberately overrides the library's
 - options: a panel write takes the addon's single write seam
@@ -99,7 +99,7 @@ Total.
 - parity: the Lifecycle stub carries the whole live surface
 - parity: the Compat reader arm carries every library member the addon wires
 
-### test_mediasetup.lua (11)
+### test_mediasetup.lua (12)
 
 - mediasetup: NS.Icon answers the vendored path, EXTENSIONLESS
 - mediasetup: an icon the library does not ship answers nil
@@ -108,7 +108,8 @@ Total.
 - mediasetup: the LSM registration is the library's, made at file load
 - mediasetup: every icon this addon draws is one the library ships
 - mediasetup: every icon this addon draws has a file in the vendored copy
-- mediasetup: the whole catalog has a file in the vendored copy
+- mediasetup: every declared icon has a file in the vendored copy, and nothing undeclared ships
+- mediasetup: the declaration names every icon the library draws for this addon
 - mediasetup: this addon ships no private copy of the shared art (anti-patterns #63)
 - mediasetup: with no library there is no art and no face, and that is not an error
 - mediasetup: a degraded install still gets a REAL font, never nil and never a dead path
@@ -757,7 +758,7 @@ Total.
 - diagnostics: with logging already on, exactly one chat line names the count and Copy
 - diagnostics: without LibKa0s-DebugLog both forms print the library-absent line, writing nothing
 
-### test_launcher.lua (36)
+### test_launcher.lua (41)
 
 - launcher: it registers at login, and the broker object IS the minimap button's
 - launcher: the object is a launcher, named for the FOLDER, wearing this addon's logo
@@ -775,6 +776,11 @@ Total.
 - launcher: the Test mode entry runs the bare /wg test body
 - launcher: the Show window entry toggles the group popup through WhatGroup:ToggleFrame
 - launcher: a Show window dismissal ends test mode, as the Close button does
+- launcher: Bindings.xml carries one CLICK binding on the toggle button, no default, no Lua
+- launcher: the binding button is plain, named, hidden and registered for the down edge
+- launcher: the binding labels are the brand and the localized action
+- launcher: a key press runs the Show window handler, once per press
+- launcher: a key press in combat takes ToggleFrame's combat route and makes no protected call
 - launcher: while disabled only Enabled is live; the rest are grayed and call nothing
 - launcher: with no MenuUtil the right click falls back to the settings panel
 - launcher: the descriptor passes the four pairs to the verbs' seams, and no retired field
@@ -960,7 +966,7 @@ Total.
 
 - every evidence id the register cites is assigned by its bundle in docs/audits/ or docs/reviews/
 
-### test_disabled.lua (20)
+### test_disabled.lua (22)
 
 - disabled 1: enabled, the addon holds a NON-EMPTY registration set
 - disabled 3: the registration set is EMPTY, by count and by name
@@ -973,6 +979,8 @@ Total.
 - disabled 7: `profile` is live — it lists while off, and a switch to an enabled profile is a way back
 - disabled 7: each FEATURE verb answers exactly one refusal line and reaches no write seam
 - disabled 8: left-click opens the panel; right-click's menu grays every feature entry
+- disabled 8: the Show window key press refuses by hold: the disabled line, then the perf line
+- disabled 8: with LibKa0s absent the button still exists and a press refuses on the stub's line
 - disabled 9: re-enabling restores the registration set exactly
 - disabled 9: a setting changed WHILE DISABLED is what the rebuild reflects
 - disabled 10: releasing the perf hold does NOT resurrect an addon `disabled` still holds down
@@ -1058,7 +1066,7 @@ Total.
 | test_harness.lua | 17 |
 | test_libka0s.lua | 56 |
 | test_surface_parity.lua | 9 |
-| test_mediasetup.lua | 11 |
+| test_mediasetup.lua | 12 |
 | test_envsetup.lua | 10 |
 | test_util.lua | 31 |
 | test_compat.lua | 47 |
@@ -1076,7 +1084,7 @@ Total.
 | test_testmode.lua | 28 |
 | test_snapshot.lua | 10 |
 | test_diagnostics.lua | 20 |
-| test_launcher.lua | 36 |
+| test_launcher.lua | 41 |
 | test_lifecycle.lua | 46 |
 | test_debuglog.lua | 72 |
 | test_library_lines.lua | 8 |
@@ -1084,7 +1092,7 @@ Total.
 | test_lintconfig.lua | 6 |
 | test_doc_structure.lua | 9 |
 | test_register.lua | 1 |
-| test_disabled.lua | 20 |
+| test_disabled.lua | 22 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
@@ -1092,4 +1100,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **934** |
+| **Total** | **942** |

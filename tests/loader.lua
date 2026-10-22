@@ -33,7 +33,12 @@ local LIBKA0S = {
     "libs/LibKa0s/Schema.lua",
     "libs/LibKa0s/Pool.lua",
     "libs/LibKa0s/Item.lua",
+    -- New in LibKa0s v1.75.0: the stateless LibCustomGlow-1.0 driver (Glow minor 1). Nothing here adopts it.
+    "libs/LibKa0s/Glow.lua",
     "libs/LibKa0s/Media.lua",
+    -- New in LibKa0s v1.74.0: the icon catalog's packed name lists (MediaIcons minor 1), a second
+    -- file of the Media major. Nothing here adopts it; Media.Icon reads it.
+    "libs/LibKa0s/MediaIcons.lua",
     "libs/LibKa0s/Widgets.lua",
     -- New in LibKa0s v1.66.0: ReorderList peeled out of Widgets.lua (WidgetsReorder minor 1),
     -- loaded right after it and before the drag handle, as the XML has it. Nothing here adopts it.
@@ -70,6 +75,8 @@ local LIBKA0S = {
     "libs/LibKa0s/OptionsCompose.lua",
     "libs/LibKa0s/OptionsScroll.lua",
     "libs/LibKa0s/OptionsNav.lua",
+    -- New in LibKa0s v1.73.0: the slide-out drawer (OptionsDrawer minor 1, O.Drawer). Nothing here adopts it.
+    "libs/LibKa0s/OptionsDrawer.lua",
     "libs/LibKa0s/Perf.lua",
     -- New in LibKa0s v1.66.0: Perf's capture and its command surface peeled to two files of their
     -- own (PerfSampler minor 1, PerfCommands minor 1). Perf is declined here; the client loads
@@ -77,6 +84,11 @@ local LIBKA0S = {
     "libs/LibKa0s/PerfSampler.lua",
     "libs/LibKa0s/PerfCommands.lua",
     "libs/LibKa0s/PerfPanel.lua",
+    -- New in LibKa0s v1.75.0: the new major LibKa0s-Sim-1.0 (Sim, SimTimeline and SimPanel, minor 2
+    -- each). Nothing here adopts it.
+    "libs/LibKa0s/Sim.lua",
+    "libs/LibKa0s/SimTimeline.lua",
+    "libs/LibKa0s/SimPanel.lua",
 }
 
 -- Returns a loader closure bound to the repo root + the mock builder.

@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-934%2F934_passing-green)
+![Tests](https://img.shields.io/badge/Tests-942%2F942_passing-green)
 
 WhatGroup remembers the group you signed up for through the Group Finder tool. You get accepted, you shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who's leading, and the playstyle.
 
@@ -32,6 +32,8 @@ Joining a group through the Group Finder takes four steps.
 - Close it, and bring it back. `ESC` or the **Close** button puts the popup away. `/wg show` or the "Click here to view details" link on the chat line opens it again, for as long as you're in the group. WhatGroup forgets the group once you leave.
 
 The **Chat** tab picks which lines the chat summary includes, and **Print to Chat** turns it off. **Open Automatically** on the **Popup** tab does the same for the window, and **Width** and **Height** sit beside it. The minimap button opens Settings on a left-click and a short menu on a right-click. Untick **Minimap button** on **Master controls** if you'd rather not have it.
+
+You can also bind a key to open and close the popup: Key Bindings → AddOns → **Ka0s WhatGroup** → **Toggle group popup**. It has no key until you pick one. A press does what the minimap menu's **Show window** does, and while WhatGroup is disabled it says so in chat instead.
 
 Everything else is on the **Ka0s WhatGroup** page in Settings → AddOns, which `/wg` opens, and `/wg help` lists every command.
 
@@ -99,3 +101,6 @@ Bugs, feature requests and outstanding work are all tracked at [https://github.c
 
 The debug console uses [JetBrains Mono](https://www.jetbrains.com/lp/mono/), licensed under the SIL
 Open Font License 1.1. It ships inside the bundled LibKa0s payload, with its license text beside it.
+
+**Open Iconic** icons (the debug console's copy, clear and close marks), by Waybury, MIT license
+(<https://github.com/iconic/open-iconic>), with the license beside them in the bundled payload.

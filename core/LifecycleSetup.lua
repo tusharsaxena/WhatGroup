@@ -47,6 +47,26 @@ function NS.IsStoodDown()
     return NS.Lifecycle ~= nil and NS.Lifecycle:IsDown() == true
 end
 
+-- THE ONE REFUSAL HELPER (slash-commands-§7, *Which refusal, by hold*). Nil while the addon is
+-- running; otherwise the one line a feature surface that refuses for itself prints. It is keyed on
+-- WHICH HOLD is taken, never on IsStoodDown alone: the disabled line names `/wg enable`, and under
+-- a performance capture's `perf` hold alone that advice is false (`enabled` is already on), so the
+-- collection's perf line answers instead. Both held: the disabled line wins, because enabling is
+-- still a step the player has to take and the capture's hold ends by itself.
+--
+-- Its caller today is the Show window key binding's button (modules/Frame.lua, launcher-§6): a
+-- key cannot be grayed the way the launcher menu's entry is, so the press asks here first. The
+-- slash verbs are refused by LibKa0s-Slash-1.0's dispatcher gate instead. There is no third
+-- wording. Defined above the `if not lib` branch so the degraded stub latch answers it too, and
+-- everything is resolved at CALL time: settings/Slash.lua publishes NS.SlashCommands later.
+---@return string|nil line
+function NS.StandDownRefusal()
+    local latch = NS.Lifecycle
+    if latch == nil or latch:IsDown() ~= true then return nil end
+    if latch:IsHeld(NS.HOLD_DISABLED) then return NS.SlashCommands:DisabledLine() end
+    return NS.L["Not available during a performance capture."]
+end
+
 if not lib then
     -- The degradation stub every other setup file in core/ carries, and this one has to be
     -- FUNCTIONAL rather than inert: without LibKa0s there is still a Master controls checkbox and

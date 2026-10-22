@@ -264,7 +264,9 @@ diff <(lua tests/run.lua --list) docs/test-cases.md   # silent = in sync
 ## The vendor gate
 
 `libs/LibKa0s/` and `tests/_kit/` are **whole-folder copies** of `../LibKa0s`'s
-two ship folders. Neither the green gate above nor `luacheck` can see a stale
+two ship folders, with one carve-out: `libs/LibKa0s/media/icons/` is pruned to
+the icons the `CLAUDE.md` `LibKa0s icons:` line declares (LibKa0s v1.75.0,
+`library-stack-§7`), and the gate checks declared == shipped there. Neither the green gate above nor `luacheck` can see a stale
 one: the library's suite passes against the library, and this addon's passes
 against a stale copy that still works, so **both repos stay green while the
 copies diverge** (anti-patterns #45). An after-the-fact `diff` is the only thing
@@ -302,9 +304,13 @@ tag=$(grep -oE 'Bundles \[LibKa0s\]\([^)]*\) v[0-9]+\.[0-9]+\.[0-9]+' CLAUDE.md 
         | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
 rm -rf "/tmp/libka0s-$tag" && mkdir -p "/tmp/libka0s-$tag"
 git -C ../LibKa0s archive "$tag" | tar -x -C "/tmp/libka0s-$tag"
-diff -r --strip-trailing-cr "/tmp/libka0s-$tag/LibKa0s" libs/LibKa0s   # MUST be empty
+diff -r --strip-trailing-cr "/tmp/libka0s-$tag/LibKa0s" libs/LibKa0s   # MUST be empty, apart from
+                                                                        # `Only in` media/icons lines
 diff -r --strip-trailing-cr "/tmp/libka0s-$tag/testkit" tests/_kit     # MUST be empty
 ```
+
+The `Only in .../LibKa0s/media/icons` lines are the icons this addon does not declare; the prune
+removed them on purpose. A declared icon that is missing, or anything else in that folder, is drift.
 
 `tests/test_vendor_sync.lua` asks exactly this question inside the suite — it greps the tag out of
 `CLAUDE.md` and reads that blob out of git — so **a green suite has already answered it**, and the
@@ -329,7 +335,10 @@ of every library file: the root `CLAUDE.md` carries a provenance line naming the
 LibKa0s release, and it moves in the same commit as the bytes. Kit revision 9
 moved that line out of `README.md`, and the gate has no fallback — a repo that
 has not moved its line reads as carrying no provenance line at all and fails,
-naming `CLAUDE.md`.
+naming `CLAUDE.md`. The next non-blank line under it is the icon declaration,
+`LibKa0s icons: close, copy, clear.` (kit revision 40, LibKa0s v1.75.0): the
+re-vendor prunes `libs/LibKa0s/media/icons/` to it, and the gate fails a declared
+icon that is missing or an undeclared one that ships.
 
 ## Lint scope
 
@@ -411,7 +420,7 @@ contradicts.
 | `lint` | `luacheck .` | **yes** | **yes** — must be `pass` |
 | `tests` | `lua tests/run.lua` | **yes** | **yes** — must be `pass` |
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** — must be `pass`; a `skip` is *not evaluated* |
-| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (lizard over the kit's sighted shadow, `-L 1500`, with function-count parity; kit revision 35) | no — recorded only | **yes** — `pass` plus zero functions above CCN 15 and `blindFiles` 0 |
+| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (lizard over the kit's sighted shadow, `-L 1500`, with function-count parity; kit revision 41) | no — recorded only | **yes** — `pass` plus zero functions above CCN 15, `blindFiles` 0 and `crashedFiles` 0 (a lizard run that crashes or hits the bound is a fail, never a measurement) |
 
 **`perf` and `complexity` never fail a run and never block a commit.** They are measured, recorded
 and diffed — a threshold that fails a run teaches everyone to reach for `--no-verify`, after which

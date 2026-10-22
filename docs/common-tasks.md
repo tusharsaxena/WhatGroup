@@ -173,17 +173,23 @@ cp -r /mnt/d/Profile/Users/Tushar/Documents/GIT/KickCD/libs/AceAddon-3.0/ libs/
 
 Then verify `WhatGroup.toc`'s lib block still matches the directory layout. If KickCD has added or removed an Ace3 module since the last refresh, update the TOC accordingly. AceGUI's `.xml` loads late in the block (it pulls in `widgets/` internally); `LibKa0s.xml` loads after it, last.
 
-**`libs/LibKa0s/` is a sync, not a copy.** It and `tests/_kit/` are whole-folder copies of `../LibKa0s`'s two ship folders, and the rule is byte-identity:
+**`libs/LibKa0s/` is a sync, not a copy.** It and `tests/_kit/` are whole-folder copies of `../LibKa0s`'s two ship folders, taken from a release **tag** (never the sibling's working tree), and the rule is byte-identity, apart from the icon prune:
 
 ```bash
-cp -r ../LibKa0s/LibKa0s/. libs/LibKa0s/
-cp -r ../LibKa0s/testkit/. tests/_kit/
+tag=vX.Y.Z; s=$(mktemp -d)
+git -C ../LibKa0s archive "$tag" LibKa0s testkit tools | tar -x -C "$s"
+cp -r "$s/LibKa0s/." libs/LibKa0s/
+cp -r "$s/testkit/." tests/_kit/
+# roll the CLAUDE.md provenance line to $tag; the `LibKa0s icons:` line stays directly under it
+lua "$s/tools/prune-icons.lua" "$PWD"     # prunes libs/LibKa0s/media/icons/ to the declaration
+lua tests/run.lua && luacheck .           # the gate, including tests/test_vendor_sync.lua
 ```
 
 - **Copy the WHOLE folder, never one file.** Every other major returns before `LibStub:NewLibrary` when `Core.lua` is missing or older than their floor, so a partial copy makes a module *absent* rather than half-wired — the addon loads, works badly, and says nothing (anti-patterns #48).
 - **Never edit either tree.** A library problem is a finding to fix in `../LibKa0s` and re-vendor. A local patch is a fork nobody knows about, and the next re-vendor silently reverts it.
 - **Run the vendor gate afterwards** — all four diffs in [testing.md](./testing.md) — because nothing else can see a stale copy: the library's suite passes against the library and this addon's passes against a stale copy that still works, so both repos stay green while they diverge (anti-patterns #45).
-- **Move the `CLAUDE.md` provenance line in the same commit**, so "which LibKa0s does this ship?" stays answerable without grepping a minor constant out of every vendored library file.
+- **Prune only with the tag's `tools/prune-icons.lua`, never by hand.** It reads the `CLAUDE.md` `LibKa0s icons:` line and refuses an unknown name. A new library-drawn or addon-drawn icon joins that line in the commit that draws it; an undeclared one is pruned and draws a blank square.
+- **Move the `CLAUDE.md` provenance line in the same commit**, with the `LibKa0s icons:` line kept directly under it, so "which LibKa0s does this ship?" stays answerable without grepping a minor constant out of every vendored library file.
 
 After either refresh, run the `libs/` refresh row of [smoke-tests.md → Before you start](./smoke-tests.md#before-you-start) — and after a LibKa0s one, its re-vendor row as well (the post-adoption panel, reset-verb and window-position checks, the library-absent DEGRADED checks and the shared-art checks).
 
