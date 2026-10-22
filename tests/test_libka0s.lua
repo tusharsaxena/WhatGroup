@@ -284,7 +284,7 @@ test("options: Settings.Helpers IS the library instance, decorated in place", fu
     assertEqual(seen, onFirstTab, "once per row of the tab the page opens on")
 end)
 
-test("options: the library is told the FOLDER name, and the help-mark art is on disk", function()
+test("options: the library is told the FOLDER name, and the help-mark art is declared if drawn", function()
     -- LibKa0s#42. The Options descriptor's `addonName` is the route to the library's own `info`
     -- help-mark art (Media.Icon(addonName, "info")); without it every IdList help mark draws the
     -- client's blue disc. It must be the first vararg -- the folder -- and never the "Ka0s WhatGroup"
@@ -299,10 +299,31 @@ test("options: the library is told the FOLDER name, and the help-mark art is on 
         "the first vararg is thrown away, so there is no folder name to pass")
     assertTrue(body:match("lib:New%s*%(%s*{.-addonName%s*=%s*addonName%s*,.-}%s*%)") ~= nil,
         "the Options descriptor does not pass addonName, so help marks draw the fallback glyph")
-    -- The one residual the library's loaded-addon guard cannot catch is a path with no file behind it.
-    local art = io.open("libs/LibKa0s/media/icons/info.tga", "rb")
-    assertTrue(art ~= nil, "libs/LibKa0s/media/icons/info.tga is missing from the vendored payload")
-    art:close()
+    -- The one residual the library's loaded-addon guard cannot catch is a path with no file behind
+    -- it. Since LibKa0s v1.75.0 the vendored icons folder is pruned to the CLAUDE.md
+    -- `LibKa0s icons:` line, so `info` ships only when declared: any settings file other than the
+    -- degradation stub that calls IdList must come with `info` on that line. Today none does.
+    -- red under: adding an IdList call (a help line) to settings/Panel.lua without declaring info.
+    local callers = {}
+    local pipe = io.popen and io.popen("ls -1 settings")
+    assertTrue(pipe ~= nil, "settings/ cannot be listed")
+    for name in pipe:lines() do
+        if name:match("%.lua$") and name ~= "OptionsSetup.lua" then
+            local text = (readFile("settings/" .. name) or ""):gsub("%-%-[^\r\n]*", "")
+            if text:match("IdList%s*%(") then callers[#callers + 1] = name end
+        end
+    end
+    pipe:close()
+    local decl = dofile("tests/_kit/vendor_sync.lua").iconDeclaration(readFile("CLAUDE.md") or "")
+    local declaresInfo = false
+    for _, n in ipairs(decl and decl.names or {}) do
+        if n == "info" then declaresInfo = true end
+    end
+    -- info undeclared (today) means no settings file may build an id list.
+    if not declaresInfo then
+        assertEqual(table.concat(callers, ", "), "",
+            "a settings file builds an id list, so CLAUDE.md's `LibKa0s icons:` line must name info")
+    end
 end)
 
 test("options: the host's data seams survived the move onto the instance", function()

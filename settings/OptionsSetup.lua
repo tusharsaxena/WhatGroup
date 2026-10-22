@@ -78,7 +78,7 @@ if not lib then
     -- The chrome band's own arithmetic. Library-internal, reached only from the makers above, and
     -- absent from anything this addon calls.
     --
-    -- These nine, and the three `__` members further down -- twelve in all -- are NO LONGER GATED,
+    -- These eight, and the three `__` members further down -- eleven in all -- are NO LONGER GATED,
     -- which is worth saying here rather than leaving to be discovered.
     -- tests/test_surface_parity.lua moved onto Kit.assertSurfaceParity's by-name form at kit 15,
     -- and that form compares Kit.publicMembers, which drops every `__`-prefixed key before it
@@ -87,7 +87,7 @@ if not lib then
     -- libs/LibKa0s/Options.lua's comment at O.__print says in as many words that a degradation
     -- stub does not mirror them.
     --
-    -- So the reason the twelve stay is now SHAPE alone, and shape is a weaker reason than a gate.
+    -- So the reason the eleven stay is now SHAPE alone, and shape is a weaker reason than a gate.
     -- They are kept rather than deleted because deleting shipped lines was not what the item that
     -- un-gated them was for; whichever way that goes later, it goes deliberately.
     H.__bannerBand         = function() end
@@ -95,7 +95,6 @@ if not lib then
     H.__tabPlacement       = function() end
     H.__layoutTabs         = function() end
     H.__scrollTopInset     = function() end
-    H.__releaseChrome      = function() end
     H.__releaseSubTabs     = function() end
     H.__tabArtHeight       = function() return 0 end
     H.__resetTabArtHeight  = function() end
@@ -145,6 +144,8 @@ if not lib then
     -- NavRail, new at LibKa0s v1.61.0 (OptionsNav minor 1): drawn only by a page render, and no
     -- page here draws a rail, so the same inert no-op applies.
     H.NavRail              = function() end
+    -- Drawer, new at LibKa0s v1.73.0 (OptionsDrawer minor 1): no call site here, so inert for the shape reason.
+    H.Drawer               = function() end
     H.SetRenderer          = function() end
     H.RegisterOptionsPage  = function() end
     H.RefreshAllPanels     = function() end

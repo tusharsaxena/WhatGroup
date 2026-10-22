@@ -580,10 +580,12 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **DIAG-12. The title-bar marks.** `/wg debug` → the three right-hand controls are small square
   marks, not words: copy, clear and close, in the same gray as every Ka0s window, red under the
   pointer. The words `Copy` and `Clear` beside a `×` mean the library fell back because
-  `addonName` stopped reaching its descriptor in `core/DebugLogSetup.lua`. Result: pass (owner-marked 2026-10-10)
+  `addonName` stopped reaching its descriptor in `core/DebugLogSetup.lua`. A blank square means the
+  `CLAUDE.md` `LibKa0s icons:` line misses a name, and the re-vendor pruned that mark (LibKa0s
+  v1.75.0). Result:
 - **DIAG-13. The copy window's mark.** Click the copy control → the copy window's close control is
   the same square mark; a `×` here alone means the two windows are built from different
-  descriptors. Result: pass (owner-marked 2026-10-10)
+  descriptors. A blank square means the `LibKa0s icons:` line misses a name (`close`). Result:
 - **DIAG-14. The log font.** → monospace, with the `HH:MM:SS | [tag] …` columns aligned: the
   library's JetBrains Mono under `libs/LibKa0s/media/fonts/`. A proportional face means
   `NS.MediaFont` answered nil and `STANDARD_TEXT_FONT` caught it. Result: pass (owner-marked 2026-10-10)
@@ -767,7 +769,11 @@ headless stand-in: `tests/wow_mock.lua` answers enUS for every string the captur
 
 ## Pending sign-off
 
-None. On 2026-10-10 the owner marked every check in this file as passed, recorded on its
-`Result:` line as `pass (owner-marked 2026-10-10)`; a check that already carried a dated owner pass
-keeps it. A check added or rewritten after that date is listed here until its `Result:` line records
-a pass.
+On 2026-10-10 the owner marked every check in this file as passed, recorded on its `Result:` line as
+`pass (owner-marked 2026-10-10)`; a check that already carried a dated owner pass keeps it. A check
+added or rewritten after that date is listed here until its `Result:` line records a pass.
+
+| ID | Owed because |
+|---|---|
+| DIAG-12 | Rewritten for the LibKa0s v1.75.0 re-vendor, which prunes `libs/LibKa0s/media/icons/` to `close, copy, clear` |
+| DIAG-13 | Same re-vendor: the copy window's close mark must survive the prune |

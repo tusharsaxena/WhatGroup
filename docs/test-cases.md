@@ -47,7 +47,7 @@ Total.
 - debuglog: the console's user-visible strings resolve to prose, not to their own keys
 - debuglog: the gated sink survives a format its arguments cannot satisfy (WG-22)
 - options: Settings.Helpers IS the library instance, decorated in place
-- options: the library is told the FOLDER name, and the help-mark art is on disk
+- options: the library is told the FOLDER name, and the help-mark art is declared if drawn
 - options: the host's data seams survived the move onto the instance
 - options: the host's RestoreAllDefaults deliberately overrides the library's
 - options: a panel write takes the addon's single write seam
@@ -99,7 +99,7 @@ Total.
 - parity: the Lifecycle stub carries the whole live surface
 - parity: the Compat reader arm carries every library member the addon wires
 
-### test_mediasetup.lua (11)
+### test_mediasetup.lua (12)
 
 - mediasetup: NS.Icon answers the vendored path, EXTENSIONLESS
 - mediasetup: an icon the library does not ship answers nil
@@ -108,7 +108,8 @@ Total.
 - mediasetup: the LSM registration is the library's, made at file load
 - mediasetup: every icon this addon draws is one the library ships
 - mediasetup: every icon this addon draws has a file in the vendored copy
-- mediasetup: the whole catalog has a file in the vendored copy
+- mediasetup: every declared icon has a file in the vendored copy, and nothing undeclared ships
+- mediasetup: the declaration names every icon the library draws for this addon
 - mediasetup: this addon ships no private copy of the shared art (anti-patterns #63)
 - mediasetup: with no library there is no art and no face, and that is not an error
 - mediasetup: a degraded install still gets a REAL font, never nil and never a dead path
@@ -1058,7 +1059,7 @@ Total.
 | test_harness.lua | 17 |
 | test_libka0s.lua | 56 |
 | test_surface_parity.lua | 9 |
-| test_mediasetup.lua | 11 |
+| test_mediasetup.lua | 12 |
 | test_envsetup.lua | 10 |
 | test_util.lua | 31 |
 | test_compat.lua | 47 |
@@ -1092,4 +1093,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **934** |
+| **Total** | **935** |
