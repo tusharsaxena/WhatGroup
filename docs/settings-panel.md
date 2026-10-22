@@ -512,6 +512,15 @@ runs, so the row, the verb and the menu entry write one value through one seam:
 
 A grayed entry reads `<entry> (enable the addon first)` and calls nothing.
 
+**The Show window key binding sits beside the Show window entry** (`launcher-§6`). `Bindings.xml`
+carries one `CLICK WhatGroupTogglePopup:LeftButton` line, listed in Key Bindings → AddOns →
+**Ka0s WhatGroup** as **Toggle group popup**, with no default key. It clicks a plain hidden button
+`modules/Frame.lua` creates at load, whose `OnClick` runs the same `WhatGroup:ToggleFrame`. A key
+cannot be grayed, so while the addon is stood down the press asks `NS.StandDownRefusal` first and
+prints one line instead: the disabled line (naming `/wg enable`) under the `disabled` hold, or
+`Not available during a performance capture.` under the `perf` hold alone. It toggles nothing and
+writes nothing.
+
 ## Adding a setting
 
 One row to `Schema`. The UI, CLI, defaults, and reset surfaces all follow automatically. See [common-tasks.md](./common-tasks.md#add-a-setting) for the recipe. A row that belongs to the **Master controls** block is the exception: that block is options-ui-§15's canonical set and is not extended by hand — a new master control is a change to `LibKa0s`'s composer, not to this addon.

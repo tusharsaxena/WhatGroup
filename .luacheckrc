@@ -33,6 +33,9 @@ exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "docs/revendor/", "_
 globals = {
   "WhatGroupDB",
   "StaticPopupDialogs",
+  -- The Show window key binding's header label (modules/Frame.lua, launcher-§6). Its BINDING_NAME_
+  -- twin holds a space and a colon, so it is written with rawset and needs no entry here.
+  "BINDING_HEADER_WHATGROUP",
 }
 
 -- The WoW API surface the addon reads. Compat.lua owns the version-variant

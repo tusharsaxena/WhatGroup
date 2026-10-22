@@ -24,7 +24,7 @@ number out of use rather than handing it to a new one.
 | TEST-1 – TEST-12 | [Test mode](#test-mode) | The sample popup, its checkbox and verb, every way it ends, the sample role |
 | TELE-1 – TELE-6 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker |
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
-| LAUNCH-1 – LAUNCH-13 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays |
+| LAUNCH-1 – LAUNCH-16 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
 | LOC-1 – LOC-6 | [Non-English client](#non-english-client) | A deDE or frFR client, and the `IsSpellKnown` readers |
@@ -530,6 +530,16 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   `Right-click: Options menu`, nothing drawn twice. Tick **Lock frame** and **Test mode** →
   `Locked: Yes`, `Test mode: On`. `/wg disable` → still shows, `Enabled: No` in red, with the same
   two hints. `/wg enable`. Result: pass (owner-marked 2026-10-10)
+- **LAUNCH-14. The Show window key binding.** Esc → Options → Key Bindings → AddOns → `Ka0s WhatGroup`
+  lists `Toggle group popup` with no key preassigned; bind a key. With no capture, press it → the
+  popup opens on its "No data" fallbacks; press again → it closes, as Close and ESC do. One press
+  toggles once. `/wg test`, then press the key → the sample popup closes and test mode ends, as the
+  menu's Show window does. `/reload` → the key is still bound. Result:
+- **LAUNCH-15. The key while disabled.** `/wg disable`, press the key → exactly one chat line,
+  `Ka0s WhatGroup is disabled — enable it with /wg enable`, and no popup. `/wg enable`. Result:
+- **LAUNCH-16. The key in combat.** In combat, press the key → the popup opens or closes exactly as
+  the launcher menu's Show window does in combat, with no `ADDON_ACTION_BLOCKED` and no taint line
+  in the error frame or `/wg debug`. Result:
 
 ## Debug console and diagnostics
 
@@ -777,3 +787,6 @@ added or rewritten after that date is listed here until its `Result:` line recor
 |---|---|
 | DIAG-12 | Rewritten for the LibKa0s v1.75.0 re-vendor, which prunes `libs/LibKa0s/media/icons/` to `close, copy, clear` |
 | DIAG-13 | Same re-vendor: the copy window's close mark must survive the prune |
+| LAUNCH-14 | New in WG-01: the Show window key binding (launcher-§6), bound, toggling and surviving `/reload` |
+| LAUNCH-15 | New in WG-01: a press while disabled refuses on one line and opens nothing |
+| LAUNCH-16 | New in WG-01: a press in combat follows the Show window entry's combat route, with no blocked action |

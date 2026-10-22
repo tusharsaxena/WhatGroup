@@ -139,6 +139,15 @@ L["Group info no longer available — captures clear on group-leave or |cffFFFF0
     "Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."
 L["Popup deferred until combat ends."] = "Popup deferred until combat ends."
 
+-- The Show window key binding (modules/Frame.lua, launcher-§6): the action's label in the client's
+-- Key Bindings -> AddOns list. The header beside it is the brand, which is not translated.
+L["Toggle group popup"] = "Toggle group popup"
+
+-- The perf-hold refusal (slash-commands-§7, *Which refusal, by hold*). The collection's wording,
+-- verbatim, trailing period and all; it names no command because the capture ends by itself.
+-- Printed by NS.StandDownRefusal (core/LifecycleSetup.lua).
+L["Not available during a performance capture."] = "Not available during a performance capture."
+
 -- The library-absent line (options-ui-§1 route (b), the owner's ruling on WhatGroup#22). On a load
 -- without LibKa0s the Master controls rows are not composed, so `/wg enable`, `/wg disable` and
 -- `/wg test` have no row to write; each says so, naming itself. `/wg profile` says it too: with

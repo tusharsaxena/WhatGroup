@@ -88,6 +88,13 @@ feature. A grayed entry calls nothing, so a disabled click shows no frame and, a
 `isEnabled` → `not NS.IsStoodDown()`, and the launcher spells no refusal of its own
 (slash-commands-§7).
 
+**The key press** (`launcher-§6`). The Show window key binding cannot be grayed, so its button asks
+the addon's one refusal helper, `NS.StandDownRefusal` (`core/LifecycleSetup.lua`), before it calls
+`WhatGroup:ToggleFrame`. While stood down a press toggles nothing, writes nothing and prints exactly
+one line, chosen by hold (slash-commands-§7, *Which refusal, by hold*): the disabled line naming
+`/wg enable` while the `disabled` hold is taken (it wins when both are), otherwise
+`Not available during a performance capture.`. `tests/test_disabled.lua` step 8 pins both.
+
 **The hover says so first** (Launcher minor 3, `launcher-§1`). The tooltip still draws while the
 addon is disabled, with `Enabled: No` in red. The click hints, `Left-click: Open settings` and
 `Right-click: Options menu`, do not change with the state.

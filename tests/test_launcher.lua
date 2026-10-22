@@ -323,6 +323,120 @@ test("launcher: a Show window dismissal ends test mode, as the Close button does
     assertFalse(H.Get("state.testMode"), "and test mode went with it")
 end)
 
+-- ---------------------------------------------------------------------------
+-- The Show window key binding (launcher-§6, standard v2.86.0)
+-- ---------------------------------------------------------------------------
+--
+-- One CLICK binding in the root Bindings.xml, naming a plain hidden button modules/Frame.lua
+-- creates at load, whose click runs the handler the launcher's toggleWindow runs. Pinned here: the
+-- file's one line, the button's shape, the two labels and that a press IS the Show window click.
+-- The press while stood down is tests/test_disabled.lua step 8's (slash-commands-§7).
+
+local BINDING = "CLICK WhatGroupTogglePopup:LeftButton"
+
+local function toggleButton(mock) return mock.frames["WhatGroupTogglePopup"] end
+
+local function press(mock)
+    local b = toggleButton(mock)
+    return b:GetScript("OnClick")(b, "LeftButton", true)
+end
+
+test("launcher: Bindings.xml carries one CLICK binding on the toggle button, no default, no Lua",
+function()
+    -- red under: a `default=` key (it collides with somebody's binding), a Lua body, a second
+    -- header, a renamed button (every player's key silently unbinds), or the file in the TOC.
+    local body = readFile("Bindings.xml")
+    assertTrue(body ~= nil, "Bindings.xml is at the addon root, where the client reads it")
+    local tags = {}
+    for tag in body:gmatch("<Binding%s[^>]*>") do tags[#tags + 1] = tag end
+    assertEqual(#tags, 1, "exactly one <Binding>")
+    local tag = tags[1]
+    assertEqual(tag:match('name="([^"]*)"'), BINDING, "a CLICK binding on the named button")
+    assertEqual(tag:match('header="([^"]*)"'), "WHATGROUP", "the header is the folder, upper-cased")
+    assertEqual(tag:match('category="([^"]*)"'), "ADDONS", "filed under AddOns")
+    assertNil(tag:find("default", 1, true), "no default key")
+    assertTrue(tag:match("/>$") ~= nil, "self-closing: no Lua body")
+    assertNil(body:find("</Binding>", 1, true), "and no element anywhere carries a body")
+    local toc = readFile("WhatGroup.toc")
+    assertNil(toc:find("Bindings.xml", 1, true), "the client finds it by name; the TOC never lists it")
+end)
+
+test("launcher: the binding button is plain, named, hidden and registered for the down edge",
+function()
+    -- red under: a Secure* template (combat rules the window does not have), no RegisterForClicks
+    -- (the client's default edge is the UP edge, so a key press would fire on release), "AnyUp"
+    -- plus "AnyDown" (one press toggles twice), or the button joining UISpecialFrames.
+    local _, mock = launched()
+    local b = toggleButton(mock)
+    assertTrue(b ~= nil, "the named button exists at load")
+    assertEqual(b.__kind, "Button")
+    assertNil(b.__template, "no template, secure or otherwise")
+    assertFalse(b.__protected, "and so not protected")
+    assertFalse(b:IsShown(), "hidden: it is a binding target, never something drawn")
+    assertEqual(table.concat(b.__clicks or {}, ","), "AnyDown", "one edge: one press toggles once")
+    for _, name in ipairs(mock.UISpecialFrames) do
+        assertTrue(name ~= "WhatGroupTogglePopup", "never an ESC-closable special frame")
+    end
+end)
+
+test("launcher: the binding labels are the brand and the localized action", function()
+    -- red under: a header typed as the TOC Title rather than the brand, or a name not through L.
+    -- A sandboxed global write lands in the real _G (tests/_kit/loader.lua's makeEnv), so the
+    -- header is cleared first to prove THIS load wrote it. The name's rawset reaches the mock,
+    -- which is the sandbox's own `_G`.
+    rawset(_G, "BINDING_HEADER_WHATGROUP", nil)
+    local NS, mock = launched()
+    assertEqual(rawget(_G, "BINDING_HEADER_WHATGROUP"), "Ka0s WhatGroup",
+        "the header is the brand (launcher-§1)")
+    assertEqual(rawget(mock, "BINDING_NAME_" .. BINDING), NS.L["Toggle group popup"],
+        "the action's label comes through the locale")
+    assertEqual(NS.L["Toggle group popup"], "Toggle group popup")
+    assertEqual(NS.TOGGLE_COMMAND, BINDING, "the module's command string is the file's binding")
+end)
+
+test("launcher: a key press runs the Show window handler, once per press", function()
+    -- red under: an OnClick with its own show/hide, a second handler, or a press that toggles twice.
+    local NS, mock, object = launched()
+    local real, calls = NS.addon.ToggleFrame, 0
+    NS.addon.ToggleFrame = function(...) calls = calls + 1; return real(...) end
+
+    press(mock)
+    assertEqual(calls, 1, "the press called WhatGroup:ToggleFrame, once")
+    assertTrue(onScreen(mock), "the popup opens, on its fallbacks with no capture")
+    assertTrue(NS.addon:IsFrameOnScreen())
+    press(mock)
+    assertEqual(calls, 2)
+    assertFalse(onScreen(mock), "the next press closes it")
+
+    openMenu(mock, object):Click("Show window")
+    assertEqual(calls, 3, "and the menu's Show window entry reaches the very same function")
+    assertTrue(onScreen(mock))
+end)
+
+test("launcher: a key press in combat takes ToggleFrame's combat route and makes no protected call",
+function()
+    -- The window is non-secure in this sense: its close in combat is the alpha-0 soft hide, owed a
+    -- real Hide at combat end. The press adds no combat contract of its own (launcher-§6).
+    -- red under: a secure button, or an OnClick that calls f:Hide() itself.
+    local NS, mock = launched()
+    NS.addon.pendingInfo = CAPTURE
+    press(mock)
+    assertTrue(onScreen(mock), "opened out of combat")
+    local specials = #mock.UISpecialFrames
+
+    mock.combat = true
+    press(mock)
+    assertFalse(onScreen(mock), "the press closed it in combat")
+    assertEqual(popup(mock):GetAlpha(), 0, "through the soft route")
+    assertTrue(NS.FrameOwesHide(), "a real Hide owed to the combat edge")
+    assertEqual(#mock.blocked, 0, "no protected call inside the lockdown: " .. table.concat(mock.blocked, ","))
+    assertEqual(#mock.UISpecialFrames, specials, "UISpecialFrames unchanged")
+
+    press(mock)
+    assertTrue(onScreen(mock), "and the next press brings it back, alpha restored")
+    assertEqual(#mock.blocked, 0)
+end)
+
 test("launcher: while disabled only Enabled is live; the rest are grayed and call nothing",
 function()
     -- Features refuse while disabled (slash-commands-§7), and the library says so in the entry's
@@ -484,8 +598,11 @@ test("launcher: there is no host tooltip hook, and the retired label's locale ro
     -- red under: an onTooltipShow in the descriptor, or the dead locale row left behind.
     local src = readFile("core/LauncherSetup.lua")
     assertNil(src:find("\n%s*onTooltipShow%s*="), "no host tooltip hook")
-    assertNil(readFile("locales/enUS.lua"):find('L%["Toggle group popup"%]', 1, false),
-        "the retired left-click label is not in the locale")
+    -- The key itself came back in WG-01 as the Show window key binding's label (launcher-§6), so
+    -- what is pinned now is that its one reader is modules/Frame.lua's binding, never the launcher.
+    assertNil(src:find("Toggle group popup", 1, true), "the launcher reads no left-click label")
+    assertTrue(readFile("modules/Frame.lua"):find('rawset(_G, "BINDING_NAME_" .. NS.TOGGLE_COMMAND, L["Toggle group popup"])', 1, true) ~= nil,
+        "the locale row's reader is the key binding's label")
 end)
 
 -- ---------------------------------------------------------------------------

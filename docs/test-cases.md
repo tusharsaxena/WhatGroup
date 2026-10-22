@@ -758,7 +758,7 @@ Total.
 - diagnostics: with logging already on, exactly one chat line names the count and Copy
 - diagnostics: without LibKa0s-DebugLog both forms print the library-absent line, writing nothing
 
-### test_launcher.lua (36)
+### test_launcher.lua (41)
 
 - launcher: it registers at login, and the broker object IS the minimap button's
 - launcher: the object is a launcher, named for the FOLDER, wearing this addon's logo
@@ -776,6 +776,11 @@ Total.
 - launcher: the Test mode entry runs the bare /wg test body
 - launcher: the Show window entry toggles the group popup through WhatGroup:ToggleFrame
 - launcher: a Show window dismissal ends test mode, as the Close button does
+- launcher: Bindings.xml carries one CLICK binding on the toggle button, no default, no Lua
+- launcher: the binding button is plain, named, hidden and registered for the down edge
+- launcher: the binding labels are the brand and the localized action
+- launcher: a key press runs the Show window handler, once per press
+- launcher: a key press in combat takes ToggleFrame's combat route and makes no protected call
 - launcher: while disabled only Enabled is live; the rest are grayed and call nothing
 - launcher: with no MenuUtil the right click falls back to the settings panel
 - launcher: the descriptor passes the four pairs to the verbs' seams, and no retired field
@@ -961,7 +966,7 @@ Total.
 
 - every evidence id the register cites is assigned by its bundle in docs/audits/ or docs/reviews/
 
-### test_disabled.lua (20)
+### test_disabled.lua (22)
 
 - disabled 1: enabled, the addon holds a NON-EMPTY registration set
 - disabled 3: the registration set is EMPTY, by count and by name
@@ -974,6 +979,8 @@ Total.
 - disabled 7: `profile` is live — it lists while off, and a switch to an enabled profile is a way back
 - disabled 7: each FEATURE verb answers exactly one refusal line and reaches no write seam
 - disabled 8: left-click opens the panel; right-click's menu grays every feature entry
+- disabled 8: the Show window key press refuses by hold: the disabled line, then the perf line
+- disabled 8: with LibKa0s absent the button still exists and a press refuses on the stub's line
 - disabled 9: re-enabling restores the registration set exactly
 - disabled 9: a setting changed WHILE DISABLED is what the rebuild reflects
 - disabled 10: releasing the perf hold does NOT resurrect an addon `disabled` still holds down
@@ -1077,7 +1084,7 @@ Total.
 | test_testmode.lua | 28 |
 | test_snapshot.lua | 10 |
 | test_diagnostics.lua | 20 |
-| test_launcher.lua | 36 |
+| test_launcher.lua | 41 |
 | test_lifecycle.lua | 46 |
 | test_debuglog.lua | 72 |
 | test_library_lines.lua | 8 |
@@ -1085,7 +1092,7 @@ Total.
 | test_lintconfig.lua | 6 |
 | test_doc_structure.lua | 9 |
 | test_register.lua | 1 |
-| test_disabled.lua | 20 |
+| test_disabled.lua | 22 |
 | test_vendor_sync.lua | 3 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
@@ -1093,4 +1100,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **935** |
+| **Total** | **942** |
