@@ -534,12 +534,12 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   lists `Toggle group popup` with no key preassigned; bind a key. With no capture, press it → the
   popup opens on its "No data" fallbacks; press again → it closes, as Close and ESC do. One press
   toggles once. `/wg test`, then press the key → the sample popup closes and test mode ends, as the
-  menu's Show window does. `/reload` → the key is still bound. Result:
+  menu's Show window does. `/reload` → the key is still bound. Result: pass (owner-marked 2026-10-23)
 - **LAUNCH-15. The key while disabled.** `/wg disable`, press the key → exactly one chat line,
-  `Ka0s WhatGroup is disabled — enable it with /wg enable`, and no popup. `/wg enable`. Result:
+  `Ka0s WhatGroup is disabled — enable it with /wg enable`, and no popup. `/wg enable`. Result: pass (owner-marked 2026-10-23)
 - **LAUNCH-16. The key in combat.** In combat, press the key → the popup opens or closes exactly as
   the launcher menu's Show window does in combat, with no `ADDON_ACTION_BLOCKED` and no taint line
-  in the error frame or `/wg debug`. Result:
+  in the error frame or `/wg debug`. Result: pass (owner-marked 2026-10-23)
 
 ## Debug console and diagnostics
 
@@ -592,10 +592,10 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   pointer. The words `Copy` and `Clear` beside a `×` mean the library fell back because
   `addonName` stopped reaching its descriptor in `core/DebugLogSetup.lua`. A blank square means the
   `CLAUDE.md` `LibKa0s icons:` line misses a name, and the re-vendor pruned that mark (LibKa0s
-  v1.75.0). Result:
+  v1.75.0). Result: pass (owner-marked 2026-10-23)
 - **DIAG-13. The copy window's mark.** Click the copy control → the copy window's close control is
   the same square mark; a `×` here alone means the two windows are built from different
-  descriptors. A blank square means the `LibKa0s icons:` line misses a name (`close`). Result:
+  descriptors. A blank square means the `LibKa0s icons:` line misses a name (`close`). Result: pass (owner-marked 2026-10-23)
 - **DIAG-14. The log font.** → monospace, with the `HH:MM:SS | [tag] …` columns aligned: the
   library's JetBrains Mono under `libs/LibKa0s/media/fonts/`. A proportional face means
   `NS.MediaFont` answered nil and `STANDARD_TEXT_FONT` caught it. Result: pass (owner-marked 2026-10-10)
@@ -779,14 +779,7 @@ headless stand-in: `tests/wow_mock.lua` answers enUS for every string the captur
 
 ## Pending sign-off
 
-On 2026-10-10 the owner marked every check in this file as passed, recorded on its `Result:` line as
-`pass (owner-marked 2026-10-10)`; a check that already carried a dated owner pass keeps it. A check
-added or rewritten after that date is listed here until its `Result:` line records a pass.
-
-| ID | Owed because |
-|---|---|
-| DIAG-12 | Rewritten for the LibKa0s v1.75.0 re-vendor, which prunes `libs/LibKa0s/media/icons/` to `close, copy, clear` |
-| DIAG-13 | Same re-vendor: the copy window's close mark must survive the prune |
-| LAUNCH-14 | New in WG-01: the Show window key binding (launcher-§6), bound, toggling and surviving `/reload` |
-| LAUNCH-15 | New in WG-01: a press while disabled refuses on one line and opens nothing |
-| LAUNCH-16 | New in WG-01: a press in combat follows the Show window entry's combat route, with no blocked action |
+None. On 2026-10-10 the owner marked every check in this file as passed, recorded on its
+`Result:` line as `pass (owner-marked 2026-10-10)`; a check that already carried a dated owner pass
+keeps it. A check added or rewritten after that date is listed here until its `Result:` line records
+a pass.
