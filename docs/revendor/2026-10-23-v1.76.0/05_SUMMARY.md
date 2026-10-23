@@ -28,3 +28,20 @@ Gates (all through `ka0s-bounded`):
 - luacheck 0 warnings / 0 errors in 59 files.
 - No authored `.lua` over 1500 lines (largest: `modules/Frame.lua`, 1427).
 - Smoke owed: none. No runtime surface of this addon moved.
+
+## Addendum: the tag moved (WG-RV2)
+
+LibKa0s item LK-91 moved the local annotated tag `v1.76.0` from commit `9949368` to `7e81ff7`
+("bound step-panel labels before the command column"), so the step-panel label truncates with an
+ellipsis instead of running under the slash-command column. Item WG-RV2 re-vendored both payloads
+whole from the moved tag and re-ran `tools/prune-icons.lua` (kept 4 files, removed 5,836). The
+provenance line already read v1.76.0 and is kept.
+
+- **Changed files:** `libs/LibKa0s/SimPanel.lua` (the step-panel label fix; SimPanel minor stays
+  5) and `libs/LibKa0s/PerfPanel.lua` (the same fix in the perf copy of the
+  renderer, PerfPanel minor 7 to 8). The kit
+  (`tests/_kit/`) is unchanged; kit revision 41.
+- **Contract blockers:** none. WhatGroup consumes neither panel directly.
+- Gates: tests 942 passed / 0 failed / 1 skipped (`test_vendor_sync` green against the moved
+  tag), luacheck 0 / 0 in 59 files, no authored `.lua` over 1500 lines (largest 1427).
+- Smoke owed: none.
