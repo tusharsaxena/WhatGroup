@@ -84,8 +84,8 @@ local LIBKA0S = {
     "libs/LibKa0s/PerfSampler.lua",
     "libs/LibKa0s/PerfCommands.lua",
     "libs/LibKa0s/PerfPanel.lua",
-    -- New in LibKa0s v1.75.0: the new major LibKa0s-Sim-1.0 (Sim, SimTimeline and SimPanel, minor 2
-    -- each). Nothing here adopts it.
+    -- New in LibKa0s v1.75.0: the new major LibKa0s-Sim-1.0 (as of v1.76.0, Sim minor 2,
+    -- SimTimeline minor 3, SimPanel minor 5). Nothing here adopts it.
     "libs/LibKa0s/Sim.lua",
     "libs/LibKa0s/SimTimeline.lua",
     "libs/LibKa0s/SimPanel.lua",
