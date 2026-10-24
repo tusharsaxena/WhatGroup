@@ -78,8 +78,11 @@ core\LifecycleSetup.lua
 defaults\Profile.lua
 defaults\TeleportSpells.lua
 
-# Modules (conventional: modules\Frame.lua reads NS.addon and NS.L at file scope, both published
-# above this group, and no later file reads anything of Frame's at load)
+# Modules (conventional: modules\Frame.lua reads NS.addon, NS.L and NS.BRAND_NAME (core\CoreSetup.lua)
+# at file scope, all published above this group. One later file reads Frame's output at load:
+# settings\Panel.lua builds GENERAL_OPTS from NS.BINDINGS at file scope (settings/Panel.lua:304),
+# which this file publishes (modules/Frame.lua:1344). The # Modules -> # Settings group order already
+# guarantees that read, so the slot stays conventional (toc-file-§5).)
 modules\Frame.lua
 # The sections of `/wg diagnostics` (debug-logging-§14). Conventional: core\DebugLogSetup.lua's
 # descriptor reads NS.Diagnostics at RUN time, and every read in the file is at call time.
