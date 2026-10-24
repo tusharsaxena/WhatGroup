@@ -76,31 +76,31 @@ end
 -- that heading a second time further down.
 --
 -- Three tabs, in the order a player meets the addon: what governs the addon as a
--- whole, then the chat line, then the window.
+-- whole, then the join flow, then the keys. The third is the library's host tab
+-- (options-ui-§20), drawn by settings/Panel.lua and declared nowhere here.
 --
 --   --- Master controls ---    options-ui-§15's canonical block, and NOT DECLARED HERE
 --   [Enable WhatGroup]    | [General visibility]
---   [Master scale]        | [Master alpha]
+--   [Master scale]        | [Master opacity]
 --   [Lock frame]          | [Debug console]
 --   [Minimap button]      | [Test mode]        session-only
 --     <afterGroup: Reset position | Reset all settings>
 --
---   --- Chat ---               when the summary fires, and what it says
+--   --- Notifications ---      the join flow: when it fires, what chat says, how the popup opens
 --   -- Timing --
---   [Notification Delay]                       solo, on its own line
---   -- Text --
---   [Print to Chat]                            master toggle, on its own line
+--   [Delay after joining]                      solo, on its own line
+--   -- Chat summary --
+--   [Print to chat]                            master toggle, on its own line
 --   [Instance]            | [Type]
---   [Leader]              | [Playstyle]
---   [Details link]        | [Teleport spell]
---   [Role]
---     <afterGroup: Test button (160 px, left-aligned)>
---
---   --- Popup ---              the group-info window
---   -- Behavior --
---   [Open Automatically]                       master toggle, on its own line
---   -- Layout --
+--   [Leader]              | [Role]
+--   [Playstyle]           | [Teleport spell]
+--   [Details link]
+--   -- Popup window --
+--   [Open on join]                             on its own line
 --   [Width]               | [Height]
+--     <afterGroup: Test notification button (160 px, left-aligned)>
+--
+--   --- Keybindings ---        the library's host tab, last (settings/Panel.lua)
 --
 -- THE FIRST TAB IS COMPOSED, NOT WRITTEN (options-ui-§15). `H.MasterControls` emits the canonical
 -- Master controls block from one declaration, and settings/Panel.lua splices what it returns at
@@ -110,7 +110,7 @@ end
 -- below, and `/wg list`, `/wg set`, ValidateSchema and the panel read them identically.
 --
 -- `section` is NOT `group`: it is `/wg list`'s grouping key and it is unchanged
--- by the retabbing. `notify.delay` is EDITED on Chat and stored (and listed)
+-- by the retabbing. `notify.delay` is EDITED on Notifications and stored (and listed)
 -- under `notify`, which is exactly the page-vs-path split options-ui-§13 allows:
 -- a row's tab is where it is EDITED, its path is where it is STORED.
 --
@@ -138,23 +138,28 @@ local function add(t) Schema[#Schema + 1] = t end
 -- block's other session-only row and takes the same route.
 
 -- ---------------------------------------------------------------------------
--- Chat -- when the join summary fires, and what it says
+-- Notifications -- the join flow: when it fires, what chat says, how the popup opens
 -- ---------------------------------------------------------------------------
+--
+-- ONE TAB FOR ONE FLOW (item 020, WHA-L01). This was two tabs, Chat and Popup, and the split cut
+-- the flow in the wrong place: the delay holds back BOTH the chat summary and the popup but sat on
+-- Chat, the Test notification button previews both but sat on Chat, and Popup was three rows on two
+-- lines. Merged, the delay heads the tab above the two things it delays, and setting up "what
+-- happens when I join a group" is one tab beside Master controls rather than two.
 
--- EDITED ON CHAT, STORED UNDER `notify`. It headed the Notify section once, then sat on the old
--- General tab with the master switch. Neither survives options-ui-§15: General is the Master
--- controls tab now, and this row is not one of its canonical rows. It reads as the notification's
--- own delay wherever it is filed -- the same timer does gate the popup, which the tooltip says --
--- so it lands on the tab named for the notification, under its own heading, above the six rows
--- that choose what that notification contains.
+-- EDITED ON NOTIFICATIONS, STORED UNDER `notify`. It headed the Notify section once, then sat on
+-- the old General tab with the master switch, then on Chat. Neither General nor Chat survives:
+-- General is options-ui-§15's Master controls tab, and this row is not one of its canonical rows.
+-- It delays the chat summary and the popup alike, so it stands above both subsections under its
+-- own heading, and its label names the event it waits on rather than one of its two consumers.
 --
 -- `solo` survives the move for the reason it always had: a half-width slider paired against a
 -- checkbox reads as though the checkbox gated it.
 add{
-    section = "notify",  group = "Chat",  subgroup = "Timing",
+    section = "notify",  group = "Notifications",  subgroup = "Timing",
     path    = "notify.delay",  type = "number",
-    label   = "Notification Delay",
-    tooltip = "Seconds to wait after joining before printing the notification and showing the popup. Lets the zone-in settle.",
+    label   = "Delay after joining",
+    tooltip = "Applies to both the chat summary and the popup. Seconds to wait after joining before printing the notification and showing the popup. Lets the zone-in settle.",
     default = C.notify.delay,
     min = 0, max = 10, step = 0.5, fmt = "%.1fs",
     solo    = true,
@@ -162,93 +167,100 @@ add{
 
 -- THE VERTICAL CHECKLIST IS OVER, and only half of the argument for it expired.
 -- Every row here used to carry `solo = true` so the section read as a column of
--- "include this line" ticks. The tab now says that: seven of these rows are the
--- only thing on the Chat tab under their master, so the reader no longer needs a
+-- "include this line" ticks. The subsection now says that: the seven rows under
+-- "Chat summary" are the lines of that summary, so the reader no longer needs a
 -- column to tell them apart from the rest of the panel -- and six half-empty
 -- lines is a scroll where three full ones are a glance. What survives is the
--- solo on the MASTER: "Print to Chat" governs the seven, and a master paired
+-- solo on the MASTER: "Print to chat" governs the seven, and a master paired
 -- against the first thing it governs reads as its equal.
 --
--- The labels lost their "Show " prefix with the same move: under a tab called
--- Chat, six rows beginning "Show" spend their first word saying what the tab
--- already said. The PATHS are untouched -- `notify.showInstance` is still
--- `notify.showInstance` for `/wg set` and for every saved profile.
+-- The labels lost their "Show " prefix with the same move: under a heading that
+-- names the chat summary, six rows beginning "Show" spend their first word saying
+-- what the heading already said. The PATHS are untouched -- `notify.showInstance`
+-- is still `notify.showInstance` for `/wg set` and for every saved profile.
+--
+-- The chat-only rule is stated ONCE, on the master: every `notify.show*` row gates the chat
+-- summary, and the popup always draws every field.
 
 add{
-    section = "notify",  group = "Chat",  subgroup = "Text",
+    section = "notify",  group = "Notifications",  subgroup = "Chat summary",
     path    = "notify.enabled",  type = "bool",
-    label   = "Print to Chat",
-    tooltip = "Print the group-details summary to chat after joining a group. The rows below choose what that summary contains.",
+    label   = "Print to chat",
+    tooltip = "Print the group-details summary to chat after joining a group. The rows below choose what that summary contains. The popup always shows every line; these choose the chat summary only.",
     default = C.notify.enabled,
     solo    = true,
 }
 
 add{
-    section = "notify",  group = "Chat",  subgroup = "Text",
+    section = "notify",  group = "Notifications",  subgroup = "Chat summary",
     path    = "notify.showInstance",  type = "bool",
     label   = "Instance",
-    tooltip = "Include the Instance line in the chat notification.",
+    tooltip = "Include the Instance line in the chat summary.",
     default = C.notify.showInstance,
 }
 
 add{
-    section = "notify",  group = "Chat",  subgroup = "Text",
+    section = "notify",  group = "Notifications",  subgroup = "Chat summary",
     path    = "notify.showType",  type = "bool",
     label   = "Type",
-    tooltip = "Include the Type line (Mythic+, Raid, Dungeon, ...) in the chat notification.",
+    tooltip = "Include the Type line (Mythic+, Raid, Dungeon, ...) in the chat summary.",
     default = C.notify.showType,
 }
 
 add{
-    section = "notify",  group = "Chat",  subgroup = "Text",
+    section = "notify",  group = "Notifications",  subgroup = "Chat summary",
     path    = "notify.showLeader",  type = "bool",
     label   = "Leader",
-    tooltip = "Include the Leader line in the chat notification.",
+    tooltip = "Include the Leader line in the chat summary.",
     default = C.notify.showLeader,
 }
 
+-- IN PRINT ORDER (item 020, WHA-L03): the summary prints Group, Instance, Type, Leader, Role,
+-- Playstyle, Teleport and then the link (core/WhatGroup.lua), so the toggles read top to bottom
+-- like the output they choose -- Instance | Type, Leader | Role, Playstyle | Teleport spell -- and
+-- the clickable link, an affordance rather than an info line, closes the list alone as it closes
+-- the output.
 add{
-    section = "notify",  group = "Chat",  subgroup = "Text",
+    section = "notify",  group = "Notifications",  subgroup = "Chat summary",
+    path    = "notify.showRole",  type = "bool",
+    label   = "Role",
+    tooltip = "Include the Role line (the role you signed up as: the one the leader assigned, else the one your application carried, else the roles you offered) in the chat summary.",
+    default = C.notify.showRole,
+}
+
+add{
+    section = "notify",  group = "Notifications",  subgroup = "Chat summary",
     path    = "notify.showPlaystyle",  type = "bool",
     label   = "Playstyle",
-    tooltip = "Include the Playstyle line (Learning / Fun (Relaxed) / Fun (Serious) / Expert) in the chat notification.",
+    tooltip = "Include the Playstyle line (Learning / Fun (Relaxed) / Fun (Serious) / Expert) in the chat summary.",
     default = C.notify.showPlaystyle,
 }
 
 add{
-    section = "notify",  group = "Chat",  subgroup = "Text",
-    path    = "notify.showClickLink",  type = "bool",
-    label   = "Details link",
-    tooltip = "Include the clickable \"Click here to view details\" link that re-opens the popup. Disable if you only want the chat summary.",
-    default = C.notify.showClickLink,
-}
-
-add{
-    section = "notify",  group = "Chat",  subgroup = "Text",
+    section = "notify",  group = "Notifications",  subgroup = "Chat summary",
     path    = "notify.showTeleport",  type = "bool",
     label   = "Teleport spell",
-    tooltip = "Include a Teleport line with the dungeon's teleport spell link (and a \"not learned\" tag if you don't have it). Skipped silently when the dungeon has no known teleport.",
+    tooltip = "Include a Teleport line in the chat summary, with the dungeon's teleport spell link (and a \"not learned\" tag if you don't have it). Skipped silently when the dungeon has no known teleport.",
     default = C.notify.showTeleport,
 }
 
--- Last in the Text subgroup, so the six toggles before it keep the pairs they have always had.
 add{
-    section = "notify",  group = "Chat",  subgroup = "Text",
-    path    = "notify.showRole",  type = "bool",
-    label   = "Role",
-    tooltip = "Include the Role line (the role you signed up as: the one the leader assigned, else the one your application carried, else the roles you offered) in the chat notification. The popup always shows it.",
-    default = C.notify.showRole,
+    section = "notify",  group = "Notifications",  subgroup = "Chat summary",
+    path    = "notify.showClickLink",  type = "bool",
+    label   = "Details link",
+    tooltip = "Include the clickable \"Click here to view details\" link in the chat summary; it re-opens the popup. Disable if you only want the summary lines.",
+    default = C.notify.showClickLink,
 }
 
--- ---------------------------------------------------------------------------
--- Popup -- the group-info window
--- ---------------------------------------------------------------------------
-
+-- ONE HEADING OVER THE WINDOW (item 020, WHA-L04). "Behavior" over one checkbox and "Layout" over
+-- one line were two headings that each named a single control; the subject is the popup window,
+-- and the tab's three headings still meet options-ui-§7's mixed-type rule. Open on join stays
+-- `solo`, so it does not read as pairing with a size.
 add{
-    section = "frame",  group = "Popup",  subgroup = "Behavior",
+    section = "frame",  group = "Notifications",  subgroup = "Popup window",
     path    = "frame.autoShow",  type = "bool",
-    label   = "Open Automatically",
-    tooltip = "Open the group-info popup automatically when joining. With this off, the chat notification still prints and you can re-open the popup with /wg show or the chat link.",
+    label   = "Open on join",
+    tooltip = "Open the group info popup automatically when joining. With this off, the chat summary still prints and you can re-open the popup with /wg show or the chat link.",
     default = C.frame.autoShow,
     solo    = true,
 }
@@ -265,22 +277,25 @@ add{
 -- an illegal value, but SavedVariables and `/wg set frame.width 4000` both can,
 -- and a popup wider than the screen is a control that reads as broken rather
 -- than as refused.
+--
+-- The tooltips point at Test mode because the popup is usually not on screen while a slider is
+-- dragged; it stays above the Settings panel at DIALOG strata, so the preview is visible.
 
 add{
-    section = "frame",  group = "Popup",  subgroup = "Layout",
+    section = "frame",  group = "Notifications",  subgroup = "Popup window",
     path    = "frame.width",  type = "number",
     label   = "Width",
-    tooltip = "Width of the group-info popup, in pixels.",
+    tooltip = "Width of the group info popup, in pixels. Tick Test mode on General > Master controls to see the popup while you size it.",
     default = C.frame.width,
     min = 320, max = 700, step = 10, fmt = "%d px",
     onChange = function() if WhatGroup.ApplyFrameSize then WhatGroup:ApplyFrameSize() end end,
 }
 
 add{
-    section = "frame",  group = "Popup",  subgroup = "Layout",
+    section = "frame",  group = "Notifications",  subgroup = "Popup window",
     path    = "frame.height",  type = "number",
     label   = "Height",
-    tooltip = "Height of the group-info popup, in pixels.",
+    tooltip = "Height of the group info popup, in pixels. Tick Test mode on General > Master controls to see the popup while you size it.",
     default = C.frame.height,
     min = 200, max = 520, step = 10, fmt = "%d px",
     onChange = function() if WhatGroup.ApplyFrameSize then WhatGroup:ApplyFrameSize() end end,

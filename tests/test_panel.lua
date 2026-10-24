@@ -268,7 +268,7 @@ test("panel: the strip draws one tab per schema group, in declaration order", fu
             want[#want + 1] = def.group
         end
     end
-    assertEqual(table.concat(want, " | "), "Master controls | Chat | Popup",
+    assertEqual(table.concat(want, " | "), "Master controls | Notifications",
         "the designed strip, in the order the array declares it")
     for _, name in ipairs(want) do
         assertTrue(tabButton(mock, name) ~= nil, "the strip is missing " .. name)
@@ -280,8 +280,8 @@ test("panel: bool rows render checkboxes, number rows sliders, enum rows dropdow
     assertEqual(widget(mock, "CheckBox", "Enable WhatGroup").type, "CheckBox")
     assertEqual(widget(mock, "Dropdown", "General visibility").type, "Dropdown")
     assertEqual(widget(mock, "Slider", "Master scale").type, "Slider")
-    selectTab(mock, "Chat")
-    assertEqual(widget(mock, "Slider", "Notification Delay").type, "Slider")
+    selectTab(mock, "Notifications")
+    assertEqual(widget(mock, "Slider", "Delay after joining").type, "Slider")
 end)
 
 test("panel: widgets open showing the current profile value", function()
@@ -291,14 +291,14 @@ test("panel: widgets open showing the current profile value", function()
     local _, general = panels(mock)
     open(mock, general)
     assertEqual(widget(mock, "CheckBox", "Enable WhatGroup"):GetValue(), false)
-    selectTab(mock, "Chat")
-    assertEqual(widget(mock, "Slider", "Notification Delay"):GetValue(), 2.5)
+    selectTab(mock, "Notifications")
+    assertEqual(widget(mock, "Slider", "Delay after joining"):GetValue(), 2.5)
 end)
 
 test("panel: the slider inherits its bounds and step from the schema row", function()
     local _, _, mock = openGeneral()
-    selectTab(mock, "Chat")
-    local s = widget(mock, "Slider", "Notification Delay")
+    selectTab(mock, "Notifications")
+    local s = widget(mock, "Slider", "Delay after joining")
     assertEqual(s.sliderMin, 0)
     assertEqual(s.sliderMax, 10)
     assertEqual(s.sliderStep, 0.5)
@@ -312,8 +312,8 @@ test("panel: a tabbed page draws its group names as TABS, never as headings", fu
     assertTrue(tabButton(mock, "Master controls") ~= nil, "the group name is on the strip")
     assertNil(widget(mock, "Heading", "Master controls"),
         "and not repeated as a heading below it")
-    selectTab(mock, "Chat")
-    assertNil(widget(mock, "Heading", "Chat"))
+    selectTab(mock, "Notifications")
+    assertNil(widget(mock, "Heading", "Notifications"))
 end)
 
 test("panel: a mixed tab draws its SUBGROUPS as headings (options-ui-§7)", function()
@@ -323,18 +323,19 @@ test("panel: a mixed tab draws its SUBGROUPS as headings (options-ui-§7)", func
     -- one label.
     -- red under: dropping `subgroup` from a row, or the flow engine suppressing it with the group.
     local _, _, mock = openGeneral()
-    selectTab(mock, "Chat")
+    selectTab(mock, "Notifications")
     assertTrue(widget(mock, "Heading", "Timing") ~= nil, "the delay's own heading")
-    assertTrue(widget(mock, "Heading", "Text") ~= nil, "and the include-toggles'")
-    selectTab(mock, "Popup")
-    assertTrue(widget(mock, "Heading", "Behavior") ~= nil)
-    assertTrue(widget(mock, "Heading", "Layout") ~= nil)
+    assertTrue(widget(mock, "Heading", "Chat summary") ~= nil, "and the include-toggles'")
+    assertTrue(widget(mock, "Heading", "Popup window") ~= nil, "and the popup's three rows'")
+    for _, gone in ipairs({ "Text", "Behavior", "Layout" }) do
+        assertNil(widget(mock, "Heading", gone), "the retired " .. gone .. " heading")
+    end
 end)
 
 test("panel: no subgroup heading repeats its own tab's name", function()
     -- options-ui-§7 forbids it outright: a heading that repeats the tab the reader just clicked is
     -- the same label twice, which is the exact thing suppressing the group heading removed.
-    -- red under: `subgroup = "Popup"` on a Popup row.
+    -- red under: `subgroup = "Notifications"` on a Notifications row.
     local NS = T.enableAddon()
     for _, row in ipairs(NS.addon.Settings.Schema) do
         if row.subgroup then
@@ -349,20 +350,20 @@ test("panel: paired rows get half width, solo rows go full width", function()
     -- Everything in the two-column grid is rendered at 0.5 relative width; the
     -- `solo` flag controls line breaks, not the column width.
     assertEqual(widget(mock, "CheckBox", "Enable WhatGroup").relWidth, 0.5)
-    selectTab(mock, "Chat")
+    selectTab(mock, "Notifications")
     assertEqual(widget(mock, "CheckBox", "Leader").relWidth, 0.5)
 end)
 
-test("panel: the Chat group renders its Test action button", function()
+test("panel: the Notifications group renders its Test notification button", function()
     -- It followed the tab its group ended up on. "General" is options-ui-§15's Master controls tab
     -- now, whose afterGroup is the composer's reset pair; the button's own tooltip already said it
     -- previews the chat-output toggles, so Chat is where it belongs.
     local _, _, mock = openGeneral()
-    assertNil(widget(mock, "Button", "Test"),
+    assertNil(widget(mock, "Button", "Test notification"),
         "and NOT on the Master controls tab, which the page opens on")
-    selectTab(mock, "Chat")
-    assertTrue(widget(mock, "Button", "Test") ~= nil,
-        "afterGroup emits the Test button below the Chat grid")
+    selectTab(mock, "Notifications")
+    assertTrue(widget(mock, "Button", "Test notification") ~= nil,
+        "afterGroup emits the button below the Notifications grid")
 end)
 
 test("panel: the Master controls tab closes with the reset button PAIR", function()
@@ -383,7 +384,7 @@ test("panel: the Master controls tab closes with the reset button PAIR", functio
         return n
     end
     local before = drawn("Reset position")
-    selectTab(mock, "Chat")
+    selectTab(mock, "Notifications")
     assertEqual(drawn("Reset position"), before, "and neither follows the reader across")
 end)
 
@@ -406,11 +407,11 @@ test("panel: Reset position drops the stored point and re-anchors", function()
     assertNil(NS.addon.db.global.windows.popup, "the persisted point is gone")
 end)
 
-test("panel: the Test button runs the same path as /wg test notify", function()
+test("panel: the Test notification button runs the same path as /wg test notify", function()
     local NS, _, mock = openGeneral()
-    selectTab(mock, "Chat")
+    selectTab(mock, "Notifications")
     local mark = #mock.prints
-    widget(mock, "Button", "Test"):Fire("OnClick")
+    widget(mock, "Button", "Test notification"):Fire("OnClick")
     assertNil(NS.addon.pendingInfo, "the sample is previewed, never made the pending capture")
     assertTrue(#mock.prints > mark, "the chat summary printed")
     assertTrue(mock.frames["WhatGroupFrame"]:IsShown(), "and the popup opened")
@@ -493,14 +494,14 @@ end)
 
 test("panel: ticking a checkbox writes through to db.profile", function()
     local NS, _, mock = openGeneral()
-    selectTab(mock, "Chat")
+    selectTab(mock, "Notifications")
     widget(mock, "CheckBox", "Leader"):Fire("OnValueChanged", false)
     assertEqual(NS.addon.db.profile.notify.showLeader, false)
 end)
 
 test("panel: a checkbox coerces its value to a real boolean", function()
     local NS, _, mock = openGeneral()
-    selectTab(mock, "Chat")
+    selectTab(mock, "Notifications")
     widget(mock, "CheckBox", "Type"):Fire("OnValueChanged", nil)
     assertEqual(NS.addon.db.profile.notify.showType, false)
 end)
@@ -510,8 +511,8 @@ test("panel: releasing the slider writes through to db.profile", function()
     -- is opt-in per row (`commitOn = "change"`) or per descriptor (`sliderCommit`), and this addon
     -- passes neither: the one number row is a notify delay, which nothing previews while dragging.
     local NS, _, mock = openGeneral()
-    selectTab(mock, "Chat")
-    local s = widget(mock, "Slider", "Notification Delay")
+    selectTab(mock, "Notifications")
+    local s = widget(mock, "Slider", "Delay after joining")
     s:Fire("OnValueChanged", 7.5)
     assertEqual(NS.addon.db.profile.notify.delay, 0, "a drag alone does not commit")
     s:Fire("OnMouseUp", 7.5)
@@ -522,8 +523,8 @@ test("panel: the slider snaps its committed value to the schema step", function(
     -- Snapped relative to `min`, not to zero, so a step that does not divide min evenly cannot
     -- commit a value the slider could never reach by dragging.
     local NS, _, mock = openGeneral()
-    selectTab(mock, "Chat")
-    widget(mock, "Slider", "Notification Delay"):Fire("OnMouseUp", 3.3)
+    selectTab(mock, "Notifications")
+    widget(mock, "Slider", "Delay after joining"):Fire("OnMouseUp", 3.3)
     assertEqual(NS.addon.db.profile.notify.delay, 3.5, "step 0.5 from min 0")
 end)
 
@@ -551,9 +552,9 @@ test("panel: rendering registers one refresher per rendered widget", function()
     end
     assertEqual(#ctx.refreshers, rowsOn("Master controls"),
         "one per Master controls row — the Debug console is one of them now, not an extra")
-    selectTab(mock, "Chat")
-    assertEqual(#ctx.refreshers, rowsOn("Chat"),
-        "and the Chat tab re-registers its own")
+    selectTab(mock, "Notifications")
+    assertEqual(#ctx.refreshers, rowsOn("Notifications"),
+        "and the Notifications tab re-registers its own")
 end)
 
 test("panel: a re-render REPLACES the refresher list rather than growing it", function()
@@ -571,7 +572,7 @@ end)
 
 test("panel: a /wg set re-syncs the open widget", function()
     local NS, _, mock = openGeneral()
-    selectTab(mock, "Chat")
+    selectTab(mock, "Notifications")
     local cb = widget(mock, "CheckBox", "Instance")
     assertEqual(cb:GetValue(), true)
     NS.addon.Settings.Helpers.Set("notify.showInstance", false)
@@ -580,16 +581,16 @@ end)
 
 test("panel: RestoreAllDefaults re-syncs every open widget once", function()
     local NS, _, mock = openGeneral()
-    selectTab(mock, "Chat")
+    selectTab(mock, "Notifications")
     NS.addon.Settings.Helpers.Set("notify.delay", 9)
-    assertEqual(widget(mock, "Slider", "Notification Delay"):GetValue(), 9,
-        "the Chat tab's slider followed the write")
+    assertEqual(widget(mock, "Slider", "Delay after joining"):GetValue(), 9,
+        "the Notifications tab's slider followed the write")
     NS.addon.Settings.Helpers.RestoreAllDefaults()
-    assertEqual(widget(mock, "Slider", "Notification Delay"):GetValue(), 0)
+    assertEqual(widget(mock, "Slider", "Delay after joining"):GetValue(), 0)
     -- And again on another tab, because the reset has to reach the widgets of whichever group is
     -- open, not just the one the page happened to start on.
-    selectTab(mock, "Popup")
-    selectTab(mock, "Chat")
+    selectTab(mock, "Master controls")
+    selectTab(mock, "Notifications")
     widget(mock, "CheckBox", "Leader"):Fire("OnValueChanged", false)
     NS.addon.Settings.Helpers.RestoreAllDefaults()
     assertEqual(widget(mock, "CheckBox", "Leader"):GetValue(), true)
@@ -597,12 +598,12 @@ end)
 
 test("panel: a throwing refresher does not abort the remaining ones", function()
     local NS, _, mock = openGeneral()
-    selectTab(mock, "Chat")
+    selectTab(mock, "Notifications")
     local ctx = NS.addon.Settings.Helpers.__panelFor("general")
     -- Inserted FIRST, so a sweep that aborted on it would never reach the widget asserted below.
     table.insert(ctx.refreshers, 1, function() error("refresher exploded") end)
     NS.addon.Settings.Helpers.Set("notify.delay", 4)
-    assertEqual(widget(mock, "Slider", "Notification Delay"):GetValue(), 4,
+    assertEqual(widget(mock, "Slider", "Delay after joining"):GetValue(), 4,
         "later refreshers still ran")
 end)
 
@@ -802,4 +803,128 @@ test("panel: the landing page is drawn by the library's BuildLandingPage, logo a
     assertEqual(#seen.sections, 1)
     assertEqual(seen.sections[1].heading, "Slash Commands")
     assertEqual(#seen.sections[1].rows(), #NS.addon.COMMANDS)
+end)
+
+-- ---------------------------------------------------------------------------
+-- Item 020, the settings layout (WG-LY): placement, labels and tooltips
+-- ---------------------------------------------------------------------------
+
+--- The tooltip a widget raises, body lines only (the title is the label), as one string.
+local function tooltipOf(mock, w)
+    local tip = mock.GameTooltip
+    tip.__lines = {}
+    w:Fire("OnEnter")
+    return table.concat(tip.__lines or {}, "\n")
+end
+
+local function endsWith(s, tail)
+    return type(s) == "string" and s:sub(-#tail) == tail
+end
+
+test("panel: the Notifications tab declares the join flow in print order (WHA-L01..L04)", function()
+    -- red under: Role back at the end of the list, Details link mid-list, a second Popup tab, or
+    -- the popup's rows split over two subsections again.
+    local NS = T.enableAddon()
+    local got = {}
+    for _, row in ipairs(NS.addon.Settings.Schema) do
+        if row.group == "Notifications" then
+            got[#got + 1] = row.subgroup .. ": " .. row.path
+        end
+    end
+    assertEqual(table.concat(got, "\n"), table.concat({
+        "Timing: notify.delay",
+        "Chat summary: notify.enabled",
+        "Chat summary: notify.showInstance",
+        "Chat summary: notify.showType",
+        "Chat summary: notify.showLeader",
+        "Chat summary: notify.showRole",
+        "Chat summary: notify.showPlaystyle",
+        "Chat summary: notify.showTeleport",
+        "Chat summary: notify.showClickLink",
+        "Popup window: frame.autoShow",
+        "Popup window: frame.width",
+        "Popup window: frame.height",
+    }, "\n"))
+    local H = NS.addon.Settings.Helpers
+    assertTrue(H.FindSchema("frame.autoShow").solo, "Open on join stays on a line of its own")
+end)
+
+test("panel: the join-flow rows are sentence case and say what they wait on (WHA-L05..L07)", function()
+    local NS = T.enableAddon()
+    local H = NS.addon.Settings.Helpers
+    assertEqual(H.FindSchema("notify.delay").label, "Delay after joining")
+    assertEqual(H.FindSchema("notify.enabled").label, "Print to chat")
+    assertEqual(H.FindSchema("frame.autoShow").label, "Open on join")
+end)
+
+test("panel: one noun per output -- chat summary, group info popup (WHA-L06, L09, L13, L15)", function()
+    -- red under: a row tooltip still saying "chat notification" or "group-info popup", Role's
+    -- tooltip carrying the chat-only rule alone, or the delay not saying it holds back both.
+    local NS = T.enableAddon()
+    local H = NS.addon.Settings.Helpers
+    for _, row in ipairs(NS.addon.Settings.Schema) do
+        local tip = row.tooltip or ""
+        assertNil(tip:find("chat notification", 1, true), row.path .. " says chat notification")
+        assertNil(tip:find("group-info", 1, true), row.path .. " hyphenates group info")
+    end
+    local delay = H.FindSchema("notify.delay").tooltip
+    assertEqual(delay:sub(1, 52), "Applies to both the chat summary and the popup. Seco")
+    assertTrue(endsWith(H.FindSchema("notify.enabled").tooltip,
+        "The popup always shows every line; these choose the chat summary only."))
+    assertNil(H.FindSchema("notify.showRole").tooltip:find("popup always shows it", 1, true))
+    for _, path in ipairs({ "notify.showInstance", "notify.showType", "notify.showLeader",
+        "notify.showRole", "notify.showPlaystyle", "notify.showTeleport", "notify.showClickLink" }) do
+        assertTrue(H.FindSchema(path).tooltip:find("in the chat summary", 1, true) ~= nil,
+            path .. " does not say chat summary")
+    end
+    assertTrue(H.FindSchema("frame.autoShow").tooltip:find("the chat summary still prints", 1, true)
+        ~= nil)
+    for _, path in ipairs({ "frame.width", "frame.height" }) do
+        assertTrue(endsWith(H.FindSchema(path).tooltip,
+            "Tick Test mode on General > Master controls to see the popup while you size it."), path)
+    end
+end)
+
+test("panel: the composed rows name the popup through `notes`, never a host rewrite (WHA-L11, L17)",
+function()
+    -- red under: a host-side `row.tooltip =` stamp, which replaces the canonical words (XC-04),
+    -- or a note dropped.
+    local NS = T.enableAddon()
+    local H = NS.addon.Settings.Helpers
+    local want = {
+        visibility       = "Here, that is the group info popup.",
+        scale            = "Scales the group info popup; not changed in combat, applied on the next open.",
+        alpha            = "Opacity of the group info popup.",
+        locked           = "Stops the group info popup being dragged by its title bar.",
+        ["state.testMode"] = "Untick Lock frame first if you want to move it.",
+    }
+    for path, tail in pairs(want) do
+        local tip = H.FindSchema(path).tooltip
+        assertTrue(endsWith(tip, tail), path .. " tooltip: " .. tostring(tip))
+    end
+    assertEqual(H.FindSchema("state.testMode").tooltip:sub(1, 22), "Show placeholder conte",
+        "the canonical Test mode words still lead")
+    local f = assert(io.open("settings/Panel.lua", "rb"))
+    local src = f:read("*a")
+    f:close()
+    assertNil(src:find("row%.tooltip%s*="), "no host stamp of a composed row's tooltip")
+end)
+
+test("panel: the Test notification button names its run and its preview (WHA-L08)", function()
+    local _, _, mock = openGeneral()
+    selectTab(mock, "Notifications")
+    local btn = widget(mock, "Button", "Test notification")
+    assertEqual(btn.width, 160, "still the fixed 160 px action")
+    assertEqual(tooltipOf(mock, btn), "Run the join notification once with sample group info: "
+        .. "the chat summary, then the popup. Same as /wg test notify. For a popup that stays up "
+        .. "while you adjust it, use Test mode on General > Master controls.")
+end)
+
+test("panel: the header Defaults tooltip is the library's Reset all settings wording (WHA-L12)",
+function()
+    local NS, _, mock = openGeneral()
+    local H = NS.addon.Settings.Helpers
+    local want = H.ResetAllTooltip(H.KEYBINDS_UNCHANGED)
+    assertTrue(want:find(H.KEYBINDS_UNCHANGED, 1, true) ~= nil, "the keys tail is appended")
+    assertEqual(tooltipOf(mock, widget(mock, "Button", "Defaults")), want)
 end)

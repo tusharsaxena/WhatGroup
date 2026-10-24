@@ -39,7 +39,7 @@ local NO_CAPTURE = {}
 
 -- The PREVIEW the popup shows instead of the real capture, set by two callers: TEST MODE's
 -- placeholder (options-ui-§15, preview-mode), held until test mode ends, and the ONE-SHOT preview
--- `/wg test notify` and the panel's Test button hand ShowFrame (core/WhatGroup.lua's RunTest),
+-- `/wg test notify` and the panel's Test notification button hand ShowFrame (core/WhatGroup.lua's RunTest),
 -- held until the popup is put away (endPreview). A record of its own rather than a write to
 -- `pendingInfo`, so a real capture the player is still holding survives either one. Every reader
 -- of "what does the popup show" asks shownInfo(), so a preview goes through the same render path
@@ -146,6 +146,12 @@ local function anchorDefault(frame)
     frame:SetPoint("CENTER", UIParent, "CENTER", 0, math.floor(UIParent:GetHeight() * 0.25))
 end
 
+-- Dialog tier (core/Constants.lua's LAYERS, WHA-Z02): an event-raised notice that must surface over
+-- the LFG frame, bags and the Settings panel it is previewed from (Test mode, Width/Height). NOT
+-- toplevel -- frame-layering-§1's documented exception, a row in docs/ARCHITECTURE.md's register.
+-- The dialogs that must beat it (the debug console, StaticPopups) are toplevel; children inherit.
+local STRATA_POPUP = NS.Constants.LAYERS.STRATA.MODAL
+
 -- REFUSED IN COMBAT, exactly as ApplyFrameSize is and for the same reason: the popup parents a
 -- SecureActionButtonTemplate button, and scaling the parent moves the child. There is nothing to
 -- queue — the next ShowFrame out of combat applies the current value, which is the value the
@@ -249,9 +255,11 @@ end
 --
 -- The player gets a popup that closes when they press Close, in combat or out, which is the
 -- requirement. What they do not get is the frame leaving the screen's hit-testing until the
--- lockdown lifts: alpha 0 is invisible, not absent, so the title bar still drags and the teleport
--- button still takes a click it cannot act on — a teleport cannot be cast in combat anyway. That
--- residue is exactly why `pendingHide` exists and why the soft state is never a resting one.
+-- lockdown lifts: alpha 0 is invisible, not absent. The title bar and the Close button go
+-- mouse-dead with it (setControlsMouse, WHA-Z01), but the body and the teleport button still catch
+-- clicks, the body's and the button's EnableMouse being refused in combat (the residual; a teleport
+-- cannot be cast in combat anyway). That residue is why `pendingHide` exists and why the soft
+-- state is never a resting one.
 -- `softHidden` and `pendingHide` are declared above ApplyFrameAlpha, which reads the first.
 
 -- THE COMBAT-END QUEUE: protected work refused under lockdown, replayed once it lifts. No private
@@ -308,11 +316,25 @@ end
 -- popup is on screen (`onScreen()`), because CloseWindows only closes a shown entry.
 local escProxy
 
+-- NOTHING INVISIBLE STAYS MOUSE-LIVE (frame-layering-§4, WHA-Z01). The soft hide leaves f shown at
+-- alpha 0, so its plain controls -- the title bar (the drag) and the Close button -- go mouse-dead
+-- with it and come back on every show. Both are plain children with no secure descendant, so their
+-- EnableMouse is legal in combat. The residual (docs/ARCHITECTURE.md's register): the body and the
+-- secure teleport button still catch clicks at alpha 0, since f parents a secure button and both
+-- EnableMouse writes would be refused in combat; the trigger is a separate secure holder frame for
+-- the button, so f is not protected. Filled by buildFrame.
+local mouseControls = {}
+
+local function setControlsMouse(on)
+    for i = 1, #mouseControls do mouseControls[i]:EnableMouse(on) end
+end
+
 local function hidePopup()
     if not f then return true end
     if InCombatLockdown() then
         softHidden, pendingHide = true, true
         f:SetAlpha(0)
+        setControlsMouse(false)
         -- The soft route fires no OnHide on f, so the proxy is taken down here. After softHidden is
         -- set, never before: the proxy's own OnHide re-enters only while the popup is on screen.
         if escProxy then escProxy:Hide() end
@@ -320,6 +342,7 @@ local function hidePopup()
     end
     softHidden, pendingHide = false, false
     f:Hide()
+    setControlsMouse(true)
     WhatGroup:ApplyFrameAlpha()
     return true
 end
@@ -337,7 +360,10 @@ local function showPopup()
     if not f then return false end
     if f:IsShown() then
         softHidden, pendingHide = false, false
+        setControlsMouse(true)
         WhatGroup:ApplyFrameAlpha()
+        -- Raise fronts the popup within DIALOG on an explicit show (WHA-Z03). Combat-guarded: f
+        -- parents a secure button. A toplevel dialog (the console, a StaticPopup) wins back on a click.
         if not InCombatLockdown() then f:Raise() end
         if escProxy then escProxy:Show() end
         return true
@@ -346,7 +372,8 @@ local function showPopup()
     softHidden, pendingHide = false, false
     WhatGroup:ApplyFrameAlpha()
     f:Show()
-    f:Raise()
+    setControlsMouse(true)
+    f:Raise()   -- the explicit show's front-of-DIALOG raise (WHA-Z03, above)
     if escProxy then escProxy:Show() end
     return true
 end
@@ -745,8 +772,12 @@ local function buildFrame()
     f = CreateFrame("Frame", "WhatGroupFrame", UIParent, "BackdropTemplate")
     f:SetSize(popupSize())
     anchorDefault(f)
-    f:SetFrameStrata("DIALOG")
+    f:SetFrameStrata(STRATA_POPUP)
     f:SetMovable(true)
+    -- The body keeps the mouse, so a click on the visible popup stays on it. The residual (WHA-Z01):
+    -- soft-hidden at alpha 0 it and the teleport button still catch clicks, because f parents a
+    -- secure button and its EnableMouse would be refused in combat. The bigger fix, a separate
+    -- secure holder frame for the button, is the trigger (docs/ARCHITECTURE.md's register).
     f:EnableMouse(true)
     f:SetClampedToScreen(true)
     -- Restore the saved position over the default center if the player has moved
@@ -944,6 +975,9 @@ local function buildFrame()
     -- raised ADDON_ACTION_BLOCKED naming this addon. The press is remembered instead and honored
     -- the moment the lockdown lifts, which is the closest thing to "close" the client permits.
     closeBtn:SetScript("OnClick", dismissPopup)
+
+    -- The plain controls the combat soft hide makes mouse-dead (setControlsMouse, above).
+    mouseControls[1], mouseControls[2] = titleBar, closeBtn
 
     -- ESC to close — register the PROXY with UISpecialFrames *now*, lazily (buildEscapeProxy says
     -- why it is a proxy and not "WhatGroupFrame"). Earlier versions registered at file-load and that
@@ -1328,11 +1362,22 @@ do
     button:Hide()
 end
 
--- The two labels the client's Key Bindings -> AddOns list shows: the header is the brand
--- (launcher-§1), the action comes through the locale. The second name holds a space and a colon,
--- hence rawset.
-BINDING_HEADER_WHATGROUP = "Ka0s WhatGroup"
+-- The two labels Options -> Keybindings shows, assigned at file scope because the client reads them
+-- at registration. Bindings.xml files the binding in this addon's own category,
+-- BINDING_HEADER_WHATGROUP, and the client titles the section with that global, so it is the brand
+-- (launcher-§1), read from NS.BRAND_NAME (core/CoreSetup.lua) rather than retyped. The action comes
+-- through the locale, with no article and no brand because the section carries the brand
+-- (launcher-§6); its name holds a space and a colon, hence rawset.
+BINDING_HEADER_WHATGROUP = NS.BRAND_NAME
 rawset(_G, "BINDING_NAME_" .. NS.TOGGLE_COMMAND, L["Toggle group popup"])
+
+-- THE ONE BINDINGS TABLE (launcher-§6): every Bindings.xml command, in that file's order, the Show
+-- window binding first. settings/Panel.lua hands it to the library's O.KeybindingsTab for the
+-- General page's Keybindings tab (options-ui-§20), whose rows follow it, and tests/test_keybinds.lua
+-- checks Bindings.xml against it through Kit.assertBindingsXml.
+NS.BINDINGS = {
+    { command = NS.TOGGLE_COMMAND, tooltip = L["Shows or hides the group popup."] },
+}
 
 -- ---------------------------------------------------------------------------
 -- The stand-down, frame half (slash-commands-§7)

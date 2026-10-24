@@ -343,8 +343,10 @@ end
 
 test("launcher: Bindings.xml carries one CLICK binding on the toggle button, no default, no Lua",
 function()
-    -- red under: a `default=` key (it collides with somebody's binding), a Lua body, a second
-    -- header, a renamed button (every player's key silently unbinds), or the file in the TOC.
+    -- red under: a `default=` key (it collides with somebody's binding), a Lua body, the shared
+    -- ADDONS category or a header= (a blank spacer row in the addon's own section, standard
+    -- v2.88.0), a renamed button (every player's key silently unbinds), or the file in the TOC.
+    -- tests/test_keybinds.lua runs the kit's Kit.assertBindingsXml over the same file.
     local body = readFile("Bindings.xml")
     assertTrue(body ~= nil, "Bindings.xml is at the addon root, where the client reads it")
     local tags = {}
@@ -352,8 +354,9 @@ function()
     assertEqual(#tags, 1, "exactly one <Binding>")
     local tag = tags[1]
     assertEqual(tag:match('name="([^"]*)"'), BINDING, "a CLICK binding on the named button")
-    assertEqual(tag:match('header="([^"]*)"'), "WHATGROUP", "the header is the folder, upper-cased")
-    assertEqual(tag:match('category="([^"]*)"'), "ADDONS", "filed under AddOns")
+    assertEqual(tag:match('category="([^"]*)"'), "BINDING_HEADER_WHATGROUP",
+        "filed in the addon's own category, titled with the brand")
+    assertNil(tag:find("header=", 1, true), "no header=: the category is the section title")
     assertNil(tag:find("default", 1, true), "no default key")
     assertTrue(tag:match("/>$") ~= nil, "self-closing: no Lua body")
     assertNil(body:find("</Binding>", 1, true), "and no element anywhere carries a body")
@@ -380,14 +383,18 @@ function()
 end)
 
 test("launcher: the binding labels are the brand and the localized action", function()
-    -- red under: a header typed as the TOC Title rather than the brand, or a name not through L.
+    -- red under: a category title typed as the TOC Title or as a retyped literal rather than the
+    -- brand constant, or a name not through L.
     -- A sandboxed global write lands in the real _G (tests/_kit/loader.lua's makeEnv), so the
     -- header is cleared first to prove THIS load wrote it. The name's rawset reaches the mock,
     -- which is the sandbox's own `_G`.
     rawset(_G, "BINDING_HEADER_WHATGROUP", nil)
     local NS, mock = launched()
     assertEqual(rawget(_G, "BINDING_HEADER_WHATGROUP"), "Ka0s WhatGroup",
-        "the header is the brand (launcher-§1)")
+        "the category title is the brand (launcher-§1)")
+    assertEqual(rawget(_G, "BINDING_HEADER_WHATGROUP"), NS.BRAND_NAME, "read from the brand constant")
+    assertTrue(readFile("modules/Frame.lua"):find("BINDING_HEADER_WHATGROUP = NS.BRAND_NAME", 1, true) ~= nil,
+        "the assignment reads NS.BRAND_NAME, never a retyped literal")
     assertEqual(rawget(mock, "BINDING_NAME_" .. BINDING), NS.L["Toggle group popup"],
         "the action's label comes through the locale")
     assertEqual(NS.L["Toggle group popup"], "Toggle group popup")

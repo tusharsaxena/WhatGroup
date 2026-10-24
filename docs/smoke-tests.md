@@ -16,11 +16,11 @@ number out of use rather than handing it to a new one.
 |---|---|---|
 | INSTALL-1 – INSTALL-5 | [Install](#install) | Cold load, `/reload`, the GameMenu Logout taint check, patch day |
 | SLASH-1 – SLASH-12 | [Slash commands](#slash-commands) | Help, alias, the schema CLI, reset verbs, `show` with nothing captured |
-| PANEL-1 – PANEL-20 | [Settings panel](#settings-panel) | Landing page, the General tab strip, widgets, Defaults, the frame rows, raw-key trap, the pooled strip, the folder name on the Options descriptor |
+| PANEL-1 – PANEL-22 | [Settings panel](#settings-panel) | Landing page, the General tab strip, widgets, Defaults, the frame rows, raw-key trap, the pooled strip, the folder name on the Options descriptor, the item 020 layout and wording |
 | PROFILE-1 – PROFILE-14 | [Profiles](#profiles) | The Profiles page, `/wg profile`, persistence, what a switch leaves alone, the page in combat |
 | STATE-1 – STATE-8 | [Enable and disable](#enable-and-disable) | The stand-down, refusals while disabled, the way back, the chat-link callback |
-| COMBAT-1 – COMBAT-12 | [Combat](#combat) | Reset popup and Settings registration in combat, Close and ESC in combat, the visibility gate on combat edges |
-| POPUP-1 – POPUP-9 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome, the Role row at the minimum height |
+| COMBAT-1 – COMBAT-14 | [Combat](#combat) | Reset popup and Settings registration in combat, Close and ESC in combat, the visibility gate on combat edges, a soft-hidden popup's mouse-dead controls and its residual |
+| POPUP-1 – POPUP-10 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome, the Role row at the minimum height, the popup's layering, the body-mouse probe |
 | TEST-1 – TEST-12 | [Test mode](#test-mode) | The sample popup, its checkbox and verb, every way it ends, the sample role |
 | TELE-1 – TELE-6 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker |
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
@@ -110,23 +110,25 @@ number out of use rather than handing it to a new one.
   a **Slash Commands** heading and one row per command, each `/wg <verb> — <description>` with a
   single space either side of the dash. The scrollbar is visible, grayed when the content fits.
   Result: pass (owner-marked 2026-10-10)
-- **PANEL-2. General page layout.** Click **General** in the sidebar → a tab strip reading
-  **Master controls | Chat | Popup**, left to right, with **Master controls** selected and drawn as
-  the disabled (current) tab; a two-column grid under it and no group headings; **Defaults** in
-  the top-right corner; hovering any widget shows its tooltip. **Master controls** reads, in order,
-  *Enable WhatGroup | General visibility*, *Master scale | Master alpha*, *Lock frame | Debug
-  console*, *Minimap button | Test mode*, then the **Reset position | Reset all settings** buttons.
-  **Chat**: a **Timing** heading over *Notification Delay* alone, a **Text** heading over *Print to
-  Chat* alone, then *Instance | Type*, *Leader | Playstyle*, *Details link | Teleport spell*,
-  *Role* alone, then the **Test** button. **Popup**: a **Behavior** heading over *Open Automatically* alone, then a
-  **Layout** heading over *Width | Height*. Each tab swaps the content rather than scrolling;
-  clicking the current tab does nothing; the **Test** button shows on Chat only and the reset pair
-  on Master controls only. Result: pass (owner-marked 2026-10-10)
-- **PANEL-3. Widget and CLI round-trip.** **Popup** → untick *Open Automatically*; **Chat** →
-  slide *Notification Delay* to 3.0s; close Settings. `/wg get frame.autoShow` → `false`;
-  `/wg get notify.delay` → `3.0s`. Reopen the Popup tab, then `/wg set frame.autoShow on` with it
+- **PANEL-2. General page layout (SM-WG-LY).** Click **General** in the sidebar → a tab strip
+  reading **Master controls | Notifications | Keybindings**, left to right, with **Master controls**
+  selected and drawn as the disabled (current) tab; a two-column grid under it and no group
+  headings; **Defaults** in the top-right corner; hovering any widget shows its tooltip. **Master
+  controls** reads, in order, *Enable WhatGroup | General visibility*, *Master scale | Master
+  opacity*, *Lock frame | Debug console*, *Minimap button | Test mode*, then the **Reset position |
+  Reset all settings** buttons. **Notifications**: a **Timing** heading over *Delay after joining*
+  alone; a **Chat summary** heading over *Print to chat* alone, then *Instance | Type*, *Leader |
+  Role*, *Playstyle | Teleport spell*, *Details link* alone; a **Popup window** heading over *Open on
+  join* alone, then *Width | Height*; then the **Test notification** button. No **Chat**, **Popup**,
+  **Text**, **Behavior** or **Layout** label is left anywhere. Each tab swaps the content rather
+  than scrolling; clicking the current tab does nothing; the **Test notification** button shows on
+  Notifications only and the reset pair on Master controls only. Result: not run (re-written for
+  item 020, WG-LY; the 2026-10-10 pass was of the old Master controls | Chat | Popup layout)
+- **PANEL-3. Widget and CLI round-trip.** **Notifications** → untick *Open on join*, then
+  slide *Delay after joining* to 3.0s; close Settings. `/wg get frame.autoShow` → `false`;
+  `/wg get notify.delay` → `3.0s`. Reopen the Notifications tab, then `/wg set frame.autoShow on` with it
   open → the checkbox ticks in place, without a rebuild. Restore both. Result: pass (owner-marked 2026-10-10)
-- **PANEL-4. A slider commits on release.** Drag *Notification Delay* slowly and watch the value
+- **PANEL-4. A slider commits on release.** Drag *Delay after joining* slowly and watch the value
   → the stored value changes when you release, not on every frame of the drag. Reopen the page: it
   kept what you released on. Result: pass (owner-marked 2026-10-10)
 - **PANEL-5. Defaults button.** Open **General** for the first time this session → the
@@ -134,10 +136,10 @@ number out of use rather than handing it to a new one.
   stone Blizzard button means it was built before a UI skin hooked AceGUI). Change several
   settings, click **Defaults**, then **Yes** → every changed widget snaps back, `/wg list` shows
   defaults, and chat prints `[WG] all settings reset to defaults`. Result: pass (owner-marked 2026-10-10)
-- **PANEL-6. Test button.** **Chat** tab → **Test** → the same chat summary and popup as
+- **PANEL-6. Test notification button.** **Notifications** tab → **Test notification** → the same chat summary and popup as
   `/wg test notify` (POPUP-1); the button runs `WhatGroup:RunTest()`. Result: pass (owner-marked 2026-10-10)
 - **PANEL-7. Popup size defaults and live resize.** On a profile that never touched them, the
-  **Popup** tab reads **Width** `420 px` and **Height** `280 px`. `/wg test notify`, leave the popup
+  **Notifications** tab reads **Width** `420 px` and **Height** `280 px`. `/wg test notify`, leave the popup
   open, drag **Width** to 600 and release, then **Height** to 340 → the open popup resizes on
   release, its rows and teleport button stay anchored to its corners, and the Close button stays
   12px off the bottom edge. Result: pass (owner-marked 2026-10-10)
@@ -183,11 +185,29 @@ number out of use rather than handing it to a new one.
   → no Lua error on load or on open, and the landing page, every **General** tab and the
   **Profiles** page render exactly as before. The console shows no `[Cfg] help art:` line: no list
   in this addon carries help, so the library never asks for the art (LibKa0s#42, CA-WG-NM). Result: pass (owner-marked 2026-10-10)
+- **PANEL-21. The item 020 wording, and nothing lost (SM-WG-LY).** Note `/wg list` first. Then on
+  **General**: hover **Defaults** → the same words as **Reset all settings**' tooltip (a reset of
+  this profile, pointing at Profiles → Reset Profile), then `Key bindings are not changed.`
+  Master controls: *General visibility* ends `Here, that is the group info popup.`, *Master scale*
+  ends `Scales the group info popup; not changed in combat, applied on the next open.`, *Master
+  opacity* ends `Opacity of the group info popup.`, *Lock frame* ends `Stops the group info popup
+  being dragged by its title bar.`, and *Test mode* opens with the library's own sentence and ends
+  `Untick Lock frame first if you want to move it.` Notifications: *Delay after joining* opens
+  `Applies to both the chat summary and the popup.`; *Print to chat* ends `The popup always shows
+  every line; these choose the chat summary only.`; every line toggle says `chat summary`, never
+  `chat notification`; *Width* and *Height* end `Tick Test mode on General > Master controls to
+  see the popup while you size it.`; **Test notification**'s tooltip names `/wg test notify` and
+  Test mode. Now `/reload` and `/wg list` again → the same paths, in the same sections, with the same
+  values as before the change: no setting lost, no key moved, no default changed. Result: not run
+- **PANEL-22. The landing page's command words (SM-WG-LY).** `/wg config` → the landing list reads
+  `/wg show — Show the group info popup again`, `/wg config — Open the Ka0s WhatGroup settings`
+  and `/wg resetall — Reset this profile to defaults`; `/wg help` prints the same three lines. The
+  verbs themselves act as before. Result: not run
 
 ## Profiles
 
 Setup: on the Profiles page create `Alt` (creating a profile switches to it) and set its
-**Popup** width to 600; create `My Main` (with the space); then choose `Default` again.
+**Notifications** → *Width* to 600; create `My Main` (with the space); then choose `Default` again.
 
 - **PROFILE-1. The Profiles page.** Settings → AddOns → **Ka0s WhatGroup** → **Profiles** → it is
   the last subcategory, below **General**; it has no **Defaults** button; its body is Ace's
@@ -196,12 +216,12 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   **Delete a Profile**. **Existing Profiles** also offers this character's, realm's and class's
   profile names beside `Default`, as Ace always does. Result: pass (owner-marked 2026-10-10)
 - **PROFILE-2. A switch on the page.** With `/wg debug on` and the popup open (`/wg test notify`),
-  choose `Alt` on the Profiles page → the popup resizes to 600 wide, **General** → **Popup** reads
+  choose `Alt` on the Profiles page → the popup resizes to 600 wide, **General** → **Notifications** reads
   600, and the console shows one `[Profile] switched to 'Alt'` line and no `[Set]` line. Result: pass (owner-marked 2026-10-10)
 - **PROFILE-3. `/wg profile` lists.** `/wg profile` → a green `Profiles` header with no trailing
   colon, one indented row per profile sorted ignoring case (`Alt`, `Default`, `My Main`), the
   current one suffixed `(current)`, then `/wg profile <name> switches profile`. Result: pass (owner-marked 2026-10-10)
-- **PROFILE-4. `/wg profile <name>` switches.** With `/wg debug on` and **General** → **Popup**
+- **PROFILE-4. `/wg profile <name>` switches.** With `/wg debug on` and **General** → **Notifications**
   open, `/wg profile Default` → `Switched to profile 'Default'.`; the open page re-reads its
   widgets at once (width 420); the Profiles page names `Default` as current; the console shows one
   `[Profile] switched to 'Default'` line and nothing from the verb itself. Result: pass (owner-marked 2026-10-10)
@@ -260,13 +280,13 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   `/wg profile` and a bare `/wg` → each answers normally and none is refused. `/wg help` prints
   the refusal line once, unindented, straight under its header, as a note on the index: the
   header, that line, then all fifteen rows. No other command here prints it. Result: pass (owner-marked 2026-10-10)
-- **STATE-4. The Test button while disabled.** Still disabled, **Chat** tab → **Test** → it
+- **STATE-4. The Test notification button while disabled.** Still disabled, **Notifications** tab → **Test notification** → it
   previews as usual; it is the panel route that replaced `/wg test notify`'s old master-switch
   bypass. Result: pass (owner-marked 2026-10-10)
 - **STATE-5. A typo while disabled.** Still disabled, `/wg shwo` → `unknown command 'shwo'`, then
   the help index with the refusal line under its header (as in STATE-3); never the refusal line
   alone. Result: pass (owner-marked 2026-10-10)
-- **STATE-6. The way back.** Still disabled, **Popup** → drag *Width* to 600, then `/wg enable` and
+- **STATE-6. The way back.** Still disabled, **Notifications** → drag *Width* to 600, then `/wg enable` and
   `/wg test notify` → it acts at once with no reload, and the popup opens 600 wide, the width you
   set while off. `/wg reset frame.width`. Result: pass (owner-marked 2026-10-10)
 - **STATE-7. The chat-link callback comes back without taint (critical).** `/wg disable`,
@@ -305,8 +325,8 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   1.5 apply. `/wg reset frame.width` and `/wg set scale 1`. Result: pass (owner-marked 2026-10-10)
 - **COMBAT-6. Close works in combat.** `/wg test notify`, pull a dummy, press **Close** → the popup
   goes at once, with no error and no chat line. Drop combat → it stays gone. Until combat ends the
-  frame is invisible but present (alpha 0), so its title bar still drags; that is known and
-  accepted. Result: pass (owner-marked 2026-10-10)
+  frame is invisible but present (alpha 0); COMBAT-13 checks its controls are mouse-dead.
+  Result: pass (owner-marked 2026-10-10)
 - **COMBAT-7. ESC works in combat (critical).** `/wg test notify`, pull a dummy, press **ESC** →
   the popup closes at once, the game menu does **not** open, and nothing in BugGrabber names
   WhatGroup (no `ADDON_ACTION_BLOCKED` on `WhatGroupFrame:Hide()`). Press **ESC** again in combat →
@@ -334,6 +354,18 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   `/wg test notify` → no error and no popup; chat prints the join summary (POPUP-1's nine
   lines), then one more line, `Popup deferred until combat ends.` Drop combat → the popup opens
   now, with that capture. Result: pass (owner-marked 2026-10-10)
+- **COMBAT-13. A soft-hidden popup's controls are mouse-dead (SM-WG-ZS).** `/wg test notify`, pull
+  a dummy, press **Close** → the popup goes. Still in combat, drag where its title bar was → nothing
+  moves; click where its Close button was → nothing happens and no error. Clicks there do **not**
+  reach what is underneath: the popup body and the 24px teleport button still catch clicks while
+  soft-hidden, which is the documented residual (`docs/ARCHITECTURE.md`'s register; POPUP-10 is the
+  probe that could lift it for the body). Drop combat → the owed Hide lands and clicks there reach
+  the world again. Repeat with *General visibility* = *Only out of combat* and the popup up when the
+  pull starts → the same. No `ADDON_ACTION_BLOCKED` at any step. Result: not run
+- **COMBAT-14. A reopen in combat gives the controls back (SM-WG-ZS).** After COMBAT-13's
+  **Close**, still in combat, press the Show window key (or the launcher's Show window) → the popup
+  is back and its **Close** button works on the first click. Drop combat → the title bar drags
+  again. Result: not run
 
 ## The popup
 
@@ -376,6 +408,19 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   all seven rows (Group to Teleport, Role fifth) fit above the Close button with nothing clipped or
   overlapping, and the teleport button sits beside the `Teleport:` label. `/wg reset frame.height`
   → the popup is 280 tall again. Result: pass (owner, 2026-10-02)
+- **POPUP-10. The popup's layering, and the body-mouse probe (SM-WG-ZS).** Out of combat,
+  `/wg test notify`, then click the popup's empty body over a unit or the world → the click stays
+  on the popup (the body keeps the mouse); the title bar still drags it and **Close** still closes
+  it. Open Settings → **Ka0s WhatGroup** → General, tick *Test mode* → the popup shows over the
+  Settings panel and stays over it while you drag the Width slider. Open the debug console
+  (`/wg debug`) where it overlaps the popup and click the console → the console comes to the
+  front. **Probe (WHA-Z01's condition):** with the popup up, pull a dummy and, in combat, run
+  `/run WhatGroupFrame:EnableMouse(false) print(WhatGroupFrame:IsMouseEnabled())`. Record whether
+  the call is refused (an `ADDON_ACTION_BLOCKED` / *Interface action failed* in BugGrabber, and
+  `true` printed) or not (`false` printed, no error). Drop combat and run
+  `/run WhatGroupFrame:EnableMouse(true)` to put the body back. Not refused → the soft hide may take
+  the body too (a follow-up change); refused → the residual stands. This is a probe: record what
+  it showed, never mark it passed. Result: not run
 
 ## Test mode
 
@@ -389,8 +434,8 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **TEST-4. The verb.** With the panel open, `/wg test` → the box ticks and the sample opens;
   `/wg test` again → it unticks and closes. `/wg test on` twice leaves it on; `/wg test off` turns
   it off; `/wg test sideways` prints a three-line usage. Result: pass (owner-marked 2026-10-10)
-- **TEST-5. It overrides the gates.** *General visibility* → *Never* and **Popup** → *Open
-  Automatically* off, then tick *Test mode* → the popup opens anyway. Untick and restore both.
+- **TEST-5. It overrides the gates.** *General visibility* → *Never* and **Notifications** → *Open
+  on join* off, then tick *Test mode* → the popup opens anyway. Untick and restore both.
   Result: pass (owner-marked 2026-10-10)
 - **TEST-6. Close and ESC end it.** Tick it, press **Close** → the box unticks. Tick it, press
   **ESC** → the same. Result: pass (owner-marked 2026-10-10)
@@ -479,7 +524,7 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   leader set you to healer after the join → the popup shows `Healer` (reopen it with `/wg show`
   if it opened before the leader's change). Before any assignment, record what it showed (the
   application's role, or `Tank / Healer`). Result: pass (owner, 2026-10-02)
-- **LFG-7. The chat row's toggle.** **Chat** → *Role* off, then repeat LFG-5 or `/wg test notify`
+- **LFG-7. The chat row's toggle.** **Notifications** → *Role* off, then repeat LFG-5 or `/wg test notify`
   → the chat summary has no `Role:` line and the popup still shows the role. Turn it back on.
   Result: pass (owner, 2026-10-02)
 - **LFG-8. Where the client keeps the role.** With an application pending (after the invite,
@@ -540,6 +585,25 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **LAUNCH-16. The key in combat.** In combat, press the key → the popup opens or closes exactly as
   the launcher menu's Show window does in combat, with no `ADDON_ACTION_BLOCKED` and no taint line
   in the error frame or `/wg debug`. Result: pass (owner-marked 2026-10-23)
+- **LAUNCH-17. The binding's own section (SM-WG-KB1).** Esc → Options → Keybindings → a section
+  titled `Ka0s WhatGroup` (no longer under AddOns, which LAUNCH-14 above walked), holding
+  `Toggle group popup` and nothing else, with no blank spacer row above or inside it. A key bound
+  before this change is still bound. Result: not run
+- **LAUNCH-18. The Keybindings tab, both ways (SM-WG-KB2).** `/wg` → General → the strip ends in
+  **Keybindings**, after Notifications; it lists `Toggle group popup` with one key button and Clear
+  (SM-WG-RV3). Bind a key on the button → Options → Keybindings shows it on the same action, and the
+  bound key toggles the popup; bind a second key there → reopen the tab and the button reads `<first
+  key> +1`, and hovering it shows a tooltip naming both keys and saying the other was set on Options →
+  Keybindings. Clear → both keys are gone, here and there. Tick **Character Specific Keybindings** in
+  Options → Keybindings, then repeat both directions: the tab's line under the rows reads `Saved for:
+  this character only` and the keys follow the character set; untick it (Blizzard's own confirm) and it
+  reads `Saved for: all characters`. General's Defaults and **Reset all settings** leave the keys alone.
+  Result: not run (rewritten 2026-10-24 for the one key button, WG-RV3)
+- **LAUNCH-19. The key, Escape and combat on the tab (SM-WG-KB3).** The key bound on the tab toggles the
+  popup, as LAUNCH-14's does. Click the key button so it reads `Press a key...`, press Escape → the
+  capture cancels and the Settings window stays open. In combat, click the key button or Clear → nothing
+  is bound or cleared and the line reads `Key bindings can be changed after combat.` Result: not run
+  (rewritten 2026-10-24 for the one key button, WG-RV3)
 
 ## Debug console and diagnostics
 
@@ -779,7 +843,11 @@ headless stand-in: `tests/wow_mock.lua` answers enUS for every string the captur
 
 ## Pending sign-off
 
-None. On 2026-10-10 the owner marked every check in this file as passed, recorded on its
+COMBAT-13, COMBAT-14 and POPUP-10 (item 030, 2026-10-24) are not run yet; LAUNCH-17 (SM-WG-KB1) is
+not run yet; LAUNCH-18 (SM-WG-KB2, SM-WG-RV3) and LAUNCH-19 (SM-WG-KB3) were rewritten on 2026-10-24
+for the one key button and Clear per row and are not run yet; POPUP-10's probe records
+an observation and is never marked passed. On 2026-10-10 the owner
+marked every check in this file as passed, recorded on its
 `Result:` line as `pass (owner-marked 2026-10-10)`; a check that already carried a dated owner pass
 keeps it. A check added or rewritten after that date is listed here until its `Result:` line records
 a pass.

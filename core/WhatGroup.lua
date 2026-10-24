@@ -1274,7 +1274,7 @@ end
 -- host verbs, and the LibKa0s-Slash-1.0 descriptor that owns the dispatcher, the
 -- help renderer, the value parser and the list/get/set/reset schema verbs. What
 -- stays here is the one thing two callers share — `/wg test notify` and the
--- settings panel's Test button both need this body, and neither should go
+-- settings panel's Test notification button both need this body, and neither should go
 -- through the other's entry point.
 
 -- The sample capture: a fresh table on every call, so no caller hands another one it then mutates.
@@ -1316,7 +1316,7 @@ function WhatGroup:SampleInfo()
     }
 end
 
--- Public method so the Settings panel's Test button can invoke the
+-- Public method so the Settings panel's Test notification button can invoke the
 -- same code path as /wg test notify without going through the slash dispatch.
 -- One-shot: the full notify + popup flow runs once ON THE SAMPLE, which is passed to both halves
 -- and never written to pendingInfo, so a real capture the player is holding is what `/wg show`, the
@@ -1324,7 +1324,7 @@ end
 -- one-shot preview that ends when the popup is closed. Its ShowFrame ends test mode if it is on,
 -- so the two never overlap.
 --
--- STOOD DOWN, IT IS THE CHAT PREVIEW ONLY. The panel's Test button still reaches here with the
+-- STOOD DOWN, IT IS THE CHAT PREVIEW ONLY. The panel's Test notification button still reaches here with the
 -- addon off, and a popup built then would add the secure teleport button and the UISpecialFrames
 -- proxy to a disabled addon's session, be withheld by the gate, and come back unasked on the
 -- re-enable (WG-R-04). So no frame is built, shown or withheld.

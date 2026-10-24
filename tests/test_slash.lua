@@ -637,3 +637,24 @@ test("slash: `perf` is reserved here but not registered (LIBKA0S-15)", function(
         assertFalse(c[1] == "perf", "no perf row while the Perf major is declined")
     end
 end)
+
+-- The landing list's words for the popup, the settings and the reset (item 020, WHA-L13 / L16):
+-- the landing page is a settings page, so it uses the noun every tooltip uses and makes the same
+-- claim about the reset as the header Defaults button.
+test("slash: show, config and resetall describe the popup, the settings and the profile reset", function()
+    local NS = T.newAddon()
+    local want = {
+        show     = "Show the group info popup again",
+        config   = "Open the Ka0s WhatGroup settings",
+        resetall = "Reset this profile to defaults",
+    }
+    local seen = 0
+    for _, c in ipairs(NS.addon.COMMANDS) do
+        if want[c[1]] then
+            T.assertEqual(c[2], want[c[1]], c[1])
+            T.assertEqual(rawget(NS.L, want[c[1]]), want[c[1]], c[1] .. "'s locale key")
+            seen = seen + 1
+        end
+    end
+    T.assertEqual(seen, 3)
+end)

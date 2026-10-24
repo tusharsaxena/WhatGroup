@@ -1,4 +1,4 @@
 <Bindings>
-	<!-- The Show window key (launcher-§6): clicks the plain, hidden WhatGroupTogglePopup button that modules/Frame.lua creates at load, which runs WhatGroup:ToggleFrame, the handler the launcher menu's Show window entry runs. Its two labels are set there. No default key: the player picks one under Key Bindings, AddOns. The button name is permanent; renaming it unbinds every player's key. -->
-	<Binding name="CLICK WhatGroupTogglePopup:LeftButton" header="WHATGROUP" category="ADDONS"/>
+	<!-- The Show window key (launcher-§6): clicks the plain, hidden WhatGroupTogglePopup button that modules/Frame.lua creates at load, which runs WhatGroup:ToggleFrame, the handler the launcher menu's Show window entry runs. Its labels and NS.BINDINGS are set there. Every binding names this addon's own category, BINDING_HEADER_WHATGROUP, which the client titles with that global (the brand), and none carries a header attribute, which would draw as a blank spacer row inside the category. No default key: the player picks one under Options, Keybindings, Ka0s WhatGroup, or on the General page's Keybindings tab. The button name is permanent; renaming it unbinds every player's key. -->
+	<Binding name="CLICK WhatGroupTogglePopup:LeftButton" category="BINDING_HEADER_WHATGROUP"/>
 </Bindings>

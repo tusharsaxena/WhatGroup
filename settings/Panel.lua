@@ -32,7 +32,7 @@ end
 -- ---------------------------------------------------------------------------
 --
 -- The library's InlineButtonPair lays TWO buttons across one Flow row at BUTTON_PAIR_REL (0.492)
--- each. This addon has exactly one such button — "Test", under the Chat tab — and it is a
+-- each. This addon has exactly one such button — "Test notification", under the Notifications tab — and it is a
 -- fixed 160px left-aligned control, which that maker cannot express: passing a single spec renders
 -- it at half the panel width. Declining is the smaller change (issue #9,
 -- LIBKA0S-09 (issue #9)); converging would be a visible resize of the only button on the page.
@@ -178,6 +178,21 @@ local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{
         -- settings end test mode in the same sessionOnly sweep that closes the console.
         testMode     = false,
     },
+    -- What the composed words mean HERE (compose minor 9, options-ui-§15, XC-04): one sentence per
+    -- leaf, appended after the canonical tooltip by the composer, which stays the only writer of
+    -- that text. Every frame row acts on the one window this addon has, so each note names it. The
+    -- leaf is the CANONICAL one, `alpha`, though the row reads Master opacity. Test mode's note is
+    -- what the host override at this file's old TEST_MODE_TOOLTIP said, moved here, plus the Lock
+    -- frame caveat: a locked popup cannot be dragged into place.
+    notes            = {
+        visibility = "Here, that is the group info popup.",
+        scale      = "Scales the group info popup; not changed in combat, applied on the next open.",
+        alpha      = "Opacity of the group info popup.",
+        locked     = "Stops the group info popup being dragged by its title bar.",
+        testMode   = "Here, it shows the group info popup with sample group info, until you untick "
+                  .. "this, close the popup, or combat starts. Untick Lock frame first if you want "
+                  .. "to move it.",
+    },
     onResetPosition  = function() WhatGroup:ResetFramePosition() end,
     -- The SAME body the header Defaults button parks below, and the same one `/wg resetall`
     -- reaches: options-ui-§12 puts all three behind one implementation, and this addon's is
@@ -218,16 +233,13 @@ local MASTER_HOOKS = {
     alpha      = function() WhatGroup:ApplyFrameAlpha() end,
 }
 
--- The composer's Test mode tooltip is generic; this one says what the mode shows here.
-local TEST_MODE_TOOLTIP = "Show the popup with sample group info, so you can drag it into place "
-    .. "without joining a group. It stays up until you untick this, close the popup, or combat starts."
-
+-- No tooltip is stamped here: what this addon adds to the composed words goes through `notes` in
+-- the declaration above, so the canonical sentence always leads (options-ui-§15, XC-04).
 for _, row in ipairs(MASTER_ROWS) do
     -- One section for the whole block: `/wg list` groups by section, and the whole composed block is
     -- one subject however they are stored.
     row.section  = "general"
     row.onChange = MASTER_HOOKS[row.path]
-    if row.path == "state.testMode" then row.tooltip = TEST_MODE_TOOLTIP end
 end
 
 -- HEAD OF THE ARRAY, because RenderTabbedSchema partitions by `group` in DECLARATION order and
@@ -252,19 +264,20 @@ NS.SchemaRuntime.AddRows(MASTER_ROWS, 1)
 -- last row of the NAMED group, so each button belongs to one tab and never appears under another
 -- tab's rows.
 --
--- The Test button follows the tab its group ended up on. It was keyed to "General", and General is
--- the Master controls tab now: `enabled` became one of options-ui-§15's canonical rows and
--- `notify.delay` moved to Chat, which is where this button's own tooltip already said it belonged
--- -- previewing the chat-output toggles. It is NOT folded into the Master controls button pair: a
--- 160px left-aligned action is not one of that block's two resets.
+-- The Test notification button follows the tab its group ended up on. It was keyed to "General",
+-- then to "Chat"; it closes Notifications now (item 020, WHA-L01), the one tab that holds every row
+-- it previews -- the delay, the chat summary's lines and the popup's auto-open and size. It is NOT
+-- folded into the Master controls button pair or the composer's `leadButton`: a 160px left-aligned
+-- action is not one of that block's two resets, and a chat preview there would sit away from every
+-- row it previews. Named for what it runs, so it cannot be mistaken for Test mode (XC-29).
 local AFTER_GROUP = {
     -- Full-width action button, below the grid and on a fresh line.
-    ["Chat"] = function(ctx)
+    ["Notifications"] = function(ctx)
         Helpers.InlineButton(ctx, {
-            text    = "Test",
-            tooltip = "Inject synthetic group info and run the full notification + popup flow. "
-                   .. "Useful for previewing changes to the chat-output toggles without joining a "
-                   .. "real group.",
+            text    = "Test notification",
+            tooltip = "Run the join notification once with sample group info: the chat summary, "
+                   .. "then the popup. Same as /wg test notify. For a popup that stays up while you "
+                   .. "adjust it, use Test mode on General > Master controls.",
             onClick = function()
                 if WhatGroup.RunTest then WhatGroup:RunTest() end
             end,
@@ -300,11 +313,17 @@ end
 -- NS.DebugLog:ConsoleCheckbox() get/set, reached now through settings/Schema.lua's SESSION table
 -- rather than through a hook. Two controls over one thing is what this pass exists to remove.
 
+-- General's RenderTabbedSchema opts: the library's Keybindings tab, last (options-ui-§20).
+local GENERAL_OPTS = { tabs = { Helpers.KeybindingsTab({ bindings = NS.BINDINGS }) } }
+
 local function buildGeneralPage(parentCategory)
     local ctx = Helpers.CreatePanel("WhatGroupGeneralPanel", "General", {
         pageKey         = "general",
         defaultsButton  = true,
-        defaultsTooltip = "Reset every WhatGroup setting to its default. Asks for confirmation.",
+        -- The header Defaults IS the global reset (options-ui-§12), so it carries Reset all
+        -- settings' own words, read from the descriptor by the library (U-04), then the keys tail:
+        -- the Keybindings tab beside it is the client's store, which no reset reaches (§20).
+        defaultsTooltip = Helpers.ResetAllTooltip(Helpers.KEYBINDS_UNCHANGED),
     })
 
     -- Parked, not wired: the button itself does not exist until the panel's first OnShow. The
@@ -318,12 +337,18 @@ local function buildGeneralPage(parentCategory)
     Helpers.SetRenderer(ctx, function(c)
         Helpers.ClearScroll(c)
         -- TABBED (options-ui-§13): one tab per distinct `group` in settings/Schema.lua, in
-        -- declaration order -- Master controls, Chat, Popup. The call is otherwise RenderSchema's:
+        -- declaration order -- Master controls, Notifications. The call is otherwise RenderSchema's:
         -- the afterGroup table is passed through unchanged, and there is no pairWith left to pass.
         --
         -- No page banner (options-ui-§14) and none is possible: WhatGroup has no per-window
         -- settings and no active-window state, so there is no instance for a banner to name.
-        Helpers.RenderTabbedSchema(c, "general", AFTER_GROUP)
+        --
+        -- The Keybindings tab (options-ui-§20) is the one HOST tab: the library draws it from
+        -- NS.BINDINGS (modules/Frame.lua) and, with no `before`, puts it after every schema tab,
+        -- so it is the strip's last. Its rows edit the client's own binding store, never the
+        -- profile, so the page's Defaults and Reset all settings never reach a key. On a degraded
+        -- install the stub's KeybindingsTab answers nil and the strip has no such tab.
+        Helpers.RenderTabbedSchema(c, "general", AFTER_GROUP, nil, GENERAL_OPTS)
     end)
 
     local sub = _G.Settings.RegisterCanvasLayoutSubcategory(parentCategory, ctx.panel, "General")

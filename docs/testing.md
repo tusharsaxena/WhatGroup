@@ -59,8 +59,8 @@ label like **Enable WhatGroup** honest about which addon it is turning off.
 The suites, in run order: `test_harness`, `test_libka0s`,
 `test_surface_parity`, `test_mediasetup`, `test_envsetup`, `test_util`,
 `test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
-`test_capture`, `test_notify`, `test_frame`, `test_frame_visibility`, `test_frame_secure`, `test_panel`, `test_profiles`, `test_testmode`,
-`test_snapshot`, `test_diagnostics`, `test_launcher`, `test_lifecycle`,
+`test_capture`, `test_notify`, `test_frame`, `test_frame_visibility`, `test_frame_secure`, `test_frame_layers`, `test_panel`, `test_profiles`, `test_testmode`,
+`test_snapshot`, `test_diagnostics`, `test_launcher`, `test_keybinds`, `test_lifecycle`,
 `test_debuglog`, `test_library_lines`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
 `test_register`, `test_disabled`, `test_vendor_sync`. Five more run last and arrive with the
 vendored kit rather than living in `tests/`, each declared by the pair form
@@ -133,10 +133,20 @@ present by default because both are vendored and listed in the TOC; the
 degradation cases clear them through the loader's `mock` option, which is how a
 host with neither is shown not to raise.
 
+`test_keybinds` is the key binding's host half (`launcher-§6`, `options-ui-§20`): `Bindings.xml`
+through the kit's `Kit.assertBindingsXml` (the addon's own category, no `header`, no `default`, the
+labels, the brand), `NS.BINDINGS`, the General strip ending in **Keybindings**, the tab's rows, a key
+bound through `Kit.keybindThroughTab` reaching `GetBindingKey`, a `SetBinding` showing after
+`UPDATE_BINDINGS`, and the combat refusal. `tests/wow_mock.lua` installs the kit's
+`tests/_kit/mock_bindings.lua` on every build. Because every case builds its own instance, a case
+names its mock to the kit's driver through `T.useBindingMock` (`tests/run.lua`). Capture, conflict
+and sync-debounce cases are the library's and are not repeated here (testing-§8).
+
 Coverage extends past pure logic into the UI and event layers — the popup's
 field rendering and secure-teleport-button states (`test_frame`, with the master controls, the visibility gate's
 combat transition and Escape in combat in `test_frame_visibility`, and the combat reopen of a
-soft-hidden popup in `test_frame_secure`), the settings
+soft-hidden popup in `test_frame_secure`; the popup's strata, levels and soft-hide mouse rules, on the
+kit's `tests/_kit/mock_layers.lua` recorder, in `test_frame_layers`), the settings
 panel's deferred build and widget write-back (`test_panel`), the Profiles page and the
 reaction to a profile switch, copy or reset (`test_profiles`), the delayed
 join-notify pipeline (`test_notify`), and the event/hook wiring
@@ -420,7 +430,7 @@ contradicts.
 | `lint` | `luacheck .` | **yes** | **yes** — must be `pass` |
 | `tests` | `lua tests/run.lua` | **yes** | **yes** — must be `pass` |
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** — must be `pass`; a `skip` is *not evaluated* |
-| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (lizard over the kit's sighted shadow, `-L 1500`, with function-count parity; kit revision 41) | no — recorded only | **yes** — `pass` plus zero functions above CCN 15, `blindFiles` 0 and `crashedFiles` 0 (a lizard run that crashes or hits the bound is a fail, never a measurement) |
+| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (lizard over the kit's sighted shadow, `-L 1500`, with function-count parity; kit revision 42) | no — recorded only | **yes** — `pass` plus zero functions above CCN 15, `blindFiles` 0 and `crashedFiles` 0 (a lizard run that crashes or hits the bound is a fail, never a measurement) |
 
 **`perf` and `complexity` never fail a run and never block a commit.** They are measured, recorded
 and diffed — a threshold that fails a run teaches everyone to reach for `--no-verify`, after which

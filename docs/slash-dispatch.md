@@ -35,12 +35,12 @@ Every command is one row in a single ordered list:
 local COMMANDS = {
     {"help",     L["List available commands"],
         function() Sl:PrintHelp() end},
-    {"show",     L["Show the last group info dialog"],
+    {"show",     L["Show the group info popup again"],
         function() runShow() end},
     ...
     {"reset",    L["Reset one setting to its default — `/wg reset <path>`"],
         function(rest) runReset(rest) end},
-    {"resetall", L["Reset every setting to defaults"],
+    {"resetall", L["Reset this profile to defaults"],
         function() runResetAll() end},
     {"profile",  L["List profiles, or switch to one: profile <name>"],
         function(rest) Sl:CliProfile(rest) end},
@@ -67,7 +67,7 @@ local runShow, runTest, runConfig, runDebug, runReset, runResetAll, runEnabled
 ```
 [WG] v1.6.0 — slash commands (/whatgroup is an alias for /wg)
   /wg help — List available commands
-  /wg show — Show the last group info dialog
+  /wg show — Show the group info popup again
 ```
 
 - Cyan `[WG]` chat prefix on every line, from `NS.PREFIX` via the shared printer.
@@ -86,7 +86,7 @@ Library verbs delegate to the instance; host verbs are the file-local functions 
 | `/wg` (no args) | the `config` row → `runConfig` (host) | The library's dispatcher runs the host's `config` verb, so a bare `/wg` opens the Settings panel on its landing page, exactly as `/wg config` does (slash-commands-§4). Whitespace-only input counts as bare. A host with no `config` row would get the help index instead. |
 | `/wg help` | `Sl:PrintHelp` (library) | Print the header + every command row. |
 | `/wg show` | `runShow` (host), behind the disabled gate | **Refused while `enabled` is false**, on one line naming `/wg enable`. Otherwise: open the popup if `pendingInfo` is set, ending test mode first if it is on. Otherwise print a hint pointing at `/wg test`. |
-| `/wg test` / `/wg test on\|off` / `/wg test notify` | `runTest(rest)` (host), behind the disabled gate | **Refused while `enabled` is false**, in all three forms; the panel's Test button is the surviving preview route. Otherwise: **Test mode.** Bare `/wg test` toggles the popup's test mode and `/wg test on\|off` sets it, by writing the `state.testMode` session row through `Helpers.Set`, the setter the Master controls **Test mode** checkbox uses. So the box follows, and a start in combat is refused by `startTestMode` with one gray line, `cannot start test mode during combat` (options-ui-§15). (The checkbox itself is refused in combat by the library's lock before this setter runs.) `/wg test notify` is the one-shot check: `WhatGroup:RunTest()` previews a synthetic group (Mythic+ Windrunner Spire) through `ShowNotification(sample)` + `ShowFrame(sample)` once, ending test mode if it is on. It never writes `pendingInfo`; the popup holds the sample as a one-shot preview that ends when it is closed ([frame.md → One-shot preview](./frame.md#one-shot-preview)). The panel's Test button runs the same method, and with the addon disabled it prints the chat preview only and builds no popup. Any other word prints a three-line usage. |
+| `/wg test` / `/wg test on\|off` / `/wg test notify` | `runTest(rest)` (host), behind the disabled gate | **Refused while `enabled` is false**, in all three forms; the panel's Test notification button is the surviving preview route. Otherwise: **Test mode.** Bare `/wg test` toggles the popup's test mode and `/wg test on\|off` sets it, by writing the `state.testMode` session row through `Helpers.Set`, the setter the Master controls **Test mode** checkbox uses. So the box follows, and a start in combat is refused by `startTestMode` with one gray line, `cannot start test mode during combat` (options-ui-§15). (The checkbox itself is refused in combat by the library's lock before this setter runs.) `/wg test notify` is the one-shot check: `WhatGroup:RunTest()` previews a synthetic group (Mythic+ Windrunner Spire) through `ShowNotification(sample)` + `ShowFrame(sample)` once, ending test mode if it is on. It never writes `pendingInfo`; the popup holds the sample as a one-shot preview that ends when it is closed ([frame.md → One-shot preview](./frame.md#one-shot-preview)). The panel's Test notification button runs the same method, and with the addon disabled it prints the chat preview only and builds no popup. Any other word prints a three-line usage. |
 | `/wg config` | `runConfig` → `WhatGroup:OpenSettings` (host) → `Helpers.OpenOptionsPanel` (library) | Calls the idempotent `Settings.Register()` fallback, then hands off. The body sits on the addon rather than in a file-local because the launcher's **left click** opens the panel through the same one (launcher-§2, standard v2.67.0); its right click reaches it only as the fallback on a client with no `MenuUtil`. The combat refusal and the sidebar unfold both live inside `OpenOptionsPanel`, not in this dispatcher, so *every* caller is refused — the verb, a `/run` script, a future internal caller (options-ui-§2 / WG-25). Under `InCombatLockdown()` it prints the canonical gray notice *"cannot open settings during combat — Blizzard's category-switch is protected"* and returns; no defer-replay. Otherwise it opens the addon category and expands the subcategory tree so General — whose first tab is **Master controls** — is one click away. |
 | `/wg enable` / `/wg disable` | `runEnabled(on)` (host) | The reserved pair (slash-commands-§2). **Aliases**, not a second switch: both write the `enabled` row — the Master controls *Enable WhatGroup* checkbox's own stored path — through the same `Helpers.Set`, so the row's `onChange` (the off-flip capture wipe) runs whichever surface the player used and the `[Set]` trace logs once. They hold no state of their own. The ack is the CLI's own `key = value` line, re-read from the store rather than echoed, and it is printed only for a write that landed: a refusal from the seam prints the seam's own words instead. `/wg set enabled true` is the same write by its long name. On a library-absent load there is no `enabled` row, and each verb prints `/wg enable is unavailable: the LibKa0s library did not load.` (or `/wg disable …`) and writes nothing — see *When the library is absent*. |
 | `/wg version` | `Sl:CliVersion` (library) | Print `[WG] v<version>` on its own line (slash-commands-§3 / WG-29), through the host's `version` seam. |
@@ -99,7 +99,7 @@ Library verbs delegate to the instance; host verbs are the file-local functions 
 | `/wg debug` / `/wg debug on\|off` | `runDebug` (host) | Bare `/wg debug` **toggles the on-screen debug console window** (`NS.DebugLog:Toggle()`), state untouched; `/wg debug on\|off` sets the session-only `NS.State.debug` flag through the single `NS.DebugLog:SetEnabled` seam (color-coded chat ack + `[Debug] logging enabled/disabled` console line). The FLAG is off on every login, never persisted, and **not** a schema row (WG-12), so there's no `/wg set debug`. The **Debug console** checkbox on the Master controls tab is *not* a second toggle for it — it is a `sessionOnly` schema row on the path `state.debugConsole` that shows/hides the console **window** only, routed to `NS.DebugLog`'s own get/set by `settings/Schema.lua`'s `SESSION` table so it never reaches `db.profile`. Debug output (`NS.Debug(tag, …)`) renders in the console, not chat — see [debug-content.md](./debug-content.md). `runDebug` tests `diagnostics` first (next row); any other word prints a three-line usage. |
 | `/wg diagnostics` / `/wg debug diagnostics` | `NS.DebugLog:RunDiagnostics` (library), sections from `modules/Diagnostics.lua` (host) | The diagnostics report (`debug-logging-§14`), appended to the debug console after whatever it already holds; when logging is off the run first turns it on for the session through `NS.DebugLog:SetEnabled(true)`, and it never turns it off. The console's orange Diagnostics link runs the same function. The two forms are the only ones: `runDebug` tests `diagnostics` first, and `/wg debug diag` is an unknown word that prints the three-line usage. On the library's live list, so it runs while the addon is disabled. One localized chat line gives the line count and points at **Copy**. What the report prints: [debug.md](./debug.md). |
 
-`Helpers.RestoreAllDefaults` deliberately **overrides** the library member of the same name (`settings/OptionsSetup.lua:317-333`, [LIBKA0S-08](https://github.com/tusharsaxena/WhatGroup/issues/10)): the library's is row-by-row over every row, with no profile reset and no confirmation. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched.
+`Helpers.RestoreAllDefaults` deliberately **overrides** the library member of the same name (`settings/OptionsSetup.lua:331-347`, [LIBKA0S-08](https://github.com/tusharsaxena/WhatGroup/issues/10)): the library's is row-by-row over every row, with no profile reset and no confirmation. The library's per-page `RestoreDefaults(pageKey, ctx)` is a different verb with a different arity and is untouched.
 
 ## The dispatcher survives the disabled state, and so does every reserved verb
 
@@ -188,7 +188,7 @@ sibling case fails any other `is disabled` literal in `core/` or `settings/`.
 **`/wg test notify` changed behavior with this.** It used to bypass the master switch deliberately,
 so a preview still ran with the addon disabled, and `tests/test_lifecycle.lua` pinned that. `test`
 is a feature verb by the amended rule, so the verb now refuses. The preview itself is not lost: the
-**Test** button on the settings panel's Chat tab runs the same `WhatGroup:RunTest()` body, and it is
+**Test notification** button on the settings panel's Notifications tab runs the same `WhatGroup:RunTest()` body, and it is
 a panel control rather than a slash verb, so `slash-commands-§2` does not reach it — and a player
 standing in the panel with the addon off is looking at the *Enable WhatGroup* checkbox from where
 they clicked.
@@ -223,16 +223,16 @@ Plain, never `NS.L`: the library resolves overrides with `rawget`, but a metatab
 
 `/wg` is registered unconditionally, so something has to answer it. If `LibKa0s-Slash-1.0` is missing, `settings/Slash.lua` installs a small stand-in `Sl`: the host verbs never went to the library and keep working, dispatch and a plain help index still render, a bare `/wg` still runs the `config` row as the library's dispatcher does, and every schema verb (`list`, `get`, `set`, and `/wg reset <path>`) prints one honest line naming the missing library — `NS.LIBKA0S_MISSING` plus *"so the settings CLI is unavailable."* `/wg resetall` is host-owned and never delegated to `CliResetAll`, so it still confirms and wipes; it prints that line only when `Helpers.RestoreAllDefaults` itself is missing. `/wg profile` routes to the stand-in's `CliProfile`, which prints `/wg profile is unavailable: the LibKa0s library did not load.` and switches nothing; the stand-in also carries `ProfileSwitch`, the same way, because the live instance has both and the surface-parity case compares them by name. Nothing in that branch re-implements a row formatter, the `key = value` shape or the parser (slash-commands-§1).
 
-## Why `/wg test notify` and the Test button share `WhatGroup:RunTest()`
+## Why `/wg test notify` and the Test notification button share `WhatGroup:RunTest()`
 
 `WhatGroup:RunTest()` is a public method on the addon table — anything with a handle on `WhatGroup` can invoke it. The local `runTest(rest)` behind the COMMANDS row calls it for the `notify` sub-word.
 
-This split exists because the Settings panel's Test button (rendered via `Helpers.InlineButton` from the `AFTER_GROUP` table in `settings/Panel.lua`) needs to invoke the same code path without going through slash dispatch:
+This split exists because the Settings panel's Test notification button (rendered via `Helpers.InlineButton` from the `AFTER_GROUP` table in `settings/Panel.lua`) needs to invoke the same code path without going through slash dispatch:
 
 ```lua
 Helpers.InlineButton(ctx, {
-    text    = "Test",
-    tooltip = "Inject synthetic group info and run the full notification + popup flow. …",
+    text    = "Test notification",
+    tooltip = "Run the join notification once with sample group info: …",
     onClick = function() if WhatGroup.RunTest then WhatGroup:RunTest() end end,
 })
 ```

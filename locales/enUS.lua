@@ -105,10 +105,10 @@ L["all settings reset to defaults"] = "all settings reset to defaults"
 -- overriding the library's HELP_HEADER through a descriptor `L` — which is a
 -- decision for a translator to take, not a string this file can hold.
 L["List available commands"]  = "List available commands"
-L["Show the last group info dialog"] = "Show the last group info dialog"
+L["Show the group info popup again"] = "Show the group info popup again"
 L["Toggle test mode (sample group info on the popup) — `/wg test on|off`; `/wg test notify` runs the join notice + popup once"] =
     "Toggle test mode (sample group info on the popup) — `/wg test on|off`; `/wg test notify` runs the join notice + popup once"
-L["Open the Ka0s WhatGroup Settings panel"] = "Open the Ka0s WhatGroup Settings panel"
+L["Open the Ka0s WhatGroup settings"] = "Open the Ka0s WhatGroup settings"
 L["Enable the addon"]         = "Enable the addon"
 L["Disable the addon"]        = "Disable the addon"
 L["Print the addon version"]  = "Print the addon version"
@@ -119,7 +119,7 @@ L["Set a setting — `/wg set <path> <value>` (try /wg list)"] =
     "Set a setting — `/wg set <path> <value>` (try /wg list)"
 L["Reset one setting to its default — `/wg reset <path>`"] =
     "Reset one setting to its default — `/wg reset <path>`"
-L["Reset every setting to defaults"] = "Reset every setting to defaults"
+L["Reset this profile to defaults"] = "Reset this profile to defaults"
 L["List profiles, or switch to one: profile <name>"] =
     "List profiles, or switch to one: profile <name>"
 L["Open/close the debug window — `/wg debug on|off` toggles logging"] =
@@ -139,9 +139,12 @@ L["Group info no longer available — captures clear on group-leave or |cffFFFF0
     "Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."
 L["Popup deferred until combat ends."] = "Popup deferred until combat ends."
 
--- The Show window key binding (modules/Frame.lua, launcher-§6): the action's label in the client's
--- Key Bindings -> AddOns list. The header beside it is the brand, which is not translated.
+-- The Show window key binding (modules/Frame.lua, launcher-§6): the action's label on Options ->
+-- Keybindings, in this addon's own section, and on the General page's Keybindings tab
+-- (options-ui-§20), plus that tab row's tooltip (NS.BINDINGS). The section title is the brand,
+-- which is not translated.
 L["Toggle group popup"] = "Toggle group popup"
+L["Shows or hides the group popup."] = "Shows or hides the group popup."
 
 -- The perf-hold refusal (slash-commands-§7, *Which refusal, by hold*). The collection's wording,
 -- verbatim, trailing period and all; it names no command because the capture ends by itself.
