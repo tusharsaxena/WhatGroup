@@ -30,3 +30,30 @@ Gates (all through `ka0s-bounded`):
 - luacheck 0 warnings / 0 errors in 59 files.
 - No authored `.lua` over 1500 lines (largest: `modules/Frame.lua`, 1427).
 - Smoke owed: none for this item. The console's toplevel raise is the library's smoke (SM-LK list).
+
+## Re-vendor after the tag moved (M3)
+
+Item WG-RV2. LK-95 moved the local annotated tag `v1.77.0` to carry the M3 settings-layout surface.
+Both payloads were copied whole again from the tag (`git archive v1.77.0 LibKa0s testkit tools`),
+then pruned with the tag's own `tools/prune-icons.lua`.
+
+- **Tag:** old commit `78240f7` (the WG-RV copy), new commit
+  `afae2f75cb7ff61c57156d9a3d8a6b2b9f4c5e10` (tag object `b2b8ee25c5f9fa26db146254bf786b366dec986b`).
+- **Moved:** one library file, `OptionsCompose.lua`, compose minor 8 to 11 (9: MasterControls
+  `notes`, `resetPositionTooltip`, `lockIsPreview` and the frameless packing; 10: the group composers'
+  `tooltips`; 11: `O.ResetAllTooltip(tail)`). No other library file and no kit file changed, so the
+  kit revision stays 42 and the XML still lists 41 files.
+- **Declaration:** `LibKa0s icons: close, copy, clear.` is kept as is. The prune kept 4 files and
+  removed 5,836, so the README's icon credit is unchanged.
+- **Contract blocker:** the surface-parity test went red on `ResetAllTooltip`. The Options
+  degradation stub in `settings/OptionsSetup.lua` now answers it with an inert empty string.
+- **Provenance:** the CLAUDE.md line stays at v1.77.0 and records no sha or kit revision, so nothing
+  rolls.
+- **Adopted here:** none. WG-LY adopts the layout surface.
+- **Standard:** no drift. Between WG-RV and WS-95 the standard only added options-ui-§21 and edited
+  §7 and §12 to §16 in place. No section was renumbered or retired.
+
+Gates (through `ka0s-bounded`): after the copy, 956 passed / 1 failed (stub parity) / 1 skipped.
+After the stub fix, 957 passed / 0 failed / 1 skipped, with `test_vendor_sync` green against the
+moved tag. luacheck 0 warnings / 0 errors in 62 files. No authored `.lua` over 1500 lines (largest
+`modules/Frame.lua`, 1472).

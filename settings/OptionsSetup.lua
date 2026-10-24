@@ -156,7 +156,10 @@ if not lib then
     H.KeybindRows          = function() return nil end
     H.KEYBINDS_UNCHANGED   = ""
     H.StrataTooltip        = function() return "" end
-    H.SetRenderer          = function() end
+    -- OptionsCompose minor 11's ResetAllTooltip (the v1.77.0 tag moved, LK-95): the General page
+    -- header's Reset all tooltip. No page renders here, so it answers an empty string, as above.
+    H.ResetAllTooltip      = function() return "" end
+    H.SetRenderer         = function() end
     H.RegisterOptionsPage  = function() end
     H.RefreshAllPanels     = function() end
     H.RefreshPanel         = function() end
