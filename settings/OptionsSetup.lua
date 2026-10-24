@@ -146,6 +146,16 @@ if not lib then
     H.NavRail              = function() end
     -- Drawer, new at LibKa0s v1.73.0 (OptionsDrawer minor 1): no call site here, so inert for the shape reason.
     H.Drawer               = function() end
+    -- LibKa0s v1.77.0's four instance members: OptionsKeybinds minor 2's KeybindingsTab, KeybindRows
+    -- and KEYBINDS_UNCHANGED, and OptionsCompose minor 8's StrataTooltip. The library's "What a
+    -- consumer owes" list for v1.77.0 names them, and tests/test_surface_parity.lua holds the stub to
+    -- the live surface. No panel renders on this path, so no tab or row is drawn: KeybindingsTab
+    -- answers nil (no tab entry), KeybindRows nil (the library's own degraded answer), and the two
+    -- strings are empty rather than a host copy of the library's wording (anti-patterns #47).
+    H.KeybindingsTab       = function() return nil end
+    H.KeybindRows          = function() return nil end
+    H.KEYBINDS_UNCHANGED   = ""
+    H.StrataTooltip        = function() return "" end
     H.SetRenderer          = function() end
     H.RegisterOptionsPage  = function() end
     H.RefreshAllPanels     = function() end

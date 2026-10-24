@@ -77,6 +77,9 @@ local LIBKA0S = {
     "libs/LibKa0s/OptionsNav.lua",
     -- New in LibKa0s v1.73.0: the slide-out drawer (OptionsDrawer minor 1, O.Drawer). Nothing here adopts it.
     "libs/LibKa0s/OptionsDrawer.lua",
+    -- New in LibKa0s v1.77.0: the settings-panel Keybindings tab (OptionsKeybinds minor 3,
+    -- O.KeybindingsTab / O.KeybindRows). The twelfth Options file, last in the XML.
+    "libs/LibKa0s/OptionsKeybinds.lua",
     "libs/LibKa0s/Perf.lua",
     -- New in LibKa0s v1.66.0: Perf's capture and its command surface peeled to two files of their
     -- own (PerfSampler minor 1, PerfCommands minor 1). Perf is declined here; the client loads
@@ -84,8 +87,8 @@ local LIBKA0S = {
     "libs/LibKa0s/PerfSampler.lua",
     "libs/LibKa0s/PerfCommands.lua",
     "libs/LibKa0s/PerfPanel.lua",
-    -- New in LibKa0s v1.75.0: the new major LibKa0s-Sim-1.0 (as of v1.76.0, Sim minor 2,
-    -- SimTimeline minor 3, SimPanel minor 5). Nothing here adopts it.
+    -- New in LibKa0s v1.75.0: the new major LibKa0s-Sim-1.0 (as of v1.77.0, Sim minor 2,
+    -- SimTimeline minor 3, SimPanel minor 6). Nothing here adopts it.
     "libs/LibKa0s/Sim.lua",
     "libs/LibKa0s/SimTimeline.lua",
     "libs/LibKa0s/SimPanel.lua",

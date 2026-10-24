@@ -420,7 +420,7 @@ contradicts.
 | `lint` | `luacheck .` | **yes** | **yes** — must be `pass` |
 | `tests` | `lua tests/run.lua` | **yes** | **yes** — must be `pass` |
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** — must be `pass`; a `skip` is *not evaluated* |
-| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (lizard over the kit's sighted shadow, `-L 1500`, with function-count parity; kit revision 41) | no — recorded only | **yes** — `pass` plus zero functions above CCN 15, `blindFiles` 0 and `crashedFiles` 0 (a lizard run that crashes or hits the bound is a fail, never a measurement) |
+| `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (lizard over the kit's sighted shadow, `-L 1500`, with function-count parity; kit revision 42) | no — recorded only | **yes** — `pass` plus zero functions above CCN 15, `blindFiles` 0 and `crashedFiles` 0 (a lizard run that crashes or hits the bound is a fail, never a measurement) |
 
 **`perf` and `complexity` never fail a run and never block a commit.** They are measured, recorded
 and diffed — a threshold that fails a run teaches everyone to reach for `--no-verify`, after which
