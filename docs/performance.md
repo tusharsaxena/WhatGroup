@@ -30,11 +30,11 @@ grep -rnE 'RegisterEvent|SetScript\("OnUpdate"|C_Timer|ScheduleRepeatingTimer|Sc
 ```
 
 The sweep returns **twenty-five lines across five files** today. Eleven of them are prose: the pattern
-names appear inside comments at `core/CoreSetup.lua:108` and `:135`, `core/WhatGroup.lua:16`, `:26`, `:45`,
+names appear inside comments at `core/CoreSetup.lua:115` and `:142`, `core/WhatGroup.lua:16`, `:26`, `:45`,
 `:118`, `:365`, `:373`, `:937` and `:1030` and `core/LifecycleSetup.lua:42`, which describe the hook
 and timer discipline rather than doing anything. Three more are the `NS.SafeRegisterEvent` seam
-itself, which registers nothing on its own account: `core/CoreSetup.lua:112`-`:113` are the
-library-absent stub and its `pcall`ed `RegisterEvent`, and `:137` binds the library's. The four
+itself, which registers nothing on its own account: `core/CoreSetup.lua:119`-`:120` are the
+library-absent stub and its `pcall`ed `RegisterEvent`, and `:144` binds the library's. The four
 `core/WhatGroup.lua:376`-`:384` rows below are its callers. The other **eleven are call sites**, and
 they are the ten rows below — the two `C_Timer.After(0, …)` hops share a row. The rows are in the order
 the grep prints them, so the two can be read side by side. A hit that maps onto neither list is the
@@ -55,11 +55,11 @@ Every call site, with the per-hit work:
 | `core/WhatGroup.lua:384` | `RegisterEvent("PLAYER_REGEN_ENABLED", "OnCombatStateChanged")` | The same handler on the other edge, running strictly *after* combat, where both directions are legal — so this is where every deferred hide lands, and where `modules/Frame.lua`'s combat-end queue is drained first (`NS.FrameDrainCombatEnd`: a deferred teleport configure, a deferred first show; two table reads and no allocation when nothing is queued, and `modules/Frame.lua` registers no event of its own): a `Close` the player pressed during the fight, which outranks the gate, or the `outOfCombat` gate's own hide. The same one gate evaluation, then at most one `Hide` **or** one `Show`, the `Show` only when a capture is still pending. Still nothing that walks or allocates. |
 | `core/WhatGroup.lua:440` | `RegisterEvent("PLAYER_REGEN_ENABLED", "OnDisabledCombatEnded")` | Registered **only** by `StandDown`, and only when the addon is disabled in combat while the popup still owes a protected `Hide` — the one registration `slash-commands-§7` lets a disabled addon keep. `OnDisabledCombatEnded` unregisters it first thing on the one fire, then finishes the stand-down. Fires at most once, strictly *after* combat. |
 | `core/WhatGroup.lua:1033` | `self:ScheduleTimer(…)` | **One-shot** AceTimer, armed once per group join, for the notify delay. Not repeating. |
-| `modules/Frame.lua:607` | `WhatGroup:ScheduleRepeatingTimer(…, 1)` | **The one repeating timer in the addon**, and the reason criterion (a) no longer holds. Armed only when the popup is **on screen** *and* the dungeon's teleport is on cooldown — the arm sits behind an `f:IsShown()` check and is re-run from the popup's `OnShow`, so it cannot exist against a hidden frame. Canceled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. Per tick: one `C_Spell.GetSpellCooldown` call, one `NS.FormatDuration` string build, and one `SetText`. It can fire during combat — the popup can be open then — so this is the addon's first in-combat repeating work, however small. |
-| `settings/OptionsSetup.lua:292`, `:300` | `C_Timer.After(0, …)` | Two **next-frame** secure-defer hops in the settings panel build. One-shot, and only ever reached from a settings-panel `OnShow`. |
+| `modules/Frame.lua:634` | `WhatGroup:ScheduleRepeatingTimer(…, 1)` | **The one repeating timer in the addon**, and the reason criterion (a) no longer holds. Armed only when the popup is **on screen** *and* the dungeon's teleport is on cooldown — the arm sits behind an `f:IsShown()` check and is re-run from the popup's `OnShow`, so it cannot exist against a hidden frame. Canceled from the popup's `OnHide`, from the top of every `ConfigureTeleportButton` run, and by the tick that sees the cooldown reach zero. Per tick: one `C_Spell.GetSpellCooldown` call, one `NS.FormatDuration` string build, and one `SetText`. It can fire during combat — the popup can be open then — so this is the addon's first in-combat repeating work, however small. |
+| `settings/OptionsSetup.lua:306`, `:314` | `C_Timer.After(0, …)` | Two **next-frame** secure-defer hops in the settings panel build. One-shot, and only ever reached from a settings-panel `OnShow`. |
 
 **Zero `OnUpdate` handlers. One repeating timer** — the cooldown countdown at
-`modules/Frame.lua:607`, added 2026-08-06. Everything else above is one-shot or self-unregistering.
+`modules/Frame.lua:634`, added 2026-08-06. Everything else above is one-shot or self-unregistering.
 Three *event* handlers are reachable inside or on the edge of a combat window: `GROUP_ROSTER_UPDATE`,
 whose body is an `IsInGroup()` and three comparisons, and the two combat-transition registrations
 sharing `OnCombatStateChanged`, whose body is one gate evaluation and then at most one `Show` on the
