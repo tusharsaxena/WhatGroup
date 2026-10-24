@@ -57,3 +57,35 @@ Gates (through `ka0s-bounded`): after the copy, 956 passed / 1 failed (stub pari
 After the stub fix, 957 passed / 0 failed / 1 skipped, with `test_vendor_sync` green against the
 moved tag. luacheck 0 warnings / 0 errors in 62 files. No authored `.lua` over 1500 lines (largest
 `modules/Frame.lua`, 1472).
+
+## Re-vendor after the tag moved again (one key button)
+
+Item WG-RV3. LK-96 moved the local annotated tag `v1.77.0` again, for the owner's follow-up to 015:
+one key button and Clear per row on the Keybindings tab. Both payloads were copied whole again from
+the tag (`git archive v1.77.0 LibKa0s testkit tools`), then pruned with the tag's own
+`tools/prune-icons.lua`.
+
+- **Tag:** old commit `afae2f75cb7ff61c57156d9a3d8a6b2b9f4c5e10` (the WG-RV2 copy), new commit
+  `2f2b2e22b4c9219cd8a4101d7e894681c7aea16e` (tag object `e9b126d961c2970e5b14d0566480f7c1d8b5e5e8`).
+- **Moved:** one library file, `OptionsKeybinds.lua`, keybinds minor 3 to 4 (one key button and
+  Clear per row; the button reads `<first key> +N` and its tooltip names every key; the strings
+  `KEY1` / `KEY2` are gone and `KEY`, `KEY_MORE`, `KEYS_ALL`, `KEYS_OTHER` are new). In the kit,
+  `bindings_xml.lua` and its README row: `Kit.keybindThroughTab(row, 2, ...)` on a one-button row
+  writes the second key through the library's model, as the client's page would. The kit revision
+  stays 42 and the XML still lists 41 files.
+- **Declaration:** `LibKa0s icons: close, copy, clear.` is kept as is. The prune kept 4 files and
+  removed 5,836, so the README's icon credit is unchanged.
+- **Contract:** no new public Options member, so the degradation stub is unchanged and the
+  surface-parity test stayed green. The one red case was the addon's own
+  `tests/test_keybinds.lua`, which pinned two slots per row; it now pins one key button and Clear,
+  and a new case pins a second key reading `<key> +1` on the button.
+- **Addon ripple:** `docs/settings-panel.md`, `docs/smoke-tests.md` (LAUNCH-18 and LAUNCH-19
+  rewritten, set back to not run and listed under Pending sign-off; SM-WG-RV3 added to LAUNCH-18),
+  the README and the `tests/loader.lua` comment describe the one key button. `Bindings.xml`,
+  `NS.BINDINGS` and the labels are untouched.
+- **Provenance:** the CLAUDE.md line stays at v1.77.0, so nothing rolls.
+
+Gates (through `ka0s-bounded`): after the copy, 964 passed / 1 failed (the addon's two-slot
+assertion) / 1 skipped. After the fix and the new case, 966 passed / 0 failed / 1 skipped, with
+`test_vendor_sync` green against the moved tag. luacheck 0 warnings / 0 errors in 62 files. No authored `.lua` over 1500 lines (largest
+`modules/Frame.lua`, 1472).

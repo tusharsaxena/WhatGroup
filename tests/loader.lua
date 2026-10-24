@@ -77,7 +77,7 @@ local LIBKA0S = {
     "libs/LibKa0s/OptionsNav.lua",
     -- New in LibKa0s v1.73.0: the slide-out drawer (OptionsDrawer minor 1, O.Drawer). Nothing here adopts it.
     "libs/LibKa0s/OptionsDrawer.lua",
-    -- New in LibKa0s v1.77.0: the settings-panel Keybindings tab (OptionsKeybinds minor 3,
+    -- New in LibKa0s v1.77.0: the settings-panel Keybindings tab (OptionsKeybinds minor 4,
     -- O.KeybindingsTab / O.KeybindRows). The twelfth Options file, last in the XML.
     "libs/LibKa0s/OptionsKeybinds.lua",
     "libs/LibKa0s/Perf.lua",

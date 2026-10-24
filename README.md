@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-965%2F965_passing-green)
+![Tests](https://img.shields.io/badge/Tests-966%2F966_passing-green)
 
 WhatGroup remembers the group you signed up for through the Group Finder tool. You get accepted, you shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who's leading, and the playstyle.
 
@@ -33,7 +33,7 @@ Joining a group through the Group Finder takes four steps.
 
 The **Notifications** tab holds the whole join flow. Under **Chat summary** you pick which lines the chat summary includes, and **Print to chat** turns it off. Under **Popup window**, **Open on join** does the same for the window, and **Width** and **Height** sit below it. The minimap button opens Settings on a left-click and a short menu on a right-click. Untick **Minimap button** on **Master controls** if you'd rather not have it.
 
-You can also bind a key to open and close the popup, **Toggle group popup**, in either of two places that show the same keys: Options → Keybindings → **Ka0s WhatGroup**, or **General → Keybindings** in this addon's settings. A key set in one shows in the other. It has no key until you pick one, and the key is saved by the game, so Defaults and Reset all settings leave it alone. A press does what the minimap menu's **Show window** does, and while WhatGroup is disabled it says so in chat instead.
+You can also bind a key to open and close the popup, **Toggle group popup**, in either of two places that show the same keys: Options → Keybindings → **Ka0s WhatGroup**, or **General → Keybindings** in this addon's settings. A key set in one shows in the other. The tab has one key button and **Clear**; when Options → Keybindings holds a second key for it, the button reads `<key> +1` and its tooltip names both. It has no key until you pick one, and the key is saved by the game, so Defaults and Reset all settings leave it alone. A press does what the minimap menu's **Show window** does, and while WhatGroup is disabled it says so in chat instead.
 
 Everything else is on the **Ka0s WhatGroup** page in Settings → AddOns, which `/wg` opens, and `/wg help` lists every command.
 

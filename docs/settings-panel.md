@@ -532,8 +532,10 @@ schema tab and draws it. Nothing in it is this addon's own code:
 
 - **One row per `NS.BINDINGS` entry** (`modules/Frame.lua`), which is `Bindings.xml` order. WhatGroup
   has one: **Toggle group popup**, the `GetBindingName` text, so the row and Options → Keybindings
-  cannot disagree. Two key slots and a Clear button, with the tooltip *Shows or hides the group
-  popup.*
+  cannot disagree. One key button and a Clear button (`OptionsKeybinds` minor 4), with the tooltip
+  *Shows or hides the group popup.* The button binds the first key and shows it; when the game's
+  Options → Keybindings page holds a second key for the action, the button reads `<key> +1` and its
+  tooltip names every key and says the others were set on that page. Clear removes every key.
 - **The client's store, both ways.** A key set here is `SetBinding` then
   `SaveBindings(GetCurrentBindingSet())`, so it lands in the account or character set the player has
   in force and shows on Options → Keybindings; a key set there shows here after `UPDATE_BINDINGS`.
@@ -547,9 +549,9 @@ schema tab and draws it. Nothing in it is this addon's own code:
   no such tab; the binding still works from Options → Keybindings.
 
 `tests/test_keybinds.lua` pins the host's half: `Bindings.xml` through `Kit.assertBindingsXml`,
-`NS.BINDINGS` and its labels, the strip ending in Keybindings, the rows, a key bound through
-`Kit.keybindThroughTab` reaching `GetBindingKey`, a `SetBinding` showing after `UPDATE_BINDINGS`, and
-the combat refusal. Capture, conflicts and the sync debounce are the library's cases (testing-§8).
+`NS.BINDINGS` and its labels, the strip ending in Keybindings, the rows (one key button and Clear
+each), a key bound through `Kit.keybindThroughTab` reaching `GetBindingKey`, a `SetBinding` showing
+after `UPDATE_BINDINGS`, a second key reading `<key> +1` on the button, and the combat refusal. Capture, conflicts and the sync debounce are the library's cases (testing-§8).
 
 ## Adding a setting
 

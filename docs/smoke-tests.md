@@ -590,17 +590,20 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   `Toggle group popup` and nothing else, with no blank spacer row above or inside it. A key bound
   before this change is still bound. Result: not run
 - **LAUNCH-18. The Keybindings tab, both ways (SM-WG-KB2).** `/wg` → General → the strip ends in
-  **Keybindings**, after Notifications; it lists `Toggle group popup` with Key 1, Key 2 and Clear. Bind a
-  key on Key 1 → Options → Keybindings shows it on the same action; bind Key 2 there → reopen the tab
-  and it shows. Tick **Character Specific Keybindings** in Options → Keybindings, then repeat both
-  directions: the tab's line under the rows reads `Saved for: this character only` and the keys
-  follow the character set; untick it (Blizzard's own confirm) and it reads
-  `Saved for: all characters`. General's Defaults and **Reset all settings** leave the keys alone.
-  Result: not run
-- **LAUNCH-19. The key, Escape and combat on the tab (SM-WG-KB3).** The key bound on the tab
-  toggles the popup, as LAUNCH-14's does. Click a slot so it reads `Press a key...`, press Escape →
-  the capture cancels and the Settings window stays open. In combat, click a slot or Clear → nothing
+  **Keybindings**, after Notifications; it lists `Toggle group popup` with one key button and Clear
+  (SM-WG-RV3). Bind a key on the button → Options → Keybindings shows it on the same action, and the
+  bound key toggles the popup; bind a second key there → reopen the tab and the button reads `<first
+  key> +1`, and hovering it shows a tooltip naming both keys and saying the other was set on Options →
+  Keybindings. Clear → both keys are gone, here and there. Tick **Character Specific Keybindings** in
+  Options → Keybindings, then repeat both directions: the tab's line under the rows reads `Saved for:
+  this character only` and the keys follow the character set; untick it (Blizzard's own confirm) and it
+  reads `Saved for: all characters`. General's Defaults and **Reset all settings** leave the keys alone.
+  Result: not run (rewritten 2026-10-24 for the one key button, WG-RV3)
+- **LAUNCH-19. The key, Escape and combat on the tab (SM-WG-KB3).** The key bound on the tab toggles the
+  popup, as LAUNCH-14's does. Click the key button so it reads `Press a key...`, press Escape → the
+  capture cancels and the Settings window stays open. In combat, click the key button or Clear → nothing
   is bound or cleared and the line reads `Key bindings can be changed after combat.` Result: not run
+  (rewritten 2026-10-24 for the one key button, WG-RV3)
 
 ## Debug console and diagnostics
 
@@ -840,7 +843,9 @@ headless stand-in: `tests/wow_mock.lua` answers enUS for every string the captur
 
 ## Pending sign-off
 
-COMBAT-13, COMBAT-14 and POPUP-10 (item 030, 2026-10-24) are not run yet; POPUP-10's probe records
+COMBAT-13, COMBAT-14 and POPUP-10 (item 030, 2026-10-24) are not run yet; LAUNCH-17 (SM-WG-KB1) is
+not run yet; LAUNCH-18 (SM-WG-KB2, SM-WG-RV3) and LAUNCH-19 (SM-WG-KB3) were rewritten on 2026-10-24
+for the one key button and Clear per row and are not run yet; POPUP-10's probe records
 an observation and is never marked passed. On 2026-10-10 the owner
 marked every check in this file as passed, recorded on its
 `Result:` line as `pass (owner-marked 2026-10-10)`; a check that already carried a dated owner pass

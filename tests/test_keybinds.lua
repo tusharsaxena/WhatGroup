@@ -151,7 +151,8 @@ function()
         local label = rows[i].label
         assertEqual(label.text or label:GetText(), rawget(mock, "BINDING_NAME_" .. b.command),
             "row " .. i .. " shows the client's label, not one of the addon's own")
-        assertEqual(#rows[i].slots, 2, "two key slots, as the client keeps")
+        assertEqual(#rows[i].slots, 1, "one key button per row (OptionsKeybinds minor 4)")
+        assertTrue(rows[i].clear ~= nil, "row " .. i .. " has its Clear button")
     end
 end)
 
@@ -177,6 +178,20 @@ test("keybinds: a key set on the client's page shows in the tab after UPDATE_BIN
     lib.__keybindEventFrame.__fire("OnEvent", "UPDATE_BINDINGS")
     mock.fireCTimers()
     assertEqual(slotText(rows[1], 1), "F7", "the tab shows the key the client's page set")
+end)
+
+test("keybinds: a second key, set on the client's page, reads '<key> +1' on the one key button",
+function()
+    -- The owner's follow-up to 015: the tab binds slot 1 only; a second key comes from Options ->
+    -- Keybindings and is counted on the button, never dropped from view.
+    local _, mock, rows = keybindRows()
+    T.keybindThroughTab(rows[1], 1, "F5")
+    local status = T.keybindThroughTab(rows[1], 2, "F6")
+    assertEqual(status, mock.KEY_BOUND, "the second key is the client's KEY_BOUND line")
+    local a, b = mock.GetBindingKey(COMMAND)
+    assertEqual(a, "F5", "slot 1 is the key the button bound")
+    assertEqual(b, "F6", "slot 2 holds the second key")
+    assertEqual(slotText(rows[1], 1), "F5 +1", "the button counts the second key")
 end)
 
 test("keybinds: in combat the tab refuses, and no binding is written or saved", function()
