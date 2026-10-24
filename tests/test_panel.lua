@@ -281,7 +281,7 @@ test("panel: bool rows render checkboxes, number rows sliders, enum rows dropdow
     assertEqual(widget(mock, "Dropdown", "General visibility").type, "Dropdown")
     assertEqual(widget(mock, "Slider", "Master scale").type, "Slider")
     selectTab(mock, "Notifications")
-    assertEqual(widget(mock, "Slider", "Delay after joining").type, "Slider")
+    assertEqual(widget(mock, "Slider", "Delay after joining (seconds)").type, "Slider")
 end)
 
 test("panel: widgets open showing the current profile value", function()
@@ -292,13 +292,13 @@ test("panel: widgets open showing the current profile value", function()
     open(mock, general)
     assertEqual(widget(mock, "CheckBox", "Enable WhatGroup"):GetValue(), false)
     selectTab(mock, "Notifications")
-    assertEqual(widget(mock, "Slider", "Delay after joining"):GetValue(), 2.5)
+    assertEqual(widget(mock, "Slider", "Delay after joining (seconds)"):GetValue(), 2.5)
 end)
 
 test("panel: the slider inherits its bounds and step from the schema row", function()
     local _, _, mock = openGeneral()
     selectTab(mock, "Notifications")
-    local s = widget(mock, "Slider", "Delay after joining")
+    local s = widget(mock, "Slider", "Delay after joining (seconds)")
     assertEqual(s.sliderMin, 0)
     assertEqual(s.sliderMax, 10)
     assertEqual(s.sliderStep, 0.5)
@@ -512,7 +512,7 @@ test("panel: releasing the slider writes through to db.profile", function()
     -- passes neither: the one number row is a notify delay, which nothing previews while dragging.
     local NS, _, mock = openGeneral()
     selectTab(mock, "Notifications")
-    local s = widget(mock, "Slider", "Delay after joining")
+    local s = widget(mock, "Slider", "Delay after joining (seconds)")
     s:Fire("OnValueChanged", 7.5)
     assertEqual(NS.addon.db.profile.notify.delay, 0, "a drag alone does not commit")
     s:Fire("OnMouseUp", 7.5)
@@ -524,7 +524,7 @@ test("panel: the slider snaps its committed value to the schema step", function(
     -- commit a value the slider could never reach by dragging.
     local NS, _, mock = openGeneral()
     selectTab(mock, "Notifications")
-    widget(mock, "Slider", "Delay after joining"):Fire("OnMouseUp", 3.3)
+    widget(mock, "Slider", "Delay after joining (seconds)"):Fire("OnMouseUp", 3.3)
     assertEqual(NS.addon.db.profile.notify.delay, 3.5, "step 0.5 from min 0")
 end)
 
@@ -583,10 +583,10 @@ test("panel: RestoreAllDefaults re-syncs every open widget once", function()
     local NS, _, mock = openGeneral()
     selectTab(mock, "Notifications")
     NS.addon.Settings.Helpers.Set("notify.delay", 9)
-    assertEqual(widget(mock, "Slider", "Delay after joining"):GetValue(), 9,
+    assertEqual(widget(mock, "Slider", "Delay after joining (seconds)"):GetValue(), 9,
         "the Notifications tab's slider followed the write")
     NS.addon.Settings.Helpers.RestoreAllDefaults()
-    assertEqual(widget(mock, "Slider", "Delay after joining"):GetValue(), 0)
+    assertEqual(widget(mock, "Slider", "Delay after joining (seconds)"):GetValue(), 0)
     -- And again on another tab, because the reset has to reach the widgets of whichever group is
     -- open, not just the one the page happened to start on.
     selectTab(mock, "Master controls")
@@ -603,7 +603,7 @@ test("panel: a throwing refresher does not abort the remaining ones", function()
     -- Inserted FIRST, so a sweep that aborted on it would never reach the widget asserted below.
     table.insert(ctx.refreshers, 1, function() error("refresher exploded") end)
     NS.addon.Settings.Helpers.Set("notify.delay", 4)
-    assertEqual(widget(mock, "Slider", "Delay after joining"):GetValue(), 4,
+    assertEqual(widget(mock, "Slider", "Delay after joining (seconds)"):GetValue(), 4,
         "later refreshers still ran")
 end)
 
@@ -852,9 +852,18 @@ end)
 test("panel: the join-flow rows are sentence case and say what they wait on (WHA-L05..L07)", function()
     local NS = T.enableAddon()
     local H = NS.addon.Settings.Helpers
-    assertEqual(H.FindSchema("notify.delay").label, "Delay after joining")
+    assertEqual(H.FindSchema("notify.delay").label, "Delay after joining (seconds)")
     assertEqual(H.FindSchema("notify.enabled").label, "Print to chat")
     assertEqual(H.FindSchema("frame.autoShow").label, "Open on join")
+end)
+
+test("panel: the delay and size sliders name their units (options-ui-§21, WG-OC3)", function()
+    -- red under: a slider label without its unit, so the reader learns it only from the value.
+    local NS = T.enableAddon()
+    local H = NS.addon.Settings.Helpers
+    assertEqual(H.FindSchema("notify.delay").label, "Delay after joining (seconds)")
+    assertEqual(H.FindSchema("frame.width").label, "Width (px)")
+    assertEqual(H.FindSchema("frame.height").label, "Height (px)")
 end)
 
 test("panel: one noun per output -- chat summary, group info popup (WHA-L06, L09, L13, L15)", function()

@@ -624,7 +624,7 @@ Total.
 - layers: the owed Hide at combat end leaves the controls ready for the next show
 - layers: no SetFrameStrata literal and no absolute SetFrameLevel in core, modules or settings
 
-### test_panel.lua (61)
+### test_panel.lua (62)
 
 - panel: OnEnable registers the parent category and the General subcategory
 - panel: the parent category is added to the AddOns list
@@ -683,6 +683,7 @@ Total.
 - panel: the landing page is drawn by the library's BuildLandingPage, logo and commands
 - panel: the Notifications tab declares the join flow in print order (WHA-L01..L04)
 - panel: the join-flow rows are sentence case and say what they wait on (WHA-L05..L07)
+- panel: the delay and size sliders name their units (options-ui-§21, WG-OC3)
 - panel: one noun per output -- chat summary, group info popup (WHA-L06, L09, L13, L15)
 - panel: the composed rows name the popup through `notes`, never a host rewrite (WHA-L11, L17)
 - panel: the Test notification button names its run and its preview (WHA-L08)
@@ -1110,7 +1111,7 @@ Total.
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_frame_layers.lua | 8 |
-| test_panel.lua | 61 |
+| test_panel.lua | 62 |
 | test_profiles.lua | 19 |
 | test_testmode.lua | 28 |
 | test_snapshot.lua | 10 |
@@ -1132,4 +1133,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **966** |
+| **Total** | **967** |

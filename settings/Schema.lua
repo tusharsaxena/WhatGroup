@@ -88,7 +88,7 @@ end
 --
 --   --- Notifications ---      the join flow: when it fires, what chat says, how the popup opens
 --   -- Timing --
---   [Delay after joining]                      solo, on its own line
+--   [Delay after joining (seconds)]            solo, on its own line
 --   -- Chat summary --
 --   [Print to chat]                            master toggle, on its own line
 --   [Instance]            | [Type]
@@ -97,7 +97,7 @@ end
 --   [Details link]
 --   -- Popup window --
 --   [Open on join]                             on its own line
---   [Width]               | [Height]
+--   [Width (px)]          | [Height (px)]
 --     <afterGroup: Test notification button (160 px, left-aligned)>
 --
 --   --- Keybindings ---        the library's host tab, last (settings/Panel.lua)
@@ -158,7 +158,7 @@ local function add(t) Schema[#Schema + 1] = t end
 add{
     section = "notify",  group = "Notifications",  subgroup = "Timing",
     path    = "notify.delay",  type = "number",
-    label   = "Delay after joining",
+    label   = "Delay after joining (seconds)",
     tooltip = "Applies to both the chat summary and the popup. Seconds to wait after joining before printing the notification and showing the popup. Lets the zone-in settle.",
     default = C.notify.delay,
     min = 0, max = 10, step = 0.5, fmt = "%.1fs",
@@ -284,7 +284,7 @@ add{
 add{
     section = "frame",  group = "Notifications",  subgroup = "Popup window",
     path    = "frame.width",  type = "number",
-    label   = "Width",
+    label   = "Width (px)",
     tooltip = "Width of the group info popup, in pixels. Tick Test mode on General > Master controls to see the popup while you size it.",
     default = C.frame.width,
     min = 320, max = 700, step = 10, fmt = "%d px",
@@ -294,7 +294,7 @@ add{
 add{
     section = "frame",  group = "Notifications",  subgroup = "Popup window",
     path    = "frame.height",  type = "number",
-    label   = "Height",
+    label   = "Height (px)",
     tooltip = "Height of the group info popup, in pixels. Tick Test mode on General > Master controls to see the popup while you size it.",
     default = C.frame.height,
     min = 200, max = 520, step = 10, fmt = "%d px",
