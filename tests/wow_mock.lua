@@ -91,6 +91,11 @@ local base = dofile("tests/_kit/mock_base.lua")
 local Secrets = {}
 dofile("tests/_kit/secrets.lua")(Secrets)
 
+-- The kit's binding model (kit revision 42): the client's key-binding API that the General page's
+-- Keybindings tab (options-ui-§20) drives. The installer keeps no state of its own, so it is read
+-- once and run on every fresh mock, at the end of build() below.
+local installBindings = dofile("tests/_kit/mock_bindings.lua")
+
 local function build()
     local M = base()
 
@@ -793,6 +798,12 @@ local function build()
     -- click. Installed on every build because the live client has it; tests/mock_menu.lua says why
     -- and how a case takes it away.
     mock.menu = dofile("tests/mock_menu.lua")(mock)
+
+    -- GetBindingKey / GetBindingAction / SetBinding / SaveBindings (refusing in combat, through the
+    -- InCombatLockdown above) / GetCurrentBindingSet / GetBindingName / GetBindingText. Installed
+    -- last and on every build, as the live client has them; only names still unset are filled.
+    -- tests/test_keybinds.lua is its reader.
+    installBindings(mock)
 
     return mock
 end

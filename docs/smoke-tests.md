@@ -540,6 +540,22 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **LAUNCH-16. The key in combat.** In combat, press the key → the popup opens or closes exactly as
   the launcher menu's Show window does in combat, with no `ADDON_ACTION_BLOCKED` and no taint line
   in the error frame or `/wg debug`. Result: pass (owner-marked 2026-10-23)
+- **LAUNCH-17. The binding's own section (SM-WG-KB1).** Esc → Options → Keybindings → a section
+  titled `Ka0s WhatGroup` (no longer under AddOns, which LAUNCH-14 above walked), holding
+  `Toggle group popup` and nothing else, with no blank spacer row above or inside it. A key bound
+  before this change is still bound. Result: not run
+- **LAUNCH-18. The Keybindings tab, both ways (SM-WG-KB2).** `/wg` → General → the strip ends in
+  **Keybindings**, after Popup; it lists `Toggle group popup` with Key 1, Key 2 and Clear. Bind a
+  key on Key 1 → Options → Keybindings shows it on the same action; bind Key 2 there → reopen the tab
+  and it shows. Tick **Character Specific Keybindings** in Options → Keybindings, then repeat both
+  directions: the tab's line under the rows reads `Saved for: this character only` and the keys
+  follow the character set; untick it (Blizzard's own confirm) and it reads
+  `Saved for: all characters`. General's Defaults and **Reset all settings** leave the keys alone.
+  Result: not run
+- **LAUNCH-19. The key, Escape and combat on the tab (SM-WG-KB3).** The key bound on the tab
+  toggles the popup, as LAUNCH-14's does. Click a slot so it reads `Press a key...`, press Escape →
+  the capture cancels and the Settings window stays open. In combat, click a slot or Clear → nothing
+  is bound or cleared and the line reads `Key bindings can be changed after combat.` Result: not run
 
 ## Debug console and diagnostics
 

@@ -1328,11 +1328,22 @@ do
     button:Hide()
 end
 
--- The two labels the client's Key Bindings -> AddOns list shows: the header is the brand
--- (launcher-§1), the action comes through the locale. The second name holds a space and a colon,
--- hence rawset.
-BINDING_HEADER_WHATGROUP = "Ka0s WhatGroup"
+-- The two labels Options -> Keybindings shows, assigned at file scope because the client reads them
+-- at registration. Bindings.xml files the binding in this addon's own category,
+-- BINDING_HEADER_WHATGROUP, and the client titles the section with that global, so it is the brand
+-- (launcher-§1), read from NS.BRAND_NAME (core/CoreSetup.lua) rather than retyped. The action comes
+-- through the locale, with no article and no brand because the section carries the brand
+-- (launcher-§6); its name holds a space and a colon, hence rawset.
+BINDING_HEADER_WHATGROUP = NS.BRAND_NAME
 rawset(_G, "BINDING_NAME_" .. NS.TOGGLE_COMMAND, L["Toggle group popup"])
+
+-- THE ONE BINDINGS TABLE (launcher-§6): every Bindings.xml command, in that file's order, the Show
+-- window binding first. settings/Panel.lua hands it to the library's O.KeybindingsTab for the
+-- General page's Keybindings tab (options-ui-§20), whose rows follow it, and tests/test_keybinds.lua
+-- checks Bindings.xml against it through Kit.assertBindingsXml.
+NS.BINDINGS = {
+    { command = NS.TOGGLE_COMMAND, tooltip = L["Shows or hides the group popup."] },
+}
 
 -- ---------------------------------------------------------------------------
 -- The stand-down, frame half (slash-commands-§7)

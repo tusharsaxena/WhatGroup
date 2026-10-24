@@ -300,6 +300,9 @@ end
 -- NS.DebugLog:ConsoleCheckbox() get/set, reached now through settings/Schema.lua's SESSION table
 -- rather than through a hook. Two controls over one thing is what this pass exists to remove.
 
+-- General's RenderTabbedSchema opts: the library's Keybindings tab, last (options-ui-§20).
+local GENERAL_OPTS = { tabs = { Helpers.KeybindingsTab({ bindings = NS.BINDINGS }) } }
+
 local function buildGeneralPage(parentCategory)
     local ctx = Helpers.CreatePanel("WhatGroupGeneralPanel", "General", {
         pageKey         = "general",
@@ -323,7 +326,13 @@ local function buildGeneralPage(parentCategory)
         --
         -- No page banner (options-ui-§14) and none is possible: WhatGroup has no per-window
         -- settings and no active-window state, so there is no instance for a banner to name.
-        Helpers.RenderTabbedSchema(c, "general", AFTER_GROUP)
+        --
+        -- The Keybindings tab (options-ui-§20) is the one HOST tab: the library draws it from
+        -- NS.BINDINGS (modules/Frame.lua) and, with no `before`, puts it after every schema tab,
+        -- so it is the strip's last. Its rows edit the client's own binding store, never the
+        -- profile, so the page's Defaults and Reset all settings never reach a key. On a degraded
+        -- install the stub's KeybindingsTab answers nil and the strip has no such tab.
+        Helpers.RenderTabbedSchema(c, "general", AFTER_GROUP, nil, GENERAL_OPTS)
     end)
 
     local sub = _G.Settings.RegisterCanvasLayoutSubcategory(parentCategory, ctx.panel, "General")

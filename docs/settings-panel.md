@@ -333,7 +333,7 @@ One row per settings subcategory page (documentation-§3, options-ui-§5). WhatG
 
 | Page | Covers |
 |---|---|
-| **General** | Every setting WhatGroup has, on three tabs: **Master controls** (enable, visibility, scale, alpha, lock, debug console, minimap button, test mode, and the reset buttons), **Chat** (when the join summary fires and which lines it prints, plus the Test button) and **Popup** (whether the group-info window opens by itself, and its size). |
+| **General** | Every setting WhatGroup has, on three schema tabs and a fourth, **Keybindings**, last ([The Keybindings tab](#the-keybindings-tab)): **Master controls** (enable, visibility, scale, alpha, lock, debug console, minimap button, test mode, and the reset buttons), **Chat** (when the join summary fires and which lines it prints, plus the Test button) and **Popup** (whether the group-info window opens by itself, and its size). |
 | **Profiles** | AceDBOptions' profile controls: choose, create, copy, reset and delete a profile, and pick a per-character, per-class, per-realm or per-faction one. No schema rows and no tabs ([profiles.md](./profiles.md)) |
 
 ## The tab strip
@@ -345,6 +345,7 @@ The page is **tabbed** (`options-ui-§13`). `LibKa0s-Options-1.0`'s `RenderTabbe
 | 1 | **Master controls** | 8 | — | options-ui-§15's canonical block, composed rather than written: enable, general visibility, master scale, master alpha, lock frame, debug console, minimap button, test mode — closed by the **Reset position | Reset all settings** button pair (`afterGroup`). It is the **first** tab, and the name is the literal options-ui-§15 mandates. |
 | 2 | **Chat** | 9 | `Timing`, `Text` | When the join summary fires (`notify.delay`) and what it says: the **Print to Chat** master and the seven lines it can contain. Plus the **Test** button (`afterGroup`). |
 | 3 | **Popup** | 3 | `Behavior`, `Layout` | The group-info window: whether it opens by itself, and how big it is. |
+| 4 | **Keybindings** | — | — | The library's key editor (options-ui-§20), a host tab rather than a schema group: see [The Keybindings tab](#the-keybindings-tab). Always last. |
 
 Two tabs mix control kinds and therefore carry **subsection headings** (options-ui-§7): a slider that says *when* standing among seven checkboxes that say *what*, and a behavior toggle above two size sliders. The headings are declared by the rows (`subgroup`), never drawn by the builder, and a `subgroup` never repeats its own tab's name.
 
@@ -513,13 +514,44 @@ runs, so the row, the verb and the menu entry write one value through one seam:
 A grayed entry reads `<entry> (enable the addon first)` and calls nothing.
 
 **The Show window key binding sits beside the Show window entry** (`launcher-§6`). `Bindings.xml`
-carries one `CLICK WhatGroupTogglePopup:LeftButton` line, listed in Key Bindings → AddOns →
-**Ka0s WhatGroup** as **Toggle group popup**, with no default key. It clicks a plain hidden button
+carries one `CLICK WhatGroupTogglePopup:LeftButton` line in the addon's own category,
+`BINDING_HEADER_WHATGROUP`, with no `header` and no default key, so it is listed in Options →
+Keybindings → **Ka0s WhatGroup** as **Toggle group popup**, and on General → **Keybindings** in
+this addon's settings ([The Keybindings tab](#the-keybindings-tab)). It clicks a plain hidden button
 `modules/Frame.lua` creates at load, whose `OnClick` runs the same `WhatGroup:ToggleFrame`. A key
 cannot be grayed, so while the addon is stood down the press asks `NS.StandDownRefusal` first and
 prints one line instead: the disabled line (naming `/wg enable`) under the `disabled` hold, or
 `Not available during a performance capture.` under the `perf` hold alone. It toggles nothing and
 writes nothing.
+
+## The Keybindings tab
+
+The General page's **last** tab, labeled exactly **Keybindings** (`options-ui-§20`). It is a host
+tab, not a schema group: `settings/Panel.lua` passes
+`Helpers.KeybindingsTab({ bindings = NS.BINDINGS })` in `RenderTabbedSchema`'s `opts.tabs` with no
+`before`, so `LibKa0s-Options-1.0` (`OptionsKeybinds.lua`, LibKa0s v1.77.0) puts it after every
+schema tab and draws it. Nothing in it is this addon's own code:
+
+- **One row per `NS.BINDINGS` entry** (`modules/Frame.lua`), which is `Bindings.xml` order. WhatGroup
+  has one: **Toggle group popup**, the `GetBindingName` text, so the row and Options → Keybindings
+  cannot disagree. Two key slots and a Clear button, with the tooltip *Shows or hides the group
+  popup.*
+- **The client's store, both ways.** A key set here is `SetBinding` then
+  `SaveBindings(GetCurrentBindingSet())`, so it lands in the account or character set the player has
+  in force and shows on Options → Keybindings; a key set there shows here after `UPDATE_BINDINGS`.
+  The tab offers no account/character switch of its own: the line under the rows names where the
+  client keeps it.
+- **Resets never reach a key.** A key is not a setting this addon stores, so the page's Defaults,
+  *Reset all settings* and `/wg reset` leave it alone, and the library's intro line says so.
+- **Combat.** No key is bound, cleared or saved in combat; the outcome line reads *Key bindings can be
+  changed after combat.*
+- **Degraded install.** Without the library the stub's `KeybindingsTab` answers nil and the strip has
+  no such tab; the binding still works from Options → Keybindings.
+
+`tests/test_keybinds.lua` pins the host's half: `Bindings.xml` through `Kit.assertBindingsXml`,
+`NS.BINDINGS` and its labels, the strip ending in Keybindings, the rows, a key bound through
+`Kit.keybindThroughTab` reaching `GetBindingKey`, a `SetBinding` showing after `UPDATE_BINDINGS`, and
+the combat refusal. Capture, conflicts and the sync debounce are the library's cases (testing-§8).
 
 ## Adding a setting
 

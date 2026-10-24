@@ -802,6 +802,16 @@ Total.
 - launcher: the row still stores with no broker library at all
 - launcher: with LibKa0s absent the seam answers honestly and the store still moves
 
+### test_keybinds.lua (7)
+
+- keybinds: Bindings.xml files every binding in the addon's own category, labeled, brand-titled
+- keybinds: NS.BINDINGS is the one table, Show window first, each with a localized tooltip
+- keybinds: the General strip ENDS in Keybindings, after every schema tab
+- keybinds: the tab's rows are NS.BINDINGS in order, labeled with the BINDING_NAME_ text
+- keybinds: a key bound through the tab is the client's key (GetBindingKey), saved to the set in force
+- keybinds: a key set on the client's page shows in the tab after UPDATE_BINDINGS
+- keybinds: in combat the tab refuses, and no binding is written or saved
+
 ### test_lifecycle.lua (46)
 
 - lifecycle: the addon exposes no public global (WG-01)
@@ -1085,6 +1095,7 @@ Total.
 | test_snapshot.lua | 10 |
 | test_diagnostics.lua | 20 |
 | test_launcher.lua | 41 |
+| test_keybinds.lua | 7 |
 | test_lifecycle.lua | 46 |
 | test_debuglog.lua | 72 |
 | test_library_lines.lua | 8 |
@@ -1100,4 +1111,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **942** |
+| **Total** | **949** |

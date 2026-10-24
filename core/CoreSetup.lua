@@ -31,8 +31,15 @@ local addonName, NS = ...
 -- thing about WHY at every site and a different thing about WHAT at each one. Set OUTSIDE the
 -- branch below, because the later seams read it on both paths, and set HERE because
 -- core/CoreSetup.lua is the first of the four the TOC loads.
-NS.LIBKA0S_MISSING = "The LibKa0s library is missing from this installation of Ka0s WhatGroup " ..
-    "(expected in libs/LibKa0s)"
+-- THE BRAND NAME (launcher-§1), the one constant every brand-reading surface reads: the launcher's
+-- `label` (core/LauncherSetup.lua) and the key bindings' category title, BINDING_HEADER_WHATGROUP
+-- (modules/Frame.lua, launcher-§6), which is also the section's title on Options -> Keybindings. Set
+-- here because this is the first file of `# Core`, above both readers. Plain text, never the TOC
+-- `## Title` (which may carry color escapes), and never translated.
+NS.BRAND_NAME = "Ka0s WhatGroup"
+
+NS.LIBKA0S_MISSING = "The LibKa0s library is missing from this installation of " .. NS.BRAND_NAME ..
+    " (expected in libs/LibKa0s)"
 
 NS.Util = NS.Util or {}
 

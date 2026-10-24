@@ -105,6 +105,10 @@ _G.WHATGROUP_TEST = Kit.expose{
     -- `issecretvalue` with this and restores it with the function it returns (WG-01).
     installSecretValue = Kit.installSecretValue,
     isSecret    = Kit.isSecret,
+    -- Kit.keybindThroughTab (kit revision 42) presses its key through the ONE mock Kit.expose was
+    -- handed. This runner hands it none, because every case builds its own instance, so a case
+    -- driving the Keybindings tab names its instance's mock here first (tests/test_keybinds.lua).
+    useBindingMock = function(m) Kit.__exposedMock = m end,
 }
 
 -- The diagnostics-dump contract's consumer facts (debug-logging-§14, kit revision 27). The kit case
@@ -164,6 +168,7 @@ Kit.run{
         "test_snapshot",
         "test_diagnostics",
         "test_launcher",
+        "test_keybinds",
         "test_lifecycle",
         "test_debuglog",
         "test_library_lines",

@@ -127,7 +127,9 @@ NS.Launcher = lib:New({
     --
     -- Not the folder name either: `addonName` is the registration NAME above, the identifier
     -- LibDBIcon keys the saved position by. Two fields, two jobs.
-    label = "Ka0s WhatGroup",
+    -- Read from NS.BRAND_NAME (core/CoreSetup.lua), the one brand constant, which the key
+    -- bindings' category title (BINDING_HEADER_WHATGROUP, modules/Frame.lua) reads too.
+    label = NS.BRAND_NAME,
 
     -- A FUNCTION, not the table: see the header. The library calls it once, at Register.
     minimap = minimapStore,
