@@ -75,7 +75,7 @@ in `settings/Schema.lua`; the rest are the **Master controls** block, composed b
 `settings/Panel.lua` and spliced at the head of the array (`options-ui-§15`). Either way the schema
 owns the STRUCTURE and `NS.C` owns the VALUES (savedvariables-§2 / WG-24). The one settings page is
 **tabbed** (`options-ui-§13`): one tab per row `group`, in declaration order — **Master controls**,
-**Chat**, **Popup** — detailed in
+**Notifications** — then the library's **Keybindings** tab, detailed in
 [docs/settings-panel.md](./settings-panel.md#the-tab-strip). The table below is the inventory; this
 section carries no row counts, because a count restated in prose goes stale with the next row.
 
@@ -89,18 +89,18 @@ section carries no row counts, because a count restated in prose goes stale with
 | `state.debugConsole` | bool | Master controls — **session-only**; shows/hides the console window, never `db.profile` (WG-12) |
 | `global.minimap.shown` | bool | Master controls — **global**, stored at LibDBIcon's OWN key `db.global.minimap.hide`: the path and the row say *shown* and the stored boolean says hidden, so `Helpers.Get` / `Helpers.Set` invert and `Set` calls `NS.Launcher:SetShown` so the button follows the checkbox now rather than at the next reload (launcher-§3) |
 | `state.testMode` | bool | Master controls — **session-only**; the popup's test mode: sample group info on the popup until it is turned off, closed, asked to show the real capture, or combat starts (`modules/Frame.lua`) |
-| `notify.delay` | number | Chat — seconds to wait before notify **and** popup (`0` = instant) |
-| `notify.enabled` | bool | Chat — print the chat summary on join; the master for the seven below |
-| `notify.showInstance` | bool | Chat — line toggles |
-| `notify.showType` | bool | Chat |
-| `notify.showLeader` | bool | Chat |
-| `notify.showPlaystyle` | bool | Chat |
-| `notify.showClickLink` | bool | Chat |
-| `notify.showTeleport` | bool | Chat |
-| `notify.showRole` | bool | Chat — the Role line (WhatGroup#1); the popup's Role row is always drawn |
-| `frame.autoShow` | bool | Popup — open the popup automatically on join |
-| `frame.width` | number | Popup — popup width in pixels, clamped 320..700 (was `FRAME_WIDTH`) |
-| `frame.height` | number | Popup — popup height in pixels, clamped 200..520 (was `FRAME_HEIGHT`) |
+| `notify.delay` | number | Notifications — seconds to wait before notify **and** popup (`0` = instant) |
+| `notify.enabled` | bool | Notifications — print the chat summary on join; the master for the seven below |
+| `notify.showInstance` | bool | Notifications — line toggles |
+| `notify.showType` | bool | Notifications |
+| `notify.showLeader` | bool | Notifications |
+| `notify.showPlaystyle` | bool | Notifications |
+| `notify.showClickLink` | bool | Notifications |
+| `notify.showTeleport` | bool | Notifications |
+| `notify.showRole` | bool | Notifications — the Role line (WhatGroup#1); the popup's Role row is always drawn |
+| `frame.autoShow` | bool | Notifications — open the popup automatically on join |
+| `frame.width` | number | Notifications — popup width in pixels, clamped 320..700 (was `FRAME_WIDTH`) |
+| `frame.height` | number | Notifications — popup height in pixels, clamped 200..520 (was `FRAME_HEIGHT`) |
 
 Every path is **absolute**: there are no window-relative paths, there being no active-window state
 to be relative to. The account-wide `global` table carries `schemaVersion`, `windows` and `minimap`. **Exactly one

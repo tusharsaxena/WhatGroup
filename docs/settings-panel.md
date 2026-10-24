@@ -17,14 +17,14 @@ The **Master controls** block is the exception, and it is the library's: `Helper
 
 `/wg reset` taking a path is a **breaking change** — it used to be the confirmation-gated global wipe, which is now `/wg resetall`. A bare `/wg reset` prints a deprecation naming both replacements rather than a usage error, because the old form still parses as something. See [slash-dispatch.md](./slash-dispatch.md).
 
-The schema is settings-only — the action buttons (Reset position / Reset all settings, and the "Test" button) render through the `AFTER_GROUP` hook table in `settings/Panel.lua`, not as schema rows. See [Action buttons](#action-buttons-aftergroup).
+The schema is settings-only — the action buttons (Reset position / Reset all settings, and the "Test notification" button) render through the `AFTER_GROUP` hook table in `settings/Panel.lua`, not as schema rows. See [Action buttons](#action-buttons-aftergroup).
 
 ## Row format
 
 ```lua
 {
     section,            -- groups in /wg list output (general, frame, notify)
-    group,              -- TAB in the Settings panel ("Master controls", "Chat", "Popup")
+    group,              -- TAB in the Settings panel ("Master controls", "Notifications")
     subgroup,           -- optional SUBSECTION heading inside a tab that mixes control kinds
                         --   (options-ui-§7) — drawn whenever it changes, never suppressed
     path,               -- dotted path into db.profile (e.g. "notify.delay")
@@ -50,7 +50,7 @@ Non-setting affordances live outside the schema. `Helpers.RenderTabbedSchema(ctx
 
 - **`afterGroup`** — `{ [groupName] = function(ctx) ... end }`. Fires once per render, after the named group's last schema row is flushed, so the widget starts on a fresh line *below* the grid. Two entries now:
   - **`[Helpers.MASTER_GROUP]`** — the composer's own tail, drawing options-ui-§15's closing **button pair**: *Reset position* (this addon is not frameless) and *Reset all settings*. The group name **is** the hook key, so a hand-typed copy of it detaches the hook the moment the library renames the group — silently, because `afterGroup` fires per group and a hook that matches nothing simply never runs. The key is therefore `Helpers.MASTER_GROUP`, the constant `OptionsCompose.lua` publishes and stamps onto the rows themselves. It is added after the constructor, under an `if`, because the library-less stub carries the composer functions and none of their published data (`options-ui-§1`) — and on that path there are no Master controls rows to hook, so no entry is the right answer rather than a fallback spelling.
-  - **`["Chat"]`** — the **Test** button (`Helpers.InlineButton` → `WhatGroup:RunTest()`). It followed the tab its group ended up on: "General" is the Master controls tab now, and the button's own tooltip already said it previews the chat-output toggles. It is deliberately **not** folded into the reset pair — a 160-px left-aligned action is not one of options-ui-§15's two resets.
+  - **`["Notifications"]`** — the **Test notification** button (`Helpers.InlineButton` → `WhatGroup:RunTest()`). It followed the tab its group ended up on: "General" became the Master controls tab, then Chat and Popup merged into Notifications (item 020), the one tab that holds every row the run previews: the delay, the chat summary's lines and the popup's auto-open and size. It is named for what it runs, never a bare *Test*, so it cannot be mistaken for *Test mode* (options-ui-§21). It is deliberately **not** folded into the reset pair or the composer's `leadButton` — a 160-px left-aligned action is not one of options-ui-§15's two resets, and a chat preview on Master controls would sit away from every row it previews.
 
 There is **no `pairWith` table any more.** It carried exactly one entry — a bespoke `SessionCheckbox` drawing the Debug console beside **Enable** — and options-ui-§15 makes that console a canonical row of the Master controls block instead. The console itself is untouched: same window, same `NS.DebugLog:ConsoleCheckbox()` `get`/`set`, reached now through `settings/Schema.lua`'s `SESSION` table rather than through a hook.
 
@@ -62,9 +62,9 @@ Re-sync is push, not poll: the console can be closed with its own × or ESC (or 
 local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{ ... }
 
 local AFTER_GROUP = {
-    ["Chat"] = function(ctx)
+    ["Notifications"] = function(ctx)
         Helpers.InlineButton(ctx, {
-            text    = "Test",
+            text    = "Test notification",
             tooltip = "...",
             onClick = function() WhatGroup:RunTest() end,
         })
@@ -250,7 +250,7 @@ Idempotent (`WhatGroup._settingsRegistered` guard), and thin: it delegates to `H
 ```
 Ka0s WhatGroup        ← parent canvas-layout category — landing page (logo, notes, slash list)
 ├── General            ← subcategory — every schema widget, plus the two afterGroup blocks:
-│                         the Master controls reset pair and the Chat tab's Test button
+│                         the Master controls reset pair and the Notifications tab's Test notification button
 └── Profiles           ← subcategory — AceDBOptions' table, drawn by AceConfigDialog; no Defaults
                           button, absent without AceDBOptions / AceConfig / AceConfigDialog
 ```
@@ -333,7 +333,7 @@ One row per settings subcategory page (documentation-§3, options-ui-§5). WhatG
 
 | Page | Covers |
 |---|---|
-| **General** | Every setting WhatGroup has, on three schema tabs and a fourth, **Keybindings**, last ([The Keybindings tab](#the-keybindings-tab)): **Master controls** (enable, visibility, scale, alpha, lock, debug console, minimap button, test mode, and the reset buttons), **Chat** (when the join summary fires and which lines it prints, plus the Test button) and **Popup** (whether the group-info window opens by itself, and its size). |
+| **General** | Every setting WhatGroup has, on two schema tabs and a third, **Keybindings**, last ([The Keybindings tab](#the-keybindings-tab)): **Master controls** (enable, visibility, scale, opacity, lock, debug console, minimap button, test mode, and the reset buttons) and **Notifications** (the join flow: when it fires, which lines the chat summary prints, whether the group info popup opens by itself and its size, plus the Test notification button). |
 | **Profiles** | AceDBOptions' profile controls: choose, create, copy, reset and delete a profile, and pick a per-character, per-class, per-realm or per-faction one. No schema rows and no tabs ([profiles.md](./profiles.md)) |
 
 ## The tab strip
@@ -343,15 +343,14 @@ The page is **tabbed** (`options-ui-§13`). `LibKa0s-Options-1.0`'s `RenderTabbe
 | # | Tab | Rows | Subgroups | What it is for |
 |---|---|---|---|---|
 | 1 | **Master controls** | 8 | — | options-ui-§15's canonical block, composed rather than written: enable, general visibility, master scale, master alpha, lock frame, debug console, minimap button, test mode — closed by the **Reset position | Reset all settings** button pair (`afterGroup`). It is the **first** tab, and the name is the literal options-ui-§15 mandates. |
-| 2 | **Chat** | 9 | `Timing`, `Text` | When the join summary fires (`notify.delay`) and what it says: the **Print to Chat** master and the seven lines it can contain. Plus the **Test** button (`afterGroup`). |
-| 3 | **Popup** | 3 | `Behavior`, `Layout` | The group-info window: whether it opens by itself, and how big it is. |
-| 4 | **Keybindings** | — | — | The library's key editor (options-ui-§20), a host tab rather than a schema group: see [The Keybindings tab](#the-keybindings-tab). Always last. |
+| 2 | **Notifications** | 12 | `Timing`, `Chat summary`, `Popup window` | The whole join flow on one tab (item 020): when it fires (*Delay after joining*, which holds back both the chat summary and the popup), what the chat summary says (the **Print to chat** master and the seven lines it can contain, in print order), and whether and how big the group info popup opens. Closed by the **Test notification** button (`afterGroup`). |
+| 3 | **Keybindings** | — | — | The library's key editor (options-ui-§20), a host tab rather than a schema group: see [The Keybindings tab](#the-keybindings-tab). Always last. |
 
-Two tabs mix control kinds and therefore carry **subsection headings** (options-ui-§7): a slider that says *when* standing among seven checkboxes that say *what*, and a behavior toggle above two size sliders. The headings are declared by the rows (`subgroup`), never drawn by the builder, and a `subgroup` never repeats its own tab's name.
+Notifications mixes control kinds and therefore carries **subsection headings** (options-ui-§7): a slider that says *when* above the checkboxes that say *what*, then the popup window's toggle above its two size sliders. The headings are declared by the rows (`subgroup`), never drawn by the builder, and a `subgroup` never repeats its own tab's name.
 
 There is **no page banner** (`options-ui-§14`) and there cannot be one: WhatGroup has no per-window settings and no active-window state, so there is no instance for a banner to name. `db.global.windows` stores the popup's *position*, which is geometry, not a setting. It is `architecture-§5` named non-setting state: only a drag determines it, it has one owner (`NS.Windows`), and [ARCHITECTURE.md → Settings Schema](./ARCHITECTURE.md#settings-schema) names both of its writers, so it carries no register row.
 
-`section` is not `group`. `section` is `/wg list`'s grouping key and it did not change when the page was retabbed — `notify.delay` is edited on **Chat** and still lists under `[notify]`, because a row's tab is where it is *edited* and its path is where it is *stored*. The composed Master controls rows are stamped `section = "general"` in `settings/Panel.lua`, because the composer has no way to know a host's `/wg list` key.
+`section` is not `group`. `section` is `/wg list`'s grouping key and it did not change when the page was retabbed — `notify.delay` is edited on **Notifications** and still lists under `[notify]`, because a row's tab is where it is *edited* and its path is where it is *stored*. The composed Master controls rows are stamped `section = "general"` in `settings/Panel.lua`, because the composer has no way to know a host's `/wg list` key.
 
 ## Current schema rows
 
@@ -364,23 +363,23 @@ Rows on the **Master controls** tab are emitted by `Helpers.MasterControls` and 
 | Master controls | general | `enabled` | bool | true | startsLine, (paired) | **Master switch**, labeled *Enable WhatGroup*. When false, `OnApplyToGroup` short-circuits — no capture, no notification, no popup. `/wg test notify`, test mode and `/wg show` bypass this gate. Its off-flip `onChange` wipes any in-flight capture. |
 | Master controls | general | `visibility` | string | `"always"` | (paired) | *General visibility* — `always` / `inCombat` / `outOfCombat` / `never`. Gates every path the popup takes to the screen, in `WhatGroup:ShowFrame()`. `never` refuses before the frame is built; the combat-dependent values gate the `Show` only, or `Only in combat` would deadlock against the taint-driven lazy build. The two combat-dependent values are also re-asked on `PLAYER_REGEN_DISABLED` / `PLAYER_REGEN_ENABLED`, so the gate follows a transition taken while the popup is already open — this row's `onChange` is not its only driver. |
 | Master controls | general | `scale` | number | 1 | startsLine, (paired) | *Master scale* (0.5–2, step 0.05). `WhatGroup:ApplyFrameScale()`, **refused in combat** — scaling the parent moves the secure teleport button. |
-| Master controls | general | `alpha` | number | 1 | (paired) | *Master alpha* (0–1, step 0.05, rendered as a percentage). `WhatGroup:ApplyFrameAlpha()`, **not** refused in combat: opacity moves nothing. |
+| Master controls | general | `alpha` | number | 1 | (paired) | *Master opacity* (the stored leaf is still `alpha`; 0–1, step 0.05, rendered as a percentage). `WhatGroup:ApplyFrameAlpha()`, **not** refused in combat: opacity moves nothing. |
 | Master controls | general | `locked` | bool | false | startsLine, (paired) | *Lock frame*. Read at drag time by the title bar's `OnMouseDown`, so it takes effect on the next mouse-down with nothing to apply. |
 | Master controls | general | `state.debugConsole` | bool | false | (paired) | *Debug console*, `sessionOnly`. Shows/hides the console **window**; never `db.profile`, never the logging flag (WG-12). |
 | Master controls | general | `global.minimap.shown` | bool | true (the ROW's sense: *shown*) | startsLine, (paired) | *Minimap button*, composed from `minimapPath` (compose minor 7). The one **global** row, stored at `db.global.minimap.hide` — see [The minimap button row](#the-minimap-button-row) below. |
-| Master controls | general | `state.testMode` | bool | false | (paired) | *Test mode*, `sessionOnly`, composed from `testModePath`; the tooltip is overridden in `settings/Panel.lua`. `/wg test` drives the same row (bare toggles, `on\|off` sets). Ticked, the popup shows sample group info (`WhatGroup:SampleInfo()`) from a record of its own, never `pendingInfo`, whatever `frame.autoShow` and `visibility` say; `locked` still applies to dragging. Refused in combat: a click on the box is refused by the library's combat lock (its one gray `COMBAT_LOCKED_NOTICE` line; the row's set never runs), and `/wg test` by the host's own `startTestMode` guard (one gray line, `cannot start test mode during combat`). Ends on untick, on Close / ESC, on an explicit show (`/wg show`, `/wg test notify`, the chat link), on *Reset all settings* (the declared `default = false`), and at `PLAYER_REGEN_DISABLED` with `Test mode off — combat started`. The join popup does not end it: that capture waits. Never `db.profile`. |
-| Chat | notify | `notify.delay` | number | 0 | subgroup `Timing`, solo | Seconds (0–10, step 0.5) between joining and notifying **and** showing the popup. Default 0 = immediately; raise it to let the zone-in settle. Not one of options-ui-§15's canonical nine, so it moved off the first tab to the one named for the notification it delays. |
-| Chat | notify | `notify.enabled` | bool | true | subgroup `Text`, solo | Print the chat summary on group join. The master for the seven rows under it. |
-| Chat | notify | `notify.showInstance` | bool | true | subgroup `Text`, (paired) | Include the Instance line in chat. |
-| Chat | notify | `notify.showType` | bool | true | subgroup `Text`, (paired) | Include the Type line in chat. |
-| Chat | notify | `notify.showLeader` | bool | true | subgroup `Text`, (paired) | Include the Leader line in chat. |
-| Chat | notify | `notify.showPlaystyle` | bool | true | subgroup `Text`, (paired) | Include the Playstyle line in chat. |
-| Chat | notify | `notify.showClickLink` | bool | true | subgroup `Text`, (paired) | Include the green "[Click here to view details]" chat link. |
-| Chat | notify | `notify.showTeleport` | bool | true | subgroup `Text`, (paired) | Include a Teleport line; skipped silently when `WhatGroup:GetTeleportSpell` returns nil. |
-| Chat | notify | `notify.showRole` | bool | true | subgroup `Text`, solo (last, so the six before it keep their pairs) | Include the Role line (WhatGroup#1): the role the leader assigned, else the application's, else the roles offered; skipped when none is known. The popup's Role row is always drawn. |
-| Popup | frame | `frame.autoShow` | bool | true | subgroup `Behavior`, solo | Auto-open the popup on group join. With this off, the chat notification still prints and the user can re-open via the chat link or `/wg show`. |
-| Popup | frame | `frame.width` | number | 420 | subgroup `Layout`, (paired) | Popup width in pixels (320–700, step 10). Was `FRAME_WIDTH`, a file-local in `modules/Frame.lua`; the default is the number it replaced. |
-| Popup | frame | `frame.height` | number | 280 | subgroup `Layout`, (paired) | Popup height in pixels (200–520, step 10). Was `FRAME_HEIGHT` (260); 280 since the Role row added one 18px row, rounded up to the step. |
+| Master controls | general | `state.testMode` | bool | false | (paired) | *Test mode*, `sessionOnly`, composed from `testModePath`; its tooltip is the composer's, followed by the host's `notes.testMode` sentence (`settings/Panel.lua`). `/wg test` drives the same row (bare toggles, `on\|off` sets). Ticked, the popup shows sample group info (`WhatGroup:SampleInfo()`) from a record of its own, never `pendingInfo`, whatever `frame.autoShow` and `visibility` say; `locked` still applies to dragging. Refused in combat: a click on the box is refused by the library's combat lock (its one gray `COMBAT_LOCKED_NOTICE` line; the row's set never runs), and `/wg test` by the host's own `startTestMode` guard (one gray line, `cannot start test mode during combat`). Ends on untick, on Close / ESC, on an explicit show (`/wg show`, `/wg test notify`, the chat link), on *Reset all settings* (the declared `default = false`), and at `PLAYER_REGEN_DISABLED` with `Test mode off — combat started`. The join popup does not end it: that capture waits. Never `db.profile`. |
+| Notifications | notify | `notify.delay` | number | 0 | subgroup `Timing`, solo | *Delay after joining*: seconds (0–10, step 0.5) between joining and notifying **and** showing the popup. Default 0 = immediately; raise it to let the zone-in settle. Not one of options-ui-§15's canonical rows, so it heads the join-flow tab, above both things it delays. |
+| Notifications | notify | `notify.enabled` | bool | true | subgroup `Chat summary`, solo | *Print to chat*: print the chat summary on group join. The master for the seven rows under it, and the one tooltip that states the chat-only rule. |
+| Notifications | notify | `notify.showInstance` | bool | true | subgroup `Chat summary`, (paired) | Include the Instance line in the chat summary. |
+| Notifications | notify | `notify.showType` | bool | true | subgroup `Chat summary`, (paired) | Include the Type line in the chat summary. |
+| Notifications | notify | `notify.showLeader` | bool | true | subgroup `Chat summary`, (paired) | Include the Leader line in the chat summary. |
+| Notifications | notify | `notify.showRole` | bool | true | subgroup `Chat summary`, (paired) | Include the Role line (WhatGroup#1): the role the leader assigned, else the application's, else the roles offered; skipped when none is known. The popup's Role row is always drawn. |
+| Notifications | notify | `notify.showPlaystyle` | bool | true | subgroup `Chat summary`, (paired) | Include the Playstyle line in the chat summary. |
+| Notifications | notify | `notify.showTeleport` | bool | true | subgroup `Chat summary`, (paired) | Include a Teleport line; skipped silently when `WhatGroup:GetTeleportSpell` returns nil. |
+| Notifications | notify | `notify.showClickLink` | bool | true | subgroup `Chat summary`, solo by position (last, alone) | Include the green "[Click here to view details]" chat link. Last because the summary prints it last: an affordance, not an info line. |
+| Notifications | frame | `frame.autoShow` | bool | true | subgroup `Popup window`, solo | *Open on join*: auto-open the popup on group join. With this off, the chat summary still prints and the user can re-open via the chat link or `/wg show`. |
+| Notifications | frame | `frame.width` | number | 420 | subgroup `Popup window`, (paired) | Popup width in pixels (320–700, step 10). Was `FRAME_WIDTH`, a file-local in `modules/Frame.lua`; the default is the number it replaced. The tooltip points at Test mode to see the popup while sizing it. |
+| Notifications | frame | `frame.height` | number | 280 | subgroup `Popup window`, (paired) | Popup height in pixels (200–520, step 10). Was `FRAME_HEIGHT` (260); 280 since the Role row added one 18px row, rounded up to the step. |
 
 The popup dialog always renders every field; the `notify.show*` rows gate **chat output only**. See [scope.md](./scope.md#resolved-decisions) for why.
 
@@ -391,34 +390,33 @@ The popup dialog always renders every field; the `notify.show*` rows gate **chat
 Rendered panel layout:
 
 ```
-[ Master controls ] [ Chat ] [ Popup ]      <- the tab strip, in the chrome band
+[ Master controls ] [ Notifications ] [ Keybindings ]      <- the tab strip, in the chrome band
 
 --- Master controls ---                      composed; options-ui-§15's canonical order
 [Enable WhatGroup]    | [General visibility]
-[Master scale]        | [Master alpha]
+[Master scale]        | [Master opacity]
 [Lock frame]          | [Debug console]
 [Minimap button]      | [Test mode]          the minimap row opens the line; test mode pairs beside it
   <Reset position | Reset all settings>      afterGroup["Master controls"] = the composer's tail
 
---- Chat ---
+--- Notifications ---
 -- Timing --                                 subgroup heading (options-ui-§7)
-[Notification Delay]
--- Text --
-[Print to Chat]
+[Delay after joining]
+-- Chat summary --
+[Print to chat]
 [Instance]            | [Type]
-[Leader]              | [Playstyle]
-[Details link]        | [Teleport spell]
-[Role]
-  <Test button (160 px, left-aligned, afterGroup["Chat"])>
-
---- Popup ---
--- Behavior --
-[Open Automatically]
--- Layout --
+[Leader]              | [Role]
+[Playstyle]           | [Teleport spell]
+[Details link]
+-- Popup window --
+[Open on join]
 [Width]               | [Height]
+  <Test notification button (160 px, left-aligned, afterGroup["Notifications"])>
+
+--- Keybindings ---                          the library's host tab (options-ui-§20), last
 ```
 
-The `Show ` prefix the six chat rows carried is gone: under a tab called **Chat**, six labels beginning "Show" spend their first word saying what the tab already said. The **paths** are untouched — `notify.showInstance` is still `notify.showInstance` for `/wg set` and for every saved profile.
+The `Show ` prefix the six chat rows carried is gone: under a heading called **Chat summary**, six labels beginning "Show" spend their first word saying what the heading already said. The **paths** are untouched — `notify.showInstance` is still `notify.showInstance` for `/wg set` and for every saved profile.
 
 ## The minimap button row
 

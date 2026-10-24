@@ -9,8 +9,8 @@ options UI, which is the trigger for this page (documentation-§3, Tier 2). The 
 Every stored setting except one. That is every profile-scoped row of the schema:
 
 - the Master controls stored at the profile root: `enabled`, `visibility`, `scale`, `alpha`, `locked`;
-- the **Chat** tab: `notify.delay`, `notify.enabled` and the `notify.show*` lines;
-- the **Popup** tab: `frame.autoShow`, `frame.width`, `frame.height`.
+- the **Notifications** tab: `notify.delay`, `notify.enabled` and the `notify.show*` lines, then
+  `frame.autoShow`, `frame.width`, `frame.height`.
 
 A new profile starts from `defaults/Profile.lua` (`NS.C`), the one place a profile default is written
 (savedvariables-§2).

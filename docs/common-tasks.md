@@ -6,11 +6,11 @@ Recipes for the routine modifications. For deeper context on any subsystem, see 
 
 One row to `Settings.Schema` in `settings/Schema.lua`. The UI, CLI, defaults, and reset surfaces all follow automatically.
 
-**Its `group` is a TAB** (`options-ui-§13`), not a heading: the page draws one tab per distinct group, in declaration order. So a row filed under an existing group has to sit **inside that group's run** of `add{}` calls — a row placed after the run prints the same tab twice. A new `group` value is a new tab, drawn in the position its first row occupies; do not add one for a single row (a tab over one control is a click that reveals one checkbox, and `tests/test_settings.lua` fails it). The three today are **Master controls**, **Chat** and **Popup**.
+**Its `group` is a TAB** (`options-ui-§13`), not a heading: the page draws one tab per distinct group, in declaration order. So a row filed under an existing group has to sit **inside that group's run** of `add{}` calls — a row placed after the run prints the same tab twice. A new `group` value is a new tab, drawn in the position its first row occupies; do not add one for a single row (a tab over one control is a click that reveals one checkbox, and `tests/test_settings.lua` fails it). The two today are **Master controls** and **Notifications**; the library's **Keybindings** tab follows them and is not a schema group.
 
 **Do not add a row to `Master controls`.** That tab is `options-ui-§15`'s canonical block, composed by `Helpers.MasterControls` in `settings/Panel.lua` and spliced at the head of the array; a new master control is a change to `LibKa0s`'s composer, not to this addon. `tests/test_settings.lua` reads `settings/Schema.lua` and fails a hand-written declaration of any of its paths.
 
-**If the tab you file under mixes control kinds, give the row a `subgroup`** (`options-ui-§7`) — the kind of control, never a repeat of the tab's own name. Chat uses `Timing` and `Text`; Popup uses `Behavior` and `Layout`.
+**If the tab you file under mixes control kinds, give the row a `subgroup`** (`options-ui-§7`) — the kind of control, never a repeat of the tab's own name. Notifications uses `Timing`, `Chat summary` and `Popup window`.
 
 The value itself goes in `defaults/Profile.lua` as `NS.C.<path>`, and the row references it as `default = C.<path>` — two literals for one value is the shape that drifts.
 
@@ -18,9 +18,9 @@ The value itself goes in `defaults/Profile.lua` as `NS.C.<path>`, and the row re
 
 ```lua
 add{
-    section = "frame",  group = "Popup",  subgroup = "Behavior",
+    section = "frame",  group = "Notifications",  subgroup = "Popup window",
     path    = "frame.someToggle",  type = "bool",
-    label   = "Some Toggle",
+    label   = "Some toggle",
     tooltip = "What this toggle does, in one sentence.",
     default = true,
     -- onChange = function(v) … end,   -- optional, runs after the panel widget OR /wg set
@@ -32,9 +32,9 @@ add{
 
 ```lua
 add{
-    section = "notify",  group = "Chat",  subgroup = "Timing",
+    section = "notify",  group = "Notifications",  subgroup = "Timing",
     path    = "notify.someValue",  type = "number",
-    label   = "Some Value",
+    label   = "Some value",
     tooltip = "What this value controls.",
     default = 2.0,
     min = 0, max = 10, step = 0.5, fmt = "%.1fs",
@@ -49,9 +49,9 @@ Non-setting affordances live outside the schema. Hand the action to `Helpers.Inl
 
 ```lua
 Helpers.RenderTabbedSchema(generalCtx, "general", {
-    ["Chat"] = function(ctxRef)
+    ["Notifications"] = function(ctxRef)
         Helpers.InlineButton(ctxRef, {
-            text    = "Do The Thing",
+            text    = "Do the thing",
             tooltip = "What clicking this does.",
             onClick = function() WhatGroup:DoTheThing() end,
         })
@@ -59,7 +59,7 @@ Helpers.RenderTabbedSchema(generalCtx, "general", {
 })
 ```
 
-The callback fires once, immediately after the last schema row of the named group — so on a tabbed page it draws only while THAT tab is open, which is what keeps a Chat action off the Popup tab. `AFTER_GROUP[Helpers.MASTER_GROUP]` is already taken by the composer's closing reset pair (added after the table constructor, under a presence check, because the library-less stub publishes no `MASTER_GROUP` and that path has no Master controls rows to hook); a second hook for one group is not possible, so a new action goes on another tab. `Helpers.InlineButton` renders a 160-px button (override via `spec.width`) left-aligned in a full-width row.
+The callback fires once, immediately after the last schema row of the named group — so on a tabbed page it draws only while THAT tab is open, which is what keeps a Notifications action off the Master controls tab. `AFTER_GROUP[Helpers.MASTER_GROUP]` is already taken by the composer's closing reset pair (added after the table constructor, under a presence check, because the library-less stub publishes no `MASTER_GROUP` and that path has no Master controls rows to hook); a second hook for one group is not possible, so a new action goes on another tab. `AFTER_GROUP["Notifications"]` is the Test notification button's. `Helpers.InlineButton` renders a 160-px button (override via `spec.width`) left-aligned in a full-width row.
 
 ### After adding a row
 
@@ -256,9 +256,9 @@ If `C_LFGList.GetSearchResultInfo` or `C_LFGList.GetActivityInfoTable` exposes a
 /wg test notify
 ```
 
-Previews a synthetic group (a Mythic+ Windrunner Spire group) through `ShowNotification(sample)` + `ShowFrame(sample)` directly, without writing `pendingInfo`: a real capture you are holding is what `/wg show` and the chat link open once the preview popup is closed. With the addon disabled, the panel's Test button prints the chat preview only and builds no popup. Bypasses `OnApplyToGroup`, the queue, the LFG event sequence, and the `wasInGroup` join gate.
+Previews a synthetic group (a Mythic+ Windrunner Spire group) through `ShowNotification(sample)` + `ShowFrame(sample)` directly, without writing `pendingInfo`: a real capture you are holding is what `/wg show` and the chat link open once the preview popup is closed. With the addon disabled, the panel's Test notification button prints the chat preview only and builds no popup. Bypasses `OnApplyToGroup`, the queue, the LFG event sequence, and the `wasInGroup` join gate.
 
-The Settings panel's Test button runs the same code path — both invoke `WhatGroup:RunTest()`. See [slash-dispatch.md](./slash-dispatch.md#why-wg-test-notify-and-the-test-button-share-whatgroupruntest).
+The Settings panel's Test notification button runs the same code path — both invoke `WhatGroup:RunTest()`. See [slash-dispatch.md](./slash-dispatch.md#why-wg-test-notify-and-the-test-notification-button-share-whatgroupruntest).
 
 To place the popup rather than run the flow, tick **Test mode** (General → Master controls), or type `/wg test`. The popup stays up on the sample group until you untick it, close it, or combat starts, and `pendingInfo` is never touched. See [frame.md → Test mode](./frame.md#test-mode).
 

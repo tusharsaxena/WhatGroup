@@ -39,7 +39,7 @@ local NO_CAPTURE = {}
 
 -- The PREVIEW the popup shows instead of the real capture, set by two callers: TEST MODE's
 -- placeholder (options-ui-§15, preview-mode), held until test mode ends, and the ONE-SHOT preview
--- `/wg test notify` and the panel's Test button hand ShowFrame (core/WhatGroup.lua's RunTest),
+-- `/wg test notify` and the panel's Test notification button hand ShowFrame (core/WhatGroup.lua's RunTest),
 -- held until the popup is put away (endPreview). A record of its own rather than a write to
 -- `pendingInfo`, so a real capture the player is still holding survives either one. Every reader
 -- of "what does the popup show" asks shownInfo(), so a preview goes through the same render path

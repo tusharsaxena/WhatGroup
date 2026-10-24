@@ -515,7 +515,7 @@ end)
 --- One page, so one entry. WhatGroup registers a single settings sub-page ("general"); every row
 --- carries `section` for `/wg list` and `group` for the tab, and no row is hidden.
 local PARTITION = {
-    general = { { "Master controls", 8 }, { "Chat", 9 }, { "Popup", 3 } },
+    general = { { "Master controls", 8 }, { "Notifications", 12 } },
 }
 
 test("settings: the page's tabs are the designed ones, in order, at the designed size",
@@ -561,9 +561,9 @@ end)
 
 test("settings: every row's group is one of the designed tabs", function()
     -- The partition case above pins the counts; this one pins the NAMES, so a typo'd group on a
-    -- new row reads as "Popupp is not a tab" rather than as a count that happens to still add up.
+    -- new row reads as "Notificatons is not a tab" rather than as a count that happens to still add up.
     local NS = T.newAddon()
-    local known = { ["Master controls"] = true, Chat = true, Popup = true }
+    local known = { ["Master controls"] = true, Notifications = true }
     for _, row in ipairs(NS.addon.Settings.Schema) do
         assertTrue(known[row.group] == true, row.path .. " is filed under " .. tostring(row.group))
     end
@@ -778,13 +778,13 @@ end)
 -- notify.showRole (WhatGroup#1)
 -- ---------------------------------------------------------------------------
 
-test("settings: notify.showRole is a Chat > Text bool row, default on", function()
+test("settings: notify.showRole is a Notifications > Chat summary bool row, default on", function()
     local NS = T.newAddon()
     local row = NS.addon.Settings.Helpers.FindSchema("notify.showRole")
     assertTrue(row ~= nil, "the row exists")
     assertEqual(row.type, "bool")
-    assertEqual(row.group, "Chat")
-    assertEqual(row.subgroup, "Text")
+    assertEqual(row.group, "Notifications")
+    assertEqual(row.subgroup, "Chat summary")
     assertEqual(row.label, "Role")
     assertEqual(row.default, true)
     assertEqual(NS.C.notify.showRole, true, "the value lives in defaults/Profile.lua")
@@ -794,4 +794,59 @@ end)
 test("settings: the Role label string is in the locale", function()
     local NS = T.newAddon()
     assertEqual(rawget(NS.L, "Role:"), "Role:")
+end)
+
+-- ---------------------------------------------------------------------------
+-- The settings-layout guard (item 020, WG-LY)
+-- ---------------------------------------------------------------------------
+
+--- Every stored setting the schema declares, as path -> "type|default|min|max|step|section",
+--- PINNED from the schema as it stood before item 020's layout pass (move, regroup and relabel
+--- only). A layout change may move a row to another tab, subsection or line and may reword its
+--- label or tooltip; it may not touch what is stored, its default, its range or `/wg list`'s
+--- grouping. Sorted by path, so a reordered declaration still agrees and a changed key does not.
+local STORED_SETTINGS = {
+    "alpha = number|1|0|1|0.05|general|false",
+    "enabled = bool|true|nil|nil|nil|general|false",
+    "frame.autoShow = bool|true|nil|nil|nil|frame|false",
+    "frame.height = number|280|200|520|10|frame|false",
+    "frame.width = number|420|320|700|10|frame|false",
+    "global.minimap.shown = bool|true|nil|nil|nil|general|false",
+    "locked = bool|false|nil|nil|nil|general|false",
+    "notify.delay = number|0|0|10|0.5|notify|false",
+    "notify.enabled = bool|true|nil|nil|nil|notify|false",
+    "notify.showClickLink = bool|true|nil|nil|nil|notify|false",
+    "notify.showInstance = bool|true|nil|nil|nil|notify|false",
+    "notify.showLeader = bool|true|nil|nil|nil|notify|false",
+    "notify.showPlaystyle = bool|true|nil|nil|nil|notify|false",
+    "notify.showRole = bool|true|nil|nil|nil|notify|false",
+    "notify.showTeleport = bool|true|nil|nil|nil|notify|false",
+    "notify.showType = bool|true|nil|nil|nil|notify|false",
+    "scale = number|1|0.5|2|0.05|general|false",
+    "state.debugConsole = bool|false|nil|nil|nil|general|true",
+    "state.testMode = bool|false|nil|nil|nil|general|true",
+    "visibility = string|always|nil|nil|nil|general|false",
+}
+
+local function storedSettings(NS)
+    local out = {}
+    for _, row in ipairs(NS.addon.Settings.Schema) do
+        if row.path then
+            out[#out + 1] = row.path .. " = " .. table.concat({
+                tostring(row.type), tostring(row.default), tostring(row.min), tostring(row.max),
+                tostring(row.step), tostring(row.section), tostring(row.sessionOnly and true or false),
+            }, "|")
+        end
+    end
+    table.sort(out)
+    return out
+end
+
+test("settings: the layout pass moved no key, default, range or section (item 020)", function()
+    -- red under: renaming a stored path, changing a default or a slider's range, moving a row to
+    -- another `/wg list` section, or adding or dropping a setting.
+    local NS = T.newAddon()
+    local got = storedSettings(NS)
+    assertEqual(table.concat(got, "\n"), table.concat(STORED_SETTINGS, "\n"),
+        "the set of stored settings and their defaults")
 end)

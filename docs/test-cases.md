@@ -225,7 +225,7 @@ Total.
 - database: migrations run before any profile read (OnInitialize order)
 - database: the profile is untouched by a migration pass
 
-### test_settings.lua (59)
+### test_settings.lua (60)
 
 - settings: BuildDefaults threads profile + global defaults
 - settings: defaults source from NS.C (defaults/Profile.lua, WG-24)
@@ -284,10 +284,11 @@ Total.
 - settings: a global reset closes the console a profile reset cannot reach (options-ui-§12)
 - settings: every row on every page carries a `group`
 - settings: every color row is followed by its class-color companion, and none is disabled
-- settings: notify.showRole is a Chat > Text bool row, default on
+- settings: notify.showRole is a Notifications > Chat summary bool row, default on
 - settings: the Role label string is in the locale
+- settings: the layout pass moved no key, default, range or section (item 020)
 
-### test_slash.lua (61)
+### test_slash.lua (62)
 
 - slash: COMMANDS has a standalone version verb (WG-29)
 - slash: /wg version prints [WG] v<version> on its own line (WG-29)
@@ -350,6 +351,7 @@ Total.
 - slash: the refusal REPLACES the handler — not even its own empty-state hint prints
 - slash: the refusal does not touch the help index or the landing page
 - slash: `perf` is reserved here but not registered (LIBKA0S-15)
+- slash: show, config and resetall describe the popup, the settings and the profile reset
 
 ### test_labels.lua (40)
 
@@ -622,7 +624,7 @@ Total.
 - layers: the owed Hide at combat end leaves the controls ready for the next show
 - layers: no SetFrameStrata literal and no absolute SetFrameLevel in core, modules or settings
 
-### test_panel.lua (55)
+### test_panel.lua (61)
 
 - panel: OnEnable registers the parent category and the General subcategory
 - panel: the parent category is added to the AddOns list
@@ -648,11 +650,11 @@ Total.
 - panel: a mixed tab draws its SUBGROUPS as headings (options-ui-§7)
 - panel: no subgroup heading repeats its own tab's name
 - panel: paired rows get half width, solo rows go full width
-- panel: the Chat group renders its Test action button
+- panel: the Notifications group renders its Test notification button
 - panel: the Master controls tab closes with the reset button PAIR
 - panel: Reset all settings raises the confirmation, it does not reset on the click
 - panel: Reset position drops the stored point and re-anchors
-- panel: the Test button runs the same path as /wg test notify
+- panel: the Test notification button runs the same path as /wg test notify
 - panel: a throwing button onClick is caught, not propagated
 - panel: the Debug console renders as an ordinary Master controls checkbox
 - panel: ticking Debug console shows the window without touching db.profile
@@ -679,6 +681,12 @@ Total.
 - panel: the landing page adds logo, notes, heading and command rows in that order
 - panel: a dirty landing page re-renders in place instead of stacking a second copy
 - panel: the landing page is drawn by the library's BuildLandingPage, logo and commands
+- panel: the Notifications tab declares the join flow in print order (WHA-L01..L04)
+- panel: the join-flow rows are sentence case and say what they wait on (WHA-L05..L07)
+- panel: one noun per output -- chat summary, group info popup (WHA-L06, L09, L13, L15)
+- panel: the composed rows name the popup through `notes`, never a host rewrite (WHA-L11, L17)
+- panel: the Test notification button names its run and its preview (WHA-L08)
+- panel: the header Defaults tooltip is the library's Reset all settings wording (WHA-L12)
 
 ### test_profiles.lua (19)
 
@@ -1092,8 +1100,8 @@ Total.
 | test_util.lua | 31 |
 | test_compat.lua | 47 |
 | test_database.lua | 11 |
-| test_settings.lua | 59 |
-| test_slash.lua | 61 |
+| test_settings.lua | 60 |
+| test_slash.lua | 62 |
 | test_labels.lua | 40 |
 | test_capture.lua | 43 |
 | test_notify.lua | 55 |
@@ -1101,7 +1109,7 @@ Total.
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_frame_layers.lua | 8 |
-| test_panel.lua | 55 |
+| test_panel.lua | 61 |
 | test_profiles.lua | 19 |
 | test_testmode.lua | 28 |
 | test_snapshot.lua | 10 |
@@ -1123,4 +1131,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **957** |
+| **Total** | **965** |

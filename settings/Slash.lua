@@ -40,11 +40,11 @@ local runShow, runTest, runConfig, runDebug, runReset, runResetAll, runEnabled
 local COMMANDS = {
     {"help",     L["List available commands"],
         function() Sl:PrintHelp() end},
-    {"show",     L["Show the last group info dialog"],
+    {"show",     L["Show the group info popup again"],
         function() runShow() end},
     {"test",     L["Toggle test mode (sample group info on the popup) — `/wg test on|off`; `/wg test notify` runs the join notice + popup once"],
         function(rest) runTest(rest) end},
-    {"config",   L["Open the Ka0s WhatGroup Settings panel"],
+    {"config",   L["Open the Ka0s WhatGroup settings"],
         function() runConfig() end},
     -- The reserved pair (slash-commands-§2), and they are ALIASES rather than a switch: both write
     -- the `enabled` row the Master controls checkbox writes, through the same Helpers.Set. No second
@@ -63,7 +63,7 @@ local COMMANDS = {
         function(rest) Sl:CliSet(rest) end},
     {"reset",    L["Reset one setting to its default — `/wg reset <path>`"],
         function(rest) runReset(rest) end},
-    {"resetall", L["Reset every setting to defaults"],
+    {"resetall", L["Reset this profile to defaults"],
         function() runResetAll() end},
     -- Switch profiles from chat (LibKa0s-Slash-1.0 minor 17). What the verb does is the library's
     -- CliProfile: bare lists the profiles, a name switches to an EXISTING profile only (never

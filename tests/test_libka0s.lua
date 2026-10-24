@@ -368,11 +368,11 @@ test("options: a panel write takes the addon's single write seam", function()
     local panel = mock.frames["WhatGroupGeneralPanel"]
     panel:Show()
     mock.fireCTimers()
-    -- On the Chat tab, so the strip has to be clicked first. The tab buttons are CreateFrame
+    -- On the Notifications tab, so the strip has to be clicked first. The tab buttons are CreateFrame
     -- Buttons in the page's chrome band, not AceGUI widgets, which is why this reaches into
     -- mock.frames rather than through findWidget.
     for _, f in ipairs(mock.frames) do
-        if f.__kind == "Button" and f.__text == "Chat" then f.__fire("OnClick") end
+        if f.__kind == "Button" and f.__text == "Notifications" then f.__fire("OnClick") end
     end
     local cb = mock.findWidget(function(w)
         return w.type == "CheckBox" and w.labelText == "Leader"

@@ -136,7 +136,7 @@ test("keybinds: the General strip ENDS in Keybindings, after every schema tab", 
     -- red under: no opts.tabs entry, a `before` that pulls it forward, or a relabeled tab.
     local NS, mock, keys = openGeneral()
     assertTrue(type(keys) == "table" and #keys > 0, "General drew no tab strip")
-    assertEqual(table.concat(keys, " | "), "Master controls | Chat | Popup | Keybindings",
+    assertEqual(table.concat(keys, " | "), "Master controls | Notifications | Keybindings",
         "the strip, in order")
     assertEqual(keys[1], NS.addon.Settings.Helpers.MASTER_GROUP, "Master controls stays first")
     assertTrue(tabButton(mock, "Keybindings") ~= nil, "labeled exactly Keybindings")
