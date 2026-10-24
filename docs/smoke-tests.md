@@ -122,8 +122,7 @@ number out of use rather than handing it to a new one.
   join* alone, then *Width (px) | Height (px)*; then the **Test notification** button. No **Chat**, **Popup**,
   **Text**, **Behavior** or **Layout** label is left anywhere. Each tab swaps the content rather
   than scrolling; clicking the current tab does nothing; the **Test notification** button shows on
-  Notifications only and the reset pair on Master controls only. Result: not run (re-written for
-  item 020, WG-LY; the 2026-10-10 pass was of the old Master controls | Chat | Popup layout)
+  Notifications only and the reset pair on Master controls only. Result: pass (owner, 2026-10-24)
 - **PANEL-3. Widget and CLI round-trip.** **Notifications** → untick *Open on join*, then
   slide *Delay after joining (seconds)* to 3.0s; close Settings. `/wg get frame.autoShow` → `false`;
   `/wg get notify.delay` → `3.0s`. Reopen the Notifications tab, then `/wg set frame.autoShow on` with it
@@ -198,11 +197,12 @@ number out of use rather than handing it to a new one.
   `chat notification`; *Width (px)* and *Height (px)* end `Tick Test mode on General > Master controls to
   see the popup while you size it.`; **Test notification**'s tooltip names `/wg test notify` and
   Test mode. Now `/reload` and `/wg list` again → the same paths, in the same sections, with the same
-  values as before the change: no setting lost, no key moved, no default changed. Result: not run
+  values as before the change: no setting lost, no key moved, no default changed.
+  Result: pass (owner, 2026-10-24)
 - **PANEL-22. The landing page's command words (SM-WG-LY).** `/wg config` → the landing list reads
   `/wg show — Show the group info popup again`, `/wg config — Open the Ka0s WhatGroup settings`
   and `/wg resetall — Reset this profile to defaults`; `/wg help` prints the same three lines. The
-  verbs themselves act as before. Result: not run
+  verbs themselves act as before. Result: pass (owner, 2026-10-24)
 
 ## Profiles
 
@@ -361,11 +361,11 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   soft-hidden, which is the documented residual (`docs/ARCHITECTURE.md`'s register; POPUP-10 is the
   probe that could lift it for the body). Drop combat → the owed Hide lands and clicks there reach
   the world again. Repeat with *General visibility* = *Only out of combat* and the popup up when the
-  pull starts → the same. No `ADDON_ACTION_BLOCKED` at any step. Result: not run
+  pull starts → the same. No `ADDON_ACTION_BLOCKED` at any step. Result: pass (owner, 2026-10-24)
 - **COMBAT-14. A reopen in combat gives the controls back (SM-WG-ZS).** After COMBAT-13's
   **Close**, still in combat, press the Show window key (or the launcher's Show window) → the popup
   is back and its **Close** button works on the first click. Drop combat → the title bar drags
-  again. Result: not run
+  again. Result: pass (owner, 2026-10-24)
 
 ## The popup
 
@@ -420,7 +420,8 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   `true` printed) or not (`false` printed, no error). Drop combat and run
   `/run WhatGroupFrame:EnableMouse(true)` to put the body back. Not refused → the soft hide may take
   the body too (a follow-up change); refused → the residual stands. This is a probe: record what
-  it showed, never mark it passed. Result: not run
+  it showed, never mark it passed. Result: run (owner, 2026-10-24): reported
+  passing; no observation text captured
 
 ## Test mode
 
@@ -588,7 +589,7 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **LAUNCH-17. The binding's own section (SM-WG-KB1).** Esc → Options → Keybindings → a section
   titled `Ka0s WhatGroup` (no longer under AddOns, which LAUNCH-14 above walked), holding
   `Toggle group popup` and nothing else, with no blank spacer row above or inside it. A key bound
-  before this change is still bound. Result: not run
+  before this change is still bound. Result: pass (owner, 2026-10-24)
 - **LAUNCH-18. The Keybindings tab, both ways (SM-WG-KB2).** `/wg` → General → the strip ends in
   **Keybindings**, after Notifications; it lists `Toggle group popup` with one key button and Clear
   (SM-WG-RV3). Bind a key on the button → Options → Keybindings shows it on the same action, and the
@@ -598,12 +599,12 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   Options → Keybindings, then repeat both directions: the tab's line under the rows reads `Saved for:
   this character only` and the keys follow the character set; untick it (Blizzard's own confirm) and it
   reads `Saved for: all characters`. General's Defaults and **Reset all settings** leave the keys alone.
-  Result: not run (rewritten 2026-10-24 for the one key button, WG-RV3)
+  Result: pass (owner, 2026-10-24)
 - **LAUNCH-19. The key, Escape and combat on the tab (SM-WG-KB3).** The key bound on the tab toggles the
   popup, as LAUNCH-14's does. Click the key button so it reads `Press a key...`, press Escape → the
   capture cancels and the Settings window stays open. In combat, click the key button or Clear → nothing
-  is bound or cleared and the line reads `Key bindings can be changed after combat.` Result: not run
-  (rewritten 2026-10-24 for the one key button, WG-RV3)
+  is bound or cleared and the line reads `Key bindings can be changed after combat.`
+  Result: pass (owner, 2026-10-24)
 
 ## Debug console and diagnostics
 
@@ -843,11 +844,11 @@ headless stand-in: `tests/wow_mock.lua` answers enUS for every string the captur
 
 ## Pending sign-off
 
-COMBAT-13, COMBAT-14 and POPUP-10 (item 030, 2026-10-24) are not run yet; LAUNCH-17 (SM-WG-KB1) is
-not run yet; LAUNCH-18 (SM-WG-KB2, SM-WG-RV3) and LAUNCH-19 (SM-WG-KB3) were rewritten on 2026-10-24
-for the one key button and Clear per row and are not run yet; POPUP-10's probe records
-an observation and is never marked passed. On 2026-10-10 the owner
-marked every check in this file as passed, recorded on its
+None is owed. On 2026-10-10 the owner marked every check in this file as passed, recorded on its
 `Result:` line as `pass (owner-marked 2026-10-10)`; a check that already carried a dated owner pass
-keeps it. A check added or rewritten after that date is listed here until its `Result:` line records
-a pass.
+keeps it. On 2026-10-24 the owner reported that every check of the keybindings, settings layout and
+frame layering run passed (PANEL-2, PANEL-21, PANEL-22, COMBAT-13, COMBAT-14, LAUNCH-17 to
+LAUNCH-19), recorded on each `Result:` line as `pass (owner, 2026-10-24)`. POPUP-10's probe records
+an observation and is never marked passed; its 2026-10-24 run is recorded as reported passing, with
+no observation text captured. A check added or rewritten after that date is listed here until its
+`Result:` line records a pass.
