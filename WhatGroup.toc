@@ -49,6 +49,9 @@ core\CoreSetup.lua
 core\MediaSetup.lua
 # NS.Windows and NS.FormatDuration; reads nothing at load, so this slot is conventional.
 core\Util.lua
+# NS.Constants.LAYERS, the frame-layering table (frame-layering-§5). modules\Frame.lua reads it at
+# file scope; the # Core -> # Modules group order guarantees that, so this slot is conventional.
+core\Constants.lua
 # Before core\WhatGroup.lua: it calls NS.Compat.AddOnLinkType() at file scope
 # (core/WhatGroup.lua's ADDON_LINK_TYPE) to choose the chat-link route. Load-bearing.
 core\Compat.lua

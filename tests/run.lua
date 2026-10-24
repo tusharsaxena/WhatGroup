@@ -162,6 +162,7 @@ Kit.run{
         "test_frame",
         "test_frame_visibility",
         "test_frame_secure",
+        "test_frame_layers",
         "test_panel",
         "test_profiles",
         "test_testmode",

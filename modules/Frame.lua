@@ -146,6 +146,12 @@ local function anchorDefault(frame)
     frame:SetPoint("CENTER", UIParent, "CENTER", 0, math.floor(UIParent:GetHeight() * 0.25))
 end
 
+-- Dialog tier (core/Constants.lua's LAYERS, WHA-Z02): an event-raised notice that must surface over
+-- the LFG frame, bags and the Settings panel it is previewed from (Test mode, Width/Height). NOT
+-- toplevel -- frame-layering-§1's documented exception, a row in docs/ARCHITECTURE.md's register.
+-- The dialogs that must beat it (the debug console, StaticPopups) are toplevel; children inherit.
+local STRATA_POPUP = NS.Constants.LAYERS.STRATA.MODAL
+
 -- REFUSED IN COMBAT, exactly as ApplyFrameSize is and for the same reason: the popup parents a
 -- SecureActionButtonTemplate button, and scaling the parent moves the child. There is nothing to
 -- queue — the next ShowFrame out of combat applies the current value, which is the value the
@@ -249,9 +255,10 @@ end
 --
 -- The player gets a popup that closes when they press Close, in combat or out, which is the
 -- requirement. What they do not get is the frame leaving the screen's hit-testing until the
--- lockdown lifts: alpha 0 is invisible, not absent, so the title bar still drags and the teleport
--- button still takes a click it cannot act on — a teleport cannot be cast in combat anyway. That
--- residue is exactly why `pendingHide` exists and why the soft state is never a resting one.
+-- lockdown lifts: alpha 0 is invisible, not absent. The title bar and the Close button go
+-- mouse-dead with it (setControlsMouse, WHA-Z01) and the body never takes the mouse, but the
+-- teleport button still takes a click it cannot act on — a teleport cannot be cast in combat
+-- anyway. That residue is why `pendingHide` exists and why the soft state is never a resting one.
 -- `softHidden` and `pendingHide` are declared above ApplyFrameAlpha, which reads the first.
 
 -- THE COMBAT-END QUEUE: protected work refused under lockdown, replayed once it lifts. No private
@@ -308,11 +315,24 @@ end
 -- popup is on screen (`onScreen()`), because CloseWindows only closes a shown entry.
 local escProxy
 
+-- NOTHING INVISIBLE STAYS MOUSE-LIVE (frame-layering-§4, WHA-Z01). The soft hide leaves f shown at
+-- alpha 0, so its plain controls -- the title bar (the drag) and the Close button -- go mouse-dead
+-- with it and come back on every show. Both are plain children with no secure descendant, so their
+-- EnableMouse is legal in combat. The body takes no mouse at all (buildFrame). The secure teleport
+-- button is the residual: its EnableMouse is refused in combat, and a teleport cannot be cast in
+-- combat anyway (docs/ARCHITECTURE.md's register). Filled by buildFrame.
+local mouseControls = {}
+
+local function setControlsMouse(on)
+    for i = 1, #mouseControls do mouseControls[i]:EnableMouse(on) end
+end
+
 local function hidePopup()
     if not f then return true end
     if InCombatLockdown() then
         softHidden, pendingHide = true, true
         f:SetAlpha(0)
+        setControlsMouse(false)
         -- The soft route fires no OnHide on f, so the proxy is taken down here. After softHidden is
         -- set, never before: the proxy's own OnHide re-enters only while the popup is on screen.
         if escProxy then escProxy:Hide() end
@@ -320,6 +340,7 @@ local function hidePopup()
     end
     softHidden, pendingHide = false, false
     f:Hide()
+    setControlsMouse(true)
     WhatGroup:ApplyFrameAlpha()
     return true
 end
@@ -337,7 +358,10 @@ local function showPopup()
     if not f then return false end
     if f:IsShown() then
         softHidden, pendingHide = false, false
+        setControlsMouse(true)
         WhatGroup:ApplyFrameAlpha()
+        -- Raise fronts the popup within DIALOG on an explicit show (WHA-Z03). Combat-guarded: f
+        -- parents a secure button. A toplevel dialog (the console, a StaticPopup) wins back on a click.
         if not InCombatLockdown() then f:Raise() end
         if escProxy then escProxy:Show() end
         return true
@@ -346,7 +370,8 @@ local function showPopup()
     softHidden, pendingHide = false, false
     WhatGroup:ApplyFrameAlpha()
     f:Show()
-    f:Raise()
+    setControlsMouse(true)
+    f:Raise()   -- the explicit show's front-of-DIALOG raise (WHA-Z03, above)
     if escProxy then escProxy:Show() end
     return true
 end
@@ -745,9 +770,12 @@ local function buildFrame()
     f = CreateFrame("Frame", "WhatGroupFrame", UIParent, "BackdropTemplate")
     f:SetSize(popupSize())
     anchorDefault(f)
-    f:SetFrameStrata("DIALOG")
+    f:SetFrameStrata(STRATA_POPUP)
     f:SetMovable(true)
-    f:EnableMouse(true)
+    -- NO MOUSE ON THE BODY (WHA-Z01): the drag is the title bar's, and a body that takes the mouse
+    -- would be an invisible click-catcher at DIALOG while soft-hidden -- its EnableMouse is refused
+    -- in combat, f parenting a secure button. A click on the empty body falls through instead.
+    f:EnableMouse(false)
     f:SetClampedToScreen(true)
     -- Restore the saved position over the default center if the player has moved
     -- the popup before (WG-26; no-op on a fresh profile). Anchored offsets for
@@ -944,6 +972,9 @@ local function buildFrame()
     -- raised ADDON_ACTION_BLOCKED naming this addon. The press is remembered instead and honored
     -- the moment the lockdown lifts, which is the closest thing to "close" the client permits.
     closeBtn:SetScript("OnClick", dismissPopup)
+
+    -- The plain controls the combat soft hide makes mouse-dead (setControlsMouse, above).
+    mouseControls[1], mouseControls[2] = titleBar, closeBtn
 
     -- ESC to close — register the PROXY with UISpecialFrames *now*, lazily (buildEscapeProxy says
     -- why it is a proxy and not "WhatGroupFrame"). Earlier versions registered at file-load and that

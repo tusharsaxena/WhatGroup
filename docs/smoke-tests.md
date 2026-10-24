@@ -19,8 +19,8 @@ number out of use rather than handing it to a new one.
 | PANEL-1 – PANEL-20 | [Settings panel](#settings-panel) | Landing page, the General tab strip, widgets, Defaults, the frame rows, raw-key trap, the pooled strip, the folder name on the Options descriptor |
 | PROFILE-1 – PROFILE-14 | [Profiles](#profiles) | The Profiles page, `/wg profile`, persistence, what a switch leaves alone, the page in combat |
 | STATE-1 – STATE-8 | [Enable and disable](#enable-and-disable) | The stand-down, refusals while disabled, the way back, the chat-link callback |
-| COMBAT-1 – COMBAT-12 | [Combat](#combat) | Reset popup and Settings registration in combat, Close and ESC in combat, the visibility gate on combat edges |
-| POPUP-1 – POPUP-9 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome, the Role row at the minimum height |
+| COMBAT-1 – COMBAT-14 | [Combat](#combat) | Reset popup and Settings registration in combat, Close and ESC in combat, the visibility gate on combat edges, a soft-hidden popup catching no clicks |
+| POPUP-1 – POPUP-10 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome, the Role row at the minimum height, the popup's layering |
 | TEST-1 – TEST-12 | [Test mode](#test-mode) | The sample popup, its checkbox and verb, every way it ends, the sample role |
 | TELE-1 – TELE-6 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker |
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
@@ -305,8 +305,8 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   1.5 apply. `/wg reset frame.width` and `/wg set scale 1`. Result: pass (owner-marked 2026-10-10)
 - **COMBAT-6. Close works in combat.** `/wg test notify`, pull a dummy, press **Close** → the popup
   goes at once, with no error and no chat line. Drop combat → it stays gone. Until combat ends the
-  frame is invisible but present (alpha 0), so its title bar still drags; that is known and
-  accepted. Result: pass (owner-marked 2026-10-10)
+  frame is invisible but present (alpha 0); COMBAT-13 checks that it no longer catches clicks.
+  Result: pass (owner-marked 2026-10-10)
 - **COMBAT-7. ESC works in combat (critical).** `/wg test notify`, pull a dummy, press **ESC** →
   the popup closes at once, the game menu does **not** open, and nothing in BugGrabber names
   WhatGroup (no `ADDON_ACTION_BLOCKED` on `WhatGroupFrame:Hide()`). Press **ESC** again in combat →
@@ -334,6 +334,17 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   `/wg test notify` → no error and no popup; chat prints the join summary (POPUP-1's nine
   lines), then one more line, `Popup deferred until combat ends.` Drop combat → the popup opens
   now, with that capture. Result: pass (owner-marked 2026-10-10)
+- **COMBAT-13. A soft-hidden popup catches no clicks (SM-WG-ZS).** Put a unit frame, or a target
+  dummy, under where the popup sits. `/wg test notify`, pull a dummy, press **Close** → the popup
+  goes. Still in combat, click where its title bar, its Close button and its empty body were →
+  each click reaches what is underneath (the unit is targeted, the world click lands), and
+  dragging there moves nothing. The 24px teleport button's square is the one known residual
+  (`docs/ARCHITECTURE.md`'s register). Repeat with *General visibility* = *Only out of combat* and
+  the popup up when the pull starts → the same. No `ADDON_ACTION_BLOCKED` at any step. Result: not run
+- **COMBAT-14. A reopen in combat gives the controls back (SM-WG-ZS).** After COMBAT-13's
+  **Close**, still in combat, press the Show window key (or the launcher's Show window) → the popup
+  is back and its **Close** button works on the first click. Drop combat → the title bar drags
+  again. Result: not run
 
 ## The popup
 
@@ -376,6 +387,13 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   all seven rows (Group to Teleport, Role fifth) fit above the Close button with nothing clipped or
   overlapping, and the teleport button sits beside the `Teleport:` label. `/wg reset frame.height`
   → the popup is 280 tall again. Result: pass (owner, 2026-10-02)
+- **POPUP-10. The popup's layering (SM-WG-ZS).** Out of combat, `/wg test notify`, then click the
+  popup's empty body over a unit or the world → the click passes through to what is underneath
+  (the body takes no mouse now); the title bar still drags it and **Close** still closes it.
+  Open Settings → **Ka0s WhatGroup** → General, tick *Test mode* → the popup shows over the
+  Settings panel and stays over it while you drag the Width slider. Open the debug console
+  (`/wg debug`) where it overlaps the popup and click the console → the console comes to the
+  front. Result: not run
 
 ## Test mode
 
@@ -795,7 +813,8 @@ headless stand-in: `tests/wow_mock.lua` answers enUS for every string the captur
 
 ## Pending sign-off
 
-None. On 2026-10-10 the owner marked every check in this file as passed, recorded on its
+COMBAT-13, COMBAT-14 and POPUP-10 (item 030, 2026-10-24) are not run yet. On 2026-10-10 the owner
+marked every check in this file as passed, recorded on its
 `Result:` line as `pass (owner-marked 2026-10-10)`; a check that already carried a dated owner pass
 keeps it. A check added or rewritten after that date is listed here until its `Result:` line records
 a pass.

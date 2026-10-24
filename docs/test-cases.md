@@ -611,6 +611,17 @@ Total.
 - frame: a stand-down in combat drops a queued first show and a queued teleport configure
 - frame: reconfiguring the teleport button reuses the same three script handlers
 
+### test_frame_layers.lua (8)
+
+- layers: one table, the modal strata the popup reads (frame-layering-§5)
+- layers: the popup is DIALOG, not toplevel, clamped, and Raise()d on an explicit show
+- layers: the popup's children inherit its strata at parent + 1, no explicit level
+- layers: the ESC proxy and the binding button set no strata and are never raised
+- layers: the popup body takes no mouse; the title bar is the drag handle (WHA-Z01)
+- layers: a combat soft hide leaves no plain control mouse-live, and a reopen restores them
+- layers: the owed Hide at combat end leaves the controls ready for the next show
+- layers: no SetFrameStrata literal and no absolute SetFrameLevel in core, modules or settings
+
 ### test_panel.lua (55)
 
 - panel: OnEnable registers the parent category and the General subcategory
@@ -1089,6 +1100,7 @@ Total.
 | test_frame.lua | 61 |
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
+| test_frame_layers.lua | 8 |
 | test_panel.lua | 55 |
 | test_profiles.lua | 19 |
 | test_testmode.lua | 28 |
@@ -1111,4 +1123,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **949** |
+| **Total** | **957** |
