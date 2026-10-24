@@ -343,7 +343,7 @@ The page is **tabbed** (`options-ui-§13`). `LibKa0s-Options-1.0`'s `RenderTabbe
 | # | Tab | Rows | Subgroups | What it is for |
 |---|---|---|---|---|
 | 1 | **Master controls** | 8 | — | options-ui-§15's canonical block, composed rather than written: enable, general visibility, master scale, master alpha, lock frame, debug console, minimap button, test mode — closed by the **Reset position | Reset all settings** button pair (`afterGroup`). It is the **first** tab, and the name is the literal options-ui-§15 mandates. |
-| 2 | **Notifications** | 12 | `Timing`, `Chat summary`, `Popup window` | The whole join flow on one tab (item 020): when it fires (*Delay after joining*, which holds back both the chat summary and the popup), what the chat summary says (the **Print to chat** master and the seven lines it can contain, in print order), and whether and how big the group info popup opens. Closed by the **Test notification** button (`afterGroup`). |
+| 2 | **Notifications** | 12 | `Timing`, `Chat summary`, `Popup window` | The whole join flow on one tab (item 020): when it fires (*Delay after joining (seconds)*, which holds back both the chat summary and the popup), what the chat summary says (the **Print to chat** master and the seven lines it can contain, in print order), and whether and how big the group info popup opens. Closed by the **Test notification** button (`afterGroup`). |
 | 3 | **Keybindings** | — | — | The library's key editor (options-ui-§20), a host tab rather than a schema group: see [The Keybindings tab](#the-keybindings-tab). Always last. |
 
 Notifications mixes control kinds and therefore carries **subsection headings** (options-ui-§7): a slider that says *when* above the checkboxes that say *what*, then the popup window's toggle above its two size sliders. The headings are declared by the rows (`subgroup`), never drawn by the builder, and a `subgroup` never repeats its own tab's name.
@@ -368,7 +368,7 @@ Rows on the **Master controls** tab are emitted by `Helpers.MasterControls` and 
 | Master controls | general | `state.debugConsole` | bool | false | (paired) | *Debug console*, `sessionOnly`. Shows/hides the console **window**; never `db.profile`, never the logging flag (WG-12). |
 | Master controls | general | `global.minimap.shown` | bool | true (the ROW's sense: *shown*) | startsLine, (paired) | *Minimap button*, composed from `minimapPath` (compose minor 7). The one **global** row, stored at `db.global.minimap.hide` — see [The minimap button row](#the-minimap-button-row) below. |
 | Master controls | general | `state.testMode` | bool | false | (paired) | *Test mode*, `sessionOnly`, composed from `testModePath`; its tooltip is the composer's, followed by the host's `notes.testMode` sentence (`settings/Panel.lua`). `/wg test` drives the same row (bare toggles, `on\|off` sets). Ticked, the popup shows sample group info (`WhatGroup:SampleInfo()`) from a record of its own, never `pendingInfo`, whatever `frame.autoShow` and `visibility` say; `locked` still applies to dragging. Refused in combat: a click on the box is refused by the library's combat lock (its one gray `COMBAT_LOCKED_NOTICE` line; the row's set never runs), and `/wg test` by the host's own `startTestMode` guard (one gray line, `cannot start test mode during combat`). Ends on untick, on Close / ESC, on an explicit show (`/wg show`, `/wg test notify`, the chat link), on *Reset all settings* (the declared `default = false`), and at `PLAYER_REGEN_DISABLED` with `Test mode off — combat started`. The join popup does not end it: that capture waits. Never `db.profile`. |
-| Notifications | notify | `notify.delay` | number | 0 | subgroup `Timing`, solo | *Delay after joining*: seconds (0–10, step 0.5) between joining and notifying **and** showing the popup. Default 0 = immediately; raise it to let the zone-in settle. Not one of options-ui-§15's canonical rows, so it heads the join-flow tab, above both things it delays. |
+| Notifications | notify | `notify.delay` | number | 0 | subgroup `Timing`, solo | *Delay after joining (seconds)*: seconds (0–10, step 0.5) between joining and notifying **and** showing the popup. Default 0 = immediately; raise it to let the zone-in settle. Not one of options-ui-§15's canonical rows, so it heads the join-flow tab, above both things it delays. |
 | Notifications | notify | `notify.enabled` | bool | true | subgroup `Chat summary`, solo | *Print to chat*: print the chat summary on group join. The master for the seven rows under it, and the one tooltip that states the chat-only rule. |
 | Notifications | notify | `notify.showInstance` | bool | true | subgroup `Chat summary`, (paired) | Include the Instance line in the chat summary. |
 | Notifications | notify | `notify.showType` | bool | true | subgroup `Chat summary`, (paired) | Include the Type line in the chat summary. |
@@ -401,7 +401,7 @@ Rendered panel layout:
 
 --- Notifications ---
 -- Timing --                                 subgroup heading (options-ui-§7)
-[Delay after joining]
+[Delay after joining (seconds)]
 -- Chat summary --
 [Print to chat]
 [Instance]            | [Type]
@@ -410,7 +410,7 @@ Rendered panel layout:
 [Details link]
 -- Popup window --
 [Open on join]
-[Width]               | [Height]
+[Width (px)]          | [Height (px)]
   <Test notification button (160 px, left-aligned, afterGroup["Notifications"])>
 
 --- Keybindings ---                          the library's host tab (options-ui-§20), last

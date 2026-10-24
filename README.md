@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-966%2F966_passing-green)
+![Tests](https://img.shields.io/badge/Tests-967%2F967_passing-green)
 
 WhatGroup remembers the group you signed up for through the Group Finder tool. You get accepted, you shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who's leading, and the playstyle.
 
@@ -27,11 +27,11 @@ WhatGroup starts working the moment it loads, and there's nothing to switch on. 
 Joining a group through the Group Finder takes four steps.
 
 - Apply. Find a group in the Premade Group Finder and click **Apply**. WhatGroup notes what the listing said at that moment, so you can have several applications out and it still knows which is which. Groups you join from a guild or party invite aren't covered, because there's no listing to read.
-- Join, and read the summary. Accept the invite and a chat line with a cyan `[WG]` tag lists the instance, type, leader, the role you signed up as, and playstyle. The popup opens with the same details. The role is the one the leader assigned you if there is one, otherwise the role your application carried, otherwise the roles you offered. Both appear straight away unless you've set a pause under **Notifications → Delay after joining**, and if you join mid-fight the popup waits until you're out of combat.
+- Join, and read the summary. Accept the invite and a chat line with a cyan `[WG]` tag lists the instance, type, leader, the role you signed up as, and playstyle. The popup opens with the same details. The role is the one the leader assigned you if there is one, otherwise the role your application carried, otherwise the roles you offered. Both appear straight away unless you've set a pause under **Notifications → Delay after joining (seconds)**, and if you join mid-fight the popup waits until you're out of combat.
 - Teleport. The popup's last row is the dungeon's teleport, and it's a real spell button, so clicking it casts. It stays gray until you've learned that teleport, and goes gray again while it recharges, with the time left beside it. A dungeon with no teleport skips the row.
 - Close it, and bring it back. `ESC` or the **Close** button puts the popup away. `/wg show` or the "Click here to view details" link on the chat line opens it again, for as long as you're in the group. WhatGroup forgets the group once you leave.
 
-The **Notifications** tab holds the whole join flow. Under **Chat summary** you pick which lines the chat summary includes, and **Print to chat** turns it off. Under **Popup window**, **Open on join** does the same for the window, and **Width** and **Height** sit below it. The minimap button opens Settings on a left-click and a short menu on a right-click. Untick **Minimap button** on **Master controls** if you'd rather not have it.
+The **Notifications** tab holds the whole join flow. Under **Chat summary** you pick which lines the chat summary includes, and **Print to chat** turns it off. Under **Popup window**, **Open on join** does the same for the window, and **Width (px)** and **Height (px)** sit below it. The minimap button opens Settings on a left-click and a short menu on a right-click. Untick **Minimap button** on **Master controls** if you'd rather not have it.
 
 You can also bind a key to open and close the popup, **Toggle group popup**, in either of two places that show the same keys: Options → Keybindings → **Ka0s WhatGroup**, or **General → Keybindings** in this addon's settings. A key set in one shows in the other. The tab has one key button and **Clear**; when Options → Keybindings holds a second key for it, the button reads `<key> +1` and its tooltip names both. It has no key until you pick one, and the key is saved by the game, so Defaults and Reset all settings leave it alone. A press does what the minimap menu's **Show window** does, and while WhatGroup is disabled it says so in chat instead.
 
@@ -52,11 +52,11 @@ The group info doesn't outlive the session. WhatGroup drops it the moment you le
 | Does this work for cross-realm or cross-faction groups? | Yes. WhatGroup reads whatever the group finder shows it, so realm, faction and category don't matter. |
 | Is anything saved between sessions? | Your settings, plus the place you dragged the popup to. The debug console's position isn't saved. The group info itself is session-only. It clears the moment you leave the group, so `/wg show` only works while you're still in it. |
 | How do I preview the popup without joining a real group? | `/wg test notify`, or the **Test notification** button in Settings. Both run the full message and popup on sample data, once, and leave your real group info alone, so `/wg show` still opens it afterwards. To keep the popup up while you move it, type `/wg test` or tick **Test mode** on the **Master controls** tab. |
-| Can I delay the message and popup instead of getting them instantly? | Yes. They appear instantly by default; set a pause under **Notifications → Delay after joining** (0-10 seconds). |
+| Can I delay the message and popup instead of getting them instantly? | Yes. They appear instantly by default; set a pause under **Notifications → Delay after joining (seconds)** (0-10 seconds). |
 | What is the **Debug console**, and how do I turn on debug logging? | `/wg debug` opens the on-screen window; `/wg debug on` starts logging into it, `off` stops it. Logging is session-only and starts off after every login. The **Debug console** checkbox only shows or hides the window; it doesn't turn logging on. |
 | Why is the teleport button or teleport line grayed out or missing? | Three reasons, and the popup says which: you haven't learned the spell (`Teleport spell not learned` beside the button), you have it but it's still recharging (`On cooldown — 7h 58m 12s`, counting down, with a cooldown swipe over the icon), or that dungeon has no teleport at all, in which case the row is skipped. |
 | Can I keep the chat message but hide the popup, or the reverse? | Yes. Turn **Notifications → Open on join** off to skip the popup, or **Notifications → Print to chat** off to skip the message. They work independently. |
-| Can I make the popup bigger or smaller? | Yes. **Notifications → Width** and **Notifications → Height** move it between 320-700 and 200-520 pixels; it ships at 420 x 280. Dragging still remembers where you left it. |
+| Can I make the popup bigger or smaller? | Yes. **Notifications → Width (px)** and **Notifications → Height (px)** move it between 320-700 and 200-520 pixels; it ships at 420 x 280. Dragging still remembers where you left it. |
 | Are there per-character settings? | Only if you want them. Every character shares one profile until you pick another on the **Profiles** page in Settings, which can also give a character its own profile, copy one, reset one or delete one. `/wg profile` lists your profiles, and `/wg profile <name>` switches to one. |
 
 ## Troubleshooting

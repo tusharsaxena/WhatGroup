@@ -116,19 +116,19 @@ number out of use rather than handing it to a new one.
   headings; **Defaults** in the top-right corner; hovering any widget shows its tooltip. **Master
   controls** reads, in order, *Enable WhatGroup | General visibility*, *Master scale | Master
   opacity*, *Lock frame | Debug console*, *Minimap button | Test mode*, then the **Reset position |
-  Reset all settings** buttons. **Notifications**: a **Timing** heading over *Delay after joining*
+  Reset all settings** buttons. **Notifications**: a **Timing** heading over *Delay after joining (seconds)*
   alone; a **Chat summary** heading over *Print to chat* alone, then *Instance | Type*, *Leader |
   Role*, *Playstyle | Teleport spell*, *Details link* alone; a **Popup window** heading over *Open on
-  join* alone, then *Width | Height*; then the **Test notification** button. No **Chat**, **Popup**,
+  join* alone, then *Width (px) | Height (px)*; then the **Test notification** button. No **Chat**, **Popup**,
   **Text**, **Behavior** or **Layout** label is left anywhere. Each tab swaps the content rather
   than scrolling; clicking the current tab does nothing; the **Test notification** button shows on
   Notifications only and the reset pair on Master controls only. Result: not run (re-written for
   item 020, WG-LY; the 2026-10-10 pass was of the old Master controls | Chat | Popup layout)
 - **PANEL-3. Widget and CLI round-trip.** **Notifications** → untick *Open on join*, then
-  slide *Delay after joining* to 3.0s; close Settings. `/wg get frame.autoShow` → `false`;
+  slide *Delay after joining (seconds)* to 3.0s; close Settings. `/wg get frame.autoShow` → `false`;
   `/wg get notify.delay` → `3.0s`. Reopen the Notifications tab, then `/wg set frame.autoShow on` with it
   open → the checkbox ticks in place, without a rebuild. Restore both. Result: pass (owner-marked 2026-10-10)
-- **PANEL-4. A slider commits on release.** Drag *Delay after joining* slowly and watch the value
+- **PANEL-4. A slider commits on release.** Drag *Delay after joining (seconds)* slowly and watch the value
   → the stored value changes when you release, not on every frame of the drag. Reopen the page: it
   kept what you released on. Result: pass (owner-marked 2026-10-10)
 - **PANEL-5. Defaults button.** Open **General** for the first time this session → the
@@ -139,8 +139,8 @@ number out of use rather than handing it to a new one.
 - **PANEL-6. Test notification button.** **Notifications** tab → **Test notification** → the same chat summary and popup as
   `/wg test notify` (POPUP-1); the button runs `WhatGroup:RunTest()`. Result: pass (owner-marked 2026-10-10)
 - **PANEL-7. Popup size defaults and live resize.** On a profile that never touched them, the
-  **Notifications** tab reads **Width** `420 px` and **Height** `280 px`. `/wg test notify`, leave the popup
-  open, drag **Width** to 600 and release, then **Height** to 340 → the open popup resizes on
+  **Notifications** tab reads **Width (px)** `420 px` and **Height (px)** `280 px`. `/wg test notify`, leave the popup
+  open, drag **Width (px)** to 600 and release, then **Height (px)** to 340 → the open popup resizes on
   release, its rows and teleport button stay anchored to its corners, and the Close button stays
   12px off the bottom edge. Result: pass (owner-marked 2026-10-10)
 - **PANEL-8. Popup size clamps.** `/wg set frame.width 4000`, `/wg show` → drawn 700 wide, not off
@@ -192,10 +192,10 @@ number out of use rather than handing it to a new one.
   ends `Scales the group info popup; not changed in combat, applied on the next open.`, *Master
   opacity* ends `Opacity of the group info popup.`, *Lock frame* ends `Stops the group info popup
   being dragged by its title bar.`, and *Test mode* opens with the library's own sentence and ends
-  `Untick Lock frame first if you want to move it.` Notifications: *Delay after joining* opens
+  `Untick Lock frame first if you want to move it.` Notifications: *Delay after joining (seconds)* opens
   `Applies to both the chat summary and the popup.`; *Print to chat* ends `The popup always shows
   every line; these choose the chat summary only.`; every line toggle says `chat summary`, never
-  `chat notification`; *Width* and *Height* end `Tick Test mode on General > Master controls to
+  `chat notification`; *Width (px)* and *Height (px)* end `Tick Test mode on General > Master controls to
   see the popup while you size it.`; **Test notification**'s tooltip names `/wg test notify` and
   Test mode. Now `/reload` and `/wg list` again → the same paths, in the same sections, with the same
   values as before the change: no setting lost, no key moved, no default changed. Result: not run
@@ -207,7 +207,7 @@ number out of use rather than handing it to a new one.
 ## Profiles
 
 Setup: on the Profiles page create `Alt` (creating a profile switches to it) and set its
-**Notifications** → *Width* to 600; create `My Main` (with the space); then choose `Default` again.
+**Notifications** → *Width (px)* to 600; create `My Main` (with the space); then choose `Default` again.
 
 - **PROFILE-1. The Profiles page.** Settings → AddOns → **Ka0s WhatGroup** → **Profiles** → it is
   the last subcategory, below **General**; it has no **Defaults** button; its body is Ace's
@@ -286,7 +286,7 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **STATE-5. A typo while disabled.** Still disabled, `/wg shwo` → `unknown command 'shwo'`, then
   the help index with the refusal line under its header (as in STATE-3); never the refusal line
   alone. Result: pass (owner-marked 2026-10-10)
-- **STATE-6. The way back.** Still disabled, **Notifications** → drag *Width* to 600, then `/wg enable` and
+- **STATE-6. The way back.** Still disabled, **Notifications** → drag *Width (px)* to 600, then `/wg enable` and
   `/wg test notify` → it acts at once with no reload, and the popup opens 600 wide, the width you
   set while off. `/wg reset frame.width`. Result: pass (owner-marked 2026-10-10)
 - **STATE-7. The chat-link callback comes back without taint (critical).** `/wg disable`,
