@@ -1,6 +1,7 @@
 -- tests/test_frame_layers.lua — where the popup and its helper frames sit (frame-layering, item 030):
 -- the one layers table (core/Constants.lua), the popup's strata, toplevel, clamp and child levels,
--- and the combat soft hide leaving nothing invisible mouse-live (frame-layering-§4, WHA-Z01).
+-- and the combat soft hide making the plain controls mouse-dead (frame-layering-§4, WHA-Z01); the
+-- body and the secure teleport button are the documented residual.
 --
 -- On the kit's opt-in frame-layer recorder (tests/_kit/mock_layers.lua), installed before the
 -- addon's files load so every frame they build records its layers. The mouse is spied here: the
@@ -97,10 +98,10 @@ test("layers: the ESC proxy and the binding button set no strata and are never r
     end
 end)
 
-test("layers: the popup body takes no mouse; the title bar is the drag handle (WHA-Z01)", function()
+test("layers: the popup body stays mouse-live at build; the title bar is the drag handle (WHA-Z01)", function()
     local NS, _, mock = layered()
     local f = shown(NS, mock)
-    assertFalse(f:IsMouseEnabled(), "the body serves no drag, so it catches no click")
+    assertTrue(f:IsMouseEnabled(), "a click on the visible popup's empty body stays on the popup")
     assertTrue(dragHandle(mock):IsMouseEnabled(), "the title bar takes the mouse")
     assertTrue(closeButton(mock):IsMouseEnabled(), "the Close button takes the mouse")
 end)
@@ -115,7 +116,9 @@ test("layers: a combat soft hide leaves no plain control mouse-live, and a reope
     assertEqual(f:GetAlpha(), 0, "the alpha-0 soft hide")
     assertFalse(dragHandle(mock):IsMouseEnabled(), "the invisible title bar is mouse-dead")
     assertFalse(close:IsMouseEnabled(), "the invisible Close button is mouse-dead")
-    assertFalse(f:IsMouseEnabled(), "the body stays mouse-dead")
+    -- The documented residual: f parents a secure button, so its EnableMouse would be refused in
+    -- combat; the soft hide leaves the body alone rather than attempt a refused write.
+    assertTrue(f:IsMouseEnabled(), "the body is untouched by the soft hide (the residual)")
     assertEqual(#mock.blocked, 0, "nothing protected was written: " .. table.concat(mock.blocked, ","))
 
     NS.addon:ShowFrame()          -- the soft show, still in combat

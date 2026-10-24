@@ -256,9 +256,10 @@ end
 -- The player gets a popup that closes when they press Close, in combat or out, which is the
 -- requirement. What they do not get is the frame leaving the screen's hit-testing until the
 -- lockdown lifts: alpha 0 is invisible, not absent. The title bar and the Close button go
--- mouse-dead with it (setControlsMouse, WHA-Z01) and the body never takes the mouse, but the
--- teleport button still takes a click it cannot act on — a teleport cannot be cast in combat
--- anyway. That residue is why `pendingHide` exists and why the soft state is never a resting one.
+-- mouse-dead with it (setControlsMouse, WHA-Z01), but the body and the teleport button still catch
+-- clicks, the body's and the button's EnableMouse being refused in combat (the residual; a teleport
+-- cannot be cast in combat anyway). That residue is why `pendingHide` exists and why the soft
+-- state is never a resting one.
 -- `softHidden` and `pendingHide` are declared above ApplyFrameAlpha, which reads the first.
 
 -- THE COMBAT-END QUEUE: protected work refused under lockdown, replayed once it lifts. No private
@@ -318,9 +319,10 @@ local escProxy
 -- NOTHING INVISIBLE STAYS MOUSE-LIVE (frame-layering-§4, WHA-Z01). The soft hide leaves f shown at
 -- alpha 0, so its plain controls -- the title bar (the drag) and the Close button -- go mouse-dead
 -- with it and come back on every show. Both are plain children with no secure descendant, so their
--- EnableMouse is legal in combat. The body takes no mouse at all (buildFrame). The secure teleport
--- button is the residual: its EnableMouse is refused in combat, and a teleport cannot be cast in
--- combat anyway (docs/ARCHITECTURE.md's register). Filled by buildFrame.
+-- EnableMouse is legal in combat. The residual (docs/ARCHITECTURE.md's register): the body and the
+-- secure teleport button still catch clicks at alpha 0, since f parents a secure button and both
+-- EnableMouse writes would be refused in combat; the trigger is a separate secure holder frame for
+-- the button, so f is not protected. Filled by buildFrame.
 local mouseControls = {}
 
 local function setControlsMouse(on)
@@ -772,10 +774,11 @@ local function buildFrame()
     anchorDefault(f)
     f:SetFrameStrata(STRATA_POPUP)
     f:SetMovable(true)
-    -- NO MOUSE ON THE BODY (WHA-Z01): the drag is the title bar's, and a body that takes the mouse
-    -- would be an invisible click-catcher at DIALOG while soft-hidden -- its EnableMouse is refused
-    -- in combat, f parenting a secure button. A click on the empty body falls through instead.
-    f:EnableMouse(false)
+    -- The body keeps the mouse, so a click on the visible popup stays on it. The residual (WHA-Z01):
+    -- soft-hidden at alpha 0 it and the teleport button still catch clicks, because f parents a
+    -- secure button and its EnableMouse would be refused in combat. The bigger fix, a separate
+    -- secure holder frame for the button, is the trigger (docs/ARCHITECTURE.md's register).
+    f:EnableMouse(true)
     f:SetClampedToScreen(true)
     -- Restore the saved position over the default center if the player has moved
     -- the popup before (WG-26; no-op on a fresh profile). Anchored offsets for

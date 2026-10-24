@@ -145,7 +145,7 @@ and sync-debounce cases are the library's and are not repeated here (testing-§8
 Coverage extends past pure logic into the UI and event layers — the popup's
 field rendering and secure-teleport-button states (`test_frame`, with the master controls, the visibility gate's
 combat transition and Escape in combat in `test_frame_visibility`, and the combat reopen of a
-soft-hidden popup in `test_frame_secure`; the popup's strata, levels and mouse-dead soft hide, on the
+soft-hidden popup in `test_frame_secure`; the popup's strata, levels and soft-hide mouse rules, on the
 kit's `tests/_kit/mock_layers.lua` recorder, in `test_frame_layers`), the settings
 panel's deferred build and widget write-back (`test_panel`), the Profiles page and the
 reaction to a profile switch, copy or reset (`test_profiles`), the delayed

@@ -617,7 +617,7 @@ Total.
 - layers: the popup is DIALOG, not toplevel, clamped, and Raise()d on an explicit show
 - layers: the popup's children inherit its strata at parent + 1, no explicit level
 - layers: the ESC proxy and the binding button set no strata and are never raised
-- layers: the popup body takes no mouse; the title bar is the drag handle (WHA-Z01)
+- layers: the popup body stays mouse-live at build; the title bar is the drag handle (WHA-Z01)
 - layers: a combat soft hide leaves no plain control mouse-live, and a reopen restores them
 - layers: the owed Hide at combat end leaves the controls ready for the next show
 - layers: no SetFrameStrata literal and no absolute SetFrameLevel in core, modules or settings
