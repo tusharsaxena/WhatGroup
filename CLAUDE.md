@@ -39,9 +39,11 @@ Start here, then read the docs:
   `## Documentation map`.
 - **`DEPENDENCIES.md`** — the toolchain contract: what to install to build, run, test or release.
 
-Green gate before every commit: `lua tests/run.lua` and `luacheck .` (0/0); the suite includes the
-vendor gate against the tag below (`tests/test_vendor_sync.lua`). Never auto-stage/commit/push and
-never bump the version without an explicit instruction.
+Green gate before every commit: `lua tests/run.lua` and
+`~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` (0/0; the kit bounds the suite on load, and
+`luacheck` loads no kit, so it runs through the bounded runner, testing-§15); the suite includes
+the vendor gate against the tag below (`tests/test_vendor_sync.lua`). Never auto-stage/commit/push
+and never bump the version without an explicit instruction.
 
 Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.77.0 (MIT).
 LibKa0s icons: close, copy, clear.
