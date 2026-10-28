@@ -45,5 +45,5 @@ Green gate before every commit: `lua tests/run.lua` and
 the vendor gate against the tag below (`tests/test_vendor_sync.lua`). Never auto-stage/commit/push
 and never bump the version without an explicit instruction.
 
-Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.77.0 (MIT).
-LibKa0s icons: close, copy, clear.
+Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.80.0 (MIT).
+LibKa0s icons: close, copy, clear, eye, settings.

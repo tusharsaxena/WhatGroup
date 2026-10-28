@@ -159,6 +159,19 @@ if not lib then
     -- OptionsCompose minor 11's ResetAllTooltip (the v1.77.0 tag moved, LK-95): the General page
     -- header's Reset all tooltip. No page renders here, so it answers an empty string, as above.
     H.ResetAllTooltip      = function() return "" end
+    -- The Skin tab (LibKa0s v1.78.0, OptionsAppearance minor 1; skinning-§3) and the first-run skin
+    -- picker (LibKa0s v1.79.0, OptionsSkinPicker minor 1). Every Options stub owes all four, adopted
+    -- or not; the library's "What a consumer owes" for both releases names them. On this path
+    -- RenderTabbedSchema draws nothing, so the tab entry is inert: the key stays "Appearance" and
+    -- the label is "Skin" since OptionsAppearance minor 3, as the live one answers. AppearanceRows
+    -- answers nil, as the live one does when it cannot draw. Without the library there is no skin
+    -- to pick: SkinPicker draws nothing and answers nil (never the live one's second value,
+    -- "queued": there is no queue), and HideSkinPicker is a no-op. APPEARANCE_STRINGS is the
+    -- library's published wording and stays live-only, like MASTER_GROUP (anti-patterns #47).
+    H.AppearanceTab        = function() return { key = "Appearance", label = "Skin", render = function() end } end
+    H.AppearanceRows       = function() return nil end
+    H.SkinPicker           = function() return nil end
+    H.HideSkinPicker       = function() end
     H.SetRenderer          = function() end
     H.RegisterOptionsPage  = function() end
     H.RefreshAllPanels     = function() end

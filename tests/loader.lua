@@ -35,10 +35,21 @@ local LIBKA0S = {
     "libs/LibKa0s/Item.lua",
     -- New in LibKa0s v1.75.0: the stateless LibCustomGlow-1.0 driver (Glow minor 1). Nothing here adopts it.
     "libs/LibKa0s/Glow.lua",
+    -- New in LibKa0s v1.79.0: the Toast major (Toast minor 1). Nothing here adopts it.
+    "libs/LibKa0s/Toast.lua",
     "libs/LibKa0s/Media.lua",
     -- New in LibKa0s v1.74.0: the icon catalog's packed name lists (MediaIcons minor 1), a second
     -- file of the Media major. Nothing here adopts it; Media.Icon reads it.
     "libs/LibKa0s/MediaIcons.lua",
+    -- New in LibKa0s v1.78.0: the skin engine, LibKa0s-Skin-1.0 (as of v1.80.0, key 7.15.11.5.9.2.4),
+    -- seven files after the Media major they read. core/SkinSetup.lua registers this addon's owner.
+    "libs/LibKa0s/Skin.lua",
+    "libs/LibKa0s/SkinDefs.lua",
+    "libs/LibKa0s/SkinPaint.lua",
+    "libs/LibKa0s/SkinPaintExtras.lua",
+    "libs/LibKa0s/SkinPaintControls.lua",
+    "libs/LibKa0s/SkinEUI.lua",
+    "libs/LibKa0s/SkinAce.lua",
     "libs/LibKa0s/Widgets.lua",
     -- New in LibKa0s v1.66.0: ReorderList peeled out of Widgets.lua (WidgetsReorder minor 1),
     -- loaded right after it and before the drag handle, as the XML has it. Nothing here adopts it.
@@ -50,6 +61,8 @@ local LIBKA0S = {
     "libs/LibKa0s/WidgetsLineChart.lua",
     -- New in LibKa0s v1.70.0: the Autocomplete widget, one file per widget like the chart above. Nothing here adopts it.
     "libs/LibKa0s/WidgetsAutocomplete.lua",
+    -- New in LibKa0s v1.78.0: the shared copy window (WidgetsCopyWindow minor 1). The debug console uses it.
+    "libs/LibKa0s/WidgetsCopyWindow.lua",
     "libs/LibKa0s/DebugLog.lua",
     -- New in LibKa0s v1.60.0: DebugLog's second file, the diagnostics report (debug-logging-§14).
     -- It attaches to the DebugLog shell, so it loads right after it, as the XML has it.
@@ -57,6 +70,8 @@ local LIBKA0S = {
     -- New in LibKa0s v1.65.0: DebugLog's third file, the change gates and the at-enable queue
     -- (DebugLogGates minor 1). It attaches to the DebugLog shell after the diagnostics file.
     "libs/LibKa0s/DebugLogGates.lua",
+    -- New in LibKa0s v1.78.0: the console window peeled out of DebugLog.lua (DebugLogWindow minor 1).
+    "libs/LibKa0s/DebugLogWindow.lua",
     "libs/LibKa0s/Slash.lua",
     -- New in LibKa0s v1.66.0: the value parsers peeled out of Slash.lua (SlashParse minor 1).
     -- settings/Slash.lua's parse adapter calls lib.ParseValue, which now lives here.
@@ -78,8 +93,12 @@ local LIBKA0S = {
     -- New in LibKa0s v1.73.0: the slide-out drawer (OptionsDrawer minor 1, O.Drawer). Nothing here adopts it.
     "libs/LibKa0s/OptionsDrawer.lua",
     -- New in LibKa0s v1.77.0: the settings-panel Keybindings tab (OptionsKeybinds minor 4,
-    -- O.KeybindingsTab / O.KeybindRows). The twelfth Options file, last in the XML.
+    -- O.KeybindingsTab / O.KeybindRows). The twelfth Options file.
     "libs/LibKa0s/OptionsKeybinds.lua",
+    -- New in LibKa0s v1.78.0: the Appearance tab (OptionsAppearance, O.AppearanceTab / O.AppearanceRows),
+    -- and in v1.79.0 the first-run skin picker (OptionsSkinPicker minor 1, O.SkinPicker / O.HideSkinPicker).
+    "libs/LibKa0s/OptionsAppearance.lua",
+    "libs/LibKa0s/OptionsSkinPicker.lua",
     "libs/LibKa0s/Perf.lua",
     -- New in LibKa0s v1.66.0: Perf's capture and its command surface peeled to two files of their
     -- own (PerfSampler minor 1, PerfCommands minor 1). Perf is declined here; the client loads

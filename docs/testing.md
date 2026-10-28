@@ -346,7 +346,7 @@ LibKa0s release, and it moves in the same commit as the bytes. Kit revision 9
 moved that line out of `README.md`, and the gate has no fallback — a repo that
 has not moved its line reads as carrying no provenance line at all and fails,
 naming `CLAUDE.md`. The next non-blank line under it is the icon declaration,
-`LibKa0s icons: close, copy, clear.` (kit revision 40, LibKa0s v1.75.0): the
+`LibKa0s icons: close, copy, clear, eye, settings.` (kit revision 40, LibKa0s v1.75.0): the
 re-vendor prunes `libs/LibKa0s/media/icons/` to it, and the gate fails a declared
 icon that is missing or an undeclared one that ships.
 
