@@ -49,7 +49,12 @@ function Helpers.InlineButton(ctx, spec)
     row:SetFullWidth(true)
     row:SetHeight(28)
 
+    -- Painted for this addon's skin (skinning-§3; core/SkinSetup.lua's NS.SkinPaintAce over the
+    -- library's Skin:PaintAce), Ka0s Default included, whichever AceGUI handle this is. The
+    -- library chains its restore onto the widget's OnRelease, so the button goes back to AceGUI's
+    -- shared pool stock; this file sets no OnRelease of its own. The SimpleGroup row has no art.
     local btn = AceGUI:Create("Button")
+    if NS.SkinPaintAce then NS.SkinPaintAce(btn) end
     btn:SetText(spec.text or "")
     btn:SetWidth(spec.width or 160)
     btn:SetCallback("OnClick", function()

@@ -73,6 +73,12 @@ local function build(parentCategory)
         -- filled while hidden and the page would read as blank.
         container.frame:Show()
         AceConfigDialog:Open(APPNAME, container)
+        -- AceConfigDialog acquires the manager's widgets from AceGUI itself, past the Options
+        -- instance's owner proxy, and releases and re-acquires them on every Open, so the tree is
+        -- painted for this addon's skin right after each draw (skinning-§3; core/SkinSetup.lua's
+        -- NS.SkinPaintAceTree). Each widget goes back to the pool stock when the next Open releases
+        -- it. The container itself is kept for the session, so no OnRelease of the host's exists.
+        if NS.SkinPaintAceTree then NS.SkinPaintAceTree(container) end
     end)
 
     page = ctx

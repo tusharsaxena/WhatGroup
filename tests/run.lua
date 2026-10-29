@@ -175,6 +175,11 @@ Kit.run{
         -- The skin seam (core/SkinSetup.lua, skinning-§1 to §3): the owner, its tokens, the skin
         -- rows, the Skin tab's place, the profile events and the degraded arm.
         "test_skinsetup",
+        -- The first-run skin picker (core/SkinSetup.lua, WG-04): when it shows, the spec, the real
+        -- window's preview, Apply, close, gear and eye, and the stand-down.
+        "test_skin_picker",
+        -- The addon's own AceGUI acquisitions and the debug console on the skin (WG-04).
+        "test_skin_tools",
         "test_profiles",
         "test_testmode",
         "test_snapshot",

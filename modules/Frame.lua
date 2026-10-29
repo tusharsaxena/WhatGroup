@@ -271,7 +271,7 @@ end
 -- replay rather than stacking a second, and the drain walks a fixed key list: an empty queue costs
 -- two table reads and allocates nothing (perf combatGateSteady).
 local combatEndQueue = {}
-local COMBAT_END_ORDER = { "teleport", "teleportAnchor", "firstShow" }   -- teleportAnchor: FrameSkin
+local COMBAT_END_ORDER = { "teleport", "teleportAnchor", "firstShow", "skinPicker" } -- FrameSkin, SkinSetup
 
 -- The queued keys, in replay order, as a fresh array. For the diagnostics snapshot and for the
 -- hold/flush lines below, which only ask for it behind the debug gate.

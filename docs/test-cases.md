@@ -730,6 +730,37 @@ Total.
 - skin seam: the host copy of Ka0s Default equals the library's, token for token
 - skin seam: without the library the facade answers Ka0s Default and applies nothing
 
+### test_skin_picker.lua (20)
+
+- skin picker: pickerSeen defaults to false, a skip-render row on the Appearance group
+- skin picker: the spec names this owner, its seams, General's Skin tab and the eye
+- skin picker: an unseen profile shows it; a seen one does not
+- skin picker: it shows two seconds after login, through the addon's own AceTimer
+- skin picker: a stand-down before the fuse fires cancels the login start
+- skin picker: in combat a start waits for combat end, once
+- skin picker: a held start is dropped by HideSkinPicker
+- skin picker: never while the addon is switched off
+- skin picker: a new profile and a reset profile show it again
+- skin picker: the title names this addon
+- skin picker: the player's close marks it seen; this addon's own hide does not
+- skin picker: a profile that has seen it takes a shown picker down, unmarked
+- skin picker: a pick previews, unsaved; Apply saves it and marks the picker seen
+- skin picker: the close control puts the stored skin back and saves nothing
+- skin picker: the gear saves the pick and opens General on its Skin tab
+- skin picker: the eye starts the popup's test mode and leaves the picker up
+- skin picker: a profile switch with a preview pending wears the new profile's skin
+- skin picker: a switch to an unseen profile starts a fresh showing, the old preview dropped
+- skin picker: the stand-down with a preview pending puts the old skin back, unseen
+- skin picker: degraded, there is no picker and nothing raises
+
+### test_skin_tools.lua (5)
+
+- skin tools: the Test notification button is painted for this owner, past the raw handle
+- skin tools: under Ka0s Default the button paints like every skin's
+- skin tools: the Scope's Ignore settings panel (the default) leaves the button stock
+- skin tools: the Profiles page paints the tree AceConfigDialog drew, after every Open
+- skin tools: the debug console and its copy window are painted for this owner
+
 ### test_profiles.lua (19)
 
 - profiles: the page registers this db's AceDBOptions table, as the LAST subcategory
@@ -1156,6 +1187,8 @@ Total.
 | test_skin_literals.lua | 3 |
 | test_panel.lua | 62 |
 | test_skinsetup.lua | 17 |
+| test_skin_picker.lua | 20 |
+| test_skin_tools.lua | 5 |
 | test_profiles.lua | 19 |
 | test_testmode.lua | 28 |
 | test_snapshot.lua | 10 |
@@ -1177,4 +1210,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **999** |
+| **Total** | **1024** |
