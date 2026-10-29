@@ -247,6 +247,9 @@ local function reloadProfile(self)
     -- Idempotent; normally a no-op once the account-wide schema stamp is current. Profile-scoped
     -- steps walk every stored profile (core/Database.lua).
     self:RunMigrations()
+    -- The incoming profile's skin, before anything re-reads (core/SkinSetup.lua): Skin:SetChoice
+    -- repaints every frame recorded for this owner, with the stored Scope and overrides.
+    if NS.ApplySkinChoice then NS.ApplySkinChoice() end
     -- And every open panel is showing the outgoing profile's values: General's widgets re-read
     -- their rows, and the Profiles page (settings/Profiles.lua) is re-drawn, because AceConfigDialog
     -- names the active profile only when it is fed again.
@@ -309,6 +312,10 @@ function WhatGroup:OnInitialize()
     -- Migration seam: run once, right after AceDB:New, before any code
     -- reads the profile (WG-08 / Database.lua). Idempotent.
     self:RunMigrations()
+
+    -- The skin the active profile names (core/SkinSetup.lua), right after the store exists:
+    -- RegisterOwner ran at file load, before AceDB, and read Ka0s Default.
+    if NS.ApplySkinChoice then NS.ApplySkinChoice() end
 
     -- PROFILE CALLBACKS. Switching, copying or resetting a profile replaces every
     -- stored value at once. Before these existed nothing here reacted: an open

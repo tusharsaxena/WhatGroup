@@ -313,8 +313,17 @@ end
 -- NS.DebugLog:ConsoleCheckbox() get/set, reached now through settings/Schema.lua's SESSION table
 -- rather than through a hook. Two controls over one thing is what this pass exists to remove.
 
--- General's RenderTabbedSchema opts: the library's Keybindings tab, last (options-ui-§20).
-local GENERAL_OPTS = { tabs = { Helpers.KeybindingsTab({ bindings = NS.BINDINGS }) } }
+-- General's RenderTabbedSchema opts: two library host tabs. The Skin tab (skinning-§3,
+-- O.AppearanceTab): the skin source, the nine skins, the Scope, Font and texture and "Copy to every
+-- Ka0s addon...", drawn from LibKa0s-Skin-1.0 for the owner core/SkinSetup.lua registered. Its key
+-- is "Appearance", the group of the skip-render skin rows (settings/Schema.lua), so it takes that
+-- group's place after Notifications; the library labels it "Skin". `get` and `set` are the seam's
+-- read and write, so a pick lands through Helpers.Set like every other setting. Then the
+-- Keybindings tab, last (options-ui-§20). On the degraded path both entries draw nothing.
+local GENERAL_OPTS = { tabs = {
+    Helpers.AppearanceTab({ owner = addonName, get = NS.SkinChoice, set = NS.WriteSkinChoice }),
+    Helpers.KeybindingsTab({ bindings = NS.BINDINGS }),
+} }
 
 local function buildGeneralPage(parentCategory)
     local ctx = Helpers.CreatePanel("WhatGroupGeneralPanel", "General", {

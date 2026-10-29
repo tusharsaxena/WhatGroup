@@ -78,6 +78,9 @@ Kit.setSurfaceSource{
     -- mirror that instance, not the library table.
     ["LibKa0s-Launcher-1.0"]  = surfaceNS.Launcher,
     ["LibKa0s-Lifecycle-1.0"] = surfaceNS.Lifecycle,
+    -- The owner's FACADE (core/SkinSetup.lua's NS.Skin, `Skin:For("WhatGroup")`), not the library
+    -- table: the degraded facade mirrors what a call site paints through.
+    ["LibKa0s-Skin-1.0"]      = surfaceNS.Skin,
     -- A library table too, for the same reason: settings/SchemaSetup.lua's HostSchemaStub stands in
     -- for the LIBRARY (its SplitPath / Read / Write / SameValue / New), so the by-name parity case
     -- compares it against what LibStub answers. The instance-vs-stub pair is the kit's two-table
@@ -164,6 +167,9 @@ Kit.run{
         "test_frame_secure",
         "test_frame_layers",
         "test_panel",
+        -- The skin seam (core/SkinSetup.lua, skinning-§1 to §3): the owner, its tokens, the skin
+        -- rows, the Skin tab's place, the profile events and the degraded arm.
+        "test_skinsetup",
         "test_profiles",
         "test_testmode",
         "test_snapshot",

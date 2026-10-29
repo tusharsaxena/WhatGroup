@@ -87,7 +87,7 @@ Total.
 - libka0s: Options reads no descriptor L (tripwire)
 - locale: every key enUS.lua defines has a reader
 
-### test_surface_parity.lua (9)
+### test_surface_parity.lua (10)
 
 - parity: the Core seam's whole namespace surface survives the library's absence
 - parity: the DebugLog stub carries the whole live surface
@@ -97,6 +97,7 @@ Total.
 - parity: the Schema host stub carries the library's own members
 - parity: the Launcher stub carries the whole live surface
 - parity: the Lifecycle stub carries the whole live surface
+- parity: the degraded skin facade carries the whole live facade
 - parity: the Compat reader arm carries every library member the addon wires
 
 ### test_mediasetup.lua (12)
@@ -689,6 +690,26 @@ Total.
 - panel: the Test notification button names its run and its preview (WHA-L08)
 - panel: the header Defaults tooltip is the library's Reset all settings wording (WHA-L12)
 
+### test_skinsetup.lua (17)
+
+- skin seam: the owner is the folder name, registered at file load, and NS.Skin is its facade
+- skin seam: the read answers Ka0s Default before the profile store exists
+- skin seam: the owner tokens draw today's exact pixels under Ka0s Default
+- skin seam: each owner token follows its library role token under another skin
+- skin seam: the skin keys default to Ka0s Default, with the picker unseen
+- skin seam: every skin key is a skip-render row on the Appearance tab
+- skin seam: the skin row's values are every registered skin, in the library's order
+- skin seam: /wg set refuses an unknown skin and applies a registered one live
+- skin seam: the write seam writes every half through Helpers.Set, never the profile directly
+- skin seam: OnInitialize applies the profile's skin right after the store exists
+- skin seam: a profile switch, copy or reset re-applies the incoming profile's skin live
+- skin seam: a profile event re-applies the stored overrides and Scope too
+- skin seam: the General strip carries the library's Skin tab before Keybindings
+- skin seam: the popup's window edge is painted for this owner
+- skin seam: the TOC loads the seam before the schema and lists EllesmereUI as optional
+- skin seam: the host copy of Ka0s Default equals the library's, token for token
+- skin seam: without the library the facade answers Ka0s Default and applies nothing
+
 ### test_profiles.lua (19)
 
 - profiles: the page registers this db's AceDBOptions table, as the LAST subcategory
@@ -1096,7 +1117,7 @@ Total.
 |-------|------:|
 | test_harness.lua | 17 |
 | test_libka0s.lua | 56 |
-| test_surface_parity.lua | 9 |
+| test_surface_parity.lua | 10 |
 | test_mediasetup.lua | 12 |
 | test_envsetup.lua | 10 |
 | test_util.lua | 31 |
@@ -1112,6 +1133,7 @@ Total.
 | test_frame_secure.lua | 7 |
 | test_frame_layers.lua | 8 |
 | test_panel.lua | 62 |
+| test_skinsetup.lua | 17 |
 | test_profiles.lua | 19 |
 | test_testmode.lua | 28 |
 | test_snapshot.lua | 10 |
@@ -1133,4 +1155,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **967** |
+| **Total** | **985** |

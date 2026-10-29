@@ -19,7 +19,7 @@
 -- the closures it builds for Logout / Settings / Macros are
 -- taint-free. See [docs/midnight-quirks.md] for the full taint analysis.
 
-local _, NS = ...
+local addonName, NS = ...
 local WhatGroup = NS.addon
 local L         = NS.L
 
@@ -867,8 +867,8 @@ local function buildFrame()
     sep:SetPoint("TOPRIGHT", f, "TOPRIGHT", -14, -30)
     f.divider = sep
 
-    -- Wear the shared skin, now that the two regions it tints exist.
-    NS.ApplySkin(f)
+    -- Wear the shared skin for this owner (skinning-§1), now that the two regions it tints exist.
+    NS.ApplySkin(f, nil, addonName)
 
     -- Content frame (plain, no scroll)
     local content = CreateFrame("Frame", nil, f)

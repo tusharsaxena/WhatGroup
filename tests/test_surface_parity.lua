@@ -1,7 +1,7 @@
 -- tests/test_surface_parity.lua — every degradation stub carries the whole live surface.
 --
--- WhatGroup adopts ten LibKa0s majors. Eight of them carry a degradation stub for the install where
--- libs/LibKa0s is missing, and every one of the eight has a case below:
+-- WhatGroup adopts eleven LibKa0s majors. Nine of them carry a degradation stub for the install where
+-- libs/LibKa0s is missing, and every one of the nine has a case below:
 --
 --   Core       core/CoreSetup.lua       — the namespace itself, four-argument form
 --   DebugLog   core/DebugLogSetup.lua   — by name, instance
@@ -11,6 +11,7 @@
 --   Compat     core/Compat.lua          — by name, library table
 --   Launcher   core/LauncherSetup.lua   — by name, instance
 --   Lifecycle  core/LifecycleSetup.lua  — by name, instance
+--   Skin       core/SkinSetup.lua       — by name, the owner's facade
 --
 -- The other two, Env (core/EnvSetup.lua) and Media (core/MediaSetup.lua), publish plain values
 -- onto NS rather than a member table, so the Core case's whole-namespace comparison is what covers
@@ -221,6 +222,20 @@ test("parity: the Lifecycle stub carries the whole live surface", function()
     -- working `/wg disable` without the library), so it has no reason to be short a member either.
     local degraded = T.newAddon{ skip = NO_LIBKA0S }
     T.assertSurfaceParity(degraded.Lifecycle, "LibKa0s-Lifecycle-1.0")
+end)
+
+-- ---------------------------------------------------------------------------
+-- Skin
+-- ---------------------------------------------------------------------------
+
+test("parity: the degraded skin facade carries the whole live facade", function()
+    -- The live half is the owner's facade core/SkinSetup.lua publishes as NS.Skin, Skin:For("WhatGroup"),
+    -- registered under the major's name by tests/run.lua. The live surface, off the library file:
+    --   grep -n "lib.VOCAB" -A9 libs/LibKa0s/Skin.lua   and fillFacade below it.
+    -- Nothing is ignored: every primitive a call site paints through must answer on the degraded
+    -- path, a no-op where it has no host meaning, so no surface raises without the library.
+    local degraded = T.newAddon{ skip = NO_LIBKA0S }
+    T.assertSurfaceParity(degraded.Skin, "LibKa0s-Skin-1.0")
 end)
 
 -- ---------------------------------------------------------------------------

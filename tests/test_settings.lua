@@ -131,6 +131,9 @@ local function readFile(path)
     return body
 end
 
+-- The string rows with no value set (see the case below): the skin's Font and Texture overrides.
+local FREE_TEXT = { ["skin.font"] = true, ["skin.texture"] = true }
+
 test("settings: every schema row declares the fields the panel and CLI need", function()
     local NS = T.newAddon()
     for i, def in ipairs(NS.addon.Settings.Schema) do
@@ -142,10 +145,16 @@ test("settings: every schema row declares the fields the panel and CLI need", fu
         assertTrue(def.type == "bool" or def.type == "number" or def.type == "string",
             where .. " type")
         assertTrue(def.default ~= nil, where .. " default")
-        -- An enum row is only usable if the panel and the CLI can both enumerate it.
-        if def.type == "string" then
+        -- An enum row is only usable if the panel and the CLI can both enumerate it. A map of
+        -- values needs `sorting` for an order; a list of { value, text } (the skin rows) is ordered
+        -- by itself. The two free-text rows are the skin overrides: LibSharedMedia keys, which a
+        -- media pack may register after this file loads, so no value set can be declared.
+        if def.type == "string" and def.values == nil then
+            assertTrue(FREE_TEXT[def.path] == true, where .. " a string row with no values")
+        elseif def.type == "string" then
             assertEqual(type(def.values), "table", where .. " values")
-            assertEqual(type(def.sorting), "table", where .. " sorting")
+            local list = type(def.values[1]) == "table" and def.values[1].value ~= nil
+            if not list then assertEqual(type(def.sorting), "table", where .. " sorting") end
         end
     end
 end)
@@ -515,7 +524,8 @@ end)
 --- One page, so one entry. WhatGroup registers a single settings sub-page ("general"); every row
 --- carries `section` for `/wg list` and `group` for the tab, and no row is hidden.
 local PARTITION = {
-    general = { { "Master controls", 8 }, { "Notifications", 12 } },
+    -- Appearance: the seven skip-render skin rows the library's Skin tab draws (skinning-§3).
+    general = { { "Master controls", 8 }, { "Notifications", 12 }, { "Appearance", 7 } },
 }
 
 test("settings: the page's tabs are the designed ones, in order, at the designed size",
@@ -563,7 +573,7 @@ test("settings: every row's group is one of the designed tabs", function()
     -- The partition case above pins the counts; this one pins the NAMES, so a typo'd group on a
     -- new row reads as "Notificatons is not a tab" rather than as a count that happens to still add up.
     local NS = T.newAddon()
-    local known = { ["Master controls"] = true, Notifications = true }
+    local known = { ["Master controls"] = true, Notifications = true, Appearance = true }
     for _, row in ipairs(NS.addon.Settings.Schema) do
         assertTrue(known[row.group] == true, row.path .. " is filed under " .. tostring(row.group))
     end
@@ -823,6 +833,14 @@ local STORED_SETTINGS = {
     "notify.showTeleport = bool|true|nil|nil|nil|notify|false",
     "notify.showType = bool|true|nil|nil|nil|notify|false",
     "scale = number|1|0.5|2|0.05|general|false",
+    -- WG-01 (the skinning rollout): the seven skin keys, added after item 020's pass.
+    "skin.font = string||nil|nil|nil|skin|false",
+    "skin.ignoreFonts = bool|false|nil|nil|nil|skin|false",
+    "skin.ignorePanel = bool|true|nil|nil|nil|skin|false",
+    "skin.pickerSeen = bool|false|nil|nil|nil|skin|false",
+    "skin.skin = string|ka0s|nil|nil|nil|skin|false",
+    "skin.source = string|ka0s|nil|nil|nil|skin|false",
+    "skin.texture = string||nil|nil|nil|skin|false",
     "state.debugConsole = bool|false|nil|nil|nil|general|true",
     "state.testMode = bool|false|nil|nil|nil|general|true",
     "visibility = string|always|nil|nil|nil|general|false",
