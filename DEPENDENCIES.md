@@ -26,6 +26,9 @@ separate library addon and no dependency manager.
 `WhatGroup.toc:8` declares those libraries under `## OptionalDeps:` rather than `## Dependencies:`
 **deliberately** — they are optional *external* addons, and the vendored copies satisfy them either
 way. There is **no** `## Dependencies:` line, so the addon has no hard external addon requirement.
+The same line also names **EllesmereUI**, which is not vendored and not needed: when a player has
+it installed, it loads first and the Skin tab can offer its look as a skin source (skinning-§5);
+without it the addon wears its Ka0s skin.
 
 `.pkgmeta:3-4` records the same thing from the packaging side: no `externals:` block, the packager
 ships the repo as-is.

@@ -10,7 +10,10 @@ Every stored setting except one. That is every profile-scoped row of the schema:
 
 - the Master controls stored at the profile root: `enabled`, `visibility`, `scale`, `alpha`, `locked`;
 - the **Notifications** tab: `notify.delay`, `notify.enabled` and the `notify.show*` lines, then
-  `frame.autoShow`, `frame.width`, `frame.height`.
+  `frame.autoShow`, `frame.width`, `frame.height`;
+- the **Skin** tab: `skin.source`, `skin.skin`, `skin.ignorePanel`, `skin.ignoreFonts`, `skin.font`,
+  `skin.texture`, and `skin.pickerSeen`, the first-run skin picker's memory (a new or reset profile shows
+  the picker once; a copy carries its source's).
 
 A new profile starts from `defaults/Profile.lua` (`NS.C`), the one place a profile default is written
 (savedvariables-§2).
@@ -69,12 +72,15 @@ All three events end in `reloadProfile` (`core/WhatGroup.lua`):
 OnProfileChanged / OnProfileCopied / OnProfileReset
   ├─ the event's one debug line         (below)
   └─ reloadProfile
+       ├─ HideSkinPicker()              a shown first-run picker down, unmarked, its preview put back
        ├─ RunMigrations()               the incoming profile may predate the schema version
+       ├─ ApplySkinChoice()             the incoming profile's skin, Scope and overrides, live
        ├─ Helpers.RefreshAll()          open General widgets re-read their rows
        ├─ Settings.RefreshProfilesPage  the Profiles page re-draws (or is marked to)
        ├─ Lifecycle:Set / :Reevaluate   `enabled` is profile-scoped, so the latch re-syncs:
        │                                a disabled profile stands the addon down, an enabled one
        │                                stands it back up (slash-commands-§7)
+       ├─ MaybeShowSkinPicker()         the picker again where `skin.pickerSeen` is false
        └─ ApplyFrameSize / Scale /      the popup takes the incoming profile's look; size and
           Alpha / Visibility            scale wait for the end of combat, as their rows do
 ```

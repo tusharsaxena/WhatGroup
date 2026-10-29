@@ -35,6 +35,8 @@ The **Notifications** tab holds the whole join flow. Under **Chat summary** you 
 
 You can also bind a key to open and close the popup, **Toggle group popup**, in either of two places that show the same keys: Options → Keybindings → **Ka0s WhatGroup**, or **General → Keybindings** in this addon's settings. A key set in one shows in the other. The tab has one key button and **Clear**; when Options → Keybindings holds a second key for it, the button reads `<key> +1` and its tooltip names both. It has no key until you pick one, and the key is saved by the game, so Defaults and Reset all settings leave it alone. A press does what the minimap menu's **Show window** does, and while WhatGroup is disabled it says so in chat instead.
 
+The popup wears a skin, Ka0s Default to start with. The first time a profile loads, a small window asks you to pick one: choosing from its list previews it on the popup, the eye shows it on the sample group, and **Apply** keeps it, while closing the window leaves the skin you had. You can change it later on the **Skin** tab of **General**, which also offers EllesmereUI's look when EllesmereUI is installed, a font of your own, and a button that gives the same skin to your other Ka0s addons. Each profile keeps its own skin.
+
 Everything else is on the **Ka0s WhatGroup** page in Settings → AddOns, which `/wg` opens, and `/wg help` lists every command.
 
 ## How it works
