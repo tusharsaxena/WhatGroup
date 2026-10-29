@@ -25,6 +25,8 @@ local L         = NS.L
 
 local LABEL_WIDTH  = 72
 local yGap         = -18
+local DASH         = "—"              -- the dim placeholder for an unknown role or playstyle
+local Look         = NS.FrameSkin     -- the popup's look (modules/FrameSkin.lua, loaded above)
 
 -- These get assigned inside buildFrame() and are nil until the popup
 -- is first shown. PopulateFields and ConfigureTeleportButton both
@@ -269,7 +271,7 @@ end
 -- replay rather than stacking a second, and the drain walks a fixed key list: an empty queue costs
 -- two table reads and allocates nothing (perf combatGateSteady).
 local combatEndQueue = {}
-local COMBAT_END_ORDER = { "teleport", "firstShow" }
+local COMBAT_END_ORDER = { "teleport", "teleportAnchor", "firstShow" }   -- teleportAnchor: FrameSkin
 
 -- The queued keys, in replay order, as a fresh array. For the diagnostics snapshot and for the
 -- hold/flush lines below, which only ask for it behind the debug gate.
@@ -607,7 +609,7 @@ local function applyTeleportNote(spellID, known, remaining, onCooldown, info)
     -- said, with no figure, because there is no figure to give.
     local function renderNote(secondsLeft)
         local figure = secondsLeft and (" — " .. NS.FormatDuration(secondsLeft)) or ""
-        note:SetText("|cff888888" .. L["On cooldown"] .. figure .. "|r")
+        note:SetText(L["On cooldown"] .. figure)
         note:Show()
     end
 
@@ -615,7 +617,7 @@ local function applyTeleportNote(spellID, known, remaining, onCooldown, info)
     -- and "on cooldown" would answer a question nobody asked while burying the one that
     -- explains the gray icon. A ready teleport needs no explanation, so the note goes.
     if not known then
-        note:SetText("|cff888888" .. L["Teleport spell not learned"] .. "|r")
+        note:SetText(L["Teleport spell not learned"])
         note:Show()
     elseif onCooldown then
         renderNote(remaining)
@@ -821,17 +823,11 @@ local function buildFrame()
         end
     end)
 
-    -- The whole look — backdrop AND colors — now comes from LibKa0s-Core-1.0's shared SKIN
-    -- through NS.ApplySkin (standalone-windows: the Ka0s window edge is normative, and a window
-    -- MUST NOT draw one that diverges from it). The popup's own 1px hairline is what the shared
-    -- edge already is, so the geometry is unchanged; what it gains is the 1px gray inner highlight
-    -- ApplySkin synthesizes, and a black outer border in place of the old gray one.
-    --
-    -- `f.title` and `f.divider` are assigned first, below, because ApplySkin tints whichever of
-    -- them the frame carries and skips the ones it does not — which is why the call itself sits
-    -- after the header rather than here. The title's own |cffFFD700 span survives the tint (an
-    -- inline color code wins over SetTextColor for its span), and the gold ApplySkin sets is the
-    -- color GameFontNormalLarge already renders in, so the header reads exactly as before.
+    -- The whole look comes from the owner's skin (skinning-§3): the window through NS.ApplySkin
+    -- with the owner, which hands it to the skin's Shell, and every string and control through
+    -- modules/FrameSkin.lua, which also repaints the title and re-anchors the secure button on a
+    -- skin change. `f.title` and `f.divider` are assigned first, below, because the Shell tints
+    -- whichever of them the frame carries, so the call sits after the header.
 
     -- Title bar (drag handle)
     local titleBar = CreateFrame("Frame", nil, f)
@@ -856,7 +852,7 @@ local function buildFrame()
 
     local titleText = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     titleText:SetPoint("CENTER", titleBar, "CENTER", 0, -2)
-    titleText:SetText("|cffFFD700" .. L["WhatGroup"] .. "|r — " .. L["Group Info"])
+    Look.Title(titleText)
     f.title = titleText
 
     -- Separator line under title. The color is set by ApplySkin below (0.24, 0.24, 0.27, 0.85 —
@@ -880,14 +876,15 @@ local function buildFrame()
         local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         label:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, yOffset)
         label:SetWidth(LABEL_WIDTH)
-        label:SetText("|cffFFD700" .. labelText .. "|r")
+        label:SetText(labelText)
+        Look.Label(label)
         label:SetJustifyH("LEFT")
         label:SetWordWrap(false)
 
         local value = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
         value:SetPoint("TOPLEFT", label, "TOPLEFT", LABEL_WIDTH + 6, 0)
         value:SetJustifyH("LEFT")
-        value:SetText(valueText or "")
+        Look.Value(value, valueText or "")
 
         return label, value
     end
@@ -906,24 +903,17 @@ local function buildFrame()
 
     local lblPort = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     lblPort:SetPoint("TOPLEFT", lblStyle, "BOTTOMLEFT", 0, yGap)
-    lblPort:SetText("|cffFFD700" .. L["Teleport:"] .. "|r")
+    lblPort:SetText(L["Teleport:"])
+    Look.Label(lblPort)
     lblPort:SetJustifyH("LEFT")
     lblPort:SetWidth(LABEL_WIDTH)
     lblPort:SetWordWrap(false)
 
-    -- Secure cast button — anonymous (no global name), parented directly
-    -- to f. The implicit-parent SetPoint form is the only one the
-    -- secure-frame system accepts on a protected frame, so we anchor
-    -- the button's TOPLEFT against f's TOPLEFT with offsets derived
-    -- from the Teleport label's actual rendered position. This way the
-    -- button stays aligned with its label even if LABEL_WIDTH, yGap,
-    -- or the row count changes — no magic offsets to retune.
-    local btnX = (lblPort:GetLeft() - f:GetLeft()) + LABEL_WIDTH + 6
-    local btnY = lblPort:GetTop()  - f:GetTop()   -- negative; lblPort sits below f.TOPLEFT
-
+    -- Secure cast button — anonymous (no global name), parented directly to f, and anchored
+    -- beside the Teleport label by modules/FrameSkin.lua (Look.Attach, below), which takes the
+    -- offset from the label's rendered position and takes it again when a skin's font moves it.
     local teleportBtn = CreateFrame("Button", nil, f, "SecureActionButtonTemplate")
     teleportBtn:SetSize(24, 24)
-    teleportBtn:SetPoint("TOPLEFT", btnX, btnY)
     -- BOTH edges are required, and this comment is the reason. WG-R-05 offered two resolutions —
     -- "register one click edge" OR "document the PreClick gate as the reason both are needed" —
     -- and this is the second one, taken on measured in-game evidence.
@@ -940,6 +930,8 @@ local function buildFrame()
     -- exactly one debug line per press. That gate is what makes the second edge free.
     teleportBtn:RegisterForClicks("AnyUp", "AnyDown")
     teleportBtn:Hide()
+    Look.Attach({ frame = f, title = titleText, label = lblPort, button = teleportBtn,
+                  labelWidth = LABEL_WIDTH })
 
     local teleportIcon = teleportBtn:CreateTexture(nil, "ARTWORK")
     teleportIcon:SetAllPoints()
@@ -959,6 +951,7 @@ local function buildFrame()
     local teleportNote = content:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     teleportNote:SetPoint("TOPLEFT", lblPort, "TOPLEFT", LABEL_WIDTH + 6 + 24 + 8, -6)
     teleportNote:SetJustifyH("LEFT")
+    Look.Note(teleportNote)
     teleportNote:Hide()
 
     -- (No content:SetHeight here — content's TOPLEFT and BOTTOMRIGHT
@@ -975,6 +968,7 @@ local function buildFrame()
     -- raised ADDON_ACTION_BLOCKED naming this addon. The press is remembered instead and honored
     -- the moment the lockdown lifts, which is the closest thing to "close" the client permits.
     closeBtn:SetScript("OnClick", dismissPopup)
+    Look.Button(closeBtn)   -- after the script: the primitive HookScripts its hover pair
 
     -- The plain controls the combat soft hide makes mouse-dead (setControlsMouse, above).
     mouseControls[1], mouseControls[2] = titleBar, closeBtn
@@ -1048,13 +1042,14 @@ end
 local function PopulateFields()
     local info = shownInfo()
     if not info then
-        local noData = "|cff888888" .. L["No data"] .. "|r"
-        fields.group:SetText(noData)
-        fields.instance:SetText(noData)
-        fields.type:SetText(noData)
-        fields.leader:SetText(noData)
-        fields.role:SetText("|cff888888—|r")
-        fields.playstyle:SetText("|cff888888—|r")
+        -- The placeholders in wg.placeholder (modules/FrameSkin.lua), never an inline escape.
+        local noData = L["No data"]
+        Look.Value(fields.group, noData, true)
+        Look.Value(fields.instance, noData, true)
+        Look.Value(fields.type, noData, true)
+        Look.Value(fields.leader, noData, true)
+        Look.Value(fields.role, DASH, true)
+        Look.Value(fields.playstyle, DASH, true)
         -- Through the configure, never a bare Hide: the button is a SecureActionButtonTemplate, and
         -- a popup soft-hidden at alpha 0 is still shown, so a reopen in combat reaches this branch
         -- inside the lockdown. The configure defers itself there and, out of combat, clears the
@@ -1064,21 +1059,21 @@ local function PopulateFields()
         return
     end
 
-    fields.group:SetText(info.title)
+    Look.Value(fields.group, info.title)
 
     local instText = info.fullName ~= "" and info.fullName or L["Unknown"]
-    fields.instance:SetText(instText)
+    Look.Value(fields.instance, instText)
 
     local Labels = WhatGroup.Labels
     local typeStr = info.shortName ~= "" and info.shortName or Labels.GetGroupTypeLabel(info)
-    fields.type:SetText(typeStr)
+    Look.Value(fields.type, typeStr)
 
-    fields.leader:SetText(info.leaderName)
+    Look.Value(fields.leader, info.leaderName)
 
     -- Assigned, then the application's, then the offered roles (Labels.GetRoleLabel); "" when none
     -- is known, which the popup draws as the dim em-dash, as it does an unknown playstyle.
     local role = Labels.GetRoleLabel(info)
-    fields.role:SetText(role ~= "" and role or "|cff888888—|r")
+    Look.Value(fields.role, role ~= "" and role or DASH, role == "")
 
     -- Through the sibling of the GetGroupTypeLabel call above, not open-coded: the helper already
     -- prefers the server-rendered playstyleString and falls back to the PLAYSTYLE enum lookup, and
@@ -1087,7 +1082,7 @@ local function PopulateFields()
     -- through to the dim em-dash placeholder, which stays the POPUP's decision — the chat summary
     -- renders the same absence differently.
     local playStyle = Labels.GetPlaystyleLabel(info)
-    fields.playstyle:SetText(playStyle ~= "" and playStyle or "|cff888888—|r")
+    Look.Value(fields.playstyle, playStyle ~= "" and playStyle or DASH, playStyle == "")
 
     ConfigureTeleportButton(fields.teleportBtn, fields.teleportIcon, info)
 end

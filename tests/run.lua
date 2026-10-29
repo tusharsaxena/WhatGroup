@@ -166,6 +166,11 @@ Kit.run{
         "test_frame_visibility",
         "test_frame_secure",
         "test_frame_layers",
+        -- The popup's look on the skin (modules/FrameSkin.lua, WG-02): tokens, live repaint, the
+        -- secure button's re-anchor.
+        "test_frame_skin",
+        -- The hard-coded color gate (anti-pattern #107): no literal the skin cannot reach.
+        "test_skin_literals",
         "test_panel",
         -- The skin seam (core/SkinSetup.lua, skinning-§1 to §3): the owner, its tokens, the skin
         -- rows, the Skin tab's place, the profile events and the degraded arm.

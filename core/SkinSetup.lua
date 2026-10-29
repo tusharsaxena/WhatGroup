@@ -93,6 +93,7 @@ NS.SKIN_FALLBACK = {
     ["win.inner"]      = { 0.24, 0.24, 0.27, 0.85 },
     ["title.text"]     = { 1, 0.82, 0, 1 },
     ["divider"]        = { 0.24, 0.24, 0.27, 0.85 },
+    ["text.highlight"] = { 1, 1, 1, 1 },             -- the popup's field values (modules/FrameSkin.lua)
 }
 for name, def in pairs(NS.SKIN_TOKENS) do NS.SKIN_FALLBACK[name] = def.default end
 
@@ -233,8 +234,13 @@ if not Skin then
         local fs = (type(opts) == "table" and opts.text) or (bar and (bar.title or bar.text))
         if fs and fs.SetTextColor then fs:SetTextColor(color("title.text")) end
     end
+    -- A role maps to its text.<role> token, and a token NAME (one with a dot: wg.label,
+    -- text.highlight) is read as itself, as the live primitive reads it.
     S.Text = function(fs, role)
-        local r, g, b, a = color(role == "title" and "title.text" or ("text." .. tostring(role)))
+        local name = role == "title" and "title.text"
+            or (type(role) == "string" and role:find(".", 1, true) and role)
+            or ("text." .. tostring(role))
+        local r, g, b, a = color(name)
         if r and fs and fs.SetTextColor then fs:SetTextColor(r, g, b, a) end
     end
     S.GetPanelColor = function() return color("win.bg") end
