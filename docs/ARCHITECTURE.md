@@ -296,8 +296,8 @@ surface carries a typed look value.
   popup's FFD700 gold, following `title.text` and `text.heading`) and `wg.placeholder` (its 888888
   gray, following `text.disabled`). Each keeps Ka0s Default's exact pixel and follows its role token
   under every other skin (the rollout's X1, X2 and X12). It publishes `NS.Skin` (the owner's facade),
-  `NS.SkinColor` / `NS.SkinEscape`, `NS.SkinPaintAce` / `NS.SkinPaintAceTree` / `NS.SkinOnRelease`,
-  and `NS.ApplySkinChoice` / `NS.ApplySkinIgnore` / `NS.ApplySkinOverride`. Its degraded arm answers
+  `NS.SkinEscape`, `NS.SkinPaintAce` / `NS.SkinPaintAceTree`, and `NS.ApplySkinChoice` /
+  `NS.ApplySkinIgnore` / `NS.ApplySkinOverride`. Its degraded arm answers
   every facade name from `NS.SKIN_FALLBACK`, a host copy of the Ka0s Default tokens the addon reads,
   which `tests/test_skinsetup.lua` holds to the library's values; `tests/test_surface_parity.lua`
   holds the degraded facade to the live one key for key.

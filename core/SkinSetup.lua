@@ -32,14 +32,12 @@ local addonName, NS = ...
 --   NS.SKIN_SOURCE_OPTIONS  the source row's values, and NS.SKIN_OPTIONS the skin row's (every
 --   NS.SKIN_OPTIONS         registered skin, in the library's order). settings/Schema.lua reads both.
 --   NS.SKIN_FALLBACK        the host copy of the Ka0s Default tokens the degraded facade answers.
---   NS.SkinColor(name)      a color token as a call site writes it (three components when opaque).
 --   NS.SkinEscape(name)     a color token as a "|cffrrggbb" escape, rounded to the byte, so markup
 --                           written as a literal keeps its bytes on Ka0s Default (|cffffd700).
 --   NS.SkinPaintAce(w)      an AceGUI widget this addon acquired itself, painted for this owner:
 --   NS.SkinPaintAceTree(c)  `Skin:PaintAce` / `Skin:PaintAceTree` with the owner bound (the facade
---                           carries neither). Release restores stock.
---   NS.SkinOnRelease(w, fn) host release work chained onto the widget's own OnRelease
---                           (`Skin:OnRelease`), so it and the skin's restore both run.
+--                           carries neither). Release restores stock. The addon sets no
+--                           OnRelease of its own, so it publishes no Skin:OnRelease seam.
 --   NS.MaybeShowSkinPicker() the first-run skin picker (LibKa0s OptionsSkinPicker 1): the
 --                           library's picker while the profile's `skin.pickerSeen` is false and the
 --                           addon stands up; held to combat's end in combat. Answers the frame, or
@@ -105,16 +103,6 @@ NS.SKIN_FALLBACK = {
     ["text.highlight"] = { 1, 1, 1, 1 },             -- the popup's field values (modules/FrameSkin.lua)
 }
 for name, def in pairs(NS.SKIN_TOKENS) do NS.SKIN_FALLBACK[name] = def.default end
-
---- A color token's components AS A CALL SITE WRITES THEM: r, g, b for an opaque color and r, g, b,
---- a otherwise, so a site that passed three components before it read a token still passes three
---- on Ka0s Default. nil for a token the skin leaves alone. Read through NS.Skin at call time.
-function NS.SkinColor(name)
-    local r, g, b, a = NS.Skin.Color(name)
-    if r == nil then return nil end
-    if a == nil or a == 1 then return r, g, b end
-    return r, g, b, a
-end
 
 --- A color token as a "|cffrrggbb" escape, each channel rounded to the nearest byte, so markup a
 --- call site wrote as a literal keeps its bytes on Ka0s Default. nil for a token the skin leaves
@@ -192,16 +180,6 @@ local function storedIgnore()
     local H = seam()
     if not H then return false, false end
     return H.Get(PANEL_PATH) == true, H.Get(FONTS_PATH) == true
-end
-
--- AceGUI keeps ONE callback per event name (options-ui-§19). Without the library's chain there is
--- no skin restore to share the release with, so the host's work takes the callback.
-local function releaseByCallback(widget, fn)
-    if type(widget) ~= "table" or type(fn) ~= "function" or type(widget.SetCallback) ~= "function" then
-        return nil
-    end
-    widget:SetCallback("OnRelease", function(w) fn(w) end)
-    return fn
 end
 
 -- ── the first-run skin picker (LibKa0s OptionsSkinPicker 1; the rollout's O3 and X6) ──────────
@@ -384,7 +362,6 @@ if not Skin then
     -- Nothing to paint an AceGUI row with: stock AceGUI, as the client draws it.
     function NS.SkinPaintAce() return false end
     function NS.SkinPaintAceTree() return 0 end
-    NS.SkinOnRelease = releaseByCallback
     return
 end
 
@@ -414,11 +391,6 @@ end
 function NS.SkinPaintAceTree(container)
     if type(Skin.PaintAceTree) ~= "function" then return 0 end
     return Skin:PaintAceTree(addonName, container)
-end
-
-function NS.SkinOnRelease(widget, fn)
-    if type(Skin.OnRelease) ~= "function" then return releaseByCallback(widget, fn) end
-    return Skin:OnRelease(widget, fn)
 end
 
 function NS.ApplySkinIgnore(panel, fonts)
