@@ -1,0 +1,16 @@
+Independent review of WhatGroup's skinning adoption (WG-RV..WG-05): PASS with five minor findings. The reviewer's gate run was 1024 passed / 0 failed / 1 skipped, and luacheck reported 0/0 in 69 files.
+
+FIXED
+- F3 (FrameSkin): a skin moved while the addon was stood down, in combat, queued "teleportAnchor" after FrameStandDown had wiped the queue, and a disabled addon has no drain for it. AnchorTeleport now returns early while stood down, and NS.StandUp re-anchors once. Test-first case added in tests/test_frame_skin.lua. Commit a2a3aab (WG-02).
+- F2 (SkinSetup): dead exports removed. NS.SkinColor, NS.SkinOnRelease and releaseByCallback (both arms) are gone, the literal gate's hint now names NS.Skin.Color, and the header, ARCHITECTURE and module-map are updated. Commit ce2c96b (WG-01 + WG-04).
+
+HANDED TO THE LEAD (no change in this repo)
+- F1: WG-03 has no HUD and gets no commit. The exceptions.tsv row lives in Ka0sAddonsCommonTasks, which this run may not write, so the lead records it. Corrected proofs, both verified to exit 0:
+  ! { grep -vE '^\s*--' defaults/Profile.lua | grep -E 'texture|border|font|color' | grep -vE '^\s*(font|texture)\s*= "",'; }
+  ! git grep -nE 'Resolve\(|FROM_SKIN|fromSkin|ResetToSkin' -- ':!libs' ':!tests' ':!docs' ':!*.md' ':!core/SkinSetup.lua'
+
+DECLINED
+- F4: 058a033 (WG-RV) carries the earlier, stuck session's Claude-Session trailer. Rewording it would rewrite a commit, which is the owner's call, so it is accepted as that session's own attribution.
+- F5: skinning-§3 says the tab is labeled "Appearance", but the library has rendered "Skin" since OptionsAppearance minor 3. This is upstream drift in WowAddonStandards, outside this repo. WhatGroup is right to follow the library.
+
+Gate after the fixes: ka0s-bounded lua tests/run.lua 1025 passed / 0 failed / 1 skipped; ka0s-bounded luacheck . 0 warnings / 0 errors in 69 files.
