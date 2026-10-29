@@ -83,7 +83,7 @@ button:ClearAllPoints()
 button:SetPoint("TOPLEFT", x, y)
 ```
 
-It runs once when the popup is built and again on every skin change (`NS.Skin.OnLooksChanged`), because a skin's font moves the label. A switch that leaves the offset unchanged does nothing; one in combat is queued on the popup's combat-end queue under `teleportAnchor`, since `SetPoint` on the secure button is refused in combat.
+It runs once when the popup is built and again on every skin change (`NS.Skin.OnLooksChanged`), because a skin's font moves the label. A switch that leaves the offset unchanged does nothing; one in combat is queued on the popup's combat-end queue under `teleportAnchor`, since `SetPoint` on the secure button is refused in combat. While the addon stands down it does nothing at all (the stand-down wiped that queue and a disabled addon has no drain), and `NS.StandUp` runs it once on the way back up.
 
 Retail's secure-frame system rejects any `SetPoint` call on a protected frame that names a non-secure region as the anchor target — even when that region is the protected frame's own parent. The 3-arg form lets the engine resolve the parent transitively after the protection check has already passed, so anchoring against `f` works inside `buildFrame()`. The offsets are computed from the Teleport label's actual rendered position via `GetLeft()`/`GetTop()` rather than hard-coded magic numbers, so changes to `LABEL_WIDTH`, `yGap`, the row count or the skin's font keep the button aligned with its label automatically. See [midnight-quirks.md → Secure buttons can't have an explicit non-secure anchor target](./midnight-quirks.md#secure-buttons-cant-have-an-explicit-non-secure-anchor-target).
 

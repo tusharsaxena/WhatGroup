@@ -219,6 +219,32 @@ test("popup skin: in combat the re-anchor waits for combat end, then lands", fun
     assertEqual(y, -150, "the queued anchor lands at combat end")
 end)
 
+test("popup skin: a switch while stood down queues no anchor; the stand-up re-anchors", function()
+    -- A disabled addon has no PLAYER_REGEN_ENABLED drain, so an anchor queued after
+    -- NS.FrameStandDown wiped the queue would sit there until re-enable. Another Ka0s addon's
+    -- "Copy to every Ka0s addon" or an EllesmereUI repaint can move this skin while it is off.
+    -- red under: an AnchorTeleport with no stand-down gate (combatQueue holds "teleportAnchor"),
+    -- or a stand-up that does not re-anchor (the button stays beside the label's old top).
+    local NS, _, mock = T.bootAddon()
+    local H = NS.addon.Settings.Helpers
+    NS.addon:ShowFrame()
+    local s, btn = strings(mock), teleportBtn(mock)
+    quietly(NS, function() H.Set("enabled", false) end)
+    assertTrue(NS.IsStoodDown(), "the switch stood the addon down")
+    rawset(s.port, "GetTop", function() return -150 end)
+    mock.combat = true
+    quietly(NS, function() NS.ApplySkinChoice("ka0s", OTHER) end)
+    assertEqual(#NS.FrameSnapshot().combatQueue, 0, "a stood-down skin switch queued protected work")
+    mock.combat = false
+    quietly(NS, function() NS.ApplySkinChoice("ka0s", "ka0s") end)
+    local _, _, _, _, y = btn:GetPoint(1)
+    assertEqual(y, 0, "a stood-down skin switch moved the protected button")
+    quietly(NS, function() H.Set("enabled", true) end)
+    assertFalse(NS.IsStoodDown(), "and the switch stood it back up")
+    _, _, _, _, y = btn:GetPoint(1)
+    assertEqual(y, -150, "the stand-up re-anchors the button beside its label")
+end)
+
 test("popup skin: a switch before the popup exists builds nothing", function()
     -- The look is lazy like the popup: OnLooksChanged before the first show must not build it.
     local NS, _, mock = T.bootAddon()

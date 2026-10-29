@@ -480,6 +480,9 @@ function NS.StandUp()
     self:UnregisterEvent("PLAYER_REGEN_ENABLED")
     registerFeatureEvents(self)
     registerLinkCallback()
+    -- The teleport button's anchor, skipped while down (modules/FrameSkin.lua): a skin that moved
+    -- in the meantime moved its label. In combat it queues for the drain registered above.
+    if NS.FrameSkin then NS.FrameSkin.AnchorTeleport() end
     if self.ApplyFrameVisibility then self:ApplyFrameVisibility() end
 end
 

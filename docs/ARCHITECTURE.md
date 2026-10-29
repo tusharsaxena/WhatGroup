@@ -323,7 +323,9 @@ surface carries a typed look value.
   the title, whose "WhatGroup" span is a `NS.SkinEscape("wg.brand")` escape, and it re-anchors the
   **secure teleport button** beside its label, because a skin's font moves the label and the offset
   is read from where the label renders. `SetPoint` on the secure button is refused in combat, so the
-  anchor waits on the popup's combat-end queue (key `teleportAnchor`). Nothing on a skin switch runs
+  anchor waits on the popup's combat-end queue (key `teleportAnchor`). While the addon stands down
+  the re-anchor is skipped, because the stand-down wiped that queue and nothing drains it, and
+  `NS.StandUp` re-anchors once on the way back up. Nothing on a skin switch runs
   `PopulateFields` or `ConfigureTeleportButton`.
 - **The first-run skin picker.** `NS.MaybeShowSkinPicker` shows the library's picker
   (`Helpers.SkinPicker`, `NS.SkinPickerSpec`) while the profile's `skin.pickerSeen` is false (owner

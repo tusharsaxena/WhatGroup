@@ -18,7 +18,8 @@ local _, NS = ...
 --   Attach(parts)        hands over the popup's frame, title, Teleport label and secure button,
 --                        then anchors the button (AnchorTeleport).
 --   AnchorTeleport()     the secure button's TOPLEFT beside its label, from the label's rendered
---                        position. Refused in combat and queued for combat end.
+--                        position. Refused in combat and queued for combat end. A no-op while
+--                        the addon stands down; NS.StandUp (core/WhatGroup.lua) calls it again.
 --
 -- ── WHY TOKENS AND NOT ROLES ─────────────────────────────────────────────────────────────────
 --
@@ -66,6 +67,11 @@ function FrameSkin.Button(btn) NS.Skin.Button(btn) end
 function FrameSkin.AnchorTeleport()
     local p = parts
     if not p then return end
+    -- Stood down, the addon owes no protected work: NS.FrameStandDown wiped the combat-end queue
+    -- and nothing drains it again until the stand-up, so a skin moved meanwhile (another Ka0s
+    -- addon's "Copy to every Ka0s addon", an EllesmereUI repaint) would leave an entry held. The
+    -- cache is left alone, so the stand-up's call computes the anchor afresh.
+    if NS.IsStoodDown and NS.IsStoodDown() then return end
     -- The implicit-parent SetPoint form is the only one the secure-frame system accepts on a
     -- protected frame, so the offsets are taken against f's TOPLEFT from where the Teleport label
     -- actually renders: the button stays beside its label whatever LABEL_WIDTH, the row gap, the
