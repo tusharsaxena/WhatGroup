@@ -5,6 +5,24 @@ local T = _G.WHATGROUP_TEST
 local test, assertEqual, assertTrue, assertFalse, assertNil =
     T.test, T.assertEqual, T.assertTrue, T.assertFalse, T.assertNil
 
+-- The first-run skin picker's login start (core/SkinSetup.lua) is an AceTimer on the same queue
+-- these cases count the notify timer on, so a case about the notify drops it first and takes its
+-- handle off the queue. tests/test_skin_picker.lua pins the start itself.
+local function dropPickerStart(NS, mock)
+    local h = NS.ScheduleSkinPicker()
+    NS.HideSkinPicker()
+    for i = #mock.__timers, 1, -1 do
+        if h and mock.__timers[i].timer == h then table.remove(mock.__timers, i) end
+    end
+end
+
+--- T.enableAddon, with the picker's login start dropped (above).
+local function enableAddon()
+    local NS, env, mock = T.enableAddon()
+    dropPickerStart(NS, mock)
+    return NS, env, mock
+end
+
 local function pending(overrides)
     local i = {
         title = "Stonevault Speedrun", leaderName = "Testadin", numMembers = 3,
@@ -100,6 +118,7 @@ test("lifecycle: OnEnable seeds wasInGroup from the current roster state", funct
     local NS, _, mock = T.bootAddon()
     mock.inGroup = true
     NS.addon:OnEnable()
+    dropPickerStart(NS, mock)
     NS.addon.pendingInfo = pending()
     -- Already in a group at login → GROUP_ROSTER_UPDATE is not a transition,
     -- so it must not fire a join notify for a group we were already in.
@@ -306,7 +325,7 @@ end)
 -- ---------------------------------------------------------------------------
 
 test("lifecycle: joining a group with a capture waiting fires the notify", function()
-    local NS, _, mock = T.enableAddon()
+    local NS, _, mock = enableAddon()
     NS.addon.pendingInfo = pending()
     mock.inGroup = true
     NS.addon:GROUP_ROSTER_UPDATE()
@@ -314,7 +333,7 @@ test("lifecycle: joining a group with a capture waiting fires the notify", funct
 end)
 
 test("lifecycle: a roster tick while already grouped is not a transition", function()
-    local NS, _, mock = T.enableAddon()
+    local NS, _, mock = enableAddon()
     NS.addon.pendingInfo = pending()
     mock.inGroup = true
     NS.addon:GROUP_ROSTER_UPDATE()
@@ -325,7 +344,7 @@ test("lifecycle: a roster tick while already grouped is not a transition", funct
 end)
 
 test("lifecycle: leaving the group wipes the capture", function()
-    local NS, _, mock = T.enableAddon()
+    local NS, _, mock = enableAddon()
     mock.inGroup = true
     NS.addon:GROUP_ROSTER_UPDATE()
     NS.addon.pendingInfo = pending()
@@ -335,7 +354,7 @@ test("lifecycle: leaving the group wipes the capture", function()
 end)
 
 test("lifecycle: leaving the group cancels an in-flight notify", function()
-    local NS, _, mock = T.enableAddon()
+    local NS, _, mock = enableAddon()
     NS.addon.pendingInfo = pending()
     mock.inGroup = true
     NS.addon:GROUP_ROSTER_UPDATE()
@@ -345,7 +364,7 @@ test("lifecycle: leaving the group cancels an in-flight notify", function()
 end)
 
 test("lifecycle: rejoining after a leave fires a fresh notify", function()
-    local NS, _, mock = T.enableAddon()
+    local NS, _, mock = enableAddon()
     mock.inGroup = true
     NS.addon.pendingInfo = pending()
     NS.addon:GROUP_ROSTER_UPDATE()
@@ -359,7 +378,7 @@ test("lifecycle: rejoining after a leave fires a fresh notify", function()
 end)
 
 test("lifecycle: the retail ordering (ROSTER before inviteaccepted) still notifies", function()
-    local NS, _, mock = T.enableAddon()
+    local NS, _, mock = enableAddon()
     -- On retail GROUP_ROSTER_UPDATE usually lands BEFORE the inviteaccepted
     -- status, i.e. while pendingInfo is still nil — so the transition is missed
     -- and only the inviteaccepted fallback can catch up.

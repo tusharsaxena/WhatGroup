@@ -50,4 +50,21 @@ NS.C = {
         showTeleport = true,
         showRole     = true,        -- the Role line (WhatGroup#1); the popup row is always drawn
     },
+    -- The skin this addon wears (skinning-§2, per addon and per profile), applied through
+    -- core/SkinSetup.lua: where it comes from ("ka0s", the Ka0s skins, or "eui", EllesmereUI's)
+    -- and which Ka0s skin; "ka0s"/"ka0s" is Ka0s Default. The Skin tab's Scope (LibKa0s-Skin-1.0
+    -- minor 5): leave the settings panel the client's (true, the leg-1 owner call, 2026-10-27),
+    -- leave every font the client's (false). Its Font and texture overrides (minor 6): an LSM key
+    -- each, "" for the skin's own. `pickerSeen`: the first-run skin picker was closed on this
+    -- profile; false on every profile, old and new, so each shows it once (owner ruling O3). New
+    -- keys with defaults, so AceDB merges them into every existing profile and no migration is owed.
+    skin = {
+        source      = "ka0s",
+        skin        = "ka0s",
+        ignorePanel = true,
+        ignoreFonts = false,
+        font        = "",
+        texture     = "",
+        pickerSeen  = false,
+    },
 }

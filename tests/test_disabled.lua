@@ -108,8 +108,19 @@ end
 --- Bring the addon up ENABLED and doing something: a capture waiting, the popup on screen through
 --- test mode, and the launcher registered. An addon asleep at the baseline would pass every later
 --- assertion trivially, which step 1 exists to forbid.
+---
+--- AND LET THE SKIN LIBRARY'S LOGIN RETRY SETTLE. Since LibKa0s v1.78.0 the first RegisterOwner
+--- (core/SkinSetup.lua) makes LibKa0s-Skin-1.0's EllesmereUI retry frame, registered for
+--- ADDON_LOADED and PLAYER_LOGIN; in the client PLAYER_LOGIN fires once, long before a player can
+--- switch the addon off, and the frame unregisters both. The headless run never fires it, so the
+--- frame would stand in the baseline as two raw registrations that are the library's, not this
+--- addon's, and not a survivor of the stand-down. Delivering the one login event the client
+--- delivers puts the frame where every real session has it.
 local function up()
     local NS, _, mock = T.enableAddon()
+    local skinLib = mock.LibStub("LibKa0s-Skin-1.0", true)
+    local retry = skinLib and skinLib.__euiEventFrame
+    if retry then retry.__fire("OnEvent", "PLAYER_LOGIN") end
     return NS, mock
 end
 

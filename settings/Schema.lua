@@ -302,6 +302,81 @@ add{
 }
 
 -- ---------------------------------------------------------------------------
+-- Appearance -- the skin this addon wears (skinning-§2, §3)
+-- ---------------------------------------------------------------------------
+--
+-- The tab is the library's O.AppearanceTab (settings/Panel.lua), which draws every one of these
+-- as its own choice grids, check boxes and media pickers, so all seven carry `skipRender`. They
+-- stay schema rows so the defaults resolve, Reset all settings reaches them, and `/wg get|set
+-- skin.skin` validates against `values`. Declared last, so the group's place in the strip is after
+-- Notifications; the host tab keyed "Appearance" takes that place, before Keybindings.
+--
+-- Each onChange applies ONLY its own half (core/SkinSetup.lua says why): the tab and another
+-- addon's "Copy to every Ka0s addon" call Skin:SetChoice before they write, so the write is a
+-- no-op, and a bare `/wg set` still repaints.
+add{
+    section = "skin",  group = "Appearance",  skipRender = true,
+    path    = "skin.source",  type = "string",  values = NS.SKIN_SOURCE_OPTIONS,
+    label   = "Skin source",
+    tooltip = "Where this addon's look comes from: the Ka0s skin chosen below, or EllesmereUI.",
+    default = C.skin.source,
+    onChange = function(v) NS.ApplySkinChoice(v, nil) end,
+}
+add{
+    section = "skin",  group = "Appearance",  skipRender = true,
+    path    = "skin.skin",  type = "string",  values = NS.SKIN_OPTIONS,
+    label   = "Skin",
+    tooltip = "The Ka0s skin this addon wears. Changes the popup and the settings pages right away.",
+    default = C.skin.skin,
+    onChange = function(v) NS.ApplySkinChoice(nil, v) end,
+}
+-- The Scope's two exceptions (LibKa0s-Skin-1.0 minor 5).
+add{
+    section = "skin",  group = "Appearance",  skipRender = true,
+    path    = "skin.ignorePanel",  type = "bool",
+    label   = "Ignore settings panel",
+    tooltip = "Keep this addon's settings panel in the game's own look. The popup still wears the skin.",
+    default = C.skin.ignorePanel,
+    onChange = function(v) NS.ApplySkinIgnore(v, nil) end,
+}
+add{
+    section = "skin",  group = "Appearance",  skipRender = true,
+    path    = "skin.ignoreFonts",  type = "bool",
+    label   = "Ignore fonts",
+    tooltip = "Keep every font in this addon as the game draws it. The skin still colors the text.",
+    default = C.skin.ignoreFonts,
+    onChange = function(v) NS.ApplySkinIgnore(nil, v) end,
+}
+-- The two overrides (LibKa0s-Skin-1.0 minor 6), LibSharedMedia keys, "" for the skin's own. Free
+-- text rather than `values`: a media pack may register its keys after this file loads, and
+-- `/wg set` takes any key.
+add{
+    section = "skin",  group = "Appearance",  skipRender = true,
+    path    = "skin.font",  type = "string",
+    label   = "Font",
+    tooltip = "The font this addon's text uses, over the skin's own. Empty keeps the skin's.",
+    default = C.skin.font,
+    onChange = function(v) NS.ApplySkinOverride(v, nil) end,
+}
+add{
+    section = "skin",  group = "Appearance",  skipRender = true,
+    path    = "skin.texture",  type = "string",
+    label   = "Texture",
+    tooltip = "The texture this addon's bars use, over the skin's own. Empty keeps the skin's.",
+    default = C.skin.texture,
+    onChange = function(v) NS.ApplySkinOverride(nil, v) end,
+}
+-- The first-run skin picker's memory: set when the picker closes, so it shows once per profile.
+-- Drawn by nothing; a reset puts it back to false.
+add{
+    section = "skin",  group = "Appearance",  skipRender = true,
+    path    = "skin.pickerSeen",  type = "bool",
+    label   = "Skin picker seen",
+    tooltip = "Whether the first-run skin picker was closed on this profile.",
+    default = C.skin.pickerSeen,
+}
+
+-- ---------------------------------------------------------------------------
 -- Session-only paths (WG-12 / debug-logging-§5)
 -- ---------------------------------------------------------------------------
 --

@@ -244,9 +244,16 @@ end
 -- every stored value at once. At file scope, so the OnProfileChanged and OnProfileCopied methods
 -- below and the reset closure OnInitialize registers share one copy.
 local function reloadProfile(self)
+    -- FIRST, the first-run skin picker down, quietly (core/SkinSetup.lua): a showing belongs to the
+    -- profile it opened on, and taking it down puts a pending preview back before the incoming
+    -- profile's skin is applied below, so that skin is the last one worn.
+    if NS.HideSkinPicker then NS.HideSkinPicker() end
     -- Idempotent; normally a no-op once the account-wide schema stamp is current. Profile-scoped
     -- steps walk every stored profile (core/Database.lua).
     self:RunMigrations()
+    -- The incoming profile's skin, before anything re-reads (core/SkinSetup.lua): Skin:SetChoice
+    -- repaints every frame recorded for this owner, with the stored Scope and overrides.
+    if NS.ApplySkinChoice then NS.ApplySkinChoice() end
     -- And every open panel is showing the outgoing profile's values: General's widgets re-read
     -- their rows, and the Profiles page (settings/Profiles.lua) is re-drawn, because AceConfigDialog
     -- names the active profile only when it is fed again.
@@ -264,6 +271,11 @@ local function reloadProfile(self)
         NS.Lifecycle:Set(NS.HOLD_DISABLED, not (self.db and self.db.profile and self.db.profile.enabled))
         NS.Lifecycle:Reevaluate()
     end
+    -- The first-run skin picker (core/SkinSetup.lua): a new or reset profile starts from the
+    -- defaults, `skin.pickerSeen` false, so it shows again, over the incoming profile's skin; one
+    -- that has seen it stays down. After the latch, so a profile that stands the addon down shows
+    -- nothing.
+    if NS.MaybeShowSkinPicker then NS.MaybeShowSkinPicker() end
     -- The popup's size, scale and alpha reach a built popup only through their rows' onChange, and
     -- a profile event writes no row, so they are re-applied here from the incoming profile. Each
     -- is a no-op before the popup is built, and size and scale are refused in combat exactly as
@@ -309,6 +321,10 @@ function WhatGroup:OnInitialize()
     -- Migration seam: run once, right after AceDB:New, before any code
     -- reads the profile (WG-08 / Database.lua). Idempotent.
     self:RunMigrations()
+
+    -- The skin the active profile names (core/SkinSetup.lua), right after the store exists:
+    -- RegisterOwner ran at file load, before AceDB, and read Ka0s Default.
+    if NS.ApplySkinChoice then NS.ApplySkinChoice() end
 
     -- PROFILE CALLBACKS. Switching, copying or resetting a profile replaces every
     -- stored value at once. Before these existed nothing here reacted: an open
@@ -431,6 +447,9 @@ function NS.StandDown()
 
     -- The popup, the ESC proxy, the cooldown ticker and the combat-end queue.
     if NS.FrameStandDown then NS.FrameStandDown() end
+    -- The first-run skin picker, down unmarked, with its held starts (core/SkinSetup.lua): it comes
+    -- back on the next login or profile event the addon stands up for.
+    if NS.HideSkinPicker then NS.HideSkinPicker() end
 
     -- Owed a protected Hide. This is the one registration slash-commands-§7 permits a disabled
     -- addon to keep, and OnDisabledCombatEnded below drops it the moment it fires.
@@ -461,6 +480,9 @@ function NS.StandUp()
     self:UnregisterEvent("PLAYER_REGEN_ENABLED")
     registerFeatureEvents(self)
     registerLinkCallback()
+    -- The teleport button's anchor, skipped while down (modules/FrameSkin.lua): a skin that moved
+    -- in the meantime moved its label. In combat it queues for the drain registered above.
+    if NS.FrameSkin then NS.FrameSkin.AnchorTeleport() end
     if self.ApplyFrameVisibility then self:ApplyFrameVisibility() end
 end
 
@@ -493,6 +515,11 @@ function WhatGroup:OnEnable()
     -- LibDataBroker or LibDBIcon, which are OptionalDeps and vendored -- the library says which
     -- one is absent, once, and the addon carries on without a button.
     if NS.Launcher then NS.Launcher:Register() end
+
+    -- THE FIRST-RUN SKIN PICKER (core/SkinSetup.lua; the rollout's O3), two seconds in, off the
+    -- login spike, through this addon's AceTimer. Before the latch below, so a stand-down at login
+    -- cancels it (NS.StandDown's HideSkinPicker), and it re-checks the stand-down when it fires.
+    if NS.ScheduleSkinPicker then NS.ScheduleSkinPicker() end
 
     -- THE LATCH, TAKEN FROM THE STORED PATH (slash-commands-§7). Last in OnEnable, and the
     -- position is load-bearing in one direction only: everything above has to have gone UP before

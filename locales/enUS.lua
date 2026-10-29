@@ -139,6 +139,11 @@ L["Group info no longer available — captures clear on group-leave or |cffFFFF0
     "Group info no longer available — captures clear on group-leave or |cffFFFF00/reload|r. Use |cffFFFF00/wg test|r to preview."
 L["Popup deferred until combat ends."] = "Popup deferred until combat ends."
 
+-- The skin seam's one reload line (core/SkinSetup.lua): a profile event leaving an EllesmereUI that
+-- painted this session.
+L["Reload your interface (/reload) to finish changing the skin."] =
+    "Reload your interface (/reload) to finish changing the skin."
+
 -- The Show window key binding (modules/Frame.lua, launcher-§6): the action's label on Options ->
 -- Keybindings, in this addon's own section, and on the General page's Keybindings tab
 -- (options-ui-§20), plus that tab row's tooltip (NS.BINDINGS). The section title is the brand,

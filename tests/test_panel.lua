@@ -240,19 +240,24 @@ test("panel: every schema row renders a widget, on its own tab", function()
     -- The page is TABBED (options-ui-§13), so only the ACTIVE tab's rows are on screen. Walking
     -- the strip is what keeps this case honest: asserting over the whole schema after one render
     -- would have to accept a row that never draws, and asserting only the first tab would let the
-    -- other two rot. Each row is looked for after its own group is selected.
+    -- other two rot. Each row is looked for after its own group is selected. A `skipRender` row
+    -- (the skin rows) is drawn by the library's own Skin tab, never by the flow engine, and
+    -- tests/test_skinsetup.lua holds that tab instead.
     local NS, _, mock = openGeneral()
     local seen = {}
     for _, def in ipairs(NS.addon.Settings.Schema) do
-        if not seen[def.group] then
+        -- A skipRender row is drawn by O.AppearanceTab (settings/Panel.lua), not as a row widget.
+        if not def.skipRender and not seen[def.group] then
             seen[def.group] = true
             selectTab(mock, def.group)
         end
-        local wanted = def.type == "bool" and "CheckBox"
-                    or def.type == "string" and "Dropdown"
-                    or "Slider"
-        assertTrue(widget(mock, wanted, def.label) ~= nil,
-            "no widget rendered for " .. def.path .. " on tab " .. def.group)
+        if not def.skipRender then
+            local wanted = def.type == "bool" and "CheckBox"
+                        or def.type == "string" and "Dropdown"
+                        or "Slider"
+            assertTrue(widget(mock, wanted, def.label) ~= nil,
+                "no widget rendered for " .. def.path .. " on tab " .. def.group)
+        end
     end
 end)
 
@@ -268,10 +273,13 @@ test("panel: the strip draws one tab per schema group, in declaration order", fu
             want[#want + 1] = def.group
         end
     end
-    assertEqual(table.concat(want, " | "), "Master controls | Notifications",
+    assertEqual(table.concat(want, " | "), "Master controls | Notifications | Appearance",
         "the designed strip, in the order the array declares it")
+    -- The Appearance group's tab is the library's host tab keyed by it, which the library labels
+    -- "Skin" (OptionsAppearance minor 3, skinning-§3).
+    local LABEL = { Appearance = "Skin" }
     for _, name in ipairs(want) do
-        assertTrue(tabButton(mock, name) ~= nil, "the strip is missing " .. name)
+        assertTrue(tabButton(mock, LABEL[name] or name) ~= nil, "the strip is missing " .. name)
     end
 end)
 

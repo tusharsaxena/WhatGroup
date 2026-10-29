@@ -18,8 +18,8 @@ The pattern is borrowed from a similar reference addon that demonstrates the sam
 | Strata | `DIALOG` (dialog tier, not toplevel), from `NS.Constants.LAYERS.STRATA.MODAL` (`core/Constants.lua`) through `STRATA_POPUP`: an event-raised notice above the LFG frame, bags and the Settings panel it is previewed from; toplevel dialogs (debug console, StaticPopups) win a click; children inherit the popup's level (+1, no explicit level, nothing overlaps). `Raise()` on an explicit show, combat-guarded. |
 | Mouse | The body takes the mouse, so a click on the visible popup's empty area stays on it (the drag is the title bar's). The combat soft hide makes the title bar and the Close button mouse-dead and every show restores them (frame-layering-§4). While soft-hidden at alpha 0, the body and the secure teleport button still catch clicks: `f` parents a secure button, so its `EnableMouse` would be refused in combat. That is the documented residual (`docs/ARCHITECTURE.md`'s register); POPUP-10 is the probe that would lift it for the body. |
 | Template | `BackdropTemplate` |
-| Background | near-black `0.06, 0.06, 0.08, 0.92` — the shared `NS.SKIN`'s own `bg`, applied by `NS.ApplySkin` (WG-28) |
-| Border | 1px `WHITE8X8` hairline tinted black (`0, 0, 0, 1`), plus the skin's 1px inner highlight (`0.24, 0.24, 0.27, 0.85`). Geometry and colors are both the shared table's now, so the debug console wears the same edge — the Ka0s window edge is normative (standalone-windows) |
+| Background | the owner's skin (`win.bg`), applied by `NS.ApplySkin(f, nil, addonName)`, which hands the frame to the skin's Shell; under Ka0s Default near-black `0.06, 0.06, 0.08, 0.92`, with the 30px title band filled `title.bg` (`0.04, 0.04, 0.05, 0.9`). See [ARCHITECTURE.md → Skins](./ARCHITECTURE.md#skins) |
+| Border | the skin's edge (`win.border`, `win.inner`); under Ka0s Default a 1px `WHITE8X8` hairline tinted black (`0, 0, 0, 1`) plus a 1px inner highlight (`0.24, 0.24, 0.27, 0.85`). The debug console wears the same owner's skin, so the two edges match under every skin — the Ka0s window edge is normative (standalone-windows) |
 | Scale | `scale` — **1** by default, clamped on read to 0.5..2. `WhatGroup:ApplyFrameScale()` applies it and **refuses in combat**, for the same reason `ApplyFrameSize` does: scaling the parent moves the secure teleport button. |
 | Opacity | `alpha` — **1** by default, clamped on read to 0..1. `WhatGroup:ApplyFrameAlpha()` applies it and is deliberately **not** combat-guarded: opacity moves nothing, and in combat is the one time an alpha setting is being judged. A **soft-hidden** popup stays at alpha 0 through it, though: the write lands in the profile and waits for something to really show the popup (WHATGROUP-R-02). |
 | Drag handle | top-30px title bar; `StartMoving` / `StopMovingOrSizing` (position persisted on drag-stop via `NS.Windows.Save("popup", …)`, WG-26). Suppressed while `locked` is true — read at drag time in `OnMouseDown`, so the setting needs no `onChange`. |
@@ -41,14 +41,14 @@ A single content frame inset 14px from the title bar and 14px / 44px from the bo
 | 6 | `Playstyle:` | `WhatGroup.Labels.GetPlaystyleLabel(info)` — `info.playstyleString` (server-rendered) → `WhatGroup.Labels.PLAYSTYLE[info.generalPlaystyle]` → `""`, which the popup renders as the dim em-dash |
 | 7 | `Teleport:` | 24×24 spell icon button (hidden when no spell mapped) |
 
-Every row is anchored top-left against the content frame, and the content frame against `f`'s corners, so widening or heightening the popup moves nothing relative to the title bar — which is why the promoted size needed no offsets retuned. Labels use a fixed 72px column (`LABEL_WIDTH`) colored gold (`|cffFFD700`); values are anchored 6px to the right of the label and use `GameFontHighlight` (white). The 18px row gap (`yGap`) gives a clean vertical rhythm. The content frame's size is fully determined by its TOPLEFT + BOTTOMRIGHT anchors against `f` (insets `14, -38` and `-14, 44`), so no explicit `SetHeight` is needed — the row stack just has to fit inside that natural extent.
+Every row is anchored top-left against the content frame, and the content frame against `f`'s corners, so widening or heightening the popup moves nothing relative to the title bar — which is why the promoted size needed no offsets retuned. Labels use a fixed 72px column (`LABEL_WIDTH`) in the owner token `wg.label` (FFD700 gold under Ka0s Default); values are anchored 6px to the right of the label in `text.highlight` (white under Ka0s Default). Both take the skin's body face, and both are painted by `modules/FrameSkin.lua` (`NS.FrameSkin.Label` / `Value`), never by a color code in the string. The 18px row gap (`yGap`) gives a clean vertical rhythm. The content frame's size is fully determined by its TOPLEFT + BOTTOMRIGHT anchors against `f` (insets `14, -38` and `-14, 44`), so no explicit `SetHeight` is needed — the row stack just has to fit inside that natural extent.
 
 ## `MakeLabel` helper
 
 ```lua
 local function MakeLabel(parent, anchor, yOffset, labelText, valueText)
-    -- gold "label:" FontString, 72px wide, left-justified, no wrap
-    -- white value FontString, anchored 6px to the right of the label
+    -- "label:" FontString in wg.label, 72px wide, left-justified, no wrap
+    -- value FontString in text.highlight, anchored 6px to the right of the label
     return label, value
 end
 ```
@@ -61,7 +61,7 @@ Called on every `ShowFrame()`. Reads `shownInfo()` — `WhatGroup.pendingInfo`, 
 
 Edge cases:
 
-- **`pendingInfo == nil`** — every text field shows `|cff888888No data|r` (Role and Playstyle show the dim em-dash) and the teleport button hides — through `ConfigureTeleportButton(btn, icon, nil)`, never a bare `Hide`, because a popup soft-hidden at alpha 0 is still shown and a combat reopen reaches this branch inside the lockdown (WHATGROUP-R-01). It is reached when the popup opens with no capture: the launcher's **Show window** with nothing captured, or the refill after a one-shot preview or test mode ends with none (`/wg show` refuses that case with its hint, and `/wg test notify` shows its sample through `previewInfo`).
+- **`pendingInfo == nil`** — every text field shows `No data` in the owner token `wg.placeholder` (888888 gray under Ka0s Default; Role and Playstyle show the em-dash in the same token) and the teleport button hides — through `ConfigureTeleportButton(btn, icon, nil)`, never a bare `Hide`, because a popup soft-hidden at alpha 0 is still shown and a combat reopen reaches this branch inside the lockdown (WHATGROUP-R-01). It is reached when the popup opens with no capture: the launcher's **Show window** with nothing captured, or the refill after a one-shot preview or test mode ends with none (`/wg show` refuses that case with its hint, and `/wg test notify` shows its sample through `previewInfo`).
 - **`info.fullName == ""`** — Instance row falls back to `"Unknown"`.
 - **`info.shortName == ""`** — Type row falls back to `WhatGroup.Labels.GetGroupTypeLabel(info)`.
 - **no role known** — Role row falls back to a dim em-dash.
@@ -73,16 +73,19 @@ Edge cases:
 
 **The button is parented directly to `f` (the popup), not to `UIParent`.** Earlier iterations parented it to UIParent and synced its screen position from a non-secure proxy frame inside the popup; that pattern leaked taint into Blizzard's secure-execute chain, surfacing as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked Logout in the GameMenu. Parenting directly to `f` means the button rides on the parent-child relationship: `f:Show()` shows the button, `f:Hide()` hides it, dragging the popup moves the button with it. No `syncTeleportButton`, no `PLAYER_REGEN_ENABLED` handler, no deferred Hide, no proxy frame.
 
-**Anchor uses the implicit-parent `SetPoint` form** with offsets derived from the Teleport label's actual rendered position:
+**Anchor uses the implicit-parent `SetPoint` form** with offsets derived from the Teleport label's actual rendered position, taken in `modules/FrameSkin.lua` (`NS.FrameSkin.AnchorTeleport`, handed the parts by `Attach`):
 
 ```lua
-local btnX = (lblPort:GetLeft() - f:GetLeft()) + LABEL_WIDTH + 6
-local btnY = lblPort:GetTop()  - f:GetTop()      -- negative; lblPort is below f.TOPLEFT
+local x = (label:GetLeft() - frame:GetLeft()) + labelWidth + 6
+local y = label:GetTop()  - frame:GetTop()       -- negative; the label is below f.TOPLEFT
 
-teleportBtn:SetPoint("TOPLEFT", btnX, btnY)
+button:ClearAllPoints()
+button:SetPoint("TOPLEFT", x, y)
 ```
 
-Retail's secure-frame system rejects any `SetPoint` call on a protected frame that names a non-secure region as the anchor target — even when that region is the protected frame's own parent. The 3-arg form lets the engine resolve the parent transitively after the protection check has already passed, so anchoring against `f` works inside `buildFrame()`. The offsets are computed from the Teleport label's actual rendered position via `GetLeft()`/`GetTop()` rather than hard-coded magic numbers, so changes to `LABEL_WIDTH`, `yGap`, or the row count keep the button aligned with its label automatically. See [midnight-quirks.md → Secure buttons can't have an explicit non-secure anchor target](./midnight-quirks.md#secure-buttons-cant-have-an-explicit-non-secure-anchor-target).
+It runs once when the popup is built and again on every skin change (`NS.Skin.OnLooksChanged`), because a skin's font moves the label. A switch that leaves the offset unchanged does nothing; one in combat is queued on the popup's combat-end queue under `teleportAnchor`, since `SetPoint` on the secure button is refused in combat. While the addon stands down it does nothing at all (the stand-down wiped that queue and a disabled addon has no drain), and `NS.StandUp` runs it once on the way back up.
+
+Retail's secure-frame system rejects any `SetPoint` call on a protected frame that names a non-secure region as the anchor target — even when that region is the protected frame's own parent. The 3-arg form lets the engine resolve the parent transitively after the protection check has already passed, so anchoring against `f` works inside `buildFrame()`. The offsets are computed from the Teleport label's actual rendered position via `GetLeft()`/`GetTop()` rather than hard-coded magic numbers, so changes to `LABEL_WIDTH`, `yGap`, the row count or the skin's font keep the button aligned with its label automatically. See [midnight-quirks.md → Secure buttons can't have an explicit non-secure anchor target](./midnight-quirks.md#secure-buttons-cant-have-an-explicit-non-secure-anchor-target).
 
 `ConfigureTeleportButton(btn, icon, info)`:
 
@@ -214,7 +217,7 @@ The popup is a display the player places, so it ships a **test mode** (options-u
 
 There is intentionally no programmatic Hide method. The frame is closed by:
 
-- The Close button at the bottom (`UIPanelButtonTemplate`, 90×24) — goes through `hidePopup()`, never a bare `f:Hide()`, so a press in combat soft-hides instead of raising `ADDON_ACTION_BLOCKED`.
+- The Close button at the bottom (`UIPanelButtonTemplate`, 90×24, painted as the skin's flat button by `NS.FrameSkin.Button`, Ka0s Default included) — goes through `hidePopup()`, never a bare `f:Hide()`, so a press in combat soft-hides instead of raising `ADDON_ACTION_BLOCKED`.
 - The ESC key — through the `WhatGroupFrameEscape` proxy's `OnHide`, which calls the same `hidePopup()` (§ ESC-to-close).
 - The **launcher menu's Show window entry** — `WhatGroup:ToggleFrame`, the descriptor's `toggleWindow` (`launcher-§2`, standard v2.67.0), with `WhatGroup:IsFrameOnScreen` as its `isWindowShown`: `onScreen()` decides, the open arm is `ShowFrame` (gate, combat defer and test-mode handover intact) and the close arm is the shared `dismissPopup()`. A popup soft-hidden at alpha 0 counts as off screen, so a click on one OPENS rather than hiding what the player cannot see.
 - The `addon:WhatGroup:show` chat link → `WhatGroup:ShowFrame()` (re-opens, doesn't close).
@@ -228,4 +231,5 @@ There is intentionally no programmatic Hide method. The frame is closed by:
 
 - **`WhatGroup` addon object** (`NS.addon`, aliased file-locally as `local WhatGroup = NS.addon` — not a `_G.WhatGroup` global) — read at `PopulateFields` time for `WhatGroup.pendingInfo`, `WhatGroup:GetTeleportSpell`, and `WhatGroup.Labels.{GetGroupTypeLabel, PLAYSTYLE}`. Read at file-load time to attach the `ShowFrame` method. Also calls `NS.Debug("Frame", …)` (the on-screen debug console) and reads `WhatGroup._print` for the combat-deferred chat hint.
 - **WoW API** — `CreateFrame`, `BackdropTemplate`, `UISpecialFrames`, `GameFontNormalLarge` / `GameFontNormal` / `GameFontHighlight`, `GameTooltip`, `InCombatLockdown`, `PLAYER_REGEN_ENABLED` and `PLAYER_REGEN_DISABLED` events. The version-variant spell lookups (`GetSpellName` / `GetSpellTexture` / `IsSpellKnown`) go through `NS.Compat.*`, not the raw `C_Spell.*` / legacy globals directly — `Compat.lua` (and, behind it, `LibKa0s-Compat-1.0`) is the sole caller. Casting itself is delegated to Blizzard's secure action handler via `type="macro"` + `macrotext="/cast <SpellName>"` — `CastSpellByID` is never called from non-secure code.
+- **The skin** — `NS.FrameSkin` (`modules/FrameSkin.lua`, loaded directly above, a file-scope upvalue) for every string's color and face, the Close button and the teleport anchor, and `NS.ApplySkin` with the owner for the window; both read the owner's facade, `NS.Skin` (`core/SkinSetup.lua`, `LibKa0s-Skin-1.0`). Without the library the facade's degraded arm draws the pre-skin colors.
 - **No Ace3 dependencies.** The popup uses raw Blizzard `Frame` / `FontString` / `Texture` / `Button` — no AceGUI. (AceGUI is only used in the Settings panel.)

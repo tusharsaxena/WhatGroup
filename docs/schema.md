@@ -34,6 +34,15 @@ db.profile = {
     showTeleport  = true,
     showRole      = true,         -- the Role line (WhatGroup#1)
   },
+  skin = {                        -- the skin this addon wears (skinning-§2), core/SkinSetup.lua
+    source      = "ka0s",         -- ka0s (a Ka0s skin) | eui (EllesmereUI)
+    skin        = "ka0s",         -- one of the library's nine skin keys; ka0s is Ka0s Default
+    ignorePanel = true,           -- Scope: leave the settings panel the client's
+    ignoreFonts = false,          -- Scope: leave every font the client's
+    font        = "",             -- an LSM font key over the skin's own; "" keeps the skin's
+    texture     = "",             -- an LSM statusbar key over the skin's own; "" keeps the skin's
+    pickerSeen  = false,          -- the first-run skin picker was closed on this profile
+  },
 }
 
 db.global = {
@@ -68,6 +77,15 @@ keeps beside it (launcher-§3, detailed in
 account-wide geometry and lives in `db.global.windows` (WG-26), not here. That store is
 `architecture-§5` named non-setting state, and its owner (`NS.Windows`) and writers are named in
 [ARCHITECTURE.md → Settings Schema](./ARCHITECTURE.md#settings-schema).
+
+The seven `skin.*` keys are schema rows on the General page's **Appearance** group, every one
+`skipRender`: the library's Skin tab (`O.AppearanceTab`, labeled "Skin") draws them, and they stay
+rows so the defaults resolve, *Reset all settings* reaches them and `/wg get|set skin.skin`
+validates against the registered skins. They are written only through `Helpers.Set`, by
+`NS.WriteSkinChoice` (core/SkinSetup.lua), which is also the setter the library calls for *Copy to
+every Ka0s addon*. New keys with defaults, so AceDB merges them into every existing profile and no
+migration is owed; `pickerSeen` is false on every profile, old and new, so each shows the first-run
+picker once.
 
 `scale`, `alpha` and `locked` are **clamped or read at use time** in `modules/Frame.lua` exactly as
 the size rows are, and for the same reason. `visibility` fails **open**: `always` and any value the

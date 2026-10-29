@@ -43,6 +43,8 @@ test("libka0s: every vendored major registers under LibStub", function()
     for _, major in ipairs({
         "LibKa0s-Core-1.0", "LibKa0s-DebugLog-1.0", "LibKa0s-Slash-1.0",
         "LibKa0s-Options-1.0", "LibKa0s-Perf-1.0",
+        -- New in LibKa0s v1.78.0: the skin engine core/SkinSetup.lua registers this addon's owner with.
+        "LibKa0s-Skin-1.0",
     }) do
         assertTrue(env.LibStub(major, true) ~= nil, major .. " did not register")
     end
@@ -54,8 +56,14 @@ test("libka0s: MODULES names every file of every major, at a positive integer mi
         ["LibKa0s-Core-1.0"]     = { "Core" },
         ["LibKa0s-DebugLog-1.0"] = { "DebugLog" },
         ["LibKa0s-Slash-1.0"]    = { "Slash" },
-        ["LibKa0s-Options-1.0"]  = { "Options", "OptionsWidgets", "OptionsScroll" },
+        -- OptionsAppearance (v1.78.0) draws the Skin tab and OptionsSkinPicker (v1.79.0) the
+        -- first-run picker; both attach to the Options shell this addon reaches.
+        ["LibKa0s-Options-1.0"]  = { "Options", "OptionsWidgets", "OptionsScroll",
+                                     "OptionsAppearance", "OptionsSkinPicker" },
         ["LibKa0s-Perf-1.0"]     = { "Perf", "PerfPanel" },
+        -- LibKa0s-Skin-1.0 (v1.78.0; key 7.15.11.5.9.2.4 at v1.80.0): its seven files.
+        ["LibKa0s-Skin-1.0"]     = { "Skin", "SkinDefs", "SkinPaint", "SkinPaintExtras",
+                                     "SkinPaintControls", "SkinEUI", "SkinAce" },
     }
     for major, files in pairs(expected) do
         local lib = env.LibStub(major, true)

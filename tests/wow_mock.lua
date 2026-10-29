@@ -292,7 +292,19 @@ local function build()
         -- text (FontStrings, Buttons, EditBoxes)
         api.SetText = function(_, t) f.__text = t; return f end
         api.GetText = function() return f.__text end
-        api.GetTextColor = function() return 1, 0.82, 0, 1 end
+        -- The text color is RECORDED (WG-02): the popup's labels, values and note take it from
+        -- the skin's tokens, and a catch-all no-op would make "painted in wg.label" and "never
+        -- painted" identical. Unset, the getter answers the gold it always did.
+        api.SetTextColor = function(_, r, g, b, a) f.__textColor = { r, g, b, a or 1 }; return f end
+        api.GetTextColor = function()
+            local c = f.__textColor
+            if c then return c[1], c[2], c[3], c[4] end
+            return 1, 0.82, 0, 1
+        end
+        -- The object's type, answered rather than caught (WG-02). LibKa0s-Skin-1.0 tells a
+        -- FontString from a frame by GetObjectType, and the catch-all's truthy frame read as
+        -- "Frame", so every S.Text and S.Font on a popup string painted nothing here.
+        api.GetObjectType = function() return f.__kind end
 
         -- secure attributes
         api.SetAttribute = function(_, k, v) f.__attrs[k] = v; return f end

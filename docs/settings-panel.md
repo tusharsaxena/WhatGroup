@@ -50,7 +50,7 @@ Non-setting affordances live outside the schema. `Helpers.RenderTabbedSchema(ctx
 
 - **`afterGroup`** — `{ [groupName] = function(ctx) ... end }`. Fires once per render, after the named group's last schema row is flushed, so the widget starts on a fresh line *below* the grid. Two entries now:
   - **`[Helpers.MASTER_GROUP]`** — the composer's own tail, drawing options-ui-§15's closing **button pair**: *Reset position* (this addon is not frameless) and *Reset all settings*. The group name **is** the hook key, so a hand-typed copy of it detaches the hook the moment the library renames the group — silently, because `afterGroup` fires per group and a hook that matches nothing simply never runs. The key is therefore `Helpers.MASTER_GROUP`, the constant `OptionsCompose.lua` publishes and stamps onto the rows themselves. It is added after the constructor, under an `if`, because the library-less stub carries the composer functions and none of their published data (`options-ui-§1`) — and on that path there are no Master controls rows to hook, so no entry is the right answer rather than a fallback spelling.
-  - **`["Notifications"]`** — the **Test notification** button (`Helpers.InlineButton` → `WhatGroup:RunTest()`). It followed the tab its group ended up on: "General" became the Master controls tab, then Chat and Popup merged into Notifications (item 020), the one tab that holds every row the run previews: the delay, the chat summary's lines and the popup's auto-open and size. It is named for what it runs, never a bare *Test*, so it cannot be mistaken for *Test mode* (options-ui-§21). It is deliberately **not** folded into the reset pair or the composer's `leadButton` — a 160-px left-aligned action is not one of options-ui-§15's two resets, and a chat preview on Master controls would sit away from every row it previews.
+  - **`["Notifications"]`** — the **Test notification** button (`Helpers.InlineButton` → `WhatGroup:RunTest()`). It followed the tab its group ended up on: "General" became the Master controls tab, then Chat and Popup merged into Notifications (item 020), the one tab that holds every row the run previews: the delay, the chat summary's lines and the popup's auto-open and size. It is named for what it runs, never a bare *Test*, so it cannot be mistaken for *Test mode* (options-ui-§21). It is painted for this owner's skin (`NS.SkinPaintAce`) when the Scope lets the panel take the skin ([The Skin tab](#the-skin-tab)). It is deliberately **not** folded into the reset pair or the composer's `leadButton` — a 160-px left-aligned action is not one of options-ui-§15's two resets, and a chat preview on Master controls would sit away from every row it previews.
 
 There is **no `pairWith` table any more.** It carried exactly one entry — a bespoke `SessionCheckbox` drawing the Debug console beside **Enable** — and options-ui-§15 makes that console a canonical row of the Master controls block instead. The console itself is untouched: same window, same `NS.DebugLog:ConsoleCheckbox()` `get`/`set`, reached now through `settings/Schema.lua`'s `SESSION` table rather than through a hook.
 
@@ -255,7 +255,7 @@ Ka0s WhatGroup        ← parent canvas-layout category — landing page (logo, 
                           button, absent without AceDBOptions / AceConfig / AceConfigDialog
 ```
 
-All three pages share the same header layout (gold title + tinted divider) and the same always-visible AceGUI scrollbar. The parent's title reads `Ka0s WhatGroup` (no breadcrumb because `opts.isMain = true`); the General sub-page reads `Ka0s WhatGroup <atlas-chevron> General` (separator is the inline atlas `|A:common-icon-forwardarrow:16:16|a` — a real texture, not a font glyph, so it renders identically across font / locale fallback) and carries a Defaults button at top-right. The Profiles sub-page reads `Ka0s WhatGroup <atlas-chevron> Profiles` and has no Defaults button: restoring a default there would mean deleting profiles ([profiles.md](./profiles.md)).
+All three pages share the same header layout (gold title + tinted divider) and the same always-visible AceGUI scrollbar; that is the stock look, kept while the Skin tab's **Ignore settings panel** is on (the default), and with it off the chrome takes the addon's skin ([The Skin tab](#the-skin-tab)). The parent's title reads `Ka0s WhatGroup` (no breadcrumb because `opts.isMain = true`); the General sub-page reads `Ka0s WhatGroup <atlas-chevron> General` (separator is the inline atlas `|A:common-icon-forwardarrow:16:16|a` — a real texture, not a font glyph, so it renders identically across font / locale fallback) and carries a Defaults button at top-right. The Profiles sub-page reads `Ka0s WhatGroup <atlas-chevron> Profiles` and has no Defaults button: restoring a default there would mean deleting profiles ([profiles.md](./profiles.md)).
 
 Defaults button → `panel.defaultsOnClick` → `StaticPopup_Show("WHATGROUP_RESET_ALL")` → on confirm → `Helpers.RestoreAllDefaults()`. `/wg resetall` shows the same popup, and the Settings window's own footer Defaults control forwards through `panel.OnDefault` to the same handler, so all three share one OnAccept body.
 
@@ -312,6 +312,10 @@ profile = {
     showTeleport  = true,
     showRole      = true,
   },
+  skin    = {          -- the skin this addon wears (skinning-§2); the Skin tab's seven rows
+    source = "ka0s", skin = "ka0s", ignorePanel = true, ignoreFonts = false,
+    font = "", texture = "", pickerSeen = false,
+  },
 }
 global = {
   schemaVersion = 0,   -- declared 0 here; NS:RunMigrations (Database.lua) stamps 1
@@ -333,7 +337,7 @@ One row per settings subcategory page (documentation-§3, options-ui-§5). WhatG
 
 | Page | Covers |
 |---|---|
-| **General** | Every setting WhatGroup has, on two schema tabs and a third, **Keybindings**, last ([The Keybindings tab](#the-keybindings-tab)): **Master controls** (enable, visibility, scale, opacity, lock, debug console, minimap button, test mode, and the reset buttons) and **Notifications** (the join flow: when it fires, which lines the chat summary prints, whether the group info popup opens by itself and its size, plus the Test notification button). |
+| **General** | Every setting WhatGroup has, on two schema tabs, the library's **Skin** tab ([The Skin tab](#the-skin-tab)) and **Keybindings**, last ([The Keybindings tab](#the-keybindings-tab)): **Master controls** (enable, visibility, scale, opacity, lock, debug console, minimap button, test mode, and the reset buttons) and **Notifications** (the join flow: when it fires, which lines the chat summary prints, whether the group info popup opens by itself and its size, plus the Test notification button), and **Skin** (the skin this addon wears, its Scope, its font and texture overrides, and the copy to other Ka0s addons). |
 | **Profiles** | AceDBOptions' profile controls: choose, create, copy, reset and delete a profile, and pick a per-character, per-class, per-realm or per-faction one. No schema rows and no tabs ([profiles.md](./profiles.md)) |
 
 ## The tab strip
@@ -344,7 +348,8 @@ The page is **tabbed** (`options-ui-§13`). `LibKa0s-Options-1.0`'s `RenderTabbe
 |---|---|---|---|---|
 | 1 | **Master controls** | 8 | — | options-ui-§15's canonical block, composed rather than written: enable, general visibility, master scale, master alpha, lock frame, debug console, minimap button, test mode — closed by the **Reset position | Reset all settings** button pair (`afterGroup`). It is the **first** tab, and the name is the literal options-ui-§15 mandates. |
 | 2 | **Notifications** | 12 | `Timing`, `Chat summary`, `Popup window` | The whole join flow on one tab (item 020): when it fires (*Delay after joining (seconds)*, which holds back both the chat summary and the popup), what the chat summary says (the **Print to chat** master and the seven lines it can contain, in print order), and whether and how big the group info popup opens. Closed by the **Test notification** button (`afterGroup`). |
-| 3 | **Keybindings** | — | — | The library's key editor (options-ui-§20), a host tab rather than a schema group: see [The Keybindings tab](#the-keybindings-tab). Always last. |
+| 3 | **Skin** (key `Appearance`) | 7 (`skipRender`) | — | The library's skin tab (skinning-§3), a host tab keyed by the `Appearance` group the seven `skin.*` rows carry, so it takes that group's place, after Notifications: see [The Skin tab](#the-skin-tab). The rows are `skipRender`, so the library's grids draw them rather than the schema renderer. |
+| 4 | **Keybindings** | — | — | The library's key editor (options-ui-§20), a host tab rather than a schema group: see [The Keybindings tab](#the-keybindings-tab). Always last. |
 
 Notifications mixes control kinds and therefore carries **subsection headings** (options-ui-§7): a slider that says *when* above the checkboxes that say *what*, then the popup window's toggle above its two size sliders. The headings are declared by the rows (`subgroup`), never drawn by the builder, and a `subgroup` never repeats its own tab's name.
 
@@ -380,6 +385,13 @@ Rows on the **Master controls** tab are emitted by `Helpers.MasterControls` and 
 | Notifications | frame | `frame.autoShow` | bool | true | subgroup `Popup window`, solo | *Open on join*: auto-open the popup on group join. With this off, the chat summary still prints and the user can re-open via the chat link or `/wg show`. |
 | Notifications | frame | `frame.width` | number | 420 | subgroup `Popup window`, (paired) | Popup width in pixels (320–700, step 10). Was `FRAME_WIDTH`, a file-local in `modules/Frame.lua`; the default is the number it replaced. The tooltip points at Test mode to see the popup while sizing it. |
 | Notifications | frame | `frame.height` | number | 280 | subgroup `Popup window`, (paired) | Popup height in pixels (200–520, step 10). Was `FRAME_HEIGHT` (260); 280 since the Role row added one 18px row, rounded up to the step. |
+| Skin (key `Appearance`) | skin | `skin.source` | string | `"ka0s"` | `skipRender` | *Skin source*: `ka0s` (a Ka0s skin) or `eui` (EllesmereUI). Drawn by the library's Skin tab ([The Skin tab](#the-skin-tab)); `onChange` applies the source half only. |
+| Skin (key `Appearance`) | skin | `skin.skin` | string | `"ka0s"` | `skipRender` | *Skin*: one of the registered skins (`NS.SKIN_OPTIONS`); `ka0s` is Ka0s Default. `/wg set` refuses an unknown key; `onChange` applies the skin half only, live. |
+| Skin (key `Appearance`) | skin | `skin.ignorePanel` | bool | true | `skipRender` | *Ignore settings panel*: this addon's settings pages keep the client's look; the popup and the console still wear the skin. `Skin:SetIgnore`, live. |
+| Skin (key `Appearance`) | skin | `skin.ignoreFonts` | bool | false | `skipRender` | *Ignore fonts*: every string keeps the game's face and size; the skin still colors it. `Skin:SetIgnore`, live. |
+| Skin (key `Appearance`) | skin | `skin.font` | string | `""` | `skipRender` | *Font*: an LSM font key over the skin's own; `""` keeps the skin's. Free text, because a media pack may register keys after load. `Skin:SetOverride`, live. |
+| Skin (key `Appearance`) | skin | `skin.texture` | string | `""` | `skipRender` | *Texture*: an LSM statusbar key over the skin's own; `""` keeps the skin's. The popup draws no bars. `Skin:SetOverride`, live. |
+| Skin (key `Appearance`) | skin | `skin.pickerSeen` | bool | false | `skipRender` | The first-run skin picker was closed on this profile (owner ruling O3). Drawn by nothing; written only by the player's close of the picker; a reset puts it back to false, so the picker shows again. |
 
 The popup dialog always renders every field; the `notify.show*` rows gate **chat output only**. See [scope.md](./scope.md#resolved-decisions) for why.
 
@@ -390,7 +402,7 @@ The popup dialog always renders every field; the `notify.show*` rows gate **chat
 Rendered panel layout:
 
 ```
-[ Master controls ] [ Notifications ] [ Keybindings ]      <- the tab strip, in the chrome band
+[ Master controls ] [ Notifications ] [ Skin ] [ Keybindings ]   <- the tab strip, in the chrome band
 
 --- Master controls ---                      composed; options-ui-§15's canonical order
 [Enable WhatGroup]    | [General visibility]
@@ -412,6 +424,9 @@ Rendered panel layout:
 [Open on join]
 [Width (px)]          | [Height (px)]
   <Test notification button (160 px, left-aligned, afterGroup["Notifications"])>
+
+--- Skin ---                                 the library's host tab (skinning-§3), key Appearance
+-- Skin source --  -- Look --  -- Font and texture --  -- Scope --  <Copy to every Ka0s addon…>
 
 --- Keybindings ---                          the library's host tab (options-ui-§20), last
 ```
@@ -521,6 +536,48 @@ cannot be grayed, so while the addon is stood down the press asks `NS.StandDownR
 prints one line instead: the disabled line (naming `/wg enable`) under the `disabled` hold, or
 `Not available during a performance capture.` under the `perf` hold alone. It toggles nothing and
 writes nothing.
+
+## The Skin tab
+
+The General page's third tab, after Notifications and before Keybindings (skinning-§3). It is the
+library's: `settings/Panel.lua` passes
+`Helpers.AppearanceTab({ owner = addonName, get = NS.SkinChoice, set = NS.WriteSkinChoice })` in
+`RenderTabbedSchema`'s `opts.tabs`, and `LibKa0s-Options-1.0` (`OptionsAppearance.lua`, LibKa0s
+v1.80.0) draws it. Its key is `Appearance`, the group the seven `skin.*` rows carry, so it takes that
+group's place in the strip; its label is **Skin**. Nothing in it is this addon's own code:
+
+- **Skin source**: *Ka0s skins* or *EllesmereUI*, the second disabled with the failing condition
+  listed unless EllesmereUI is loaded and can skin this addon. Ka0s to EllesmereUI applies live;
+  EllesmereUI back to Ka0s asks for a reload.
+- **Look**: the nine Ka0s skins, three to a line, each with its swatches; Ka0s Default first.
+- **Font and texture**: two LibSharedMedia pickers over the skin's own (*Skin's own* in a new
+  profile). WhatGroup draws no bars, so a texture override changes nothing visible here.
+- **Scope**: **Ignore settings panel** (on in a new profile: these settings pages stay the client's,
+  while the popup and the debug console still wear the skin) and **Ignore fonts** (every string keeps
+  the game's face and size; the skin still colors it).
+- **Copy to every Ka0s addon…**: gives every other loaded skin owner this addon's source, skin,
+  Scope, font and texture after a confirmation; disabled, with a line saying so, while WhatGroup is
+  the only one loaded.
+
+Every pick goes through `NS.WriteSkinChoice`, which writes each half through `Helpers.Set`, so it
+logs, validates and fires its row's `onChange` like any other setting; each row's `onChange` applies
+only its own half (`core/SkinSetup.lua` says why). The same rows answer `/wg get|set skin.*`
+(`/wg set skin.skin obsidian` repaints live) and *Reset all settings* returns them to Ka0s Default.
+The first-run skin picker's gear opens this tab (`page = "general"`, `tab = "Appearance"`).
+
+**What the tab skins when the Scope lets it.** With **Ignore settings panel** off, the library paints
+the settings chrome for this owner, and the addon paints the two AceGUI acquisitions the library
+does not make itself: the **Test notification** button (`Helpers.InlineButton`, through
+`NS.SkinPaintAce` right after `AceGUI:Create`) and the Profiles page's AceConfigDialog tree
+(`settings/Profiles.lua`, through `NS.SkinPaintAceTree` after every `Open`, because each `Open`
+releases and re-acquires the widgets). The library chains its restore onto each widget's release,
+so the widgets go back to AceGUI's shared pool stock; the addon sets no `OnRelease` of its own.
+
+**Degraded install.** Without the library the stub's `AppearanceTab` answers nil and the strip has no
+such tab; the `skin.*` rows still exist, and the popup draws the pre-skin colors.
+
+`tests/test_skinsetup.lua` pins the tab's place in the strip and the rows; `tests/test_skin_tools.lua`
+pins the two AceGUI paints and the Scope's default leaving the button stock.
 
 ## The Keybindings tab
 

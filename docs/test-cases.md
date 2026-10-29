@@ -87,7 +87,7 @@ Total.
 - libka0s: Options reads no descriptor L (tripwire)
 - locale: every key enUS.lua defines has a reader
 
-### test_surface_parity.lua (9)
+### test_surface_parity.lua (10)
 
 - parity: the Core seam's whole namespace surface survives the library's absence
 - parity: the DebugLog stub carries the whole live surface
@@ -97,6 +97,7 @@ Total.
 - parity: the Schema host stub carries the library's own members
 - parity: the Launcher stub carries the whole live surface
 - parity: the Lifecycle stub carries the whole live surface
+- parity: the degraded skin facade carries the whole live facade
 - parity: the Compat reader arm carries every library member the addon wires
 
 ### test_mediasetup.lua (12)
@@ -624,6 +625,27 @@ Total.
 - layers: the owed Hide at combat end leaves the controls ready for the next show
 - layers: no SetFrameStrata literal and no absolute SetFrameLevel in core, modules or settings
 
+### test_frame_skin.lua (12)
+
+- popup skin: the title's brand span reads wg.brand, FFD700 byte for byte on Ka0s Default
+- popup skin: every field label is painted in wg.label, with no inline color
+- popup skin: values read text.highlight, and every placeholder wg.placeholder
+- popup skin: the teleport note is painted in wg.placeholder, its text plain
+- popup skin: the Close button is the skin's button, painted after its click script
+- popup skin: the window is the owner's Shell, so a switch repaints its edge and title
+- popup skin: a skin switch repaints the labels, values, note and brand span live
+- popup skin: a skin switch re-anchors the teleport button beside its moved label
+- popup skin: in combat the re-anchor waits for combat end, then lands
+- popup skin: a switch while stood down queues no anchor; the stand-up re-anchors
+- popup skin: a switch before the popup exists builds nothing
+- popup skin: the degraded facade paints a token name with that token's color
+
+### test_skin_literals.lua (3)
+
+- skin literals: no color literal outside core/SkinSetup.lua and the named allow-list
+- skin literals: every allow-list entry carries its reason
+- skin literals: the gate is falsifiable, a planted literal of each shape is reported
+
 ### test_panel.lua (62)
 
 - panel: OnEnable registers the parent category and the General subcategory
@@ -688,6 +710,57 @@ Total.
 - panel: the composed rows name the popup through `notes`, never a host rewrite (WHA-L11, L17)
 - panel: the Test notification button names its run and its preview (WHA-L08)
 - panel: the header Defaults tooltip is the library's Reset all settings wording (WHA-L12)
+
+### test_skinsetup.lua (17)
+
+- skin seam: the owner is the folder name, registered at file load, and NS.Skin is its facade
+- skin seam: the read answers Ka0s Default before the profile store exists
+- skin seam: the owner tokens draw today's exact pixels under Ka0s Default
+- skin seam: each owner token follows its library role token under another skin
+- skin seam: the skin keys default to Ka0s Default, with the picker unseen
+- skin seam: every skin key is a skip-render row on the Appearance tab
+- skin seam: the skin row's values are every registered skin, in the library's order
+- skin seam: /wg set refuses an unknown skin and applies a registered one live
+- skin seam: the write seam writes every half through Helpers.Set, never the profile directly
+- skin seam: OnInitialize applies the profile's skin right after the store exists
+- skin seam: a profile switch, copy or reset re-applies the incoming profile's skin live
+- skin seam: a profile event re-applies the stored overrides and Scope too
+- skin seam: the General strip carries the library's Skin tab before Keybindings
+- skin seam: the popup's window edge is painted for this owner
+- skin seam: the TOC loads the seam before the schema and lists EllesmereUI as optional
+- skin seam: the host copy of Ka0s Default equals the library's, token for token
+- skin seam: without the library the facade answers Ka0s Default and applies nothing
+
+### test_skin_picker.lua (20)
+
+- skin picker: pickerSeen defaults to false, a skip-render row on the Appearance group
+- skin picker: the spec names this owner, its seams, General's Skin tab and the eye
+- skin picker: an unseen profile shows it; a seen one does not
+- skin picker: it shows two seconds after login, through the addon's own AceTimer
+- skin picker: a stand-down before the fuse fires cancels the login start
+- skin picker: in combat a start waits for combat end, once
+- skin picker: a held start is dropped by HideSkinPicker
+- skin picker: never while the addon is switched off
+- skin picker: a new profile and a reset profile show it again
+- skin picker: the title names this addon
+- skin picker: the player's close marks it seen; this addon's own hide does not
+- skin picker: a profile that has seen it takes a shown picker down, unmarked
+- skin picker: a pick previews, unsaved; Apply saves it and marks the picker seen
+- skin picker: the close control puts the stored skin back and saves nothing
+- skin picker: the gear saves the pick and opens General on its Skin tab
+- skin picker: the eye starts the popup's test mode and leaves the picker up
+- skin picker: a profile switch with a preview pending wears the new profile's skin
+- skin picker: a switch to an unseen profile starts a fresh showing, the old preview dropped
+- skin picker: the stand-down with a preview pending puts the old skin back, unseen
+- skin picker: degraded, there is no picker and nothing raises
+
+### test_skin_tools.lua (5)
+
+- skin tools: the Test notification button is painted for this owner, past the raw handle
+- skin tools: under Ka0s Default the button paints like every skin's
+- skin tools: the Scope's Ignore settings panel (the default) leaves the button stock
+- skin tools: the Profiles page paints the tree AceConfigDialog drew, after every Open
+- skin tools: the debug console and its copy window are painted for this owner
 
 ### test_profiles.lua (19)
 
@@ -1096,7 +1169,7 @@ Total.
 |-------|------:|
 | test_harness.lua | 17 |
 | test_libka0s.lua | 56 |
-| test_surface_parity.lua | 9 |
+| test_surface_parity.lua | 10 |
 | test_mediasetup.lua | 12 |
 | test_envsetup.lua | 10 |
 | test_util.lua | 31 |
@@ -1111,7 +1184,12 @@ Total.
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_frame_layers.lua | 8 |
+| test_frame_skin.lua | 12 |
+| test_skin_literals.lua | 3 |
 | test_panel.lua | 62 |
+| test_skinsetup.lua | 17 |
+| test_skin_picker.lua | 20 |
+| test_skin_tools.lua | 5 |
 | test_profiles.lua | 19 |
 | test_testmode.lua | 28 |
 | test_snapshot.lua | 10 |
@@ -1133,4 +1211,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **967** |
+| **Total** | **1025** |

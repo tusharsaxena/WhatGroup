@@ -5,7 +5,7 @@
 ## Version: 1.6.0
 ## IconTexture: Interface\AddOns\WhatGroup\media\logos\whatgroup.logo.128.tga
 ## SavedVariables: WhatGroupDB
-## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1, LibDBIcon-1.0
+## OptionalDeps: Ace3, LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1, LibDBIcon-1.0, EllesmereUI
 ## DefaultState: enabled
 ## Category-enUS: Chat
 ## X-License: MIT
@@ -47,6 +47,11 @@ core\CoreSetup.lua
 # MediaSetup here and not later: core\WhatGroup.lua resolves NS.FONT_MONO from
 # NS.MediaFont at load, so this slot is load-bearing, not conventional.
 core\MediaSetup.lua
+# The LibKa0s-Skin-1.0 seam (skinning-§1): registers the "WhatGroup" owner at FILE LOAD, so the
+# EllesmereUI provider can offer it before EllesmereUI dispatches. After core\CoreSetup.lua, whose
+# NS.BRAND_NAME it reads at load as the owner's label, and before settings\Schema.lua, which reads
+# NS.SKIN_OPTIONS at file load. Load-bearing.
+core\SkinSetup.lua
 # NS.Windows and NS.FormatDuration; reads nothing at load, so this slot is conventional.
 core\Util.lua
 # NS.Constants.LAYERS, the frame-layering table (frame-layering-§5). modules\Frame.lua reads it at
@@ -84,8 +89,12 @@ defaults\TeleportSpells.lua
 # Modules (conventional: modules\Frame.lua reads NS.addon, NS.L and NS.BRAND_NAME (core\CoreSetup.lua)
 # at file scope, all published above this group. One later file reads Frame's output at load:
 # settings\Panel.lua builds GENERAL_OPTS from NS.BINDINGS at file scope (settings/Panel.lua:304),
-# which this file publishes (modules/Frame.lua:1344). The # Modules -> # Settings group order already
+# which this file publishes (modules/Frame.lua:1373). The # Modules -> # Settings group order already
 # guarantees that read, so the slot stays conventional (toc-file-§5).)
+# The popup's look (WG-02). Directly above modules\Frame.lua, which takes NS.FrameSkin as a
+# file-scope upvalue; after core\SkinSetup.lua, whose NS.Skin it subscribes OnLooksChanged on at
+# load. Load-bearing.
+modules\FrameSkin.lua
 modules\Frame.lua
 # The sections of `/wg diagnostics` (debug-logging-§14). Conventional: core\DebugLogSetup.lua's
 # descriptor reads NS.Diagnostics at RUN time, and every read in the file is at call time.

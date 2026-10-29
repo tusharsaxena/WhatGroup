@@ -78,6 +78,9 @@ Kit.setSurfaceSource{
     -- mirror that instance, not the library table.
     ["LibKa0s-Launcher-1.0"]  = surfaceNS.Launcher,
     ["LibKa0s-Lifecycle-1.0"] = surfaceNS.Lifecycle,
+    -- The owner's FACADE (core/SkinSetup.lua's NS.Skin, `Skin:For("WhatGroup")`), not the library
+    -- table: the degraded facade mirrors what a call site paints through.
+    ["LibKa0s-Skin-1.0"]      = surfaceNS.Skin,
     -- A library table too, for the same reason: settings/SchemaSetup.lua's HostSchemaStub stands in
     -- for the LIBRARY (its SplitPath / Read / Write / SameValue / New), so the by-name parity case
     -- compares it against what LibStub answers. The instance-vs-stub pair is the kit's two-table
@@ -163,7 +166,20 @@ Kit.run{
         "test_frame_visibility",
         "test_frame_secure",
         "test_frame_layers",
+        -- The popup's look on the skin (modules/FrameSkin.lua, WG-02): tokens, live repaint, the
+        -- secure button's re-anchor.
+        "test_frame_skin",
+        -- The hard-coded color gate (anti-pattern #107): no literal the skin cannot reach.
+        "test_skin_literals",
         "test_panel",
+        -- The skin seam (core/SkinSetup.lua, skinning-§1 to §3): the owner, its tokens, the skin
+        -- rows, the Skin tab's place, the profile events and the degraded arm.
+        "test_skinsetup",
+        -- The first-run skin picker (core/SkinSetup.lua, WG-04): when it shows, the spec, the real
+        -- window's preview, Apply, close, gear and eye, and the stand-down.
+        "test_skin_picker",
+        -- The addon's own AceGUI acquisitions and the debug console on the skin (WG-04).
+        "test_skin_tools",
         "test_profiles",
         "test_testmode",
         "test_snapshot",
