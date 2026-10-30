@@ -399,12 +399,14 @@ if not Skin then
     S.ChartStyle = function() return {} end
     S.BarStyle = function() return {} end
     -- LibKa0s v1.82.0 (SkinPaintExtras minor 7): never nil, which SetFont would read as no flags or
-    -- refuse as a height. A picked flag as stored, "OUTLINE" for From skin (Ka0s Default's outline,
-    -- D-06); a positive size as stored, else 12. This addon stores neither (it has no font settings
-    -- and no HUD), so nothing here calls them; they keep the facade whole.
-    S.FontFlags = function(v)
+    -- refuse as a height. A picked flag as stored; for From skin, the live primitive's ignored-fonts
+    -- answer, since the library-absent popup draws the client's own faces: "" for window text (the
+    -- stock face keeps its stock flags), "OUTLINE" for a HUD. A positive size as stored, else 12. This
+    -- addon stores neither (it has no font settings and no HUD), so nothing here calls them; they keep
+    -- the facade whole.
+    S.FontFlags = function(v, where)
         if type(v) == "string" and v ~= S.FROM_SKIN then return v end
-        return "OUTLINE"
+        return where == "window" and "" or "OUTLINE"
     end
     S.HudFontSize = function(size)
         local n = tonumber(size)

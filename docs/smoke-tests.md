@@ -26,7 +26,7 @@ number out of use rather than handing it to a new one.
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-16 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
-| SKIN-1 – SKIN-28 | [Skins](#skins) | Ka0s Default as before but for its face, title band and Close button; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins |
+| SKIN-1 – SKIN-29 | [Skins](#skins) | Ka0s Default as before but for its face, title band and Close button; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
 | LOC-1 – LOC-6 | [Non-English client](#non-english-client) | A deDE or frFR client, and the `IsSpellKnown` readers |
 
@@ -968,6 +968,15 @@ Default is SKIN-1's list and nothing else.
   title-bar labels fit their bar and none overlaps the next. Repeat on **Ka0s Default** with the
   outline *Off* → nothing clips. Fail: a skin whose text is clearly wider or narrower than Ka0s
   Default's, or any clipped string. Result:
+- **SKIN-29. The picker and the overrides (WG-01; LibKa0s v1.82.0, ruling D-10).** Set a **Font**
+  override on the Skin tab, then `/wg skin` and preview another skin → the override clears and the
+  previewed skin's own face shows; press the close mark → the old skin and the override both come
+  back. `/wg skin` again, preview another skin and press **Apply** → the override stays cleared, and
+  `/wg get skin.font` prints an empty value. Set a **Texture** override too and repeat with
+  **Apply to all Ka0s addons** (a second Ka0s addon that uses skins loaded, with its own Font
+  override) → every addon whose skin changed loses both overrides; an addon already on that skin
+  keeps its own. Fail: an override that survives a preview or an Apply, or one a close does not
+  bring back. Result:
 
 ## Library-absent install
 
@@ -1084,5 +1093,6 @@ Owed from the skin fonts and feedback run (Ka0sAddonsCommonTasks
 (amended: sixteen rows, `skin` after `config`), SKIN-1 (amended: Prototype with the outline), SKIN-2
 (amended: the reset buttons, the Font outline, the half-width Scope and the *Other Ka0s addons*
 heading), SKIN-6 (amended: Prototype, Expressway and Fira Sans Medium), SKIN-9 (amended: Prototype),
-SKIN-17 (amended: a skin pick resets the overrides) and the new SKIN-25 to SKIN-28 (the Font
-outline, no font settings of its own, `/wg skin`, width parity across skins).
+SKIN-17 (amended: a skin pick resets the overrides) and the new SKIN-25 to SKIN-29 (the Font
+outline, no font settings of its own, `/wg skin`, width parity across skins, the picker resetting
+the overrides).
