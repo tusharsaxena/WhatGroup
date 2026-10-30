@@ -297,21 +297,24 @@ surface carries a typed look value.
   gray, following `text.disabled`). Each keeps Ka0s Default's exact pixel and follows its role token
   under every other skin (the rollout's X1, X2 and X12). It publishes `NS.Skin` (the owner's facade),
   `NS.SkinEscape`, `NS.SkinPaintAce` / `NS.SkinPaintAceTree`, and `NS.ApplySkinChoice` /
-  `NS.ApplySkinIgnore` / `NS.ApplySkinOverride`. Its degraded arm answers
+  `NS.ApplySkinIgnore` / `NS.ApplySkinOverride` / `NS.ApplySkinOutline`. Its degraded arm answers
   every facade name from `NS.SKIN_FALLBACK`, a host copy of the Ka0s Default tokens the addon reads,
   which `tests/test_skinsetup.lua` holds to the library's values; `tests/test_surface_parity.lua`
   holds the degraded facade to the live one key for key.
-- **The stored choice.** Seven profile keys under `skin.*` ([schema.md](./schema.md)): `source`
+- **The stored choice.** Eight profile keys under `skin.*` ([schema.md](./schema.md)): `source`
   (`ka0s` or `eui`) and `skin`, the Scope's `ignorePanel` (on in a new profile: the settings pages
   stay the client's) and `ignoreFonts`, the two overrides `font` and `texture` (an LSM key each, `""`
-  for the skin's own) and `pickerSeen`. All are `skipRender` schema rows on the **Appearance** group,
+  for the skin's own), the Font outline `outline` (`all`, `hud` or `off`; LibKa0s v1.82.0) and
+  `pickerSeen`. All are `skipRender` schema rows on the **Appearance** group,
   drawn by the library's **Skin** tab (`Helpers.AppearanceTab`, key `Appearance`) on the General page,
   after Notifications and before Keybindings ([settings-panel.md](./settings-panel.md#the-skin-tab)).
   New keys with defaults, so no migration is owed. WhatGroup has **no HUD**, so there are no style
   settings, no `fromSkin` companions and no HUD style reset (owner ruling O2 has nothing to reset
-  here).
+  here). For the same reason the font-setting minimum (size, color, flags, shadow; ruling D-07) and
+  the HUD size scale (`S.HudFontSize`, D-09) reach nothing here: the addon stores no font setting,
+  and the degraded facade's `FontFlags` and `HudFontSize` exist only to keep it whole.
 - **Repaint flow.** `NS.ApplySkinChoice` runs right after `AceDB:New` in `OnInitialize` and on every
-  profile event (`core/WhatGroup.lua`'s `reloadProfile`), applying the stored Scope and overrides with
+  profile event (`core/WhatGroup.lua`'s `reloadProfile`), applying the stored Scope, overrides and outline with
   the stored skin, and from each Skin tab row with only its own half (the reason is in
   `core/SkinSetup.lua`'s header). It calls `Skin:SetChoice`, which repaints every frame recorded for
   this owner and then fires `NS.Skin.OnLooksChanged`. No reload, no OnUpdate, no events.

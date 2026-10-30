@@ -348,7 +348,7 @@ The page is **tabbed** (`options-ui-§13`). `LibKa0s-Options-1.0`'s `RenderTabbe
 |---|---|---|---|---|
 | 1 | **Master controls** | 8 | — | options-ui-§15's canonical block, composed rather than written: enable, general visibility, master scale, master alpha, lock frame, debug console, minimap button, test mode — closed by the **Reset position | Reset all settings** button pair (`afterGroup`). It is the **first** tab, and the name is the literal options-ui-§15 mandates. |
 | 2 | **Notifications** | 12 | `Timing`, `Chat summary`, `Popup window` | The whole join flow on one tab (item 020): when it fires (*Delay after joining (seconds)*, which holds back both the chat summary and the popup), what the chat summary says (the **Print to chat** master and the seven lines it can contain, in print order), and whether and how big the group info popup opens. Closed by the **Test notification** button (`afterGroup`). |
-| 3 | **Skin** (key `Appearance`) | 7 (`skipRender`) | — | The library's skin tab (skinning-§3), a host tab keyed by the `Appearance` group the seven `skin.*` rows carry, so it takes that group's place, after Notifications: see [The Skin tab](#the-skin-tab). The rows are `skipRender`, so the library's grids draw them rather than the schema renderer. |
+| 3 | **Skin** (key `Appearance`) | 8 (`skipRender`) | — | The library's skin tab (skinning-§3), a host tab keyed by the `Appearance` group the eight `skin.*` rows carry, so it takes that group's place, after Notifications: see [The Skin tab](#the-skin-tab). The rows are `skipRender`, so the library's grids draw them rather than the schema renderer. |
 | 4 | **Keybindings** | — | — | The library's key editor (options-ui-§20), a host tab rather than a schema group: see [The Keybindings tab](#the-keybindings-tab). Always last. |
 
 Notifications mixes control kinds and therefore carries **subsection headings** (options-ui-§7): a slider that says *when* above the checkboxes that say *what*, then the popup window's toggle above its two size sliders. The headings are declared by the rows (`subgroup`), never drawn by the builder, and a `subgroup` never repeats its own tab's name.
@@ -391,6 +391,7 @@ Rows on the **Master controls** tab are emitted by `Helpers.MasterControls` and 
 | Skin (key `Appearance`) | skin | `skin.ignoreFonts` | bool | false | `skipRender` | *Ignore fonts*: every string keeps the game's face and size; the skin still colors it. `Skin:SetIgnore`, live. |
 | Skin (key `Appearance`) | skin | `skin.font` | string | `""` | `skipRender` | *Font*: an LSM font key over the skin's own; `""` keeps the skin's. Free text, because a media pack may register keys after load. `Skin:SetOverride`, live. |
 | Skin (key `Appearance`) | skin | `skin.texture` | string | `""` | `skipRender` | *Texture*: an LSM statusbar key over the skin's own; `""` keeps the skin's. The popup draws no bars. `Skin:SetOverride`, live. |
+| Skin (key `Appearance`) | skin | `skin.outline` | string | `"all"` | `skipRender` | *Font outline* (LibKa0s v1.82.0, ruling D-06): `all` text, `hud` text only, or `off`. The popup and the console are window text, so `hud` takes their outline. `/wg set` refuses another mode; `Skin:SetOutline`, live. |
 | Skin (key `Appearance`) | skin | `skin.pickerSeen` | bool | false | `skipRender` | The first-run skin picker was closed on this profile (owner ruling O3). Drawn by nothing; written only by the player's close of the picker; a reset puts it back to false, so the picker shows again. |
 
 The popup dialog always renders every field; the `notify.show*` rows gate **chat output only**. See [scope.md](./scope.md#resolved-decisions) for why.
@@ -543,7 +544,7 @@ The General page's third tab, after Notifications and before Keybindings (skinni
 library's: `settings/Panel.lua` passes
 `Helpers.AppearanceTab({ owner = addonName, get = NS.SkinChoice, set = NS.WriteSkinChoice })` in
 `RenderTabbedSchema`'s `opts.tabs`, and `LibKa0s-Options-1.0` (`OptionsAppearance.lua`, LibKa0s
-v1.81.0) draws it. Its key is `Appearance`, the group the seven `skin.*` rows carry, so it takes that
+v1.82.0) draws it. Its key is `Appearance`, the group the eight `skin.*` rows carry, so it takes that
 group's place in the strip; its label is **Skin**. Nothing in it is this addon's own code:
 
 - **Skin source**: *Ka0s skins* or *EllesmereUI*, the second disabled with the failing condition
@@ -551,13 +552,16 @@ group's place in the strip; its label is **Skin**. Nothing in it is this addon's
   EllesmereUI back to Ka0s asks for a reload.
 - **Look**: the nine Ka0s skins, three to a line, each with its swatches; Ka0s Default first.
 - **Font and texture**: two LibSharedMedia pickers over the skin's own (*Skin's own* in a new
-  profile). WhatGroup draws no bars, so a texture override changes nothing visible here.
+  profile). WhatGroup draws no bars, so a texture override changes nothing visible here. Under
+  them, **Reset font** and **Reset texture**, and the **Font outline** (*All text* in a new profile,
+  *HUD text only*, *Off*; `skin.outline`). A skin pick that changes the look resets both overrides
+  (LibKa0s v1.82.0).
 - **Scope**: **Ignore settings panel** (on in a new profile: these settings pages stay the client's,
   while the popup and the debug console still wear the skin) and **Ignore fonts** (every string keeps
   the game's face and size, the popup's strings and the debug console's title-bar labels included; the skin
   still colors it).
-- **Copy to every Ka0s addon…**: gives every other loaded skin owner this addon's source, skin,
-  Scope, font and texture after a confirmation; disabled, with a line saying so, while WhatGroup is
+- **Copy to every Ka0s addon…** (under its own heading, *Other Ka0s addons*): gives every other
+  loaded skin owner this addon's source, skin, Scope, font, texture and font outline after a confirmation; disabled, with a line saying so, while WhatGroup is
   the only one loaded.
 
 Every pick goes through `NS.WriteSkinChoice`, which writes each half through `Helpers.Set`, so it

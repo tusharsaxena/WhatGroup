@@ -12,7 +12,7 @@ Every stored setting except one. That is every profile-scoped row of the schema:
 - the **Notifications** tab: `notify.delay`, `notify.enabled` and the `notify.show*` lines, then
   `frame.autoShow`, `frame.width`, `frame.height`;
 - the **Skin** tab: `skin.source`, `skin.skin`, `skin.ignorePanel`, `skin.ignoreFonts`, `skin.font`,
-  `skin.texture`, and `skin.pickerSeen`, the first-run skin picker's memory (a new or reset profile shows
+  `skin.texture`, `skin.outline` (the Font outline), and `skin.pickerSeen`, the first-run skin picker's memory (a new or reset profile shows
   the picker once; a copy carries its source's).
 
 A new profile starts from `defaults/Profile.lua` (`NS.C`), the one place a profile default is written

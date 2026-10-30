@@ -306,7 +306,7 @@ add{
 -- ---------------------------------------------------------------------------
 --
 -- The tab is the library's O.AppearanceTab (settings/Panel.lua), which draws every one of these
--- as its own choice grids, check boxes and media pickers, so all seven carry `skipRender`. They
+-- as its own choice grids, check boxes and media pickers, so all eight carry `skipRender`. They
 -- stay schema rows so the defaults resolve, Reset all settings reaches them, and `/wg get|set
 -- skin.skin` validates against `values`. Declared last, so the group's place in the strip is after
 -- Notifications; the host tab keyed "Appearance" takes that place, before Keybindings.
@@ -365,6 +365,17 @@ add{
     tooltip = "The texture this addon's bars use, over the skin's own. Empty keeps the skin's.",
     default = C.skin.texture,
     onChange = function(v) NS.ApplySkinOverride(nil, v) end,
+}
+-- The Font outline (LibKa0s-Skin-1.0 minor 9, ruling D-06), drawn by the same tab as its "Font
+-- outline" dropdown: where the skin outlines this addon's text. The library's three modes, in its
+-- order; `/wg set skin.outline` validates against them.
+add{
+    section = "skin",  group = "Appearance",  skipRender = true,
+    path    = "skin.outline",  type = "string",  values = NS.SKIN_OUTLINE_OPTIONS,
+    label   = "Font outline",
+    tooltip = "Where the skin outlines this addon's text: all of it, its HUD text only, or nowhere. The popup is window text.",
+    default = C.skin.outline,
+    onChange = function(v) NS.ApplySkinOutline(v) end,
 }
 -- The first-run skin picker's memory: set when the picker closes, so it shows once per profile.
 -- Drawn by nothing; a reset puts it back to false.

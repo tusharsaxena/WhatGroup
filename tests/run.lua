@@ -175,6 +175,8 @@ Kit.run{
         -- The skin seam (core/SkinSetup.lua, skinning-§1 to §3): the owner, its tokens, the skin
         -- rows, the Skin tab's place, the profile events and the degraded arm.
         "test_skinsetup",
+        -- The font outline (LibKa0s v1.82.0, D-06): skin.outline, its write seam and its apply.
+        "test_skin_outline",
         -- The first-run skin picker (core/SkinSetup.lua, WG-04): when it shows, the spec, the real
         -- window's preview, Apply, close, gear and eye, and the stand-down.
         "test_skin_picker",

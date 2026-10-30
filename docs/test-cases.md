@@ -731,6 +731,18 @@ Total.
 - skin seam: the host copy of Ka0s Default equals the library's, token for token
 - skin seam: without the library the facade answers Ka0s Default and applies nothing
 
+### test_skin_outline.lua (9)
+
+- outline: a fresh profile stores All text, the library's default
+- outline: the schema row offers the library's three modes, in its order
+- outline: the write seam stores media.outline, and leaves it alone when it is nil
+- outline: another addon's copy reaches the store through WriteChoice
+- outline: the row's write applies the mode live
+- outline: /wg set refuses a mode the library does not know
+- outline: OnInitialize applies the stored mode
+- outline: a profile event applies the incoming profile's mode
+- outline: without the skin engine the apply is a quiet no-op
+
 ### test_skin_picker.lua (20)
 
 - skin picker: pickerSeen defaults to false, a skip-render row on the Appearance group
@@ -1188,6 +1200,7 @@ Total.
 | test_skin_literals.lua | 3 |
 | test_panel.lua | 62 |
 | test_skinsetup.lua | 17 |
+| test_skin_outline.lua | 9 |
 | test_skin_picker.lua | 20 |
 | test_skin_tools.lua | 5 |
 | test_profiles.lua | 19 |
@@ -1211,4 +1224,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1025** |
+| **Total** | **1034** |
