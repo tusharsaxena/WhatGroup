@@ -1123,6 +1123,10 @@ Total.
 - tests/_kit is the test kit that shipped with that release
 - the automated-test runner is recorded executable (100755)
 
+### test_glyphs.lua (1)
+
+- glyphs: display strings use only characters every shipped skin face draws
+
 ### test_eol.lua (2)
 
 - eol: every tracked file carries the terminator .gitattributes declares for it
@@ -1229,10 +1233,11 @@ Total.
 | test_register.lua | 1 |
 | test_disabled.lua | 22 |
 | test_vendor_sync.lua | 3 |
+| test_glyphs.lua | 1 |
 | test_eol.lua | 2 |
 | test_prose.lua | 15 |
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1041** |
+| **Total** | **1042** |

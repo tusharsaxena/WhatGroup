@@ -199,6 +199,8 @@ Kit.run{
         "test_register",
         "test_disabled",
         "test_vendor_sync",
+        -- The display-glyph guard (kit revision 45, D-19): no string a skin face cannot draw.
+        "test_glyphs",
         -- The kit has shipped one suite of its own since revision 15: the working-tree
         -- line-ending gate, over every path `git ls-files` reports. It lives where the rest
         -- of the kit lives rather than being re-typed into nine repositories, so it is
