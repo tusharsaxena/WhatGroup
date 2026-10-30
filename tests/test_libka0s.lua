@@ -61,7 +61,7 @@ test("libka0s: MODULES names every file of every major, at a positive integer mi
         ["LibKa0s-Options-1.0"]  = { "Options", "OptionsWidgets", "OptionsScroll",
                                      "OptionsAppearance", "OptionsSkinPicker" },
         ["LibKa0s-Perf-1.0"]     = { "Perf", "PerfPanel" },
-        -- LibKa0s-Skin-1.0 (v1.78.0; key 7.15.11.5.9.2.4 at v1.80.0): its seven files.
+        -- LibKa0s-Skin-1.0 (v1.78.0; key 8.16.12.6.10.2.4 at v1.81.0): its seven files.
         ["LibKa0s-Skin-1.0"]     = { "Skin", "SkinDefs", "SkinPaint", "SkinPaintExtras",
                                      "SkinPaintControls", "SkinEUI", "SkinAce" },
     }

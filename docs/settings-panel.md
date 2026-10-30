@@ -543,7 +543,7 @@ The General page's third tab, after Notifications and before Keybindings (skinni
 library's: `settings/Panel.lua` passes
 `Helpers.AppearanceTab({ owner = addonName, get = NS.SkinChoice, set = NS.WriteSkinChoice })` in
 `RenderTabbedSchema`'s `opts.tabs`, and `LibKa0s-Options-1.0` (`OptionsAppearance.lua`, LibKa0s
-v1.80.0) draws it. Its key is `Appearance`, the group the seven `skin.*` rows carry, so it takes that
+v1.81.0) draws it. Its key is `Appearance`, the group the seven `skin.*` rows carry, so it takes that
 group's place in the strip; its label is **Skin**. Nothing in it is this addon's own code:
 
 - **Skin source**: *Ka0s skins* or *EllesmereUI*, the second disabled with the failing condition
@@ -554,7 +554,8 @@ group's place in the strip; its label is **Skin**. Nothing in it is this addon's
   profile). WhatGroup draws no bars, so a texture override changes nothing visible here.
 - **Scope**: **Ignore settings panel** (on in a new profile: these settings pages stay the client's,
   while the popup and the debug console still wear the skin) and **Ignore fonts** (every string keeps
-  the game's face and size; the skin still colors it).
+  the game's face and size, the popup's strings and the debug console's title-bar labels included; the skin
+  still colors it).
 - **Copy to every Ka0s addon…**: gives every other loaded skin owner this addon's source, skin,
   Scope, font and texture after a confirmation; disabled, with a line saying so, while WhatGroup is
   the only one loaded.
