@@ -126,7 +126,7 @@ number out of use rather than handing it to a new one.
   than scrolling; clicking the current tab does nothing; the **Test notification** button shows on
   Notifications only and the reset pair on Master controls only. **Skin** is the library's tab
   (SKIN-2 walks it). (Amended by WG-05, 2026-10-29, the skinning rollout: the Skin tab; the
-  2026-10-24 pass covered three tabs.) Result:
+  2026-10-24 pass covered three tabs.) Result: pass (owner-marked 2026-10-30)
 - **PANEL-3. Widget and CLI round-trip.** **Notifications** → untick *Open on join*, then
   slide *Delay after joining (seconds)* to 3.0s; close Settings. `/wg get frame.autoShow` → `false`;
   `/wg get notify.delay` → `3.0s`. Reopen the Notifications tab, then `/wg set frame.autoShow on` with it
@@ -777,7 +777,7 @@ Default is SKIN-1's list and nothing else.
   darker than the body; and **Close** is the skin's flat button (a dark fill inside a 1px edge) instead of
   Blizzard's red stone button. Fail: any other changed color, edge or
   spacing, a label in a different gold from the "WhatGroup" span, a string still in Friz Quadrata,
-  or text clipped or overlapping because the face is wider. Result:
+  or text clipped or overlapping because the face is wider. Result: pass (owner-marked 2026-10-30)
 - **SKIN-2. The Skin tab (WG-01).** `/wg config` → General → the strip reads **Master controls |
   Notifications | Skin | Keybindings**. **Skin** → a **Skin source** heading over *Ka0s skins* (on)
   and *EllesmereUI* (disabled with a line saying why, unless EllesmereUI is loaded and can skin this
@@ -788,7 +788,7 @@ Default is SKIN-1's list and nothing else.
   skin unless you set them yourself.* No heading on the tab reads **Skin**. Pick **Obsidian** → no
   reload; `/wg get skin.skin` → `obsidian`; `/reload` → still Obsidian. Pick **Ka0s Default** again.
   Fail: the tab missing, out of place or labeled Appearance, a pick that does not stick, a reload
-  prompt on a Ka0s-to-Ka0s pick. Result:
+  prompt on a Ka0s-to-Ka0s pick. Result: pass (owner-marked 2026-10-30)
 - **SKIN-3. Each skin, live, on the popup (WG-02).** `/wg test`, then pick each skin in turn on the
   Skin tab: Obsidian, Azeroth, Glass, High Contrast, Ember, WoW Default, WoW Midnight, WoW Forever,
   then Ka0s Default → with **no reload** the popup's body, edge, title band, title (the "WhatGroup"
@@ -796,7 +796,7 @@ Default is SKIN-1's list and nothing else.
   string stays readable. Repeat once from `/wg show` with nothing captured (the launcher's **Show
   window** after a `/reload`) → the "No data" placeholders repaint too. `/wg set skin.skin azeroth`
   with the popup open → the same repaint, from the CLI. Fail: a part of the popup that keeps the old
-  skin until it is closed and reopened, or until `/reload`. Result:
+  skin until it is closed and reopened, or until `/reload`. Result: pass (owner-marked 2026-10-30)
 - **SKIN-4. The teleport button follows its label (WG-02; inventory R2, R4).** `/wg test` on Ka0s
   Default, note where the teleport icon sits beside **Teleport:**, then pick **High Contrast** (the
   largest face) → the icon moves with its label and sits beside it, not over it and not left where
@@ -804,20 +804,20 @@ Default is SKIN-1's list and nothing else.
   `/wg set skin.skin contrast` → no `ADDON_ACTION_BLOCKED` and no *Interface action failed*; the
   strings repaint at once, the icon may stay put until combat ends, and drops beside its label the
   moment you leave combat. `/wg set skin.skin ka0s` to finish. Fail: the icon detached from its label
-  after the switch or after combat, or a blocked-action error. Result:
+  after the switch or after combat, or a blocked-action error. Result: pass (owner-marked 2026-10-30)
 - **SKIN-5. Labels fit under every skin (inventory R5).** `/wg test` → under **High Contrast**,
   **Azeroth** and **WoW Midnight**, read the label column → *Playstyle:*, *Instance:* and *Teleport:*
   are whole, none cut or ending in an ellipsis, and no value runs over its label. Fail: a clipped
-  label. Result:
+  label. Result: pass (owner-marked 2026-10-30)
 - **SKIN-6. Fonts (LibKa0s skin faces).** On an English client each skin draws its own family on the
   popup, title and labels alike, with no fallback squares: Ka0s Default Oxanium, Obsidian Inter,
   Azeroth Vollkorn, Glass Nunito, High Contrast Atkinson Hyperlegible, Ember Bitter, WoW Midnight
   Philosopher, WoW Forever Fira Sans; WoW Default the client's Friz Quadrata. The title is the
   family's heavier weight, never a different face. Fail: an empty square where a letter should be,
-  or two skins in the same face. Result:
+  or two skins in the same face. Result: pass (owner-marked 2026-10-30)
 - **SKIN-7. Window corners (WG-02).** Under **Azeroth**, **High Contrast** and **WoW Midnight**,
   `/wg test` and look at the popup's four corners → the edge runs unbroken round each one, and the
-  title band sits inside it. Ka0s Default's 1px edge is where it was. Result:
+  title band sits inside it. Ka0s Default's 1px edge is where it was. Result: pass (owner-marked 2026-10-30)
 - **SKIN-8. The settings panel, Scope on and off (WG-01, WG-04).** On a non-default skin with
   **Ignore settings panel** on (the default) → WhatGroup's landing page, General's tabs, the **Test
   notification** button and the **Profiles** page stay the game's own look; the popup still wears
@@ -826,7 +826,7 @@ Default is SKIN-1's list and nothing else.
   control on the **Profiles** page take the skin; open Profiles twice (it is redrawn each time) →
   skinned both times. Open another Ka0s addon's settings and a non-Ka0s AceGUI addon's, and flip
   back and forth a few times → those pages stay **stock** every time (the AceGUI pool leak check).
-  Tick **Ignore settings panel** again → WhatGroup's pages go back to stock with no reload. Result:
+  Tick **Ignore settings panel** again → WhatGroup's pages go back to stock with no reload. Result: pass (owner-marked 2026-10-30)
 - **SKIN-9. The debug console follows the skin (WG-04).** On **Azeroth**, `/wg debug`, then its
   **Copy** window → both wear WhatGroup's skin: the window edge and title, the buttons, the scroll
   bar, the line counter, the title-bar labels (the logging toggle, **Diagnostics**, and **Copy** and
@@ -838,45 +838,45 @@ Default is SKIN-1's list and nothing else.
   v1.81.0) and the grip is the client's own. Turn **Ignore fonts** on → those labels go back to the
   game's face, live; off → Oxanium again. Fail: a console or Copy window that goes stock with Ignore
   settings panel, a title-bar label that ignores Ignore fonts, or the Diagnostics link's click area
-  not matching its text. Result:
+  not matching its text. Result: pass (owner-marked 2026-10-30)
 - **SKIN-10. What stays Blizzard's (inventory § Exceptions; X7).** Under **High Contrast** and
   **Azeroth** → the teleport icon (no new edge round it, desaturated at 50% when not ready), its
   cooldown swipe, its spell tooltip, the *Reset all settings* confirmation, the minimap button, its
   hover tooltip and its right-click menu all look as they did before the run. The chat summary is
   unchanged too: the cyan `[WG]` tag, the gold row labels, the green details link and the yellow
   command words in help text. Fail: any of these recolored, or a frame drawn round the teleport
-  icon. Result:
+  icon. Result: pass (owner-marked 2026-10-30)
 - **SKIN-11. EllesmereUI on (WG-01; LibKa0s's EllesmereUI provider).** With EllesmereUI loaded, its
   third-party skinning on and WhatGroup on in its Third-Party list → Skin → **Skin source** offers
   **EllesmereUI**; choosing it repaints the popup (`/wg test`) in EllesmereUI's look, live; the
-  teleport icon stays beside its label. Result:
+  teleport icon stays beside its label. Result: pass (owner-marked 2026-10-30)
 - **SKIN-12. EllesmereUI off (WG-01).** Turn WhatGroup off in EllesmereUI's Third-Party list (or
   disable EllesmereUI) and `/reload` → the EllesmereUI choice is disabled, the failing condition and
   its fix are listed, and the popup wears its Ka0s skin. Run without EllesmereUI installed at all →
-  the choice is disabled with its reason, and nothing else on the tab changes. Result:
+  the choice is disabled with its reason, and nothing else on the tab changes. Result: pass (owner-marked 2026-10-30)
 - **SKIN-13. Back from EllesmereUI needs a reload (WG-01).** With EllesmereUI as the source, pick
   **Ka0s skins** → a reload is offered; after it, the Ka0s skin shows. Switch to a profile on Ka0s
   skins while EllesmereUI painted this session → chat prints one `[WG]` line asking for a
-  `/reload`. Result:
+  `/reload`. Result: pass (owner-marked 2026-10-30)
 - **SKIN-14. Copy to every Ka0s addon (WG-01).** With another Ka0s addon that uses skins loaded
   (Ka0s Loot History or the Ka0s Skin Tester), set a skin, a font and a texture on WhatGroup's Skin
   tab and press **Copy to every Ka0s addon…** → the confirmation names the other addons; accept →
   each wears the same skin, font and texture with no reload. With WhatGroup the only one loaded →
-  the button is disabled with *No other loaded Ka0s addon uses skins yet.* Result:
+  the button is disabled with *No other loaded Ka0s addon uses skins yet.* Result: pass (owner-marked 2026-10-30)
 - **SKIN-15. Profiles (WG-01).** Give two profiles different skins, switch between them on the
   Profiles page with the popup open (`/wg test`), then reset one → the skin follows the profile each
   time with no reload, and a reset goes back to Ka0s Default. `/wg profile <name>` does the same.
-  Result:
+  Result: pass (owner-marked 2026-10-30)
 - **SKIN-16. Combat (WG-01).** In combat on a dummy, change the skin with `/wg set skin.skin
   obsidian` → no Lua error and no taint warning (SKIN-4 covers the teleport button); the settings
-  page is refused in combat as it is for any other setting. Result:
+  page is refused in combat as it is for any other setting. Result: pass (owner-marked 2026-10-30)
 - **SKIN-17. Font and texture overrides (WG-01).** With the popup open, pick a clearly different face
   in **Font** → with no reload every popup string takes it, at the size it had; the debug console's
   log lines keep their monospace face; another skin keeps the override; *Skin's own* brings the
   skin's face back. Turn **Ignore fonts** on with an override set → every popup string goes back to
   the game's own face, still in the skin's colors; off → the override returns. Pick any **Texture**
   → nothing on the popup changes (WhatGroup draws no bars) and nothing errors. `/wg get skin.font`
-  shows the key while set and an empty value after. Result:
+  shows the key while set and an empty value after. Result: pass (owner-marked 2026-10-30)
 - **SKIN-18. The skin picker at login and on a fresh profile (WG-04; owner ruling O3).** For a
   profile that never closed it (every profile on the first login of this build), log in → about two
   seconds after the world loads a small window titled **Choose a skin** opens about three quarters
@@ -887,42 +887,42 @@ Default is SKIN-1's list and nothing else.
   page → it opens again; reset that profile → again. It never opens while WhatGroup is disabled
   (`/wg disable`, `/reload`), and a login in combat holds it until combat ends. Fail: a title that
   still carries the addon's name, a name line truncated or ending in an ellipsis, a window on a
-  profile that already closed it, none on a new or reset profile, or one while disabled. Result:
+  profile that already closed it, none on a new or reset profile, or one while disabled. Result: pass (owner-marked 2026-10-30)
 - **SKIN-19. The picker previews, and its eye (WG-04; X6).** Open the dropdown → every skin, each row
   in that skin's face with its swatches. Pick **Obsidian** → the popup and the picker repaint with
   no reload, the picker stays up, and `/wg get skin.skin` still prints the skin it opened with. Press
   the eye → the popup opens in test mode (the sample group) in the previewed skin, and the picker
   stays above it, clickable. Hover the eye → its tooltip says it opens test mode. Fail: the popup
-  over the picker, or the preview lost on the eye. Result:
+  over the picker, or the preview lost on the eye. Result: pass (owner-marked 2026-10-30)
 - **SKIN-20. Apply, the gear, the close mark and Escape (WG-04).** On a fresh profile: preview
   **Obsidian** and press **Apply** → the picker closes, Obsidian stays and is saved (`/wg get
   skin.skin` → `obsidian`), and `/reload` does not bring the picker back. On another fresh profile,
   preview a skin and press the gear → Settings opens on **General** with its **Skin** tab selected,
   showing the preview saved, and the picker closes. On a third, preview a skin and press the close
   mark → the old skin comes back and nothing is saved; on a fourth, the same with **Escape**. Each of
-  these closes counts: the picker does not open again on that profile. Result:
+  these closes counts: the picker does not open again on that profile. Result: pass (owner-marked 2026-10-30)
 - **SKIN-21. The picker, the stand-down and a profile switch (WG-04).** With the picker up and a
   preview pending, `/wg disable` → it closes, the stored skin comes back, and nothing is saved;
   `/wg enable`, `/reload` → it opens again, because the player never closed it. Give a second profile
   **Azeroth** and close its picker; on a fresh profile preview **Obsidian**, then switch to the
   Azeroth profile → the picker closes and the popup wears **Azeroth**, never Obsidian or Ka0s
-  Default; switch back → Ka0s Default, and the picker opens again. Result:
+  Default; switch back → Ka0s Default, and the picker opens again. Result: pass (owner-marked 2026-10-30)
 - **SKIN-22. One picker at a time across Ka0s addons (WG-04).** With WhatGroup and a second Ka0s addon
   that uses skins both on fresh profiles, `/reload` → one picker opens, its name line under the
   title naming one addon; close it → the other opens at once, naming the other. Reset both and `/reload` → press **Apply to all Ka0s addons** → both addons
   wear the skin and no second picker opens. Reset both again, `/reload`, enter combat and close the
   open picker → the waiting one opens only when combat ends. In combat, a pick, **Apply**, **Apply to
   all** and the gear each say they cannot be done in combat, and the close mark still closes it.
-  Result:
+  Result: pass (owner-marked 2026-10-30)
 - **SKIN-23. Other Ka0s addons unchanged (WG-01).** With WhatGroup on a non-default skin, open two
   other Ka0s addons' windows, debug consoles and settings pages → each looks and behaves exactly as
-  before. Disable WhatGroup, `/reload` and compare → still unchanged. Result:
+  before. Disable WhatGroup, `/reload` and compare → still unchanged. Result: pass (owner-marked 2026-10-30)
 - **SKIN-24. The popup without the library (WG-01, WG-02).** Under the [Library-absent
   install](#library-absent-install) setup, `/wg test notify` → the popup draws in the colors it had
   before the run (gold labels, white values, gray placeholders, the 1px black edge) in the game's
   own fonts, with **Close** as Blizzard's button; there is no **Skin** tab, no picker at login, and
   `/wg set skin.skin obsidian` prints the library-absent CLI line. Fail: a Lua error, a blank title
-  or a blank label. Result:
+  or a blank label. Result: pass (owner-marked 2026-10-30)
 
 ## Library-absent install
 
@@ -1026,16 +1026,10 @@ an observation and is never marked passed; its 2026-10-24 run is recorded as rep
 no observation text captured. A check added or rewritten after that date is listed here until its
 `Result:` line records a pass.
 
-Owed from the skinning rollout (Ka0sAddonsCommonTasks `docs/2026-10-29-SKINNING_ROLLOUT/`, items
-WG-01 to WG-05, 2026-10-29): PANEL-2 (amended: the Skin tab in the strip), LAUNCH-18 (amended:
-Keybindings after Skin), and SKIN-1 to SKIN-24 (new: Ka0s Default's face, title band and Close
-button; the Skin tab; each skin on the popup; the teleport button's anchor; fonts and corners; the
-Scope; the console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat and the
-overrides; the first-run skin picker; other addons unchanged; the popup without the library).
-
-Owed from the skin library follow-ups (Ka0sAddonsCommonTasks `docs/2026-10-30-SKIN_LIBRARY_FOLLOWUPS/`,
-items WG-RV and WG-02, LibKa0s v1.81.0, 2026-10-30): SKIN-9 (amended: the console's title-bar labels
-in the skin's face and under Ignore fonts, Oxanium under Ka0s Default, the grip, and the console
-still skinned with Ignore settings panel), SKIN-18 (amended: the title reads *Choose a skin*, the
-addon's name on its own line above the dropdown) and SKIN-22 (amended: the name line names the
-addon).
+On 2026-10-30 the owner reported that every check of the skinning rollout (Ka0sAddonsCommonTasks
+`docs/2026-10-29-SKINNING_ROLLOUT/`, items WG-01 to WG-05) and the skin library follow-ups
+(Ka0sAddonsCommonTasks `docs/2026-10-30-SKIN_LIBRARY_FOLLOWUPS/`, items WG-RV and WG-02, LibKa0s
+v1.81.0) passed: PANEL-2 (amended: the Skin tab in the strip) and SKIN-1 to SKIN-24 (SKIN-9, SKIN-18
+and SKIN-22 as amended by the follow-ups), each recorded on its `Result:` line as
+`pass (owner-marked 2026-10-30)`. LAUNCH-18 (amended: Keybindings after Skin) already recorded a pass
+and keeps its `pass (owner, 2026-10-24)`.
