@@ -543,7 +543,7 @@ The General page's third tab, after Notifications and before Keybindings (skinni
 library's: `settings/Panel.lua` passes
 `Helpers.AppearanceTab({ owner = addonName, get = NS.SkinChoice, set = NS.WriteSkinChoice })` in
 `RenderTabbedSchema`'s `opts.tabs`, and `LibKa0s-Options-1.0` (`OptionsAppearance.lua`, LibKa0s
-v1.80.0) draws it. Its key is `Appearance`, the group the seven `skin.*` rows carry, so it takes that
+v1.81.0) draws it. Its key is `Appearance`, the group the seven `skin.*` rows carry, so it takes that
 group's place in the strip; its label is **Skin**. Nothing in it is this addon's own code:
 
 - **Skin source**: *Ka0s skins* or *EllesmereUI*, the second disabled with the failing condition

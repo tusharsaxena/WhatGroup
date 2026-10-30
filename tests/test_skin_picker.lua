@@ -199,9 +199,14 @@ end)
 
 -- ── the real window ──────────────────────────────────────────────────────────────────────────
 
-test("skin picker: the title names this addon", function()
+-- LibKa0s v1.81.0 (OptionsSkinPicker minor 2, ruling R-11): the title no longer carries the addon's
+-- name, which the client cut off; the name has its own line above the dropdown, frame.ownerLabel.
+test("skin picker: the title asks for a skin and the addon's name sits above the dropdown", function()
     local NS = enabled()
-    assertEqual(window(NS).title:GetText(), "Choose a skin for " .. NS.BRAND_NAME)
+    local f = window(NS)
+    assertEqual(f.title:GetText(), "Choose a skin", "the title carries no addon name")
+    assertTrue(f.ownerLabel ~= nil, "the picker has its owner line")
+    assertEqual(f.ownerLabel:GetText(), NS.BRAND_NAME, "the owner line names this addon")
 end)
 
 test("skin picker: the player's close marks it seen; this addon's own hide does not", function()
