@@ -114,7 +114,7 @@ Libs are copied as-is from Ka0s KickCD (`/mnt/d/Profile/Users/Tushar/Documents/G
 ## media/
 
 - `logos/`, `screenshots/` — logo / screenshot assets referenced by `README.md` and the Settings landing page. Not loaded by Lua directly (both logos are referenced by texture path). Two logo files ship (layout-§4): `whatgroup.logo.tga`, drawn at 300×300 on the landing page, and `whatgroup.logo.128.tga` — 128×128, uncompressed 32-bit, regenerated from the `.png` source by layout-§4's recipe — which is the TOC's `IconTexture`, the minimap button's icon and the broker object's icon at once.
-- No `fonts/`. The monospace face the debug console renders in is **the library's**, at `libs/LibKa0s/media/fonts/JetBrainsMono-Regular.ttf` with its own OFL file beside it, reached through `core/MediaSetup.lua`. So are the skins' faces (Oxanium for Ka0s Default, and one family per other skin, each with its OFL file) and bar textures, which the Skin major draws for this owner. A private copy of art the library already carries is anti-pattern #63.
+- No `fonts/`. The monospace face the debug console renders in is **the library's**, at `libs/LibKa0s/media/fonts/JetBrainsMono-Regular.ttf` with its own OFL file beside it, reached through `core/MediaSetup.lua`. So are the skins' faces (Prototype for Ka0s Default, and one family per other skin, each with its terms beside it) and bar textures, which the Skin major draws for this owner. A private copy of art the library already carries is anti-pattern #63.
 
 ## Top-level docs
 

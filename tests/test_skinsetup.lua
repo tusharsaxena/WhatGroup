@@ -184,17 +184,17 @@ function()
     local ok, err = pcall(function()
         quietly(NS, function()
             NS.WriteSkinChoice("ka0s", "ember", { panel = false, fonts = true },
-                { font = "Ka0s Oxanium Bold", texture = false })
+                { font = "Ka0s Expressway", texture = false })
         end)
     end)
     H.Set = real
     if not ok then error(err, 0) end
     assertEqual(table.concat(wrote, " "), "skin.source=ka0s skin.skin=ember skin.ignorePanel=false "
-        .. "skin.ignoreFonts=true skin.font=Ka0s Oxanium Bold skin.texture=")
+        .. "skin.ignoreFonts=true skin.font=Ka0s Expressway skin.texture=")
     local p = NS.addon.db.profile.skin
     assertEqual(p.skin, "ember")
     assertEqual(p.ignoreFonts, true)
-    assertEqual(p.font, "Ka0s Oxanium Bold")
+    assertEqual(p.font, "Ka0s Expressway")
     assertEqual(p.texture, "", "false is the skin's own, stored as the empty key")
 end)
 

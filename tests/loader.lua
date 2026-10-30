@@ -41,7 +41,7 @@ local LIBKA0S = {
     -- New in LibKa0s v1.74.0: the icon catalog's packed name lists (MediaIcons minor 1), a second
     -- file of the Media major. Nothing here adopts it; Media.Icon reads it.
     "libs/LibKa0s/MediaIcons.lua",
-    -- New in LibKa0s v1.78.0: the skin engine, LibKa0s-Skin-1.0 (as of v1.81.0, key 8.16.12.6.10.2.4),
+    -- New in LibKa0s v1.78.0: the skin engine, LibKa0s-Skin-1.0 (as of v1.82.0, key 9.17.13.7.11.2.4),
     -- seven files after the Media major they read. core/SkinSetup.lua registers this addon's owner.
     "libs/LibKa0s/Skin.lua",
     "libs/LibKa0s/SkinDefs.lua",
@@ -99,6 +99,9 @@ local LIBKA0S = {
     -- and in v1.79.0 the first-run skin picker (OptionsSkinPicker minor 1, O.SkinPicker / O.HideSkinPicker).
     "libs/LibKa0s/OptionsAppearance.lua",
     "libs/LibKa0s/OptionsSkinPicker.lua",
+    -- New in LibKa0s v1.82.0: the switched sections peeled out of OptionsWidgets.lua (OptionsSwitch
+    -- minor 1, shownWhen). Last of the Options files in LibKa0s.xml; nothing here adopts it.
+    "libs/LibKa0s/OptionsSwitch.lua",
     "libs/LibKa0s/Perf.lua",
     -- New in LibKa0s v1.66.0: Perf's capture and its command surface peeled to two files of their
     -- own (PerfSampler minor 1, PerfCommands minor 1). Perf is declined here; the client loads
