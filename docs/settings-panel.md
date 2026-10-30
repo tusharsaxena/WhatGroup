@@ -554,7 +554,8 @@ group's place in the strip; its label is **Skin**. Nothing in it is this addon's
   profile). WhatGroup draws no bars, so a texture override changes nothing visible here.
 - **Scope**: **Ignore settings panel** (on in a new profile: these settings pages stay the client's,
   while the popup and the debug console still wear the skin) and **Ignore fonts** (every string keeps
-  the game's face and size; the skin still colors it).
+  the game's face and size, the popup's strings and the debug console's title-bar labels included; the skin
+  still colors it).
 - **Copy to every Ka0s addon…**: gives every other loaded skin owner this addon's source, skin,
   Scope, font and texture after a confirmation; disabled, with a line saying so, while WhatGroup is
   the only one loaded.

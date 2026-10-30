@@ -335,8 +335,14 @@ surface carries a typed look value.
   `NS.WriteSkinChoice`; the close mark and Escape put the stored skin back. Only the player's close
   writes `pickerSeen`; `NS.HideSkinPicker` (the stand-down, and first on every profile event) takes
   it down without writing. Its eye starts test mode (X6: the addon has one), as `/wg test on` does.
+  Since LibKa0s v1.81.0 the window is titled *Choose a skin*, and the addon's label (`NS.BRAND_NAME`,
+  given as `RegisterOwner`'s `label`) has its own line above the dropdown, `frame.ownerLabel`, never
+  cut off; `NS.SkinPickerSpec` passes no label of its own.
 - **Owners on every library surface.** The debug console and its copy window follow the owner
-  through the DebugLog descriptor's `addonName` (no `skin` or `applySkin` is passed); the settings
+  through the DebugLog descriptor's `addonName` (no `skin` or `applySkin` is passed). They are
+  windows, so they wear the skin whatever *Ignore settings panel* says; since LibKa0s v1.81.0
+  *Ignore fonts* reaches the console's title-bar labels too, and their resize grips take the
+  skin's `icon.grip` (the client's art under Ka0s Default and WoW Default). The settings
   chrome through the Options instance's `addonName`; the **Test notification** button
   (`settings/Panel.lua`) through `NS.SkinPaintAce`, and the Profiles page's AceConfigDialog tree
   (`settings/Profiles.lua`) through `NS.SkinPaintAceTree` after every `Open`. The library's release

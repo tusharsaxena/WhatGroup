@@ -829,9 +829,16 @@ Default is SKIN-1's list and nothing else.
   Tick **Ignore settings panel** again → WhatGroup's pages go back to stock with no reload. Result:
 - **SKIN-9. The debug console follows the skin (WG-04).** On **Azeroth**, `/wg debug`, then its
   **Copy** window → both wear WhatGroup's skin: the window edge and title, the buttons, the scroll
-  bar and the line counter; the log lines keep their monospace face (JetBrains Mono) under every
-  skin. Switch to **Ka0s Default** with the console open → it repaints with no reload, and looks as
-  it did before the run. Result:
+  bar, the line counter, the title-bar labels (the logging toggle, **Diagnostics**, and **Copy** and
+  **Clear** where they are words) in Vollkorn, and the bottom-right resize grip tinted to the skin;
+  the log lines keep their monospace face (JetBrains Mono) under every skin. Tick **Ignore settings
+  panel** → both still wear the skin (they are windows, not the settings panel). Switch to **Ka0s
+  Default** with the console open → it repaints with no reload and looks as it did before the run,
+  except that the title-bar labels read in **Oxanium** where they were Friz Quadrata (LibKa0s
+  v1.81.0) and the grip is the client's own. Turn **Ignore fonts** on → those labels go back to the
+  game's face, live; off → Oxanium again. Fail: a console or Copy window that goes stock with Ignore
+  settings panel, a title-bar label that ignores Ignore fonts, or the Diagnostics link's click area
+  not matching its text. Result:
 - **SKIN-10. What stays Blizzard's (inventory § Exceptions; X7).** Under **High Contrast** and
   **Azeroth** → the teleport icon (no new edge round it, desaturated at 50% when not ready), its
   cooldown swipe, its spell tooltip, the *Reset all settings* confirmation, the minimap button, its
@@ -872,12 +879,14 @@ Default is SKIN-1's list and nothing else.
   shows the key while set and an empty value after. Result:
 - **SKIN-18. The skin picker at login and on a fresh profile (WG-04; owner ruling O3).** For a
   profile that never closed it (every profile on the first login of this build), log in → about two
-  seconds after the world loads a small window titled **Choose a skin for Ka0s WhatGroup** opens
-  about three quarters of the way up the screen: a dropdown showing the skin worn now, an eye and a
-  gear beside it, **Apply** under it and a close mark, plus **Apply to all Ka0s addons** only while
-  another Ka0s addon that uses skins is loaded. Close it, then create a new profile on the Profiles
+  seconds after the world loads a small window titled **Choose a skin** opens about three quarters
+  of the way up the screen: **Ka0s WhatGroup** on its own line under the title, whole and never cut
+  off, then a dropdown showing the skin worn now, an eye and a gear beside it, **Apply** under it and
+  a close mark, plus **Apply to all Ka0s addons** only while another Ka0s addon that uses skins is
+  loaded (LibKa0s v1.81.0, owner ruling R-11). Close it, then create a new profile on the Profiles
   page → it opens again; reset that profile → again. It never opens while WhatGroup is disabled
-  (`/wg disable`, `/reload`), and a login in combat holds it until combat ends. Fail: a window on a
+  (`/wg disable`, `/reload`), and a login in combat holds it until combat ends. Fail: a title that
+  still carries the addon's name, a name line truncated or ending in an ellipsis, a window on a
   profile that already closed it, none on a new or reset profile, or one while disabled. Result:
 - **SKIN-19. The picker previews, and its eye (WG-04; X6).** Open the dropdown → every skin, each row
   in that skin's face with its swatches. Pick **Obsidian** → the popup and the picker repaint with
@@ -899,8 +908,8 @@ Default is SKIN-1's list and nothing else.
   Azeroth profile → the picker closes and the popup wears **Azeroth**, never Obsidian or Ka0s
   Default; switch back → Ka0s Default, and the picker opens again. Result:
 - **SKIN-22. One picker at a time across Ka0s addons (WG-04).** With WhatGroup and a second Ka0s addon
-  that uses skins both on fresh profiles, `/reload` → one picker opens, naming one addon; close it →
-  the other opens at once. Reset both and `/reload` → press **Apply to all Ka0s addons** → both addons
+  that uses skins both on fresh profiles, `/reload` → one picker opens, its name line under the
+  title naming one addon; close it → the other opens at once, naming the other. Reset both and `/reload` → press **Apply to all Ka0s addons** → both addons
   wear the skin and no second picker opens. Reset both again, `/reload`, enter combat and close the
   open picker → the waiting one opens only when combat ends. In combat, a pick, **Apply**, **Apply to
   all** and the gear each say they cannot be done in combat, and the close mark still closes it.
@@ -1023,3 +1032,10 @@ Keybindings after Skin), and SKIN-1 to SKIN-24 (new: Ka0s Default's face, title 
 button; the Skin tab; each skin on the popup; the teleport button's anchor; fonts and corners; the
 Scope; the console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat and the
 overrides; the first-run skin picker; other addons unchanged; the popup without the library).
+
+Owed from the skin library follow-ups (Ka0sAddonsCommonTasks `docs/2026-10-30-SKIN_LIBRARY_FOLLOWUPS/`,
+items WG-RV and WG-02, LibKa0s v1.81.0, 2026-10-30): SKIN-9 (amended: the console's title-bar labels
+in the skin's face and under Ignore fonts, Oxanium under Ka0s Default, the grip, and the console
+still skinned with Ignore settings panel), SKIN-18 (amended: the title reads *Choose a skin*, the
+addon's name on its own line above the dropdown) and SKIN-22 (amended: the name line names the
+addon).
