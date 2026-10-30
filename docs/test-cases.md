@@ -344,7 +344,7 @@ Total.
 - slash: each verb acknowledges on one `key = value` line
 - slash: the dispatcher answers while the addon is disabled
 - slash: the reserved pair is in COMMANDS, so help and the landing page carry it
-- slash: COMMANDS order — `profile` sits with the settings verbs, fifteen rows in all
+- slash: COMMANDS order — `skin` after `config`, `profile` with the settings verbs, sixteen rows
 - slash: `/wg show` refuses while disabled, and does not show the popup
 - slash: `/wg test on` refuses while disabled, and does not enter test mode
 - slash: every verb is either on the live list or refuses — there is no third kind
@@ -765,6 +765,16 @@ Total.
 - skin picker: a switch to an unseen profile starts a fresh showing, the old preview dropped
 - skin picker: the stand-down with a preview pending puts the old skin back, unseen
 - skin picker: degraded, there is no picker and nothing raises
+
+### test_skin_verb.lua (7)
+
+- skin verb: the row sits right after config, with the library's help words
+- skin verb: /wg skin shows the picker on a profile that has closed it
+- skin verb: the real picker comes up whatever pickerSeen says
+- skin verb: NS.RunSkinVerb hands O.SkinVerb this addon's first-run spec
+- skin verb: in combat every call prints the library's gray line and shows nothing
+- skin verb: refused while the addon is disabled, and no picker shows
+- skin verb: without LibKa0s the verb prints the library-absent line
 
 ### test_skin_tools.lua (5)
 
@@ -1202,6 +1212,7 @@ Total.
 | test_skinsetup.lua | 17 |
 | test_skin_outline.lua | 9 |
 | test_skin_picker.lua | 20 |
+| test_skin_verb.lua | 7 |
 | test_skin_tools.lua | 5 |
 | test_profiles.lua | 19 |
 | test_testmode.lua | 28 |
@@ -1224,4 +1235,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1034** |
+| **Total** | **1041** |

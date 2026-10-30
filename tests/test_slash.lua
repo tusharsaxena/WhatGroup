@@ -461,16 +461,16 @@ test("slash: the reserved pair is in COMMANDS, so help and the landing page carr
     assertEqual(type(seen.disable[2]), "string")
 end)
 
-test("slash: COMMANDS order — `profile` sits with the settings verbs, fifteen rows in all", function()
+test("slash: COMMANDS order — `skin` after `config`, `profile` with the settings verbs, sixteen rows", function()
     -- The help index and the landing page print this table in declaration order, so the order is
     -- what a player reads. `profile` (Slash minor 17's CliProfile) goes after the schema CLI,
-    -- where the other settings verbs are.
+    -- where the other settings verbs are; `skin` (LibKa0s v1.82.0, D-16) right after `config`.
     -- red under: a missing, duplicated or relocated row.
     local NS = T.newAddon()
     local names = {}
     for i, c in ipairs(NS.addon.COMMANDS) do names[i] = c[1] end
     assertEqual(table.concat(names, " "),
-        "help show test config enable disable version list get set reset resetall profile debug "
+        "help show test config skin enable disable version list get set reset resetall profile debug "
         .. "diagnostics")
 end)
 
@@ -484,12 +484,13 @@ end)
 -- settings and reach the panel while the addon is off — and `enable` above all, or the pair the
 -- block above pins is one-way again.
 --
--- WhatGroup's feature verbs are `show` and `test`. What is pinned below is BOTH halves of each
+-- WhatGroup's feature verbs are `show`, `test` and `skin` (LibKa0s v1.82.0's reserved skin verb, a
+-- feature verb by D-16; tests/test_skin_verb.lua pins that it shows no picker). What is pinned below is BOTH halves of each
 -- refusal: that it said so, AND that it did not act. A case that only checked the message would
 -- pass over a verb that printed and then went ahead anyway, which is the exact failure this rule
 -- exists to prevent.
 
-local FEATURE_VERBS = { "show", "test" }
+local FEATURE_VERBS = { "show", "test", "skin" }
 
 -- The verbs that keep answering, named here the way settings/Slash.lua names them: the standard's
 -- list, not this addon's subset. `perf` is absent from COMMANDS (LIBKA0S-15) and is checked as a
@@ -583,7 +584,7 @@ test("slash: every verb is either on the live list or refuses — there is no th
             assertEqual(#lines, 1, verb .. " answers on ONE line and never the index")
         end
     end
-    assertEqual(refused, #FEATURE_VERBS, "show and test, and nothing else, refuse today")
+    assertEqual(refused, #FEATURE_VERBS, "show, test and skin, and nothing else, refuse today")
     assertEqual(allowed, #LIVE_VERBS, "and every live verb is a row — `perf` aside")
 
     -- The one that matters most: the way back is on the live list, so the pair is never one-way.

@@ -28,7 +28,7 @@ end
 local ENABLED_PATH = "enabled"
 
 local Sl                      -- forward-declared: the handlers below reach it at call time
-local runShow, runTest, runConfig, runDebug, runReset, runResetAll, runEnabled
+local runShow, runTest, runConfig, runSkin, runDebug, runReset, runResetAll, runEnabled
 
 -- Positional triples, the shape the library reads (entry[1] / [2] / [3]); a table of named fields
 -- is silently invisible to it. The handler takes `rest` alone — everything after the verb, case and
@@ -46,6 +46,11 @@ local COMMANDS = {
         function(rest) runTest(rest) end},
     {"config",   L["Open the Ka0s WhatGroup settings"],
         function() runConfig() end},
+    -- The reserved `skin` verb (LibKa0s v1.82.0's O.SkinVerb, ruling D-16): the skin picker a new
+    -- profile shows, on demand. A feature verb, not on lib.LIVE_VERBS, so the dispatcher refuses
+    -- it while the addon is disabled.
+    {"skin",     L["Choose a skin: open the skin picker"],
+        function() runSkin() end},
     -- The reserved pair (slash-commands-§2), and they are ALIASES rather than a switch: both write
     -- the `enabled` row the Master controls checkbox writes, through the same Helpers.Set. No second
     -- key, no session flag -- the box and the verbs cannot show the player two different answers.
@@ -87,8 +92,8 @@ local COMMANDS = {
 -- ---------------------------------------------------------------------------
 --
 -- A DISABLED ADDON REFUSES A FEATURE VERB RATHER THAN ACTING ON IT, on one tagged line naming
--- `/wg enable` and nothing else. Two of this addon's fifteen verbs drive features — `show` and
--- `test`, the two that put the popup on screen — which is enough for a silent `/wg show` to read
+-- `/wg enable` and nothing else. Three of this addon's sixteen verbs drive features — `show` and
+-- `test`, the two that put the popup on screen, and `skin`, the skin picker (LibKa0s v1.82.0) — which is enough for a silent `/wg show` to read
 -- as a bug, so this addon takes slash-commands-§2's SHOULD.
 --
 -- EVERYTHING ELSE ANSWERS NORMALLY, and that is a ruling rather than a default. The standard
@@ -313,6 +318,9 @@ end
 -- ---------------------------------------------------------------------------
 -- The host's own verbs
 -- ---------------------------------------------------------------------------
+
+--- `/wg skin`: core/SkinSetup.lua's NS.RunSkinVerb, which prints the library-absent line itself.
+function runSkin() NS.RunSkinVerb() end
 
 function runShow()
     if WhatGroup.pendingInfo then

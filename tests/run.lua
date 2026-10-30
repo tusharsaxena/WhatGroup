@@ -180,6 +180,8 @@ Kit.run{
         -- The first-run skin picker (core/SkinSetup.lua, WG-04): when it shows, the spec, the real
         -- window's preview, Apply, close, gear and eye, and the stand-down.
         "test_skin_picker",
+        -- The reserved `/wg skin` verb (LibKa0s v1.82.0's O.SkinVerb, D-16).
+        "test_skin_verb",
         -- The addon's own AceGUI acquisitions and the debug console on the skin (WG-04).
         "test_skin_tools",
         "test_profiles",
