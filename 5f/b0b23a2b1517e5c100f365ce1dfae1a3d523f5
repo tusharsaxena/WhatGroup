@@ -1,0 +1,29 @@
+Independent review (skin-library-followups M2, WhatGroup): I found no major issues. WG-RV and WG-02 meet R-1..R-12, D-01..D-17 and v1.81.0's "What a consumer owes", and nothing in this review changes their state.
+
+- **Vendored code:** `libs/LibKa0s` matches `git archive v1.81.0` (56ebc24) exactly, apart from the `media/icons` prune. The icons kept are `clear`, `close`, `copy`, `eye` and `settings` plus the licence file, which matches `CLAUDE.md:49`. `tests/_kit` matches the tag's `testkit` exactly.
+- **Gate (my own run):** 1025 passed, 0 failed, 1 skipped; luacheck 0 warnings / 0 errors in 69 files. Every edited file keeps CRLF line endings.
+- **WG-01 exception:** I re-ran the proof grep and it exits 1 (no match). I checked the library code at the tag and found nothing removed that it does not cover.
+  - WhatGroup declines Perf. It has no HUD, so Ignore fonts has nothing to reach there.
+  - It has no `stockDefault`, `ResetToSkin`, `DrawsKey` or `GetIgnore` caller, and places no owned Widgets control.
+  - Its `NavRail`, `IdList` and `Drawer` helpers are only empty stubs, so the LK-06c chrome changes do not reach it.
+  - The implementer's note 3 is correct: OptionsTabs at v1.80.0 passed only `opts.stock`, a fade list kept under D-04, and never `stockDefault`. Dropping the inventory's SKIN-8 clause is therefore justified. Ka0s Default under WhatGroup already looked Ka0s.
+- **Scope rules D-01..D-03:** they hold.
+  - The debug console and copy window are windows. DebugLogWindow minor 2 paints their title-bar labels through `S.Font`, so Ignore fonts reaches them and Ignore settings panel does not unskin them.
+  - The resize grip takes `icon.grip`, which is `false` (the client's art) under Ka0s Default.
+  - The popup's `S.Text` calls stay unscoped.
+- **Picker test:** it genuinely fails at v1.80.0, because the title then read "Choose a skin for …" and `frame.ownerLabel` did not exist. Its new assertions match D-17 and the LK-11 consumer obligation. `docs/test-cases.md` was regenerated to match.
+- **Smoke checks:** the amended SKIN-9, SKIN-18 and SKIN-22 match the library code. Vollkorn is Azeroth's `font.body`, the labels change from Friz Quadrata to Oxanium under Ka0s Default (D-13), and the Diagnostics link is re-measured after each change. None is marked passed; they are listed under a new "Owed" paragraph.
+- **Commits:** both subjects start `WG-RV:` and `WG-02:` and carry the session trailers. I found no stale v1.80.0, `TITLE_FOR` or "Choose a skin for" references.
+
+The findings are bookkeeping and wording only.
+Findings: [minor] WG-01 /mnt/d/Profile/Users/Tushar/Documents/GIT/Ka0sAddonsCommonTasks/docs/2026-10-30-SKIN_LIBRARY_FOLLOWUPS/exceptions.tsv: WG-01 lands with no commit, but `exceptions.tsv` has no row for it yet; the only row is LK-06. Until a row is added, `resume-state.sh` will show WG-01 (and so WG-02, which depends on it) as not done. The implementer's proof grep is sound: I re-ran it from the WhatGroup root and it exits 1. | [nit] WG-02 /mnt/d/Profile/Users/Tushar/Documents/GIT/WhatGroup/docs/smoke-tests.md:912 (SKIN-22); docs/settings-panel.md:557: The SKIN-22 edit left one line 155 characters wide, against the file's roughly 100-column wrap. The Ignore fonts bullet in settings-panel.md is 107 characters. This is cosmetic only. | [nit] WG-02 /mnt/d/Profile/Users/Tushar/Documents/GIT/WhatGroup/docs/smoke-tests.md:830-841 (SKIN-9): SKIN-9 names only the console's "bottom-right resize grip". WidgetsCopyWindow minor 2 also passes the owner to `MakeResizable`, so the Copy window's grip is tinted too. The step says nothing about that grip, so no check covers it. The "Copy and Clear where they are words" clause never applies in WhatGroup, because the copy and clear icons are declared and shipped. It is accurate but adds nothing.
+Fix round: The one finding is correct, but I did not fix it because the fix belongs to the lead, not to me.
+
+What I checked:
+- `/mnt/d/Profile/Users/Tushar/Documents/GIT/Ka0sAddonsCommonTasks/docs/2026-10-30-SKIN_LIBRARY_FOLLOWUPS/exceptions.tsv` has only its header and the LK-06 row. There is no WG-01 row.
+- In `items.tsv`, WG-02 depends on WG-01. That means `resume-state.sh` will report WG-01, and so WG-02, as not done until a row exists.
+- WhatGroup is on `feat/2026-10-30-skin-library-followups` with a clean tree. Its branch commits are WG-RV (7914b8c) and WG-02 (5fb0b23), with no WG-01 commit. The `ce2c96b WG-01 + WG-04` commit comes from the earlier skinning-rollout run, which was merged before this one.
+
+Why I made no change: the fix is a row in a Ka0sAddonsCommonTasks file. My task limited me to WhatGroup ("touch no other repo"), and the finding itself says the lead should add the row. Nothing in WhatGroup needs to change, so I made no commit and did not need to run the gate.
+
+For the lead: append a WG-01 row to that `exceptions.tsv` with the implementer's reason that it lands with no commit, plus the implementer's proof grep run from the WhatGroup root. The proof passes when the grep exits 1. The reviewer re-ran it and got exit 1.
