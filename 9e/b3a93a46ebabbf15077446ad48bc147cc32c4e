@@ -1,0 +1,4 @@
+Review of WG-F01..WG-F02 (LibKa0s v1.83.0 outline default, getLSM previews): 2 low findings, both verified and fixed in this commit, none rejected.
+1. docs/smoke-tests.md SKIN-25 claimed a stored All text survives. Confirmed: "all" was the v1.82.0 default (core/SkinSetup.lua at 37da88f) and AceDB removeDefaults strips default-equal values, so it was never stored. Step reworded: stored Off survives, All text returns as HUD text only (D-10). No AceDB-level automated test added; the harness does not assert logout stripping.
+2. core/SkinSetup.lua ApplySkinOutline comment said an unknown mode reads as "all". Confirmed: vendored Skin.lua gives OUTLINE_DEFAULT, "hud". Comment fixed; test added (tests/test_skin_outline.lua).
+Gate: lua tests/run.lua 1045 passed, 0 failed, 1 skipped; luacheck 0/0; largest own file 1467 lines. Smoke checks not marked.
