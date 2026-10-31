@@ -733,7 +733,7 @@ Total.
 - skin seam: the host copy of Ka0s Default equals the library's, token for token
 - skin seam: without the library the facade answers Ka0s Default and applies nothing
 
-### test_skin_outline.lua (9)
+### test_skin_outline.lua (10)
 
 - outline: a fresh profile stores HUD text only, the library's default
 - outline: the schema row offers the library's three modes, in its order
@@ -743,6 +743,7 @@ Total.
 - outline: /wg set refuses a mode the library does not know
 - outline: OnInitialize applies the stored mode
 - outline: a profile event applies the incoming profile's mode
+- outline: a stored mode the library does not know applies its default
 - outline: without the skin engine the apply is a quiet no-op
 
 ### test_skin_picker.lua (20)
@@ -1216,7 +1217,7 @@ Total.
 | test_skin_literals.lua | 3 |
 | test_panel.lua | 62 |
 | test_skinsetup.lua | 17 |
-| test_skin_outline.lua | 9 |
+| test_skin_outline.lua | 10 |
 | test_skin_picker.lua | 20 |
 | test_skin_verb.lua | 7 |
 | test_skin_tools.lua | 5 |
@@ -1242,4 +1243,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1044** |
+| **Total** | **1045** |
