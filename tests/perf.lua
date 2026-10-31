@@ -218,8 +218,8 @@ assert_(cooldownTick.apiPerIter == 2,
 
 -- 2. The formatter the tick calls every second, on its own — three branches, and the one that
 --    allocates most (h > 0) is the one a long teleport cooldown actually takes.
-local formatLong = measure("formatDurationLong", N, function(i) return fmt(3600 + (i % 3600)) end)
-local formatShort = measure("formatDurationShort", N, function(i) return fmt(i % 60) end)
+measure("formatDurationLong", N, function(i) return fmt(3600 + (i % 3600)) end)
+measure("formatDurationShort", N, function(i) return fmt(i % 60) end)
 
 -- 3. The combat gate: one evaluation on each edge of a pull, which is the addon's entire
 --    combat-path cost (`core/WhatGroup.lua`'s PLAYER_REGEN_DISABLED / _ENABLED pair). The popup is
@@ -255,25 +255,30 @@ NS.addon:ApplyFrameVisibility(false)
 
 -- 5. A group capture arriving: the popup repopulated from a fresh info table and shown. This is the
 --    addon's busiest single act, and it happens once per group join.
-measure("showFrameRepeat", 500, function()
+local showRepeat = measure("showFrameRepeat", 500, function()
     NS.addon.pendingInfo = INFO
     NS.addon:ShowFrame()
 end)
+-- The fields' colors stay out of a repopulate: a value's token only moves between its placeholder
+-- and its data (modules/FrameSkin.lua's Value), so a rise here is a repaint on every group join.
+assert_(showRepeat.apiPerIter <= 19,
+    ("a repeated show made %.1f API calls, over its measured 19"):format(showRepeat.apiPerIter))
 
 -- 6. Settings writes, the path a player drags a slider along: scale and alpha, each a full reapply.
-local applyScale = measure("applyScale", 500, function(i)
+measure("applyScale", 500, function(i)
     p.scale = 0.8 + ((i % 40) / 100)
     NS.addon:ApplyFrameScale()
 end)
-local applyAlpha = measure("applyAlpha", 500, function(i)
+measure("applyAlpha", 500, function(i)
     p.alpha = 0.6 + ((i % 40) / 100)
     NS.addon:ApplyFrameAlpha()
 end)
 
 -- ── ceilings ────────────────────────────────────────────────────────────────────────────────
 --
--- Measured on 2026-09-16, on the first offline pass this addon has ever had. Each ceiling is the
--- measured figure rounded up plus 24 bytes — SMALLER than the cheapest regression it exists to
+-- Every ceiling is PINNED: a figure derived from the same run can never trip, which is how
+-- combatGateFlipping rose 960 -> 1056 unseen. Each is the figure measured on 2026-10-31 (three runs,
+-- identical bytes) rounded up plus 24 bytes — SMALLER than the cheapest regression it exists to
 -- catch, since one extra table per iteration costs 64 bytes under this interpreter, so the smallest
 -- allocation anyone can add to one of these paths trips it. Raise one only by re-measuring and
 -- saying why; a rise IS the finding.
@@ -282,22 +287,24 @@ end)
 -- construction: Lua interns no format result, and the note's text genuinely changes every second.
 -- Their ceilings are set from measurement rather than aspiration, and the number that matters is
 -- that they do not GROW.
-local function ceil(r) return math.floor(r.bytesPerIter + 0.5) + 24 end
 local CEILINGS = {
-    cooldownTick        = ceil(cooldownTick),
-    formatDurationLong  = ceil(formatLong),
-    formatDurationShort = ceil(formatShort),
+    cooldownTick        = 241 + 24,
+    formatDurationLong  = 35 + 24,
+    formatDurationShort = 1 + 24,
     combatGateSteady    = 24,
-    combatGateFlipping  = ceil(gateFlip),
-    -- Pinned, not derived: ceil(shown) comes from the same run and can never trip. Measured
-    -- 1744.5 on 2026-09-24, after the teleport handlers moved to file scope (WHATGROUP-R-16).
-    showFrameRepeat     = 1745 + 24,
-    applyScale          = ceil(applyScale),
-    applyAlpha          = ceil(applyAlpha),
+    -- Measured 912.0: the mock's per-miss closures, which charged +96 (EnableMouse, 27befff) and older
+    -- ones to the addon, are gone (tests/wow_mock.lua). A measurement fix, not an addon saving.
+    combatGateFlipping  = 912 + 24,
+    -- Measured 1648.2. Down from the 1745 pin for the same mock fix. The 3712.2 that tripped it on
+    -- 2026-10-31 was the skin paint on every repopulate, fixed in modules/FrameSkin.lua's Value.
+    showFrameRepeat     = 1649 + 24,
+    applyScale          = 24,
+    applyAlpha          = 24,
 }
 -- combatGateSteady is the one hard ceiling, and it is hard on purpose: a combat transition that
--- changes nothing must allocate nothing. Everything else is pinned at its measured figure so the
--- next run compares against a number rather than against a feeling.
+-- changes nothing must allocate nothing. applyScale and applyAlpha measure 0.0 and sit at the same
+-- 24. Everything else is pinned at its measured figure so the next run compares against a number
+-- rather than against a feeling.
 for _, r in ipairs(results) do
     local ceiling = CEILINGS[r.name]
     if ceiling then
