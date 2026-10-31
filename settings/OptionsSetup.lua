@@ -112,6 +112,9 @@ if not lib then
     H.BorderGroup          = function() return {} end
     H.BarGroup             = function() return {} end
     H.MasterControls       = function() return {}, function() end end
+    -- O.PositionBlock (OptionsCompose minor 15, LibKa0s v1.84.0): no call site here, stubbed for the
+    -- shape reason above. Two values, as the live one gives: no rows and no hook.
+    H.PositionBlock        = function() return {}, nil end
     -- No FONT_FLAGS / FONT_FLAGS_SORT / VISIBILITY_VALUES / VISIBILITY_SORT / MASTER_GROUP /
     -- CLASS_COLOR_NOTE. They are the composers' published DATA, and hand-copying the value sets
     -- and the wording whose nine-way drift OptionsCompose exists to end is anti-patterns #47 in
