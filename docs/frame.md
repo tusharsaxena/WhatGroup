@@ -1,10 +1,10 @@
 # Frame
 
-The popup dialog that displays captured group info. Lives in `modules/Frame.lua` as a single global Frame named `WhatGroupFrame`.
+The popup dialog that displays captured group info. Lives in `modules/Frame.lua`, with its regions in `modules/FrameLayout.lua`, as a single global Frame named `WhatGroupFrame`.
 
 ## Lazy creation
 
-**Nothing in `modules/Frame.lua` runs at file-load.** All frame creation — the popup, the Close button, the SecureActionButtonTemplate teleport button, the `UISpecialFrames` entry — is wrapped in a `buildFrame()` function that fires on the first `WhatGroup:ShowFrame()` call only. The reason is taint: creating these things at PLAYER_LOGIN was leaving a residue that surfaced as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked the GameMenu's Logout button. Specifically, adding `"WhatGroupFrame"` to `UISpecialFrames` (today the entry is the `WhatGroupFrameEscape` proxy's, and it is deferred just the same) and creating a `SecureActionButtonTemplate` button before Blizzard's `GameMenuFrame:InitButtons()` first ran caused GameMenu's button-callback closures to inherit the addon's load-time taint — by the time the player clicked Logout, those closures' invocation of `Logout()` was rejected by the secure system and attributed to WhatGroup. Deferring all frame creation to first show fixes this: GameMenu's `InitButtons` runs in a clean context during the boot sequence, the closures it builds for Logout / Settings / Macros / etc. are taint-free, and any taint we generate later is contained to a session where the player has actually used the addon.
+**Nothing in `modules/Frame.lua` or `modules/FrameLayout.lua` runs at file-load.** All frame creation — the popup, the Close button, the SecureActionButtonTemplate teleport button, the `UISpecialFrames` entry — is wrapped in a `buildFrame()` function that fires on the first `WhatGroup:ShowFrame()` call only. The reason is taint: creating these things at PLAYER_LOGIN was leaving a residue that surfaced as `ADDON_ACTION_FORBIDDEN ... 'callback()'` when the player clicked the GameMenu's Logout button. Specifically, adding `"WhatGroupFrame"` to `UISpecialFrames` (today the entry is the `WhatGroupFrameEscape` proxy's, and it is deferred just the same) and creating a `SecureActionButtonTemplate` button before Blizzard's `GameMenuFrame:InitButtons()` first ran caused GameMenu's button-callback closures to inherit the addon's load-time taint — by the time the player clicked Logout, those closures' invocation of `Logout()` was rejected by the secure system and attributed to WhatGroup. Deferring all frame creation to first show fixes this: GameMenu's `InitButtons` runs in a clean context during the boot sequence, the closures it builds for Logout / Settings / Macros / etc. are taint-free, and any taint we generate later is contained to a session where the player has actually used the addon.
 
 The pattern is borrowed from a similar reference addon that demonstrates the same lazy approach for its group-reminder popup; see [midnight-quirks.md → Lazy popup + secure button creation](./midnight-quirks.md#lazy-popup--secure-button-creation) for the full background.
 
@@ -129,7 +129,7 @@ end
 
 The other master-control seams are one function each: `WhatGroup:ApplyFrameVisibility(inCombat)` (re-applies the gate to a popup that already exists — the `visibility` row's `onChange` **and** both combat-transition events) and `WhatGroup:ResetFramePosition()` (the Master controls tab's *Reset position* button: drops `db.global.windows.popup` **and** re-anchors the live frame to the shipped `CENTER` point; the re-anchor is combat-guarded, dropping the stored point is not, because either half alone is a reset the next login undoes).
 
-Test mode adds three: `WhatGroup:SampleInfo()` (`core/WhatGroup.lua`, the sample capture, a fresh table per call), `WhatGroup:TestModeCheckbox()` (the Master controls row's get/set) and `WhatGroup:EndTestModeForCombat()` (the `PLAYER_REGEN_DISABLED` half). See § Test mode.
+Test mode adds three: `WhatGroup:SampleInfo()` (`core/TestPreview.lua`, the sample capture, a fresh table per call), `WhatGroup:TestModeCheckbox()` (the Master controls row's get/set) and `WhatGroup:EndTestModeForCombat()` (the `PLAYER_REGEN_DISABLED` half). See § Test mode.
 
 ## Visibility
 
@@ -201,7 +201,7 @@ The popup is a display the player places, so it ships a **test mode** (options-u
 
 ## One-shot preview
 
-`/wg test notify` and the panel's **Test notification** button (`WhatGroup:RunTest()`, core/WhatGroup.lua) play the join notice and the popup once on `WhatGroup:SampleInfo()`. The sample is never written to `pendingInfo`: `RunTest` hands it to `ShowNotification(info)` and to `ShowFrame(preview)`, which holds it in the same `previewInfo` test mode uses, so it renders through `shownInfo()` like any capture. Unlike test mode it is an ordinary show: it meets the `visibility` gate (a preview the gate declines, or hides on a combat edge, is dropped, never withheld for the re-show arm), and a request in combat is deferred and replayed as the preview at `PLAYER_REGEN_ENABLED`.
+`/wg test notify` and the panel's **Test notification** button (`WhatGroup:RunTest()`, core/TestPreview.lua) play the join notice and the popup once on `WhatGroup:SampleInfo()`. The sample is never written to `pendingInfo`: `RunTest` hands it to `ShowNotification(info)` and to `ShowFrame(preview)`, which holds it in the same `previewInfo` test mode uses, so it renders through `shownInfo()` like any capture. Unlike test mode it is an ordinary show: it meets the `visibility` gate (a preview the gate declines, or hides on a combat edge, is dropped, never withheld for the re-show arm), and a request in combat is deferred and replayed as the preview at `PLAYER_REGEN_ENABLED`.
 
 - **It ends when the popup is put away.** `endPreview()` runs from f's `OnHide` (every real hide), from `dismissPopup` (Close, ESC and the launcher's **Show window**, including the alpha-0 soft hide in combat, where `OnHide` never fires), from the next `ShowFrame` and from the stand-down. Out of combat it refills the fields from the real capture. So `/wg show`, the chat details link and the launcher's **Show window** open the real group afterwards, or nothing.
 - **Stood down, it is chat only.** With the addon disabled the panel's Test notification button still prints the notice, but `RunTest` calls no `ShowFrame`: no popup, secure teleport button or `UISpecialFrames` proxy is built, and nothing is withheld for the re-enable to bring back.
@@ -225,7 +225,7 @@ There is intentionally no programmatic Hide method. The frame is closed by:
 
 ## Shared label helpers
 
-`GetGroupTypeLabel` and the `PLAYSTYLE` enum→string table live on the shared `WhatGroup.Labels` namespace (defined in `WhatGroup.lua`). Both `ShowNotification` (chat output) and `PopulateFields` (popup) read from the same source so a new playstyle enum or group-type rule lands in one place. `WhatGroup.lua` loads before `modules/Frame.lua` per the TOC, so `WhatGroup.Labels` exists by the time the popup file runs `PopulateFields`.
+`GetGroupTypeLabel` and the `PLAYSTYLE` enum→string table live on the shared `WhatGroup.Labels` namespace (filled in `core/Labels.lua`). Both `ShowNotification` (chat output) and `PopulateFields` (popup) read from the same source so a new playstyle enum or group-type rule lands in one place. `WhatGroup.lua` loads before `modules/Frame.lua` per the TOC, so `WhatGroup.Labels` exists by the time the popup file runs `PopulateFields`.
 
 ## Frame dependencies
 

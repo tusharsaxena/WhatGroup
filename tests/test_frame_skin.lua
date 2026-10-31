@@ -34,7 +34,7 @@ local function quietly(NS, fn)
     if not ok then error(err, 0) end
 end
 
--- The popup's content strings, in buildFrame's order: six label/value pairs, then the Teleport
+-- The popup's content strings, in modules/FrameLayout.lua's order: six label/value pairs, then the Teleport
 -- label and the note beside the button. `content` is the frame carrying the most FontStrings, as
 -- tests/test_frame.lua finds it.
 local function strings(mock)
@@ -179,6 +179,34 @@ test("popup skin: a skin switch repaints the labels, values, note and brand span
     quietly(NS, function() NS.ApplySkinChoice("ka0s", "ka0s") end)
     assertEqual(title:GetText():sub(1, 10), "|cffffd700", "and is FFD700 again on Ka0s Default")
     assertEqual(colorOf(s.labels[1]), rgb(1, 215 / 255, 0), "the labels are FFD700 again")
+end)
+
+test("popup skin: a repopulate paints only the values whose token moved, and the look survives", function()
+    -- red under: S.Text on every Value (3712 bytes and 25 API calls per group join, tests/perf.lua),
+    -- or a cache that skips a real move and leaves data in the placeholder's gray.
+    local NS, _, mock = T.bootAddon()
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    local s = strings(mock)
+    local real, seen = NS.Skin.Text, {}
+    NS.Skin.Text = function(fs, role, opts)
+        seen[#seen + 1] = role
+        return real(fs, role, opts)
+    end
+    NS.addon:ShowFrame()
+    assertEqual(#seen, 0, "the same tokens repaint nothing")
+    NS.addon.pendingInfo = nil
+    NS.addon:ShowFrame()
+    assertEqual(#seen, 5, "five values moved to their placeholder; the role was already on its own")
+    assertEqual(seen[1], "wg.placeholder")
+    assertEqual(colorOf(s.values[1]), rgb(136 / 255, 136 / 255, 136 / 255), "the placeholder's gray")
+    NS.addon.pendingInfo = pending()
+    NS.addon:ShowFrame()
+    assertEqual(colorOf(s.values[1]), rgb(1, 1, 1), "and back to data's white")
+    NS.Skin.Text = real
+    quietly(NS, function() NS.ApplySkinChoice("ka0s", OTHER) end)
+    NS.addon:ShowFrame()
+    assertEqual(colorOf(s.values[1]), tokenColor(NS, "text.highlight"), "a skipped paint still follows a switch")
 end)
 
 -- ── the secure teleport button's anchor (inventory R2) ───────────────────────────────────────

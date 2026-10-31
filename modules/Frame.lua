@@ -19,14 +19,13 @@
 -- the closures it builds for Logout / Settings / Macros are
 -- taint-free. See [docs/midnight-quirks.md] for the full taint analysis.
 
-local addonName, NS = ...
+local _, NS = ...
 local WhatGroup = NS.addon
 local L         = NS.L
 
-local LABEL_WIDTH  = 72
-local yGap         = -18
 local DASH         = "—"              -- the dim placeholder for an unknown role or playstyle
 local Look         = NS.FrameSkin     -- the popup's look (modules/FrameSkin.lua, loaded above)
+local Layout       = NS.FrameLayout   -- the popup's regions (modules/FrameLayout.lua, loaded above)
 
 -- These get assigned inside buildFrame() and are nil until the popup
 -- is first shown. PopulateFields and ConfigureTeleportButton both
@@ -41,7 +40,7 @@ local NO_CAPTURE = {}
 
 -- The PREVIEW the popup shows instead of the real capture, set by two callers: TEST MODE's
 -- placeholder (options-ui-§15, preview-mode), held until test mode ends, and the ONE-SHOT preview
--- `/wg test notify` and the panel's Test notification button hand ShowFrame (core/WhatGroup.lua's RunTest),
+-- `/wg test notify` and the panel's Test notification button hand ShowFrame (core/TestPreview.lua's RunTest),
 -- held until the popup is put away (endPreview). A record of its own rather than a write to
 -- `pendingInfo`, so a real capture the player is still holding survives either one. Every reader
 -- of "what does the popup show" asks shownInfo(), so a preview goes through the same render path
@@ -551,7 +550,7 @@ end
 local function onTeleportLeave() GameTooltip:Hide() end
 
 -- Material-effect trace (debug-logging-§10): log the actual press. The button registers the down
--- edge as well as the up (see RegisterForClicks in buildFrame), so the `down` check is what keeps
+-- edge as well as the up (see RegisterForClicks in modules/FrameLayout.lua), so the `down` check is what keeps
 -- one press to one line. PreClick is non-secure work that runs alongside the secure /cast, so it
 -- is taint-free even in combat. The args go to NS.Debug unformatted: the sink formats them only
 -- when debug is on.
@@ -823,152 +822,9 @@ local function buildFrame()
         end
     end)
 
-    -- The whole look comes from the owner's skin (skinning-§3): the window through NS.ApplySkin
-    -- with the owner, which hands it to the skin's Shell, and every string and control through
-    -- modules/FrameSkin.lua, which also repaints the title and re-anchors the secure button on a
-    -- skin change. `f.title` and `f.divider` are assigned first, below, because the Shell tints
-    -- whichever of them the frame carries, so the call sits after the header.
-
-    -- Title bar (drag handle)
-    local titleBar = CreateFrame("Frame", nil, f)
-    titleBar:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
-    titleBar:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
-    titleBar:SetHeight(30)
-    titleBar:EnableMouse(true)
-    -- LOCKED IS READ AT DRAG TIME, not wired once: the checkbox is a plain profile value with no
-    -- onChange, because there is nothing to apply -- the next mouse-down is where it takes effect.
-    -- StopMovingOrSizing and the save still run unconditionally; both are harmless on a frame that
-    -- never started moving, and guarding them would leave a drag that began before the lock was
-    -- ticked stuck to the cursor.
-    titleBar:SetScript("OnMouseDown", function()
-        local pr = WhatGroup.db and WhatGroup.db.profile
-        if pr and pr.locked then return end
-        f:StartMoving()
-    end)
-    titleBar:SetScript("OnMouseUp",   function()
-        f:StopMovingOrSizing()
-        NS.Windows.Save("popup", f)   -- persist geometry (WG-26)
-    end)
-
-    local titleText = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    titleText:SetPoint("CENTER", titleBar, "CENTER", 0, -2)
-    Look.Title(titleText)
-    f.title = titleText
-
-    -- Separator line under title. The color is set by ApplySkin below (0.24, 0.24, 0.27, 0.85 —
-    -- the normative Ka0s divider), so no literal here.
-    local sep = f:CreateTexture(nil, "ARTWORK")
-    sep:SetHeight(1)
-    sep:SetPoint("TOPLEFT",  f, "TOPLEFT",  14, -30)
-    sep:SetPoint("TOPRIGHT", f, "TOPRIGHT", -14, -30)
-    f.divider = sep
-
-    -- Wear the shared skin for this owner (skinning-§1), now that the two regions it tints exist.
-    NS.ApplySkin(f, nil, addonName)
-
-    -- Content frame (plain, no scroll)
-    local content = CreateFrame("Frame", nil, f)
-    content:SetPoint("TOPLEFT",     f, "TOPLEFT",   14, -38)
-    content:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -14, 44)
-
-    -- Label builder
-    local function MakeLabel(parent, anchor, yOffset, labelText, valueText)
-        local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        label:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, yOffset)
-        label:SetWidth(LABEL_WIDTH)
-        label:SetText(labelText)
-        Look.Label(label)
-        label:SetJustifyH("LEFT")
-        label:SetWordWrap(false)
-
-        local value = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        value:SetPoint("TOPLEFT", label, "TOPLEFT", LABEL_WIDTH + 6, 0)
-        value:SetJustifyH("LEFT")
-        Look.Value(value, valueText or "")
-
-        return label, value
-    end
-
-    local topAnchor = CreateFrame("Frame", nil, content)
-    topAnchor:SetSize(1, 1)
-    topAnchor:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -4)
-
-    local lblGroup, valGroup = MakeLabel(content, topAnchor, 0,    L["Group:"],     "—")
-    local lblInst,  valInst  = MakeLabel(content, lblGroup,  yGap, L["Instance:"],  "—")
-    local lblType,  valType  = MakeLabel(content, lblInst,   yGap, L["Type:"],      "—")
-    local lblLead,  valLead  = MakeLabel(content, lblType,   yGap, L["Leader:"],    "—")
-    -- The signed-up role (WhatGroup#1). Always drawn: notify.showRole gates the chat row only.
-    local lblRole,  valRole  = MakeLabel(content, lblLead,   yGap, L["Role:"],      "—")
-    local lblStyle, valStyle = MakeLabel(content, lblRole,   yGap, L["Playstyle:"], "—")
-
-    local lblPort = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    lblPort:SetPoint("TOPLEFT", lblStyle, "BOTTOMLEFT", 0, yGap)
-    lblPort:SetText(L["Teleport:"])
-    Look.Label(lblPort)
-    lblPort:SetJustifyH("LEFT")
-    lblPort:SetWidth(LABEL_WIDTH)
-    lblPort:SetWordWrap(false)
-
-    -- Secure cast button — anonymous (no global name), parented directly to f, and anchored
-    -- beside the Teleport label by modules/FrameSkin.lua (Look.Attach, below), which takes the
-    -- offset from the label's rendered position and takes it again when a skin's font moves it.
-    local teleportBtn = CreateFrame("Button", nil, f, "SecureActionButtonTemplate")
-    teleportBtn:SetSize(24, 24)
-    -- BOTH edges are required, and this comment is the reason. WG-R-05 offered two resolutions —
-    -- "register one click edge" OR "document the PreClick gate as the reason both are needed" —
-    -- and this is the second one, taken on measured in-game evidence.
-    --
-    -- A bare SecureActionButtonTemplate with type="macro" does NOT run its macro on the down
-    -- edge. Blizzard's own action buttons cast on down because they opt into it; this button
-    -- inherits none of that, so "AnyUp" is the edge that actually executes `/cast`.
-    -- Registering "AnyDown" alone is SILENT failure with no Lua error: the button still receives
-    -- the down edge — the PreClick trace below proves it, by printing — and nothing is cast.
-    -- That regression shipped once, in [M4-24], on the reasoned-but-never-tested premise that two
-    -- registered edges meant two casts per press. In the client it means one cast, on the up edge.
-    --
-    -- The PreClick trace gates on `down` precisely so that carrying both edges still yields
-    -- exactly one debug line per press. That gate is what makes the second edge free.
-    teleportBtn:RegisterForClicks("AnyUp", "AnyDown")
-    teleportBtn:Hide()
-    Look.Attach({ frame = f, title = titleText, label = lblPort, button = teleportBtn,
-                  labelWidth = LABEL_WIDTH })
-
-    local teleportIcon = teleportBtn:CreateTexture(nil, "ARTWORK")
-    teleportIcon:SetAllPoints()
-
-    -- The swipe has no Lua-side repeat: the Cooldown widget animates engine-side once armed, so it
-    -- costs the addon no OnUpdate and no timer of its own. The note's countdown beside the button
-    -- is the one repeating thing in the addon, the ratified cooldown ticker (see stopCooldownTicker
-    -- above; the reasoning is in docs/performance.md and the performance-§12 register row). The
-    -- numbers are hidden because at 24px they are unreadable, and the note carries the figure.
-    local teleportSwipe = CreateFrame("Cooldown", nil, teleportBtn, "CooldownFrameTemplate")
-    teleportSwipe:SetAllPoints()
-    teleportSwipe:SetHideCountdownNumbers(true)
-
-    -- Sits beside the button rather than on it, for the same reason: a readable sentence at the
-    -- popup's own font size, where a 24px overlay would be a smear. Anchored to the Teleport label
-    -- (a plain frame region) rather than to the secure button, whose anchoring is restricted.
-    local teleportNote = content:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    teleportNote:SetPoint("TOPLEFT", lblPort, "TOPLEFT", LABEL_WIDTH + 6 + 24 + 8, -6)
-    teleportNote:SetJustifyH("LEFT")
-    Look.Note(teleportNote)
-    teleportNote:Hide()
-
-    -- (No content:SetHeight here — content's TOPLEFT and BOTTOMRIGHT
-    -- anchors fully determine its size, so a SetHeight call would be a
-    -- no-op overridden by the anchors.)
-
-    -- Close button
-    local closeBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    closeBtn:SetSize(90, 24)
-    closeBtn:SetPoint("BOTTOM", f, "BOTTOM", 0, 12)
-    closeBtn:SetText(L["Close"])
-    -- Goes through hidePopup for the reason spelled out at ApplyFrameVisibility: f parents a
-    -- SecureActionButtonTemplate button, so f:Hide() is refused in combat and calling it anyway
-    -- raised ADDON_ACTION_BLOCKED naming this addon. The press is remembered instead and honored
-    -- the moment the lockdown lifts, which is the closest thing to "close" the client permits.
-    closeBtn:SetScript("OnClick", dismissPopup)
-    Look.Button(closeBtn)   -- after the script: the primitive HookScripts its hover pair
+    -- Every region inside the window (modules/FrameLayout.lua).
+    local titleBar, closeBtn
+    titleBar, closeBtn, fields = Layout.Build(f, dismissPopup)
 
     -- The plain controls the combat soft hide makes mouse-dead (setControlsMouse, above).
     mouseControls[1], mouseControls[2] = titleBar, closeBtn
@@ -979,19 +835,6 @@ local function buildFrame()
     -- exists once the player has actually opened the popup, by which point Blizzard's GameMenu has
     -- already initialized its button callbacks in a clean context.
     escProxy = buildEscapeProxy()
-
-    fields = {
-        group        = valGroup,
-        instance     = valInst,
-        type         = valType,
-        leader       = valLead,
-        role         = valRole,
-        playstyle    = valStyle,
-        teleportBtn   = teleportBtn,
-        teleportIcon  = teleportIcon,
-        teleportSwipe = teleportSwipe,
-        teleportNote  = teleportNote,
-    }
 
     -- ConfigureTeleportButton is closed over `teleportBtn` /
     -- `teleportIcon` indirectly via the `fields` table. Defining it
@@ -1230,7 +1073,7 @@ local function declineShow(preview)
     NS.Debug("Frame", "popup built but not shown: visibility = %s", v)
 end
 
--- Public API. `preview`, when given, is a ONE-SHOT PREVIEW (core/WhatGroup.lua's RunTest): the
+-- Public API. `preview`, when given, is a ONE-SHOT PREVIEW (core/TestPreview.lua's RunTest): the
 -- popup shows it through previewInfo instead of pendingInfo, and it ends when the popup is put away
 -- (endPreview). Every other caller passes nothing and gets the real capture.
 function WhatGroup:ShowFrame(preview)
@@ -1319,60 +1162,6 @@ end
 function WhatGroup:IsFrameOnScreen()
     return onScreen() and true or false
 end
-
--- ---------------------------------------------------------------------------
--- The Show window key binding (launcher-§6)
--- ---------------------------------------------------------------------------
---
--- Bindings.xml (the addon root, never in the TOC) carries ONE `CLICK <button>:LeftButton` line,
--- and this is the button. A CLICK binding on a named frame rather than a Lua body or a global
--- function, so the key, the launcher menu's Show window entry and the Close button all reach one
--- handler, WhatGroup:ToggleFrame, the one core/LauncherSetup.lua's toggleWindow calls.
---
---   * NO SECURE TEMPLATE. The popup is non-secure; ToggleFrame already knows how to close it in
---     combat (the alpha-0 soft hide) and when to defer opening it. A secure button would add
---     combat rules the window does not have.
---   * AnyDown, and only that: the client's default is the up edge, and registering both would
---     toggle twice per press.
---   * THE NAME IS PERMANENT. The client stores a player's key against the binding's name, so
---     renaming this button silently unbinds every player's key.
---   * Not the taint source buildEscapeProxy and buildFrame keep off the load path: this frame is
---     created at load but is plain and is NEVER added to UISpecialFrames, so it enters no Blizzard
---     secure-execute list.
---
--- While stood down the press refuses through NS.StandDownRefusal, the addon's one refusal helper
--- (slash-commands-§7), because a key cannot be grayed the way the menu entry is. ToggleFrame itself
--- does not refuse: the menu grays Show window while disabled, so it never needed to.
-NS.TOGGLE_BUTTON  = "WhatGroupTogglePopup"
-NS.TOGGLE_COMMAND = ("CLICK %s:LeftButton"):format(NS.TOGGLE_BUTTON)
-
-do
-    local button = CreateFrame("Button", NS.TOGGLE_BUTTON, UIParent)
-    button:RegisterForClicks("AnyDown")
-    button:SetScript("OnClick", function()
-        local line = NS.StandDownRefusal()
-        if line then return NS.Print(line) end
-        NS.addon:ToggleFrame()
-    end)
-    button:Hide()
-end
-
--- The two labels Options -> Keybindings shows, assigned at file scope because the client reads them
--- at registration. Bindings.xml files the binding in this addon's own category,
--- BINDING_HEADER_WHATGROUP, and the client titles the section with that global, so it is the brand
--- (launcher-§1), read from NS.BRAND_NAME (core/CoreSetup.lua) rather than retyped. The action comes
--- through the locale, with no article and no brand because the section carries the brand
--- (launcher-§6); its name holds a space and a colon, hence rawset.
-BINDING_HEADER_WHATGROUP = NS.BRAND_NAME
-rawset(_G, "BINDING_NAME_" .. NS.TOGGLE_COMMAND, L["Toggle group popup"])
-
--- THE ONE BINDINGS TABLE (launcher-§6): every Bindings.xml command, in that file's order, the Show
--- window binding first. settings/Panel.lua hands it to the library's O.KeybindingsTab for the
--- General page's Keybindings tab (options-ui-§20), whose rows follow it, and tests/test_keybinds.lua
--- checks Bindings.xml against it through Kit.assertBindingsXml.
-NS.BINDINGS = {
-    { command = NS.TOGGLE_COMMAND, tooltip = L["Shows or hides the group popup."] },
-}
 
 -- ---------------------------------------------------------------------------
 -- The stand-down, frame half (slash-commands-§7)

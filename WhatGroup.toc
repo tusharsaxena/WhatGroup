@@ -66,6 +66,12 @@ core\Compat.lua
 core\EnvSetup.lua
 core\Database.lua
 core\WhatGroup.lua
+# After core\WhatGroup.lua, which creates NS.addon and WhatGroup.Labels. Load-bearing for that, and
+# every label read is at call time.
+core\Labels.lua
+# The sample capture and RunTest. After core\WhatGroup.lua, which creates NS.addon. Load-bearing for
+# that alone: its bodies run at call time.
+core\TestPreview.lua
 # After core\WhatGroup.lua, which assigns NS.FONT_MONO at file scope, not in a function. The
 # LibKa0s-DebugLog :New here runs at file scope (core/DebugLogSetup.lua:142) and the library
 # validates `font` as a string, so above that line the console is built from nil. Load-bearing.
@@ -86,33 +92,40 @@ core\LifecycleSetup.lua
 defaults\Profile.lua
 defaults\TeleportSpells.lua
 
-# Modules (conventional: modules\Frame.lua reads NS.addon, NS.L and NS.BRAND_NAME (core\CoreSetup.lua)
-# at file scope, all published above this group. One later file reads Frame's output at load:
-# settings\Panel.lua builds GENERAL_OPTS from NS.BINDINGS at file scope (settings/Panel.lua:304),
-# which this file publishes (modules/Frame.lua:1373). The # Modules -> # Settings group order already
+# Modules (conventional: modules\Frame.lua reads NS.addon and NS.L, and modules\FrameBinding.lua reads
+# NS.BRAND_NAME (core\CoreSetup.lua), at file scope, all published above this group. One later file
+# reads FrameBinding's output at load:
+# settings\Panel.lua builds GENERAL_OPTS from NS.BINDINGS at file scope (settings/Panel.lua:328),
+# which modules\FrameBinding.lua publishes. The # Modules -> # Settings group order already
 # guarantees that read, so the slot stays conventional (toc-file-§5).)
 # The popup's look (WG-02). Directly above modules\Frame.lua, which takes NS.FrameSkin as a
 # file-scope upvalue; after core\SkinSetup.lua, whose NS.Skin it subscribes OnLooksChanged on at
 # load. Load-bearing.
 modules\FrameSkin.lua
+# The popup's regions. After modules\FrameSkin.lua, which it takes as a file-scope upvalue, and
+# directly above modules\Frame.lua, which takes NS.FrameLayout the same way. Load-bearing.
+modules\FrameLayout.lua
 modules\Frame.lua
+# The Show window key binding: NS.BINDINGS and the toggle button. Conventional inside the group; its
+# OnClick reads ToggleFrame at click time.
+modules\FrameBinding.lua
 # The sections of `/wg diagnostics` (debug-logging-§14). Conventional: core\DebugLogSetup.lua's
 # descriptor reads NS.Diagnostics at RUN time, and every read in the file is at call time.
 modules\Diagnostics.lua
 
 # Settings (conventional WITHIN the group apart from the three annotated lines; the group as a whole
-# must follow # Core, because settings\Slash.lua:132 builds CLI_MISSING from NS.LIBKA0S_MISSING at
-# file scope and core\CoreSetup.lua:34 publishes it)
+# must follow # Core, because settings\Slash.lua:137 builds CLI_MISSING from NS.LIBKA0S_MISSING at
+# file scope and core\CoreSetup.lua:41 publishes it)
 # Directly above settings\Schema.lua: this file publishes Settings.SchemaLib (LibKa0s-Schema-1.0,
 # or the host's degradation stub), and Schema.lua calls its :New at file scope
-# (settings/Schema.lua:418). Above it that member does not exist yet. Load-bearing.
+# (settings/Schema.lua:520). Above it that member does not exist yet. Load-bearing.
 settings\SchemaSetup.lua
 # Before settings\Panel.lua: this file creates Settings.Schema and its runtime NS.SchemaRuntime,
-# which Panel splices its master rows into at file scope (settings/Panel.lua:308). Load-bearing.
+# which Panel splices its master rows into at file scope (settings/Panel.lua:257). Load-bearing.
 settings\Schema.lua
 # Before settings\Panel.lua: this file publishes the LibKa0s-Options instance as Settings.Helpers
-# (settings/OptionsSetup.lua:333), and Panel calls Helpers.MasterControls at file scope
-# (settings/Panel.lua:214). Above it that member does not exist yet. Load-bearing.
+# (settings/OptionsSetup.lua:368), and Panel calls Helpers.MasterControls at file scope
+# (settings/Panel.lua:151). Above it that member does not exist yet. Load-bearing.
 settings\OptionsSetup.lua
 settings\Panel.lua
 settings\Slash.lua

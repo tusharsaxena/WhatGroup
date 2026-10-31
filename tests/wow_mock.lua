@@ -410,6 +410,10 @@ local function build()
             for _, fn in ipairs(f.__hooks[script] or {}) do fn(f, ...) end
         end
 
+        -- One stub per method name, kept for the frame's life. A fresh closure per miss is 48 bytes
+        -- that tests/perf.lua charged to the addon: the two EnableMouse calls of every show read as
+        -- +96 bytes/iter on showFrameRepeat and combatGateFlipping.
+        local missed = {}
         return setmetatable(f, {
             __index = function(_, k)
                 local v = api[k]
@@ -417,7 +421,12 @@ local function build()
                 -- WoW frame methods are always PascalCase; anything else must miss through to nil
                 -- so `f.customField` stays assignable.
                 if type(k) == "string" and k:match("^%u") then
-                    return function() return f end
+                    local stub = missed[k]
+                    if not stub then
+                        stub = function() return f end
+                        missed[k] = stub
+                    end
+                    return stub
                 end
                 return nil
             end,

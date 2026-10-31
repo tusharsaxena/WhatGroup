@@ -312,7 +312,7 @@ See [midnight-quirks.md](./midnight-quirks.md#hook-discipline) for the rules on 
 
 The activity-derived fields are only populated when `C_LFGList.GetActivityInfoTable(firstActivityID)` returns a non-nil table. If the activity table is missing the fields stay at their defaults — the popup and notification still render, just with placeholder values.
 
-`WhatGroup.Labels.GetGroupTypeLabel(info)` (defined in `WhatGroup.lua`) derives a human-readable type from these fields: Mythic+ wins, then Raid (Current), Heroic Raid, PvP (`categoryID == 2`), Dungeon (`categoryID == 1`), Raid (`maxNumPlayers >= 10`), Dungeon (`maxNumPlayers > 0`), or "Group" as the final fallback. The popup's `PopulateFields` and the chat `ShowNotification` both read from this single namespace — see [frame.md → Shared label helpers](./frame.md#shared-label-helpers).
+`WhatGroup.Labels.GetGroupTypeLabel(info)` (defined in `core/Labels.lua`) derives a human-readable type from these fields: Mythic+ wins, then Raid (Current), Heroic Raid, PvP (`categoryID == 2`), Dungeon (`categoryID == 1`), Raid (`maxNumPlayers >= 10`), Dungeon (`maxNumPlayers > 0`), or "Group" as the final fallback. The popup's `PopulateFields` and the chat `ShowNotification` both read from this single namespace — see [frame.md → Shared label helpers](./frame.md#shared-label-helpers).
 
 ## Teleport spell lookup
 

@@ -33,7 +33,7 @@ local addonName, NS = ...
 -- core/CoreSetup.lua is the first of the four the TOC loads.
 -- THE BRAND NAME (launcher-§1), the one constant every brand-reading surface reads: the launcher's
 -- `label` (core/LauncherSetup.lua) and the key bindings' category title, BINDING_HEADER_WHATGROUP
--- (modules/Frame.lua, launcher-§6), which is also the section's title on Options -> Keybindings. Set
+-- (modules/FrameBinding.lua, launcher-§6), which is also the section's title on Options -> Keybindings. Set
 -- here because this is the first file of `# Core`, above both readers. Plain text, never the TOC
 -- `## Title` (which may carry color escapes), and never translated.
 NS.BRAND_NAME = "Ka0s WhatGroup"

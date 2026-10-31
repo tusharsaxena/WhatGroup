@@ -58,12 +58,16 @@ test("libka0s: MODULES names every file of every major, at a positive integer mi
         ["LibKa0s-Slash-1.0"]    = { "Slash" },
         -- OptionsAppearance (v1.78.0) draws the Skin tab and OptionsSkinPicker (v1.79.0) the
         -- first-run picker; both attach to the Options shell this addon reaches.
-        ["LibKa0s-Options-1.0"]  = { "Options", "OptionsWidgets", "OptionsScroll",
-                                     "OptionsAppearance", "OptionsSkinPicker" },
+        ["LibKa0s-Options-1.0"]  = { "Options", "OptionsWidgets", "OptionsFlow", "OptionsScroll",
+                                     "OptionsTabbed", "OptionsIdSuggest", "OptionsAppearance",
+                                     "OptionsSkinPicker", "OptionsSkinPickerRows" },
         ["LibKa0s-Perf-1.0"]     = { "Perf", "PerfPanel" },
-        -- LibKa0s-Skin-1.0 (v1.78.0; key 9.17.13.7.11.2.4 at v1.82.0): its seven files.
-        ["LibKa0s-Skin-1.0"]     = { "Skin", "SkinDefs", "SkinPaint", "SkinPaintExtras",
-                                     "SkinPaintControls", "SkinEUI", "SkinAce" },
+        -- LibKa0s-Skin-1.0 (v1.78.0; key 11.1.19.1.13.7.11.2.5 at v1.84.0): its nine files.
+        ["LibKa0s-Skin-1.0"]     = { "Skin", "SkinOwnerTokens", "SkinDefs", "SkinDefsOthers",
+                                     "SkinPaint", "SkinPaintExtras", "SkinPaintControls",
+                                     "SkinEUI", "SkinAce" },
+        -- LibKa0s-Charts-1.0 (v1.84.0): nothing here adopts it, and the client loads both files.
+        ["LibKa0s-Charts-1.0"]   = { "Charts", "ChartsRender" },
     }
     for major, files in pairs(expected) do
         local lib = env.LibStub(major, true)
@@ -905,8 +909,8 @@ end)
 test("libka0s: the Master controls hook is keyed off the library's constant, not a copy of it",
 function()
     -- options-ui-§8. `["Master controls"]` in settings/Panel.lua was a hand-typed copy of
-    -- libs/LibKa0s/OptionsCompose.lua:50, which publishes the same string as O.MASTER_GROUP at
-    -- :189. That the two agree today is not the point — they do, and that is exactly why the copy
+    -- libs/LibKa0s/OptionsCompose.lua:76, which publishes the same string as O.MASTER_GROUP at
+    -- :581. That the two agree today is not the point — they do, and that is exactly why the copy
     -- survived a review. The point is what a library-side rename does: it moves the `group` on
     -- every composed row, and RenderTabbedSchema fires the afterGroup hook PER GROUP, so a host
     -- keyed to the old spelling has its hook fire for a group that no longer exists. The reset

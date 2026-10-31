@@ -358,7 +358,7 @@ local function buildGeneralPage(parentCategory)
         -- settings and no active-window state, so there is no instance for a banner to name.
         --
         -- The Keybindings tab (options-ui-§20) is the one HOST tab: the library draws it from
-        -- NS.BINDINGS (modules/Frame.lua) and, with no `before`, puts it after every schema tab,
+        -- NS.BINDINGS (modules/FrameBinding.lua) and, with no `before`, puts it after every schema tab,
         -- so it is the strip's last. Its rows edit the client's own binding store, never the
         -- profile, so the page's Defaults and Reset all settings never reach a key. On a degraded
         -- install the stub's KeybindingsTab answers nil and the strip has no such tab.

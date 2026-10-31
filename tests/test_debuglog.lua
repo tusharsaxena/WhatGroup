@@ -302,11 +302,11 @@ test("debuglog: the bulk bracket adds no line when the act reset the profile (de
     -- a second line. The rows written inside the bracket stay muted, and the mute still lifts.
     local NS = T.bootAddon()
     NS.State.debug = true
-    local H, Bulk = NS.addon.Settings.Helpers, NS.addon.Settings.Bulk
+    local H, Bulk = NS.addon.Settings.Helpers, NS.SchemaRuntime
     local before = countLines(NS, "[Set]")
-    Bulk.begin("reset", "all")
+    Bulk.BulkBegin("reset", "all")
     H.Set("notify.delay", 2)
-    Bulk.finish("reset", "all", 1, nil, { profileReset = true })
+    Bulk.BulkEnd("reset", "all", 1, nil, { profileReset = true })
     assertEqual(countLines(NS, "[Set]") - before, 0, "muted inside, and no bulk line")
     H.Set("notify.delay", 3)
     assertEqual(countLines(NS, "[Set]") - before, 1, "the mute is released")
@@ -315,16 +315,16 @@ end)
 test("debuglog: a nested bracket logs once, at the outermost close, with the summed tally (debug-logging-§10)", function()
     local NS = T.bootAddon()
     NS.State.debug = true
-    local H, Bulk = NS.addon.Settings.Helpers, NS.addon.Settings.Bulk
+    local H, Bulk = NS.addon.Settings.Helpers, NS.SchemaRuntime
     local before = countLines(NS, "[Set]")
-    Bulk.begin("reset", "general")
+    Bulk.BulkBegin("reset", "general")
     H.Set("notify.delay", 2)
-    Bulk.begin("reset", "inner")
+    Bulk.BulkBegin("reset", "inner")
     H.Set("notify.showLeader", not H.Get("notify.showLeader"))
     H.Set("notify.delay", 2)                            -- no change: not counted
-    Bulk.finish("reset", "inner", 2, nil, { profileReset = false })
+    Bulk.BulkEnd("reset", "inner", 2, nil, { profileReset = false })
     assertEqual(countLines(NS, "[Set]") - before, 0, "the inner close logs nothing")
-    Bulk.finish("reset", "general", 1, nil, { profileReset = false })
+    Bulk.BulkEnd("reset", "general", 1, nil, { profileReset = false })
     assertEqual(countLines(NS, "[Set]") - before, 1, "one line, at the outermost close")
     assertEqual(countLines(NS, "[Set] reset general: 2 rows"), 1, "named by the outer act, tallies summed")
 end)
@@ -332,12 +332,12 @@ end)
 test("debuglog: a nested bracket that reset the profile silences the outer line (debug-logging-§10)", function()
     local NS = T.bootAddon()
     NS.State.debug = true
-    local Bulk = NS.addon.Settings.Bulk
+    local Bulk = NS.SchemaRuntime
     local before = countLines(NS, "[Set]")
-    Bulk.begin("reset", "general")
-    Bulk.begin("reset", "all")
-    Bulk.finish("reset", "all", 0, nil, { profileReset = true })
-    Bulk.finish("reset", "general", 0, nil, { profileReset = false })
+    Bulk.BulkBegin("reset", "general")
+    Bulk.BulkBegin("reset", "all")
+    Bulk.BulkEnd("reset", "all", 0, nil, { profileReset = true })
+    Bulk.BulkEnd("reset", "general", 0, nil, { profileReset = false })
     assertEqual(countLines(NS, "[Set]") - before, 0, "the profile handler's line is the only one")
 end)
 
@@ -346,11 +346,11 @@ test("debuglog: a bracket that closes on an error still logs its tally and unmut
     -- changed so far, and a mute that stuck would silence every later write.
     local NS = T.bootAddon()
     NS.State.debug = true
-    local H, Bulk = NS.addon.Settings.Helpers, NS.addon.Settings.Bulk
+    local H, Bulk = NS.addon.Settings.Helpers, NS.SchemaRuntime
     local before = countLines(NS, "[Set]")
-    Bulk.begin("reset", "general")
+    Bulk.BulkBegin("reset", "general")
     H.Set("notify.delay", 2)
-    Bulk.finish("reset", "general", 1, "boom", { profileReset = false })
+    Bulk.BulkEnd("reset", "general", 1, "boom", { profileReset = false })
     assertEqual(countLines(NS, "[Set] reset general: 1 rows (stopped by an error)"), 1,
         "the rows changed before the error, and the line says the act did not finish")
     H.Set("notify.delay", 3)
@@ -370,12 +370,12 @@ test("debuglog: a write that raises inside a bracket is not counted (debug-loggi
     -- must not reach N, even though the row was off its new value when the write began.
     local NS = T.bootAddon()
     NS.State.debug = true
-    local H, Bulk = NS.addon.Settings.Helpers, NS.addon.Settings.Bulk
+    local H, Bulk = NS.addon.Settings.Helpers, NS.SchemaRuntime
     raisingConsoleRow(NS)
     local before = countLines(NS, "[Set]")
-    Bulk.begin("reset", "general")
+    Bulk.BulkBegin("reset", "general")
     local ok, err = pcall(H.Set, "state.debugConsole", true)
-    Bulk.finish("reset", "general", 1, err, { profileReset = false })
+    Bulk.BulkEnd("reset", "general", 1, err, { profileReset = false })
     assertTrue(not ok, "the write raised")
     assertEqual(countLines(NS, "[Set]") - before, 1, "one line for the act")
     assertEqual(countLines(NS, "[Set] reset general: 0 rows (stopped by an error)"), 1,
@@ -423,12 +423,12 @@ test("debuglog: a profile reset inside an open bracket silences the bracket (deb
     -- close would add a second line for the same act.
     local NS = T.bootAddon()
     NS.State.debug = true
-    local H, Bulk = NS.addon.Settings.Helpers, NS.addon.Settings.Bulk
+    local H, Bulk = NS.addon.Settings.Helpers, NS.SchemaRuntime
     local before = countLines(NS, "[Set]")
-    Bulk.begin("reset", "general")
+    Bulk.BulkBegin("reset", "general")
     H.Set("notify.delay", 3)
     NS.addon.db:ResetProfile()
-    Bulk.finish("reset", "general", 1, nil, { profileReset = false })
+    Bulk.BulkEnd("reset", "general", 1, nil, { profileReset = false })
     assertEqual(countLines(NS, "[Set]") - before, 1, "one line")
     assertEqual(countLines(NS, "[Set] reset profile 'Default' to defaults"), 1, "the handler's")
     assertEqual(countLines(NS, "[Set] reset general"), 0, "and no bracket line")

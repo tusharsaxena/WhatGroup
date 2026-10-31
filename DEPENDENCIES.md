@@ -75,7 +75,7 @@ lua -v         # must ALSO say 5.1.x — if it says 5.3/5.4, use `lua5.1` explic
 
 ### 2.2 luacheck — **required** (half the commit gate)
 
-- Evidence: `docs/testing.md:16` — `luacheck .` is one of the two commands that MUST be green before
+- Evidence: `docs/testing.md:16` — `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` is one of the two commands that MUST be green before
   every commit; `.luacheckrc` at the repo root is its config.
 - Version: **any recent** release. This repo is verified with 1.2.0; nothing here depends on a
   specific version, and pinning one would be false precision.
@@ -159,6 +159,19 @@ diff --version
 The vendor gate additionally needs the **LibKa0s repo checked out as a sibling directory**
 (`../LibKa0s`). That is a checkout, not a package — clone it next to this repo. Without it the
 vendor gate cannot run; the green gate still can.
+
+### 2.5 ka0s-bounded — **required** (the gate's lint runs through it)
+
+- Evidence: `docs/testing.md:16`. `~/.claude/dev-copilot/bin/ka0s-bounded` is the bounded runner the
+  dev-copilot plugin installs. The suite bounds itself through the kit, but `luacheck` loads no kit, so
+  it runs under this wrapper (testing-§15). A run that hits the limit exits 124, and one killed exits 137.
+- Version: whatever the installed dev-copilot plugin ships.
+
+Verify:
+
+```sh
+~/.claude/dev-copilot/bin/ka0s-bounded luacheck --version
+```
 
 ### What is NOT a development dependency
 
@@ -244,7 +257,7 @@ Run these from the repo root. All three are documented in
 
 ```sh
 lua tests/run.lua                                        # headless suite — non-zero exit on any failure
-luacheck .                                               # must report 0 warnings / 0 errors
+~/.claude/dev-copilot/bin/ka0s-bounded luacheck .        # must report 0 warnings / 0 errors
 bash tests/_kit/run-automated-tests.sh --suite complexity   # sighted complexity (required at release)
 ```
 

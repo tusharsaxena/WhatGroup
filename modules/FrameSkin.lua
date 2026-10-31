@@ -1,7 +1,7 @@
 local _, NS = ...
 
 -- modules/FrameSkin.lua — the group-info popup's LOOK (skinning-§3, WG-02): every string and
--- control modules/Frame.lua draws takes its colors and font from the owner's skin facade
+-- control the popup draws takes its colors and font from the owner's skin facade
 -- (core/SkinSetup.lua's NS.Skin, LibKa0s-Skin-1.0), never from a literal (anti-pattern #107).
 --
 -- ── WHAT IT PUBLISHES (NS.FrameSkin) ─────────────────────────────────────────────────────────
@@ -48,6 +48,7 @@ NS.FrameSkin = FrameSkin
 -- first show a no-op (the popup is lazy for taint reasons, modules/Frame.lua's header).
 local parts
 local anchored = {}   -- the x, y last applied, so a switch that moved nothing queues nothing
+local painted = {}    -- [fs] = the token a value string last took (FrameSkin.Value)
 
 function FrameSkin.Title(fs)
     fs:SetText((NS.SkinEscape("wg.brand") or "") .. L["WhatGroup"] .. "|r — " .. L["Group Info"])
@@ -55,9 +56,15 @@ end
 
 function FrameSkin.Label(fs) NS.Skin.Text(fs, "wg.label") end
 
+-- Painted only when the token moves. The library replays what S.Text recorded on every skin change,
+-- so a repopulate that keeps a string's token has nothing to paint, and asking anyway cost each of
+-- the six values a SetTextColor and a walk of the library's record on every group join.
 function FrameSkin.Value(fs, text, dim)
     fs:SetText(text)
-    NS.Skin.Text(fs, dim and "wg.placeholder" or "text.highlight")
+    local token = dim and "wg.placeholder" or "text.highlight"
+    if painted[fs] == token then return end
+    painted[fs] = token
+    NS.Skin.Text(fs, token)
 end
 
 function FrameSkin.Note(fs) NS.Skin.Text(fs, "wg.placeholder") end

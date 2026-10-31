@@ -533,11 +533,6 @@ NS.SchemaRuntime = S
 Helpers.Get, Helpers.Set, Helpers.FindSchema, Helpers.ApplyDefault =
     S.Get, S.Set, S.FindRow, S.ApplyDefault
 
--- The bulk bracket (debug-logging-§10), under the names tests and the Options descriptor have
--- always reached it by. On Settings rather than Helpers, so the pair is not copied onto the
--- Options instance and the instance's surface does not move.
-Settings.Bulk = { begin = S.BulkBegin, finish = S.BulkEnd }
-
 -- The OnProfileReset handler's count, taken once (core/WhatGroup.lua). nil when the reset did not
 -- come through RestoreAllDefaults. Also silences a bracket open around the reset: the handler's
 -- line stands for the act.

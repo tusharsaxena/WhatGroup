@@ -1,5 +1,5 @@
 -- tests/test_skin_literals.lua — the hard-coded color gate (WG-02; skinning's anti-pattern #107,
--- binding for this addon since it adopted skins). Loot History's gate (its tests/test_skin_literals.lua),
+-- binding for this addon since it adopted skins). LootHistory's gate (LootHistory tests/test_skin_literals.lua),
 -- with this addon's allow-list.
 --
 -- WHAT IT PROVES. That no color this addon draws is a literal the skin cannot reach. Two shapes are

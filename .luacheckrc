@@ -24,8 +24,8 @@ exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "docs/revendor/", "_
 -- of them were not conventions at all: ten `local addonName, NS = ...` headers over a folder name
 -- the file never read, and five parameters carried into the two `hooksecurefunc` handlers in
 -- core/WhatGroup.lua and never used. All fifteen are fixed in the source rather than moved into a
--- narrower suppression. The EIGHT that remain are below -- `<code>/<variable>` entries across
--- three per-file stanzas. A ninth, the line-scoped `-- luacheck: ignore 542` on core/WhatGroup.lua's
+-- narrower suppression. The NINE that remain are below -- `<code>/<variable>` entries across
+-- four per-file stanzas. One more, the line-scoped `-- luacheck: ignore 542` on core/WhatGroup.lua's
 -- empty `invited` branch, went when that branch began stamping the application's role
 -- (WhatGroup#1). tests/test_lintconfig.lua is what keeps the blanket from re-entering.
 
@@ -33,7 +33,7 @@ exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "docs/revendor/", "_
 globals = {
   "WhatGroupDB",
   "StaticPopupDialogs",
-  -- The Show window key binding's header label (modules/Frame.lua, launcher-§6). Its BINDING_NAME_
+  -- The Show window key binding's header label (modules/FrameBinding.lua, launcher-§6). Its BINDING_NAME_
   -- twin holds a space and a colon, so it is written with rawset and needs no entry here.
   "BINDING_HEADER_WHATGROUP",
 }
@@ -61,7 +61,7 @@ read_globals = {
   "Settings", "StaticPopup_Show",
   "GameTooltip", "YES", "NO",
   -- The signed-up role (WhatGroup#1): read by core/Compat.lua (the two APIs) and by
-  -- core/WhatGroup.lua's Labels.GetRoleLabel (Blizzard's localized role names).
+  -- core/Labels.lua's Labels.GetRoleLabel (Blizzard's localized role names).
   "UnitGroupRolesAssigned", "CreateAtlasMarkup", "TANK", "HEALER", "DAMAGER",
   "wipe", "tinsert",
 }
@@ -88,9 +88,9 @@ files["tests/"] = {
 --
 -- Every stanza below names ONE file, and every entry inside it names the code AND the variable, in
 -- luacheck's `<code>/<variable>` form. That is the whole difference from the blanket this replaced:
--- a newly-unused argument under any other name, in any of these files or in any of the other 38,
+-- a newly-unused argument under any other name, in any of these files or in any other,
 -- still reports. Measured, not assumed -- adding a dead second parameter to `WhatGroup:RunTest` in
--- core/WhatGroup.lua reports under this config and did not under the old one.
+-- core/TestPreview.lua reports under this config and did not under the old one.
 --
 -- Each one is a receiver a CALLING CONVENTION forces on a body that has no use for it, which is the
 -- only shape that earns a stanza here. Anything else -- an argument this addon chose to accept and
@@ -111,10 +111,15 @@ files["core/WhatGroup.lua"] = {
   ignore = { "212/self", "212/event" },
 }
 
+-- WhatGroup:SampleInfo reads nothing off the addon, and stays a method because its callers colon-call it.
+files["core/TestPreview.lua"] = {
+  ignore = { "212/self" },
+}
+
 -- The four `ApplyFrame*` appliers. Every one of them reads the popup through this file's `f`
 -- upvalue rather than through the addon table, so the receiver is unused -- but the method form is
 -- load-bearing at the call sites, not decoration. Two of them are reached through a PROBE of the
--- member on the addon table before the colon call -- settings/Schema.lua:275 (`if
+-- member on the addon table before the colon call -- settings/Schema.lua:291 (`if
 -- WhatGroup.ApplyFrameSize then`) and WhatGroup:OnCombatStateChanged (`if not self.ApplyFrameVisibility
 -- then return end`) -- which is how a settings row and a combat-edge handler survive
 -- modules/Frame.lua failing to load. A plain local would have nothing for those probes to find.

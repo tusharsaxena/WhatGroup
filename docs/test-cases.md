@@ -627,7 +627,7 @@ Total.
 - layers: the owed Hide at combat end leaves the controls ready for the next show
 - layers: no SetFrameStrata literal and no absolute SetFrameLevel in core, modules or settings
 
-### test_frame_skin.lua (12)
+### test_frame_skin.lua (13)
 
 - popup skin: the title's brand span reads wg.brand, FFD700 byte for byte on Ka0s Default
 - popup skin: every field label is painted in wg.label, with no inline color
@@ -636,6 +636,7 @@ Total.
 - popup skin: the Close button is the skin's button, painted after its click script
 - popup skin: the window is the owner's Shell, so a switch repaints its edge and title
 - popup skin: a skin switch repaints the labels, values, note and brand span live
+- popup skin: a repopulate paints only the values whose token moved, and the look survives
 - popup skin: a skin switch re-anchors the teleport button beside its moved label
 - popup skin: in combat the re-anchor waits for combat end, then lands
 - popup skin: a switch while stood down queues no anchor; the stand-up re-anchors
@@ -1213,7 +1214,7 @@ Total.
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_frame_layers.lua | 8 |
-| test_frame_skin.lua | 12 |
+| test_frame_skin.lua | 13 |
 | test_skin_literals.lua | 3 |
 | test_panel.lua | 62 |
 | test_skinsetup.lua | 17 |
@@ -1243,4 +1244,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1045** |
+| **Total** | **1046** |

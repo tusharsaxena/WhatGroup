@@ -11,8 +11,8 @@
 -- (captureQueue, pendingApplications, notifiedFor, the popup frame) would otherwise leak between
 -- cases and a broken wipe would look like a working one.
 --
--- Chunks are COMPILED ONCE and re-run per instance: `loadfile` over twenty-one files, three
--- hundred-odd times, dominates the run otherwise, and re-executing a cached chunk against a fresh
+-- Chunks are COMPILED ONCE and re-run per instance: `loadfile` over every library and addon file,
+-- for nearly every case, dominates the run otherwise, and re-executing a cached chunk against a fresh
 -- environment is exactly as faithful — the client compiles each file once too.
 
 local Loader = dofile("tests/_kit/loader.lua")
@@ -37,14 +37,21 @@ local LIBKA0S = {
     "libs/LibKa0s/Glow.lua",
     -- New in LibKa0s v1.79.0: the Toast major (Toast minor 1). Nothing here adopts it.
     "libs/LibKa0s/Toast.lua",
+    -- New in LibKa0s v1.84.0: the Charts major (Charts minor 1, ChartsRender minor 1). Nothing here adopts it.
+    "libs/LibKa0s/Charts.lua",
+    "libs/LibKa0s/ChartsRender.lua",
     "libs/LibKa0s/Media.lua",
     -- New in LibKa0s v1.74.0: the icon catalog's packed name lists (MediaIcons minor 1), a second
     -- file of the Media major. Nothing here adopts it; Media.Icon reads it.
     "libs/LibKa0s/MediaIcons.lua",
-    -- New in LibKa0s v1.78.0: the skin engine, LibKa0s-Skin-1.0 (as of v1.82.0, key 9.17.13.7.11.2.4),
-    -- seven files after the Media major they read. core/SkinSetup.lua registers this addon's owner.
+    -- New in LibKa0s v1.78.0: the skin engine, LibKa0s-Skin-1.0 (as of v1.84.0, key 11.1.19.1.13.7.11.2.6),
+    -- nine files after the Media major they read. core/SkinSetup.lua registers this addon's owner.
     "libs/LibKa0s/Skin.lua",
+    -- New in LibKa0s v1.84.0: the owner-token block peeled out of Skin.lua (SkinOwnerTokens minor 1).
+    "libs/LibKa0s/SkinOwnerTokens.lua",
     "libs/LibKa0s/SkinDefs.lua",
+    -- New in LibKa0s v1.84.0: the eight other skins peeled out of SkinDefs.lua (SkinDefsOthers minor 1).
+    "libs/LibKa0s/SkinDefsOthers.lua",
     "libs/LibKa0s/SkinPaint.lua",
     "libs/LibKa0s/SkinPaintExtras.lua",
     "libs/LibKa0s/SkinPaintControls.lua",
@@ -83,9 +90,15 @@ local LIBKA0S = {
     -- OptionsTabs.lua). Each attaches to the file before it, so they load where the XML has them.
     "libs/LibKa0s/OptionsRegistry.lua",
     "libs/LibKa0s/OptionsWidgets.lua",
+    -- New in LibKa0s v1.84.0: the flow engine peeled out of OptionsWidgets.lua (OptionsFlow minor 2).
+    "libs/LibKa0s/OptionsFlow.lua",
     "libs/LibKa0s/OptionsIds.lua",
+    -- New in LibKa0s v1.84.0: the suggestion half peeled out of OptionsIds.lua (OptionsIdSuggest minor 1).
+    "libs/LibKa0s/OptionsIdSuggest.lua",
     "libs/LibKa0s/OptionsIdList.lua",
     "libs/LibKa0s/OptionsTabs.lua",
+    -- New in LibKa0s v1.84.0: the tabbed page peeled out of OptionsTabs.lua (OptionsTabbed minor 2).
+    "libs/LibKa0s/OptionsTabbed.lua",
     "libs/LibKa0s/OptionsCombat.lua",
     "libs/LibKa0s/OptionsCompose.lua",
     "libs/LibKa0s/OptionsScroll.lua",
@@ -99,8 +112,10 @@ local LIBKA0S = {
     -- and in v1.79.0 the first-run skin picker (OptionsSkinPicker minor 1, O.SkinPicker / O.HideSkinPicker).
     "libs/LibKa0s/OptionsAppearance.lua",
     "libs/LibKa0s/OptionsSkinPicker.lua",
+    -- New in LibKa0s v1.84.0: the Skin tab's rows peeled out of OptionsSkinPicker.lua (OptionsSkinPickerRows minor 1).
+    "libs/LibKa0s/OptionsSkinPickerRows.lua",
     -- New in LibKa0s v1.82.0: the switched sections peeled out of OptionsWidgets.lua (OptionsSwitch
-    -- minor 1, shownWhen). Last of the Options files in LibKa0s.xml; nothing here adopts it.
+    -- minor 1, shownWhen). After OptionsSkinPicker in LibKa0s.xml; nothing here adopts it.
     "libs/LibKa0s/OptionsSwitch.lua",
     -- New in LibKa0s v1.83.0: the Ka0sMedia_* picker widgets.
     "libs/LibKa0s/OptionsMedia.lua",
@@ -116,6 +131,8 @@ local LIBKA0S = {
     "libs/LibKa0s/Sim.lua",
     "libs/LibKa0s/SimTimeline.lua",
     "libs/LibKa0s/SimPanel.lua",
+    -- New in LibKa0s v1.84.0: the step panel's renderer peeled out of SimPanel.lua (SimPanelRender minor 1).
+    "libs/LibKa0s/SimPanelRender.lua",
 }
 
 -- Returns a loader closure bound to the repo root + the mock builder.
