@@ -940,7 +940,8 @@ Default is SKIN-1's list and nothing else.
   *HUD text only* (the default since LibKa0s v1.83.0, D-10; the popup is window text, not a HUD).
   *All text* → with no reload every popup string takes a thin outline; *Off* → none; *HUD text only*
   → still none. `/wg get skin.outline` → `hud`; `/wg set skin.outline all` → the same as the dropdown;
-  a profile that stored *All text* before this version keeps it; `/wg set skin.outline thick` → refused, the value
+  a profile from before this version keeps a stored *Off*, while *All text* comes back as *HUD text only*: it was
+  that version's default, so AceDB never wrote it (D-10); `/wg set skin.outline thick` → refused, the value
   unchanged. Pick *Off*, `/reload` → still off; switch to another profile → that profile's mode
   (*HUD text only* on a new one); back → *Off*. Turn **Ignore fonts** on → the dropdown grays out and the
   popup keeps the game's own face. The debug console's log lines keep their monospace face and are

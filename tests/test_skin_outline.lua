@@ -108,6 +108,18 @@ test("outline: a profile event applies the incoming profile's mode", function()
     assertEqual(lib(mock):GetOutline(OWNER), "hud", "a reset puts HUD text only back")
 end)
 
+test("outline: a stored mode the library does not know applies its default", function()
+    -- red under: the library reading an unknown mode as anything but OUTLINE_DEFAULT, as this
+    -- apply's comment says it does.
+    local NS, _, mock = T.bootAddon()
+    quietly(NS, function()
+        NS.ApplySkinOutline("all")
+        NS.addon.db.profile.skin.outline = "thick"
+        NS.ApplySkinOutline()
+    end)
+    assertEqual(lib(mock):GetOutline(OWNER), "hud")
+end)
+
 test("outline: without the skin engine the apply is a quiet no-op", function()
     local NS = T.bootAddon{ skip = { "libs/LibKa0s/Skin.lua" } }
     assertEqual(NS.ApplySkinOutline(), false)
