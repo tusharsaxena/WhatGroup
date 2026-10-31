@@ -277,13 +277,17 @@ local O = lib:New({
     -- standard asks for it.
     skipRestoreAll = Settings.VetoedFromResetAll,
 
+    -- For O.LSMValues and the font preload every panel show runs, which the Skin tab's Font picker
+    -- relies on to draw each row in its own face the first time it opens (options-ui-§23).
+    getLSM = function() return LibStub and LibStub("LibSharedMedia-3.0", true) end,
+
     -- Deliberately NOT passed, each for a reason worth writing down rather than leaving as an
     -- absence:
     --
     --   colorDecode / colorEncode — the schema is bool and number only, so there is no stored
     --     color shape to declare.
-    --   getLSM / scheduleTimer    — no media pickers and no color pickers, and the one slider is
-    --     release-only, so nothing reaches either.
+    --   scheduleTimer             — no color pickers, and the one slider is release-only, so
+    --     nothing reaches it.
     --   afterRestoreAll — the global reset is host-owned (see below), so the library's
     --     RestoreAllDefaults is not on the path, and nothing sits outside both the profile and
     --     the schema for a hook to restore.

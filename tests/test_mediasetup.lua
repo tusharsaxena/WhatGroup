@@ -305,3 +305,36 @@ function()
     assertTrue(type(NS.FONT_MONO) == "string" and NS.FONT_MONO ~= "",
         "FONT_MONO must never be nil — the console would refuse to build")
 end)
+
+-- The descriptor's getLSM (options-ui-§23, WG-F02): the Skin tab's Ka0sMedia_* pickers read
+-- LibSharedMedia themselves, but the Options instance's LSMValues and the font preload every panel
+-- show runs read it through this field, and a picker's rows rely on that preload to draw their faces
+-- the first time it opens.
+local function fakeLSM(mock)
+    local LSM = mock.LibStub:NewLibrary("LibSharedMedia-3.0", 1) or mock.LibStub("LibSharedMedia-3.0")
+    LSM.HashTable = function(_, kind) return { [kind .. " one"] = "path", [kind .. " two"] = "path" } end
+    LSM.Fetch = function(_, kind, key) return ("Media\\%s\\%s"):format(kind, tostring(key)) end
+    return LSM
+end
+
+test("mediasetup: the Options descriptor hands LSMValues LibSharedMedia", function()
+    -- red under: a descriptor with no getLSM, whose LSMValues answers the one "no media" row.
+    local NS, _, mock = T.bootAddon()
+    fakeLSM(mock)
+    local values = NS.addon.Settings.Helpers.LSMValues("font")()
+    assertEqual(values["font one"], "font one")
+    assertEqual(values["font two"], "font two")
+end)
+
+test("mediasetup: a panel's show runs the font preload with LibSharedMedia", function()
+    -- red under: the same missing field, where the preload returns before it starts.
+    local _, _, mock = T.enableAddon()
+    local LSM = fakeLSM(mock)
+    local lib = mock.LibStub("LibKa0s-Options-1.0")
+    local real, seen = lib.__PreloadFonts, nil
+    lib.__PreloadFonts = function(arg) seen = arg end
+    mock.frames["WhatGroupGeneralPanel"]:Show()
+    mock.fireCTimers()
+    lib.__PreloadFonts = real
+    assertTrue(seen == LSM, "the preload never received LibSharedMedia")
+end)

@@ -100,7 +100,7 @@ Total.
 - parity: the degraded skin facade carries the whole live facade
 - parity: the Compat reader arm carries every library member the addon wires
 
-### test_mediasetup.lua (12)
+### test_mediasetup.lua (14)
 
 - mediasetup: NS.Icon answers the vendored path, EXTENSIONLESS
 - mediasetup: an icon the library does not ship answers nil
@@ -114,6 +114,8 @@ Total.
 - mediasetup: this addon ships no private copy of the shared art (anti-patterns #63)
 - mediasetup: with no library there is no art and no face, and that is not an error
 - mediasetup: a degraded install still gets a REAL font, never nil and never a dead path
+- mediasetup: the Options descriptor hands LSMValues LibSharedMedia
+- mediasetup: a panel's show runs the font preload with LibSharedMedia
 
 ### test_envsetup.lua (10)
 
@@ -1196,7 +1198,7 @@ Total.
 | test_harness.lua | 17 |
 | test_libka0s.lua | 56 |
 | test_surface_parity.lua | 10 |
-| test_mediasetup.lua | 12 |
+| test_mediasetup.lua | 14 |
 | test_envsetup.lua | 10 |
 | test_util.lua | 31 |
 | test_compat.lua | 47 |
@@ -1240,4 +1242,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1042** |
+| **Total** | **1044** |
