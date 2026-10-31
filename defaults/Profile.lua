@@ -56,8 +56,8 @@ NS.C = {
     -- minor 5): leave the settings panel the client's (true, the leg-1 owner call, 2026-10-27),
     -- leave every font the client's (false). Its Font and texture overrides (minor 6): an LSM key
     -- each, "" for the skin's own. `outline` (LibKa0s v1.82.0, Skin minor 9, ruling D-06): the Font
-    -- outline, "all" text, "hud" text only or "off"; the popup is window text, so "hud" takes its
-    -- outline. `pickerSeen`: the first-run skin picker was closed on this
+    -- outline, "all" text, "hud" text only or "off", "hud" by default since LibKa0s v1.83.0; the popup
+    -- is window text, so "hud" takes its outline. `pickerSeen`: the first-run skin picker was closed on this
     -- profile; false on every profile, old and new, so each shows it once (owner ruling O3). New
     -- keys with defaults, so AceDB merges them into every existing profile and no migration is owed.
     skin = {
@@ -67,7 +67,7 @@ NS.C = {
         ignoreFonts = false,
         font        = "",
         texture     = "",
-        outline     = "all",
+        outline     = "hud",
         pickerSeen  = false,
     },
 }

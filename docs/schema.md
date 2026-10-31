@@ -85,8 +85,9 @@ validates against the registered skins. They are written only through `Helpers.S
 `NS.WriteSkinChoice` (core/SkinSetup.lua), which is also the setter the library calls for *Copy to
 every Ka0s addon*. New keys with defaults, so AceDB merges them into every existing profile and no
 migration is owed; `pickerSeen` is false on every profile, old and new, so each shows the first-run
-picker once. `skin.outline` (LibKa0s v1.82.0) is the Skin tab's *Font outline*: `all` (the
-default), `hud` or `off`; the popup is window text, so `hud` leaves it unoutlined.
+picker once. `skin.outline` (LibKa0s v1.82.0) is the Skin tab's *Font outline*: `all`, `hud`
+(the default since LibKa0s v1.83.0; a stored choice stays) or `off`; the popup is window text, so
+`hud` leaves it unoutlined.
 
 `scale`, `alpha` and `locked` are **clamped or read at use time** in `modules/Frame.lua` exactly as
 the size rows are, and for the same reason. `visibility` fails **open**: `always` and any value the

@@ -1,6 +1,6 @@
 -- tests/test_skin_outline.lua — the font outline (LibKa0s v1.82.0, Skin minor 9; WG-01 of
 -- Ka0sAddonsCommonTasks docs/2026-10-30-SKIN_FONTS_AND_FEEDBACK, ruling D-06): stored as
--- skin.outline ("all", the default, "hud", "off"), written only through the skin write seam
+-- skin.outline ("all", "hud", the default since LibKa0s v1.83.0 (D-10), "off"), written only through the skin write seam
 -- (NS.WriteSkinChoice's `media.outline`), and applied with Skin:SetOutline at load, on every
 -- profile event and on the row's own write. The popup is window text, so "hud" takes its outline.
 
@@ -21,11 +21,11 @@ local function quietly(NS, fn)
     if not ok then error(err, 0) end
 end
 
-test("outline: a fresh profile stores All text, the library's default", function()
+test("outline: a fresh profile stores HUD text only, the library's default", function()
     local NS, _, mock = T.bootAddon()
-    assertEqual(profileSkin(NS).outline, "all")
+    assertEqual(profileSkin(NS).outline, "hud")
     assertEqual(NS.C.skin.outline, lib(mock).OUTLINE_DEFAULT, "the value lives in defaults/Profile.lua")
-    assertEqual(lib(mock):GetOutline(OWNER), "all")
+    assertEqual(lib(mock):GetOutline(OWNER), "hud")
 end)
 
 test("outline: the schema row offers the library's three modes, in its order", function()
@@ -80,7 +80,7 @@ end)
 test("outline: /wg set refuses a mode the library does not know", function()
     local NS = T.bootAddon()
     quietly(NS, function() NS.addon:OnSlashCommand("set skin.outline thick") end)
-    assertEqual(profileSkin(NS).outline, "all")
+    assertEqual(profileSkin(NS).outline, "hud")
 end)
 
 test("outline: OnInitialize applies the stored mode", function()
@@ -100,12 +100,12 @@ test("outline: a profile event applies the incoming profile's mode", function()
     local NS, _, mock = T.bootAddon()
     local db = NS.addon.db
     quietly(NS, function()
-        db.profile.skin.outline = "hud"
+        db.profile.skin.outline = "all"
         NS.addon:OnProfileChanged(nil, db, "Default")
     end)
-    assertEqual(lib(mock):GetOutline(OWNER), "hud", "OnProfileChanged did not apply the outline")
+    assertEqual(lib(mock):GetOutline(OWNER), "all", "OnProfileChanged did not apply the outline")
     quietly(NS, function() db:ResetProfile() end)
-    assertEqual(lib(mock):GetOutline(OWNER), "all", "a reset puts All text back")
+    assertEqual(lib(mock):GetOutline(OWNER), "hud", "a reset puts HUD text only back")
 end)
 
 test("outline: without the skin engine the apply is a quiet no-op", function()

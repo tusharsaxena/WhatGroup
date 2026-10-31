@@ -30,7 +30,7 @@ local addonName, NS = ...
 --                           applies the stored pair, a nil half keeps that half.
 --   NS.ApplySkinOverride(f,t) moves the applied overrides: `Skin:SetOverride`, live; no argument
 --                           applies the stored pair, a nil half keeps that half, false or "" clears.
---   NS.SkinOutline()        the stored Font outline, "all", "hud" or "off"; "all" before the store.
+--   NS.SkinOutline()        the stored Font outline, "all", "hud" or "off"; "hud" (the library's default) before the store.
 --   NS.ApplySkinOutline(m)  moves the applied Font outline: `Skin:SetOutline`, live; no argument
 --                           applies the stored mode (LibKa0s v1.82.0, Skin minor 9, ruling D-06).
 --   NS.SKIN_OUTLINE_OPTIONS the outline row's values: "all", "hud", "off", the library's order.
@@ -81,7 +81,7 @@ local Skin = LibStub and LibStub("LibKa0s-Skin-1.0", true)
 local SOURCE_PATH, SKIN_PATH = "skin.source", "skin.skin"
 local PANEL_PATH, FONTS_PATH = "skin.ignorePanel", "skin.ignoreFonts"
 local FONT_PATH, TEXTURE_PATH = "skin.font", "skin.texture"
-local OUTLINE_PATH, OUTLINE_DEFAULT = "skin.outline", "all"
+local OUTLINE_PATH, OUTLINE_DEFAULT = "skin.outline", "hud"
 local DEFAULT = "ka0s"
 
 -- This addon's own tokens (skinning-§1). The popup draws two colors no library token holds
@@ -183,7 +183,7 @@ function NS.WriteSkinChoice(source, skin, ignore, media)
     end
 end
 
---- The stored Font outline, nil-safely: "all" until the profile store exists.
+--- The stored Font outline, nil-safely: "hud" until the profile store exists.
 function NS.SkinOutline()
     local H = seam()
     local v = H and H.Get(OUTLINE_PATH)

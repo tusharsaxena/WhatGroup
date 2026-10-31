@@ -391,7 +391,7 @@ Rows on the **Master controls** tab are emitted by `Helpers.MasterControls` and 
 | Skin (key `Appearance`) | skin | `skin.ignoreFonts` | bool | false | `skipRender` | *Ignore fonts*: every string keeps the game's face and size; the skin still colors it. `Skin:SetIgnore`, live. |
 | Skin (key `Appearance`) | skin | `skin.font` | string | `""` | `skipRender` | *Font*: an LSM font key over the skin's own; `""` keeps the skin's. Free text, because a media pack may register keys after load. `Skin:SetOverride`, live. |
 | Skin (key `Appearance`) | skin | `skin.texture` | string | `""` | `skipRender` | *Texture*: an LSM statusbar key over the skin's own; `""` keeps the skin's. The popup draws no bars. `Skin:SetOverride`, live. |
-| Skin (key `Appearance`) | skin | `skin.outline` | string | `"all"` | `skipRender` | *Font outline* (LibKa0s v1.82.0, ruling D-06): `all` text, `hud` text only, or `off`. The popup and the console are window text, so `hud` takes their outline. `/wg set` refuses another mode; `Skin:SetOutline`, live. |
+| Skin (key `Appearance`) | skin | `skin.outline` | string | `"hud"` | `skipRender` | *Font outline* (LibKa0s v1.82.0, ruling D-06): `all` text, `hud` text only, or `off`. The popup and the console are window text, so `hud` takes their outline. `/wg set` refuses another mode; `Skin:SetOutline`, live. |
 | Skin (key `Appearance`) | skin | `skin.pickerSeen` | bool | false | `skipRender` | The first-run skin picker was closed on this profile (owner ruling O3). Drawn by nothing; written only by the player's close of the picker; a reset puts it back to false, so the picker shows again. |
 
 The popup dialog always renders every field; the `notify.show*` rows gate **chat output only**. See [scope.md](./scope.md#resolved-decisions) for why.
@@ -544,17 +544,18 @@ The General page's third tab, after Notifications and before Keybindings (skinni
 library's: `settings/Panel.lua` passes
 `Helpers.AppearanceTab({ owner = addonName, get = NS.SkinChoice, set = NS.WriteSkinChoice })` in
 `RenderTabbedSchema`'s `opts.tabs`, and `LibKa0s-Options-1.0` (`OptionsAppearance.lua`, LibKa0s
-v1.82.0) draws it. Its key is `Appearance`, the group the eight `skin.*` rows carry, so it takes that
+v1.83.0) draws it. Its key is `Appearance`, the group the eight `skin.*` rows carry, so it takes that
 group's place in the strip; its label is **Skin**. Nothing in it is this addon's own code:
 
 - **Skin source**: *Ka0s skins* or *EllesmereUI*, the second disabled with the failing condition
   listed unless EllesmereUI is loaded and can skin this addon. Ka0s to EllesmereUI applies live;
   EllesmereUI back to Ka0s asks for a reload.
 - **Look**: the nine Ka0s skins, three to a line, each with its swatches; Ka0s Default first.
-- **Font and texture**: two LibSharedMedia pickers over the skin's own (*Skin's own* in a new
-  profile). WhatGroup draws no bars, so a texture override changes nothing visible here. Under
-  them, **Reset font** and **Reset texture**, and the **Font outline** (*All text* in a new profile,
-  *HUD text only*, *Off*; `skin.outline`). A skin pick that changes the look resets both overrides
+- **Font and texture**: two LibSharedMedia pickers over the skin's own, the library's `Ka0sMedia_*`
+  rows, each entry drawn in its own face or with its bar (*Skin's default (…)* in a new profile, the
+  skin's face or texture in the brackets). WhatGroup draws no bars, so a texture override changes
+  nothing visible here. Under them, **Reset font** and **Reset texture**, and the **Font outline**
+  (*All text*, *HUD text only* in a new profile, *Off*; `skin.outline`). A skin pick that changes the look resets both overrides
   (LibKa0s v1.82.0).
 - **Scope**: **Ignore settings panel** (on in a new profile: these settings pages stay the client's,
   while the popup and the debug console still wear the skin) and **Ignore fonts** (every string keeps

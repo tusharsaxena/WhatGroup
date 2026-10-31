@@ -123,7 +123,7 @@ test("skin seam: the skin keys default to Ka0s Default, with the picker unseen",
     assertEqual(d.ignoreFonts, false)
     assertEqual(d.font, "")
     assertEqual(d.texture, "")
-    assertEqual(d.outline, "all")
+    assertEqual(d.outline, "hud")
     assertEqual(d.pickerSeen, false)
     assertEqual(NS.C.skin.skin, "ka0s", "the value lives in defaults/Profile.lua")
 end)
