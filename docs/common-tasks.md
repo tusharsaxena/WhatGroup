@@ -182,7 +182,7 @@ cp -r "$s/LibKa0s/." libs/LibKa0s/
 cp -r "$s/testkit/." tests/_kit/
 # roll the CLAUDE.md provenance line to $tag; the `LibKa0s icons:` line stays directly under it
 lua "$s/tools/prune-icons.lua" "$PWD"     # prunes libs/LibKa0s/media/icons/ to the declaration
-lua tests/run.lua && luacheck .           # the gate, including tests/test_vendor_sync.lua
+lua tests/run.lua && ~/.claude/dev-copilot/bin/ka0s-bounded luacheck .   # the gate, including tests/test_vendor_sync.lua
 ```
 
 - **Copy the WHOLE folder, never one file.** Every other major returns before `LibStub:NewLibrary` when `Core.lua` is missing or older than their floor, so a partial copy makes a module *absent* rather than half-wired — the addon loads, works badly, and says nothing (anti-patterns #48).

@@ -13,7 +13,7 @@ Both of these MUST be green before every commit (testing-§4):
 
 ```sh
 lua tests/run.lua      # headless suites: PASS/FAIL per case, non-zero exit on any failure
-luacheck .             # must report 0 warnings / 0 errors (config in .luacheckrc)
+~/.claude/dev-copilot/bin/ka0s-bounded luacheck .  # must report 0 warnings / 0 errors (config in .luacheckrc)
 ```
 
 ### The harness is the shared kit
@@ -364,7 +364,7 @@ and is linted there as source. Before reading a clean run as a clean change,
 confirm the files you touched are inside the checked set:
 
 ```sh
-luacheck . --formatter plain | tail -1     # check the file count it reports
+~/.claude/dev-copilot/bin/ka0s-bounded luacheck . --formatter plain | tail -1     # check the file count it reports
 ```
 
 A warning inside one of the six LibKa0s seam files (`core/CoreSetup.lua`,
@@ -427,7 +427,7 @@ contradicts.
 
 | Suite | Command | Gates the run + the commit? | Gates the tag? |
 |---|---|---|---|
-| `lint` | `luacheck .` | **yes** | **yes** — must be `pass` |
+| `lint` | `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` | **yes** | **yes** — must be `pass` |
 | `tests` | `lua tests/run.lua` | **yes** | **yes** — must be `pass` |
 | `perf` | `lua tests/perf.lua` | no — recorded only | **yes** — must be `pass`; a `skip` is *not evaluated* |
 | `complexity` | `bash tests/_kit/run-automated-tests.sh --suite complexity` (lizard over the kit's sighted shadow, `-L 1500`, with function-count parity; kit revision 42) | no — recorded only | **yes** — `pass` plus zero functions above CCN 15, `blindFiles` 0 and `crashedFiles` 0 (a lizard run that crashes or hits the bound is a fail, never a measurement) |
