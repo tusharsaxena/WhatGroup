@@ -123,7 +123,7 @@ function FrameLayout.Build(f, dismissPopup)
     -- edge. Blizzard's own action buttons cast on down because they opt into it; this button
     -- inherits none of that, so "AnyUp" is the edge that actually executes `/cast`.
     -- Registering "AnyDown" alone is SILENT failure with no Lua error: the button still receives
-    -- the down edge — the PreClick trace below proves it, by printing — and nothing is cast.
+    -- the down edge — the PreClick trace (modules/Frame.lua) proves it, by printing — and nothing is cast.
     -- That regression shipped once, in [M4-24], on the reasoned-but-never-tested premise that two
     -- registered edges meant two casts per press. In the client it means one cast, on the up edge.
     --

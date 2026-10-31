@@ -11,8 +11,8 @@
 -- (captureQueue, pendingApplications, notifiedFor, the popup frame) would otherwise leak between
 -- cases and a broken wipe would look like a working one.
 --
--- Chunks are COMPILED ONCE and re-run per instance: `loadfile` over twenty-one files, three
--- hundred-odd times, dominates the run otherwise, and re-executing a cached chunk against a fresh
+-- Chunks are COMPILED ONCE and re-run per instance: `loadfile` over every library and addon file,
+-- for nearly every case, dominates the run otherwise, and re-executing a cached chunk against a fresh
 -- environment is exactly as faithful — the client compiles each file once too.
 
 local Loader = dofile("tests/_kit/loader.lua")
@@ -100,7 +100,7 @@ local LIBKA0S = {
     "libs/LibKa0s/OptionsAppearance.lua",
     "libs/LibKa0s/OptionsSkinPicker.lua",
     -- New in LibKa0s v1.82.0: the switched sections peeled out of OptionsWidgets.lua (OptionsSwitch
-    -- minor 1, shownWhen). Last of the Options files in LibKa0s.xml; nothing here adopts it.
+    -- minor 1, shownWhen). After OptionsSkinPicker in LibKa0s.xml; nothing here adopts it.
     "libs/LibKa0s/OptionsSwitch.lua",
     -- New in LibKa0s v1.83.0: the Ka0sMedia_* picker widgets.
     "libs/LibKa0s/OptionsMedia.lua",

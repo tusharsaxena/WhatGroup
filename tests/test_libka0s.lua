@@ -905,8 +905,8 @@ end)
 test("libka0s: the Master controls hook is keyed off the library's constant, not a copy of it",
 function()
     -- options-ui-§8. `["Master controls"]` in settings/Panel.lua was a hand-typed copy of
-    -- libs/LibKa0s/OptionsCompose.lua:50, which publishes the same string as O.MASTER_GROUP at
-    -- :189. That the two agree today is not the point — they do, and that is exactly why the copy
+    -- libs/LibKa0s/OptionsCompose.lua:76, which publishes the same string as O.MASTER_GROUP at
+    -- :581. That the two agree today is not the point — they do, and that is exactly why the copy
     -- survived a review. The point is what a library-side rename does: it moves the `group` on
     -- every composed row, and RenderTabbedSchema fires the afterGroup hook PER GROUP, so a host
     -- keyed to the old spelling has its hook fire for a group that no longer exists. The reset

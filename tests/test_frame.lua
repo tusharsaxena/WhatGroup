@@ -220,7 +220,7 @@ end)
 -- trace) and casting nothing, with no Lua error to notice. That shipped once, in [M4-24], on the
 -- reasoned-but-never-tested premise that two edges meant two casts; measured in the client it is
 -- one cast, on the up edge. The PreClick `down` gate is what keeps two edges to one debug line.
--- Narrowing RegisterForClicks in buildFrame to either edge alone turns this case red.
+-- Narrowing RegisterForClicks in modules/FrameLayout.lua to either edge alone turns this case red.
 test("frame: the teleport button registers both click edges, because the up edge is the caster",
 function()
     local NS, _, mock = T.bootAddon()

@@ -34,7 +34,7 @@ local function quietly(NS, fn)
     if not ok then error(err, 0) end
 end
 
--- The popup's content strings, in buildFrame's order: six label/value pairs, then the Teleport
+-- The popup's content strings, in modules/FrameLayout.lua's order: six label/value pairs, then the Teleport
 -- label and the note beside the button. `content` is the frame carrying the most FontStrings, as
 -- tests/test_frame.lua finds it.
 local function strings(mock)

@@ -1,7 +1,7 @@
 local _, NS = ...
 
 -- modules/FrameSkin.lua — the group-info popup's LOOK (skinning-§3, WG-02): every string and
--- control modules/Frame.lua draws takes its colors and font from the owner's skin facade
+-- control the popup draws takes its colors and font from the owner's skin facade
 -- (core/SkinSetup.lua's NS.Skin, LibKa0s-Skin-1.0), never from a literal (anti-pattern #107).
 --
 -- ── WHAT IT PUBLISHES (NS.FrameSkin) ─────────────────────────────────────────────────────────
