@@ -44,7 +44,7 @@ local LIBKA0S = {
     -- New in LibKa0s v1.74.0: the icon catalog's packed name lists (MediaIcons minor 1), a second
     -- file of the Media major. Nothing here adopts it; Media.Icon reads it.
     "libs/LibKa0s/MediaIcons.lua",
-    -- New in LibKa0s v1.78.0: the skin engine, LibKa0s-Skin-1.0 (as of v1.84.0, key 11.1.19.1.13.7.11.2.5),
+    -- New in LibKa0s v1.78.0: the skin engine, LibKa0s-Skin-1.0 (as of v1.84.0, key 11.1.19.1.13.7.11.2.6),
     -- nine files after the Media major they read. core/SkinSetup.lua registers this addon's owner.
     "libs/LibKa0s/Skin.lua",
     -- New in LibKa0s v1.84.0: the owner-token block peeled out of Skin.lua (SkinOwnerTokens minor 1).
