@@ -32,6 +32,7 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 | Run | Commit | Tree | Version | Lint w/e | Files | Tests | Perf | NLOC | Funcs | Avg NLOC | Avg CCN | Max CCN | CCN warn | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [`20261031-202312`](20261031-202312/) | `5ac9075` | clean | 1.6.0 | 0/0 | 72 | 1045/1/1046 | fail | 16125 | 2167 | 7.0 | 1.9 | 15 | 0 | **amber** |
 | [`20261009-191829`](20261009-191829/) | `22838c3` | clean | 1.5.0 → 1.6.0 | 0/0 | 59 | 933/1/934 | pass | 13733 | 1829 | 7.1 | 1.9 | 15 | 0 | **green** |
 | [`20260927-031637`](20260927-031637/) | `62680d3` | clean | 1.5.0 | 0/0 | 56 | 824/0/824 | pass | 12183 | 1591 | 6.7 | 1.8 | 13 | 0 | **green** |
 | [`20260927-030357`](20260927-030357/) | `30c0b53` | clean | 1.4.0 → 1.5.0 | 0/0 | 54 | 824/0/824 | pass | 12164 | 1591 | 6.7 | 1.8 | 13 | 0 | **green** |
@@ -53,18 +54,18 @@ archaeology, for the same reason a skip is never a pass (`automated-tests-§4`).
 
 ## Test suite
 
-**934 cases** — 933 passed, 0 failed, 1 skipped. The generated inventory
-[`20261009-191829/test-cases.md`](20261009-191829/test-cases.md) is the authority on which cases existed at this run;
+**1046 cases** — 1045 passed, 0 failed, 1 skipped. The generated inventory
+[`20261031-202312/test-cases.md`](20261031-202312/test-cases.md) is the authority on which cases existed at this run;
 `docs/test-cases.md` is that same list at HEAD.
 
-Moved **824 → 934** since the previous run.
+Moved **934 → 1046** since the previous run.
 
 **1 case(s) reported a `skip`.** A skip is counted in the total and never in `passed`, and at
 the release gate it is NOT EVALUATED rather than passed (`automated-tests-§3`).
 
 ## Lint
 
-**0 warnings / 0 errors over 59 files** (`luacheck .`).
+**0 warnings / 0 errors over 72 files** (`luacheck .`).
 
 Read that figure with its scope attached: `.luacheckrc` excludes 6 path(s) from it — `libs/`, `docs/audits/`, `docs/reviews/`, `docs/revendor/`, `_dev/`, `tests/_kit/` —
 so nothing under them is in the count above. A `0/0` that never moves is partly a statement about
@@ -74,25 +75,25 @@ to whoever thinks to open `.luacheckrc`.
 ## Perf
 
 **8 scenarios** from `tests/perf.lua`; the measurements are in
-[`20261009-191829/perf.json`](20261009-191829/perf.json).
+[`20261031-202312/perf.json`](20261031-202312/perf.json).
 
 | `scenario` | `iters` | `ms/iter` | `api/iter` | `bytes/iter` |
 |---|---|---|---|---|
-| `cooldownTick` | 2000 | 0.00182 | 2.0 | 240.4 |
-| `formatDurationLong` | 2000 | 0.00053 | 0.0 | 34.5 |
-| `formatDurationShort` | 2000 | 0.00037 | 0.0 | 0.8 |
-| `combatGateSteady` | 2000 | 0.00022 | 0.0 | 0.0 |
-| `combatGateFlipping` | 2000 | 0.00511 | 7.0 | 960.0 |
-| `showFrameRepeat` | 500 | 0.00973 | 19.0 | 1744.2 |
-| `applyScale` | 500 | 0.00028 | 1.0 | 0.0 |
-| `applyAlpha` | 500 | 0.00022 | 1.0 | 0.0 |
+| `cooldownTick` | 2000 | 0.00172 | 2.0 | 240.4 |
+| `formatDurationLong` | 2000 | 0.00065 | 0.0 | 34.5 |
+| `formatDurationShort` | 2000 | 0.00038 | 0.0 | 0.8 |
+| `combatGateSteady` | 2000 | 0.00027 | 0.0 | 0.0 |
+| `combatGateFlipping` | 2000 | 0.00502 | 7.0 | 1056.0 |
+| `showFrameRepeat` | 500 | 0.06611 | 25.0 | 3712.2 |
+| `applyScale` | 500 | 0.00027 | 1.0 | 0.0 |
+| `applyAlpha` | 500 | 0.00021 | 1.0 | 0.0 |
 
 `perf` never fails a run and never blocks a commit — it is recorded, read and compared, not
 thresholded (`performance-§9`). It does gate the **tag** (`automated-tests-§3`).
 
 ## Complexity watch list
 
-Current as of [`20261009-191829`](20261009-191829/) — **this run's measurement, not its diff.** Max CCN **15** across 1829
+Current as of [`20261031-202312`](20261031-202312/) — **this run's measurement, not its diff.** Max CCN **15** across 2167
 functions, **0** of them warned on; 3 file(s) in the 1000–1500 band and 0 over the 1500 cap
 (`layout-§1`).
 
@@ -112,9 +113,9 @@ None.
 
 | Band | File | LOC | Disposition |
 |---|---|---|---|
-| 1000–1500 (on notice) | `core/WhatGroup.lua` | 1340 | **Accepted, with a trigger — carried.** First recorded at 1143 in `20260924-111851` (it was 1099 when the 2026-09-23 review found it undispositioned, `WHATGROUP-R-14`; the stand-down, combat-end replay and status-handler work of that plan's WG-01..WG-29 added the rest); 1161 at `20260926-160442` (+18, `c0ce81c` DR-WG-02's read-only capture snapshot accessor); **1161 unchanged at `20260926-193120`** — the automated-tests sweep touched nothing in the file. **1161 unchanged at the 1.5.0 release run `20260927-030357`**, the first release run to carry it: 1 of 3 against `automated-tests-§4`'s shelf life. Length, not tangle: 47 functions at avg CCN 4.5, the worst the capture-status handler `WhatGroup@1035-1103` at CCN 13, none warned. No seam is split along today — the file is the AceAddon shell plus the capture pipeline it drives. **Re-check at 1450**, or on the first function in the file above CCN 15, whichever comes first; at 1450 the answer is a split (capture pipeline out of the shell), not another carry. **1161 unchanged at `20260927-031637`** (`62680d3`, the `tests/test_frame.lua` split, touched no production file): still 1 of 3, since that run is not a release run. **1340 at the 1.6.0 release run `20261009-191829`** (+179: the signed-up role, GI-WG-01, +73 net; the debug-coverage fill, DL-WG-02, +63; the profile callbacks, SP-WG-01, +21; the test-preview fix, WG-02, +15). This is the first sighted run (kit revision 35+), so the function figures above are superseded: 59 functions at avg CCN 4.3, the worst `WhatGroup.LFG_LIST_APPLICATION_STATUS_UPDATED@1199-1267` and `WhatGroup.ShowNotification@884-920` at CCN 13, none warned. **2 of 3** release runs against the shelf life, 110 lines under the 1450 trigger: at the next release it is owed the split (capture pipeline out of the shell) or a tracked deviation ID, not a third carry. |
-| 1000–1500 (on notice) | `modules/Frame.lua` | 1384 | **Accepted, with a trigger — re-stated.** 1063 at `20260916-184548`, 1173 at `20260924-111851` (+110, the teleport-deferral, soft-hide alpha and combat-end replay work of the 2026-09-23 plan), 1206 at `20260926-160442` (+33: `c0ce81c` DR-WG-02's `NS.FrameSnapshot` +24, `1ee4b86` M6-WG's launcher-click change +9 net), **1211 at `20260926-193120`** (+5, `a6e144b` WG-ATS-01's `isShownFlag` helper). Shape unchanged: small local functions plus one long flat builder (`buildFrame@619-883`, CCN 2 over 265 lines); 56 functions at avg CCN 3.8. The at-the-threshold note this cell carried is retired: WG-ATS-01 routed `NS.FrameSnapshot`'s two visibility coercions through `isShownFlag@1166-1168` (CCN 4), so `NS.FrameSnapshot@1173-1192` is down from **CCN 15 to 9**, and the file's worst function is now `WhatGroup:ShowFrame@1038-1091` at CCN 13, none warned. A new snapshot field still goes through a helper rather than another `and ... or false`. **Re-check at 1450** (`WHATGROUP-R-14`), or when `buildFrame` is peeled out, whichever comes first. **1211 unchanged at the 1.5.0 release run `20260927-030357`**, the first release run to carry it: 1 of 3 against `automated-tests-§4`'s shelf life. **1211 unchanged at `20260927-031637`** (`62680d3`, the `tests/test_frame.lua` split, touched no production file): still 1 of 3, since that run is not a release run. **1384 at the 1.6.0 release run `20261009-191829`** (+173: the debug-coverage fill, DL-WG-02, +96 net; the one-shot test preview, WG-02, +50; the secret-cooldown state, WG-01, +15). The line numbers above are superseded by this first sighted run: 64 functions at avg CCN 4.1, `buildFrame@742-1012` still CCN 2 over 271 lines, the worst `WhatGroup.ShowFrame@1207-1257` at CCN 11, none warned. **2 of 3** release runs against the shelf life, 66 lines under the 1450 trigger: the next release is owed the `buildFrame` peel or a tracked deviation ID, not a third carry. |
-| 1000–1500 (on notice) | `tests/test_libka0s.lua` | 1037 | **Accepted — newly crossed.** 978 at the 1.5.0 release, **1037 at the 1.6.0 release run `20261009-191829`** (+59: the wiring cases for `/wg profile` via CliProfile, SP-WG-02; the library's debug sinks, DG-WG-01; the Options `addonName`, CA-WG-NM). Case count, not tangle: 69 functions at avg CCN 2.0. 1 of 3 release runs. Re-check at 1300, or split it by LibKa0s module the next time an adoption adds cases here. |
+| 1000–1500 (on notice) | `core/WhatGroup.lua` | 1367 | **Accepted, with a trigger — carried.** First recorded at 1143 in `20260924-111851` (it was 1099 when the 2026-09-23 review found it undispositioned, `WHATGROUP-R-14`; the stand-down, combat-end replay and status-handler work of that plan's WG-01..WG-29 added the rest); 1161 at `20260926-160442` (+18, `c0ce81c` DR-WG-02's read-only capture snapshot accessor); **1161 unchanged at `20260926-193120`** — the automated-tests sweep touched nothing in the file. **1161 unchanged at the 1.5.0 release run `20260927-030357`**, the first release run to carry it: 1 of 3 against `automated-tests-§4`'s shelf life. Length, not tangle: 47 functions at avg CCN 4.5, the worst the capture-status handler `WhatGroup@1035-1103` at CCN 13, none warned. No seam is split along today — the file is the AceAddon shell plus the capture pipeline it drives. **Re-check at 1450**, or on the first function in the file above CCN 15, whichever comes first; at 1450 the answer is a split (capture pipeline out of the shell), not another carry. **1161 unchanged at `20260927-031637`** (`62680d3`, the `tests/test_frame.lua` split, touched no production file): still 1 of 3, since that run is not a release run. **1340 at the 1.6.0 release run `20261009-191829`** (+179: the signed-up role, GI-WG-01, +73 net; the debug-coverage fill, DL-WG-02, +63; the profile callbacks, SP-WG-01, +21; the test-preview fix, WG-02, +15). This is the first sighted run (kit revision 35+), so the function figures above are superseded: 59 functions at avg CCN 4.3, the worst `WhatGroup.LFG_LIST_APPLICATION_STATUS_UPDATED@1199-1267` and `WhatGroup.ShowNotification@884-920` at CCN 13, none warned. **2 of 3** release runs against the shelf life, 110 lines under the 1450 trigger: at the next release it is owed the split (capture pipeline out of the shell) or a tracked deviation ID, not a third carry. **1367 at `20261031-202312`** (+27, the skin seam and picker's hooks, `1bb9555` and `6ad1367`, and `a2a3aab`'s teleport re-anchor fix): 59 functions at avg CCN 4.5, the worst `reloadProfile@246-290`, `WhatGroup.ShowNotification@911-947` and `WhatGroup.LFG_LIST_APPLICATION_STATUS_UPDATED@1226-1294` at CCN 13, none warned. Not a release run, so still 2 of 3; 83 lines under the 1450 trigger. |
+| 1000–1500 (on notice) | `modules/Frame.lua` | 1467 | **Accepted, with a trigger — re-stated.** 1063 at `20260916-184548`, 1173 at `20260924-111851` (+110, the teleport-deferral, soft-hide alpha and combat-end replay work of the 2026-09-23 plan), 1206 at `20260926-160442` (+33: `c0ce81c` DR-WG-02's `NS.FrameSnapshot` +24, `1ee4b86` M6-WG's launcher-click change +9 net), **1211 at `20260926-193120`** (+5, `a6e144b` WG-ATS-01's `isShownFlag` helper). Shape unchanged: small local functions plus one long flat builder (`buildFrame@619-883`, CCN 2 over 265 lines); 56 functions at avg CCN 3.8. The at-the-threshold note this cell carried is retired: WG-ATS-01 routed `NS.FrameSnapshot`'s two visibility coercions through `isShownFlag@1166-1168` (CCN 4), so `NS.FrameSnapshot@1173-1192` is down from **CCN 15 to 9**, and the file's worst function is now `WhatGroup:ShowFrame@1038-1091` at CCN 13, none warned. A new snapshot field still goes through a helper rather than another `and ... or false`. **Re-check at 1450** (`WHATGROUP-R-14`), or when `buildFrame` is peeled out, whichever comes first. **1211 unchanged at the 1.5.0 release run `20260927-030357`**, the first release run to carry it: 1 of 3 against `automated-tests-§4`'s shelf life. **1211 unchanged at `20260927-031637`** (`62680d3`, the `tests/test_frame.lua` split, touched no production file): still 1 of 3, since that run is not a release run. **1384 at the 1.6.0 release run `20261009-191829`** (+173: the debug-coverage fill, DL-WG-02, +96 net; the one-shot test preview, WG-02, +50; the secret-cooldown state, WG-01, +15). The line numbers above are superseded by this first sighted run: 64 functions at avg CCN 4.1, `buildFrame@742-1012` still CCN 2 over 271 lines, the worst `WhatGroup.ShowFrame@1207-1257` at CCN 11, none warned. **2 of 3** release runs against the shelf life, 66 lines under the 1450 trigger: the next release is owed the `buildFrame` peel or a tracked deviation ID, not a third carry. **1467 at `20261031-202312`** (+83: the Show window key binding, `e09af6f` and `a736bfc`, +54; the layers table and soft hide, `27befff` and `f664624`, +34; the skin paint, `116b5a8`, -5). **Peel next: this is past the 1450 trigger** (`WHATGROUP-R-14`) and 33 lines under the 1500 cap, so the file has no room for another feature. Still length, not tangle: 66 functions at avg CCN 4.1, the worst at CCN 11, none warned. `buildFrame@771-1040`, CCN 2 over 270 lines, is the seam to peel. Not a release run, so still 2 of 3. |
+| 1000–1500 (on notice) | `tests/test_libka0s.lua` | 1066 | **Accepted — newly crossed.** 978 at the 1.5.0 release, **1037 at the 1.6.0 release run `20261009-191829`** (+59: the wiring cases for `/wg profile` via CliProfile, SP-WG-02; the library's debug sinks, DG-WG-01; the Options `addonName`, CA-WG-NM). Case count, not tangle: 69 functions at avg CCN 2.0. 1 of 3 release runs. Re-check at 1300, or split it by LibKa0s module the next time an adoption adds cases here. **1066 at `20261031-202312`** (+29, the LibKa0s re-vendors' wiring cases, mostly `08dd668` and `058a033`). Still case count, not tangle: 69 functions at avg CCN 2.1. Not a release run, so still 1 of 3; re-check at 1300. |
 
 `lizard` counts every `and`/`or` short-circuit as a decision, so in Lua a run of
 `t.k = rec.k or D.k` defaulting lines scores high with no visible branching at all: a large CCN
