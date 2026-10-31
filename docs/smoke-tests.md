@@ -15,7 +15,7 @@ number out of use rather than handing it to a new one.
 | ID range | Theme | What it covers |
 |---|---|---|
 | INSTALL-1 – INSTALL-5 | [Install](#install) | Cold load, `/reload`, the GameMenu Logout taint check, patch day |
-| SLASH-1 – SLASH-12 | [Slash commands](#slash-commands) | Help, alias, the schema CLI, reset verbs, `show` with nothing captured |
+| SLASH-1 – SLASH-12 | [Slash commands](#slash-commands) | Help, alias, the schema CLI, reset verbs, `show` with nothing captured (`/wg skin` is SKIN-27) |
 | PANEL-1 – PANEL-22 | [Settings panel](#settings-panel) | Landing page, the General tab strip, widgets, Defaults, the frame rows, raw-key trap, the pooled strip, the folder name on the Options descriptor, the item 020 layout and wording |
 | PROFILE-1 – PROFILE-14 | [Profiles](#profiles) | The Profiles page, `/wg profile`, persistence, what a switch leaves alone, the page in combat |
 | STATE-1 – STATE-8 | [Enable and disable](#enable-and-disable) | The stand-down, refusals while disabled, the way back, the chat-link callback |
@@ -26,7 +26,7 @@ number out of use rather than handing it to a new one.
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-16 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
-| SKIN-1 – SKIN-24 | [Skins](#skins) | Ka0s Default as before but for its face, title band and Close button; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library |
+| SKIN-1 – SKIN-30 | [Skins](#skins) | Ka0s Default as before but for its face, title band and Close button; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
 | LOC-1 – LOC-6 | [Non-English client](#non-english-client) | A deDE or frFR client, and the `IsSpellKnown` readers |
 
@@ -78,8 +78,9 @@ number out of use rather than handing it to a new one.
 
 - **SLASH-1. Help and the long alias.** `/wg help`, then `/whatgroup help` → both print the same
   index, every line tagged `[WG]`: a header `v<version> — slash commands (/whatgroup is an alias
-  for /wg)` with **no** trailing colon, then one row per command, fifteen in all, including
-  `version`, `profile` and `diagnostics`. Result: pass (owner-marked 2026-10-10)
+  for /wg)` with **no** trailing colon, then one row per command, sixteen in all, including
+  `version`, `profile` and `diagnostics`, and `skin — Choose a skin: open the skin picker` right
+  after `config` (LibKa0s v1.82.0). Result:
 - **SLASH-2. Bare `/wg` and `/wg config`.** `/wg`, close the panel, then `/wg config` → each opens
   Settings on the **Ka0s WhatGroup** landing page with the **General** and **Profiles**
   subcategories visible in the sidebar. No help index prints. Result: pass (owner-marked 2026-10-10)
@@ -771,24 +772,29 @@ Default is SKIN-1's list and nothing else.
   spacing: the near-black body, the 1px black edge with its gray inner line, the "WhatGroup" span
   of the title and the seven field labels in the same bright gold, the rest of the title in the
   title gold, the values white, the "No data" and em-dash placeholders and the teleport note in
-  the same mid gray. Three things changed, and they are the run's: every string reads in
-  **Oxanium** (a squared, technical face; SemiBold for the labels and values, Bold for the title)
-  instead of the game's Friz Quadrata; the 30px title band behind the title is filled a shade
+  the same mid gray. Four things changed, and they are the skin runs': every string reads in
+  **Prototype** (a squared, technical face; one weight for labels, values and title alike; LibKa0s
+  v1.82.0, ruling D-02) instead of the game's Friz Quadrata, with no outline (the Font outline's
+  default is *HUD text only* since LibKa0s v1.83.0, D-10, and the popup is window text); the 30px title band behind the title is filled a shade
   darker than the body; and **Close** is the skin's flat button (a dark fill inside a 1px edge) instead of
   Blizzard's red stone button. Fail: any other changed color, edge or
-  spacing, a label in a different gold from the "WhatGroup" span, a string still in Friz Quadrata,
-  or text clipped or overlapping because the face is wider. Result: pass (owner-marked 2026-10-30)
+  spacing, a label in a different gold from the "WhatGroup" span, a string still in Friz Quadrata
+  or in the retired Oxanium, an outlined string, or text clipped or overlapping because the
+  face is wider. Result:
 - **SKIN-2. The Skin tab (WG-01).** `/wg config` → General → the strip reads **Master controls |
   Notifications | Skin | Keybindings**. **Skin** → a **Skin source** heading over *Ka0s skins* (on)
   and *EllesmereUI* (disabled with a line saying why, unless EllesmereUI is loaded and can skin this
   addon); a **Look** heading over the nine skins, three to a line, each with its swatches and name,
-  Ka0s Default on; a **Font and texture** heading over **Font** and **Texture**, both *Skin's own*;
-  a **Scope** heading over **Ignore settings panel** (on) and **Ignore fonts** (off); **Copy to every
-  Ka0s addon…**; and the note *Skins change every visual element. HUD style options follow the
-  skin unless you set them yourself.* No heading on the tab reads **Skin**. Pick **Obsidian** → no
+  Ka0s Default on, the note *Skins change every visual element. HUD style options follow the skin
+  unless you set them yourself.* leading that section; a **Font and texture** heading over **Font**
+  and **Texture**, both *Skin's default (…)* with the skin's face or texture in the brackets, then **Reset font** and **Reset texture** side by side at half
+  width (both disabled while each half is the skin's own), then **Font outline** (*HUD text only*); a
+  **Scope** heading over **Ignore settings panel** (on) and **Ignore fonts** (off), each half width
+  and lined up with the dropdowns above; and an **Other Ka0s addons** heading over **Copy to every
+  Ka0s addon…** (LibKa0s v1.82.0, ruling D-11). No heading on the tab reads **Skin**. Pick **Obsidian** → no
   reload; `/wg get skin.skin` → `obsidian`; `/reload` → still Obsidian. Pick **Ka0s Default** again.
   Fail: the tab missing, out of place or labeled Appearance, a pick that does not stick, a reload
-  prompt on a Ka0s-to-Ka0s pick. Result: pass (owner-marked 2026-10-30)
+  prompt on a Ka0s-to-Ka0s pick, a reset button enabled while its half is the skin's own. Result:
 - **SKIN-3. Each skin, live, on the popup (WG-02).** `/wg test`, then pick each skin in turn on the
   Skin tab: Obsidian, Azeroth, Glass, High Contrast, Ember, WoW Default, WoW Midnight, WoW Forever,
   then Ka0s Default → with **no reload** the popup's body, edge, title band, title (the "WhatGroup"
@@ -798,8 +804,8 @@ Default is SKIN-1's list and nothing else.
   with the popup open → the same repaint, from the CLI. Fail: a part of the popup that keeps the old
   skin until it is closed and reopened, or until `/reload`. Result: pass (owner-marked 2026-10-30)
 - **SKIN-4. The teleport button follows its label (WG-02; inventory R2, R4).** `/wg test` on Ka0s
-  Default, note where the teleport icon sits beside **Teleport:**, then pick **High Contrast** (the
-  largest face) → the icon moves with its label and sits beside it, not over it and not left where
+  Default, note where the teleport icon sits beside **Teleport:**, then pick **High Contrast** → the
+  icon moves with its label and sits beside it, not over it and not left where
   it was; back to **Ka0s Default** → it returns. Now pull a dummy with the popup up and, in combat,
   `/wg set skin.skin contrast` → no `ADDON_ACTION_BLOCKED` and no *Interface action failed*; the
   strings repaint at once, the icon may stay put until combat ends, and drops beside its label the
@@ -808,13 +814,17 @@ Default is SKIN-1's list and nothing else.
 - **SKIN-5. Labels fit under every skin (inventory R5).** `/wg test` → under **High Contrast**,
   **Azeroth** and **WoW Midnight**, read the label column → *Playstyle:*, *Instance:* and *Teleport:*
   are whole, none cut or ending in an ellipsis, and no value runs over its label. Fail: a clipped
-  label. Result: pass (owner-marked 2026-10-30)
+  label. Result:
 - **SKIN-6. Fonts (LibKa0s skin faces).** On an English client each skin draws its own family on the
-  popup, title and labels alike, with no fallback squares: Ka0s Default Oxanium, Obsidian Inter,
-  Azeroth Vollkorn, Glass Nunito, High Contrast Atkinson Hyperlegible, Ember Bitter, WoW Midnight
-  Philosopher, WoW Forever Fira Sans; WoW Default the client's Friz Quadrata. The title is the
-  family's heavier weight, never a different face. Fail: an empty square where a letter should be,
-  or two skins in the same face. Result: pass (owner-marked 2026-10-30)
+  popup, title and labels alike, with no fallback squares: Ka0s Default **Prototype**, Obsidian
+  **Expressway**, Azeroth **Open Sans Semibold** (its title Open Sans Bold), Glass **Avant Garde**, High Contrast
+  **Doris PP**, Ember **Emblem**, WoW Midnight **Segoe UI Semibold** (its title Segoe UI Bold), WoW
+  Forever **Fira Sans Medium** (its title Fira Sans SemiBold), WoW Default **Ka0s Friz Quadrata TT**
+  (LibKa0s v1.83.0, D-01, D-06), which no longer looks like Ka0s Default whatever the client's own
+  Friz file holds. Ka0s Default, Obsidian, Glass, High Contrast, Ember and WoW Default draw one weight
+  for body and title, their titles differing by size; the others' titles are the family's heavier
+  weight, never a different face. Obsidian's title is its primary button's blue. Fail: an empty square where a letter should be, two skins in the same face, or
+  Inter or Oxanium anywhere (both left the payload). Result:
 - **SKIN-7. Window corners (WG-02).** Under **Azeroth**, **High Contrast** and **WoW Midnight**,
   `/wg test` and look at the popup's four corners → the edge runs unbroken round each one, and the
   title band sits inside it. Ka0s Default's 1px edge is where it was. Result: pass (owner-marked 2026-10-30)
@@ -830,15 +840,15 @@ Default is SKIN-1's list and nothing else.
 - **SKIN-9. The debug console follows the skin (WG-04).** On **Azeroth**, `/wg debug`, then its
   **Copy** window → both wear WhatGroup's skin: the window edge and title, the buttons, the scroll
   bar, the line counter, the title-bar labels (the logging toggle, **Diagnostics**, and **Copy** and
-  **Clear** where they are words) in Vollkorn, and the bottom-right resize grip tinted to the skin;
+  **Clear** where they are words) in Open Sans Semibold, and the bottom-right resize grip tinted to the skin;
   the log lines keep their monospace face (JetBrains Mono) under every skin. Tick **Ignore settings
   panel** → both still wear the skin (they are windows, not the settings panel). Switch to **Ka0s
   Default** with the console open → it repaints with no reload and looks as it did before the run,
-  except that the title-bar labels read in **Oxanium** where they were Friz Quadrata (LibKa0s
-  v1.81.0) and the grip is the client's own. Turn **Ignore fonts** on → those labels go back to the
-  game's face, live; off → Oxanium again. Fail: a console or Copy window that goes stock with Ignore
+  except that the title-bar labels read in **Prototype** (Oxanium until LibKa0s v1.82.0) where they
+  were Friz Quadrata (LibKa0s v1.81.0) and the grip is the client's own. Turn **Ignore fonts** on →
+  those labels go back to the game's face, live; off → Prototype again. Fail: a console or Copy window that goes stock with Ignore
   settings panel, a title-bar label that ignores Ignore fonts, or the Diagnostics link's click area
-  not matching its text. Result: pass (owner-marked 2026-10-30)
+  not matching its text. Result:
 - **SKIN-10. What stays Blizzard's (inventory § Exceptions; X7).** Under **High Contrast** and
   **Azeroth** → the teleport icon (no new edge round it, desaturated at 50% when not ready), its
   cooldown swipe, its spell tooltip, the *Reset all settings* confirmation, the minimap button, its
@@ -872,11 +882,13 @@ Default is SKIN-1's list and nothing else.
   page is refused in combat as it is for any other setting. Result: pass (owner-marked 2026-10-30)
 - **SKIN-17. Font and texture overrides (WG-01).** With the popup open, pick a clearly different face
   in **Font** → with no reload every popup string takes it, at the size it had; the debug console's
-  log lines keep their monospace face; another skin keeps the override; *Skin's own* brings the
-  skin's face back. Turn **Ignore fonts** on with an override set → every popup string goes back to
+  log lines keep their monospace face; **Reset font** brings the skin's face back. Set the override
+  again and pick another skin → the override is cleared and the new skin's own face shows (a skin
+  pick that changes the look resets both overrides, LibKa0s v1.82.0, ruling D-10); `/wg set
+  skin.skin` is a raw write and leaves it alone. Turn **Ignore fonts** on with an override set → every popup string goes back to
   the game's own face, still in the skin's colors; off → the override returns. Pick any **Texture**
   → nothing on the popup changes (WhatGroup draws no bars) and nothing errors. `/wg get skin.font`
-  shows the key while set and an empty value after. Result: pass (owner-marked 2026-10-30)
+  shows the key while set and an empty value after. Result:
 - **SKIN-18. The skin picker at login and on a fresh profile (WG-04; owner ruling O3).** For a
   profile that never closed it (every profile on the first login of this build), log in → about two
   seconds after the world loads a small window titled **Choose a skin** opens about three quarters
@@ -923,6 +935,60 @@ Default is SKIN-1's list and nothing else.
   own fonts, with **Close** as Blizzard's button; there is no **Skin** tab, no picker at login, and
   `/wg set skin.skin obsidian` prints the library-absent CLI line. Fail: a Lua error, a blank title
   or a blank label. Result: pass (owner-marked 2026-10-30)
+- **SKIN-25. The Font outline (WG-01 of the skin fonts run; LibKa0s v1.82.0, ruling D-06).** `/wg
+  test` on **Ka0s Default** → no popup string has an outline, and Skin tab → **Font outline** reads
+  *HUD text only* (the default since LibKa0s v1.83.0, D-10; the popup is window text, not a HUD).
+  *All text* → with no reload every popup string takes a thin outline; *Off* → none; *HUD text only*
+  → still none. `/wg get skin.outline` → `hud`; `/wg set skin.outline all` → the same as the dropdown;
+  a profile from before this version keeps a stored *Off*, while *All text* comes back as *HUD text only*: it was
+  that version's default, so AceDB never wrote it (D-10); `/wg set skin.outline thick` → refused, the value
+  unchanged. Pick *Off*, `/reload` → still off; switch to another profile → that profile's mode
+  (*HUD text only* on a new one); back → *Off*. Turn **Ignore fonts** on → the dropdown grays out and the
+  popup keeps the game's own face. The debug console's log lines keep their monospace face and are
+  never outlined. **Copy to every Ka0s addon…** with *Off* → another Ka0s addon wears *Off* too.
+  Fail: a mode that needs a reload, a mode that does not survive `/reload` or a profile switch, an
+  outlined log line. Result:
+- **SKIN-26. No font settings of its own (WG-01; ruling D-07).** `/wg config` → General's tabs and
+  `/wg list` → there is no font size, color, flags or shadow setting anywhere (WhatGroup draws its
+  text from the skin), so there is no *From skin* flags choice to check here; every string's
+  outline follows SKIN-25's Font outline and nothing else. Fail: a font setting appearing, or a
+  string whose outline ignores the Font outline. Result:
+- **SKIN-27. `/wg skin` (WG-01; LibKa0s v1.82.0, ruling D-16).** On a profile that has already closed
+  the first-run picker, `/wg skin` → the **Choose a skin** window opens, naming **Ka0s WhatGroup**,
+  exactly as SKIN-18's; pick, **Apply**, the gear and the close mark behave as SKIN-20 says. `/wg
+  skin` again with it open → no second window. In combat on a dummy, `/wg skin` twice → each call
+  prints a gray *cannot open the skin picker during combat* and nothing opens. `/wg disable`, then
+  `/wg skin` → one line saying WhatGroup is disabled and naming `/wg enable`, and no picker; `/wg
+  enable`. With a second Ka0s addon's picker up, `/wg skin` → a line saying it waits, and it opens
+  when the other closes. Under the [Library-absent install](#library-absent-install) setup → `/wg
+  skin is unavailable: the LibKa0s library did not load.` Fail: a picker that does not open on a seen
+  profile, one that opens in combat or while disabled, a Lua error. Result:
+- **SKIN-28. Width parity across skins (WG-01; LibKa0s v1.82.0, ruling D-08).** `/wg test` on **Ka0s
+  Default** with the Font outline on *All text*, its widest case, note how far the longest value line and the title
+  run across the popup; then pick **Obsidian**, **Azeroth**, **Glass**, **High Contrast**, **Ember**,
+  **WoW Midnight** and **WoW Forever** in turn → the text runs about as far in each (a few pixels
+  either way), no label or value is cut or ends in an ellipsis, *Playstyle:*, *Instance:* and
+  *Teleport:* are whole, and the teleport icon sits beside its label. Open `/wg debug` in each → the
+  title-bar labels fit their bar and none overlaps the next. Repeat on **Ka0s Default** with the
+  outline on *HUD text only*, the default → nothing clips. Fail: a skin whose text is clearly wider or narrower than Ka0s
+  Default's, or any clipped string. Result:
+- **SKIN-29. The picker and the overrides (WG-01; LibKa0s v1.82.0, ruling D-10).** Set a **Font**
+  override on the Skin tab, then `/wg skin` and preview another skin → the override clears and the
+  previewed skin's own face shows; press the close mark → the old skin and the override both come
+  back. `/wg skin` again, preview another skin and press **Apply** → the override stays cleared, and
+  `/wg get skin.font` prints an empty value. Set a **Texture** override too and repeat with
+  **Apply to all Ka0s addons** (a second Ka0s addon that uses skins loaded, with its own Font
+  override) → every addon whose skin changed loses both overrides; an addon already on that skin
+  keeps its own. Fail: an override that survives a preview or an Apply, or one a close does not
+  bring back. Result:
+- **SKIN-30. Every media picker previews its entries (WG-F01, WG-F02; LibKa0s v1.83.0, D-08).** On a
+  fresh client session, the first thing after login, `/wg config` → General → **Skin** → open **Font**
+  → every row, the leading *Skin's default (…)* row too, is already drawn in its own face. Open
+  **Texture** → every row shows its bar. Under **Azeroth** the pull-out wears the skin. Pick an entry
+  from each → the pick lands as it did before and the row shows it; `/wg get skin.font` prints that
+  key; **Reset font** and **Reset texture** bring *Skin's default (…)* back. Fail: a row in the wrong
+  face or the default face, a texture row with no bar, or a stored key that differs from the name
+  shown. Result:
 
 ## Library-absent install
 
@@ -1033,3 +1099,18 @@ v1.81.0) passed: PANEL-2 (amended: the Skin tab in the strip) and SKIN-1 to SKIN
 and SKIN-22 as amended by the follow-ups), each recorded on its `Result:` line as
 `pass (owner-marked 2026-10-30)`. LAUNCH-18 (amended: Keybindings after Skin) already recorded a pass
 and keeps its `pass (owner, 2026-10-24)`.
+
+Owed from the skin fonts and feedback run (Ka0sAddonsCommonTasks
+`docs/2026-10-30-SKIN_FONTS_AND_FEEDBACK/`, item WG-01, LibKa0s v1.82.0, 2026-10-30): SLASH-1
+(amended: sixteen rows, `skin` after `config`), SKIN-1 (amended: Prototype, its outline moved again by v1.83.0), SKIN-2
+(amended: the reset buttons, the Font outline, the half-width Scope and the *Other Ka0s addons*
+heading), SKIN-6 (amended: Prototype, Expressway and Fira Sans Medium), SKIN-9 (amended: Prototype),
+SKIN-17 (amended: a skin pick resets the overrides) and the new SKIN-25 to SKIN-29 (the Font
+outline, no font settings of its own, `/wg skin`, width parity across skins, the picker resetting
+the overrides).
+
+Owed from the font pickers and skin faces run (Ka0sAddonsCommonTasks
+`docs/2026-10-31-FONT_PICKERS_AND_SKIN_FACES/`, item WG-F01, LibKa0s v1.83.0, 2026-10-31): SKIN-5
+(re-opened: every skin but two has a new face, and the label column is a fixed 72 pixels). SKIN-1,
+SKIN-2, SKIN-6, SKIN-9, SKIN-25, SKIN-26 and SKIN-28 stay open and now state v1.83.0: the faces,
+*Skin's default* and the Font outline's new default. The new SKIN-30 (item WG-F02) is the picker preview.

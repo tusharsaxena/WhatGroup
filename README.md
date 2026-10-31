@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1025%2F1025_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1045%2F1045_passing-green)
 
 WhatGroup remembers the group you signed up for through the Group Finder tool. You get accepted, you shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who's leading, and the playstyle.
 
@@ -35,7 +35,7 @@ The **Notifications** tab holds the whole join flow. Under **Chat summary** you 
 
 You can also bind a key to open and close the popup, **Toggle group popup**, in either of two places that show the same keys: Options → Keybindings → **Ka0s WhatGroup**, or **General → Keybindings** in this addon's settings. A key set in one shows in the other. The tab has one key button and **Clear**; when Options → Keybindings holds a second key for it, the button reads `<key> +1` and its tooltip names both. It has no key until you pick one, and the key is saved by the game, so Defaults and Reset all settings leave it alone. A press does what the minimap menu's **Show window** does, and while WhatGroup is disabled it says so in chat instead.
 
-The popup wears a skin, Ka0s Default to start with. The first time a profile loads, a small window asks you to pick one: choosing from its list previews it on the popup, the eye shows it on the sample group, and **Apply** keeps it, while closing the window leaves the skin you had. You can change it later on the **Skin** tab of **General**, which also offers EllesmereUI's look when EllesmereUI is installed, a font of your own, and a button that gives the same skin to your other Ka0s addons. Each profile keeps its own skin.
+The popup wears a skin, Ka0s Default to start with. The first time a profile loads, a small window asks you to pick one: choosing from its list previews it on the popup, the eye shows it on the sample group, and **Apply** keeps it, while closing the window leaves the skin you had. The same window lets you swap the font and texture, set the font outline and choose what the skin leaves alone, and `/wg skin` brings it back whenever you like. The **Skin** tab of **General** has all of that too, plus EllesmereUI's look when EllesmereUI is installed and a button that gives the same skin to your other Ka0s addons. Each profile keeps its own skin.
 
 Everything else is on the **Ka0s WhatGroup** page in Settings → AddOns, which `/wg` opens, and `/wg help` lists every command.
 
@@ -101,24 +101,7 @@ Bugs, feature requests and outstanding work are all tracked at [https://github.c
 
 ## Credits
 
-The debug console uses [JetBrains Mono](https://www.jetbrains.com/lp/mono/), licensed under the SIL
-Open Font License 1.1.
-
-Ka0s Default, the skin every profile starts on, draws [Oxanium](https://github.com/sevmeyer/oxanium)
-by The Oxanium Project Authors, also SIL Open Font License 1.1.
-
-The other skins draw on seven more SIL Open Font License 1.1 faces, one family per skin:
-[Inter](https://github.com/rsms/inter) by The Inter Project Authors,
-[Nunito](https://github.com/googlefonts/nunito) by The Nunito Project Authors,
-[Vollkorn](https://github.com/FAlthausen/Vollkorn-Typeface) by The Vollkorn Project Authors,
-[Bitter](https://github.com/solmatas/BitterPro) by The Bitter Project Authors,
-[Philosopher](https://github.com/alexeiva/philosopher) by The Philosopher Project Authors,
-[Fira Sans](https://github.com/mozilla/Fira) by The Mozilla Foundation and Telefonica S.A., and
-[Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/) by the Braille Institute of
-America. Inter, Nunito, Vollkorn, Bitter and Oxanium are static weights cut from upstream's
-variable fonts.
-
 **Open Iconic** icons, by Waybury, MIT license (<https://github.com/iconic/open-iconic>): the debug
 console's copy, clear and close marks, and the first-run skin picker's preview eye and settings
-gear. Only the icons the addon draws are shipped. The fonts and the icons are bundled inside the
-LibKa0s payload, with their license text beside them.
+gear. Only the icons the addon draws are shipped. The icons are bundled inside the LibKa0s payload,
+with their license text beside them.

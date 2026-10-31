@@ -524,8 +524,9 @@ end)
 --- One page, so one entry. WhatGroup registers a single settings sub-page ("general"); every row
 --- carries `section` for `/wg list` and `group` for the tab, and no row is hidden.
 local PARTITION = {
-    -- Appearance: the seven skip-render skin rows the library's Skin tab draws (skinning-§3).
-    general = { { "Master controls", 8 }, { "Notifications", 12 }, { "Appearance", 7 } },
+    -- Appearance: the eight skip-render skin rows the library's Skin tab draws (skinning-§3);
+    -- the eighth, skin.outline, is LibKa0s v1.82.0's Font outline (WG-01 of the skin fonts run).
+    general = { { "Master controls", 8 }, { "Notifications", 12 }, { "Appearance", 8 } },
 }
 
 test("settings: the page's tabs are the designed ones, in order, at the designed size",
@@ -833,10 +834,12 @@ local STORED_SETTINGS = {
     "notify.showTeleport = bool|true|nil|nil|nil|notify|false",
     "notify.showType = bool|true|nil|nil|nil|notify|false",
     "scale = number|1|0.5|2|0.05|general|false",
-    -- WG-01 (the skinning rollout): the seven skin keys, added after item 020's pass.
+    -- WG-01 (the skinning rollout): the seven skin keys, added after item 020's pass, and
+    -- skin.outline (WG-01 of the skin fonts run, LibKa0s v1.82.0).
     "skin.font = string||nil|nil|nil|skin|false",
     "skin.ignoreFonts = bool|false|nil|nil|nil|skin|false",
     "skin.ignorePanel = bool|true|nil|nil|nil|skin|false",
+    "skin.outline = string|hud|nil|nil|nil|skin|false",
     "skin.pickerSeen = bool|false|nil|nil|nil|skin|false",
     "skin.skin = string|ka0s|nil|nil|nil|skin|false",
     "skin.source = string|ka0s|nil|nil|nil|skin|false",

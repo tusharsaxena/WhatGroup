@@ -109,6 +109,8 @@ L["Show the group info popup again"] = "Show the group info popup again"
 L["Toggle test mode (sample group info on the popup) — `/wg test on|off`; `/wg test notify` runs the join notice + popup once"] =
     "Toggle test mode (sample group info on the popup) — `/wg test on|off`; `/wg test notify` runs the join notice + popup once"
 L["Open the Ka0s WhatGroup settings"] = "Open the Ka0s WhatGroup settings"
+-- The reserved `skin` verb's help: LibKa0s's SKIN_PICKER_STRINGS.VERB_HELP, one wording for every host.
+L["Choose a skin: open the skin picker"] = "Choose a skin: open the skin picker"
 L["Enable the addon"]         = "Enable the addon"
 L["Disable the addon"]        = "Disable the addon"
 L["Print the addon version"]  = "Print the addon version"

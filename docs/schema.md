@@ -41,6 +41,7 @@ db.profile = {
     ignoreFonts = false,          -- Scope: leave every font the client's
     font        = "",             -- an LSM font key over the skin's own; "" keeps the skin's
     texture     = "",             -- an LSM statusbar key over the skin's own; "" keeps the skin's
+    outline     = "hud",          -- Font outline: all | hud | off
     pickerSeen  = false,          -- the first-run skin picker was closed on this profile
   },
 }
@@ -78,14 +79,16 @@ account-wide geometry and lives in `db.global.windows` (WG-26), not here. That s
 `architecture-§5` named non-setting state, and its owner (`NS.Windows`) and writers are named in
 [ARCHITECTURE.md → Settings Schema](./ARCHITECTURE.md#settings-schema).
 
-The seven `skin.*` keys are schema rows on the General page's **Appearance** group, every one
+The eight `skin.*` keys are schema rows on the General page's **Appearance** group, every one
 `skipRender`: the library's Skin tab (`O.AppearanceTab`, labeled "Skin") draws them, and they stay
 rows so the defaults resolve, *Reset all settings* reaches them and `/wg get|set skin.skin`
 validates against the registered skins. They are written only through `Helpers.Set`, by
 `NS.WriteSkinChoice` (core/SkinSetup.lua), which is also the setter the library calls for *Copy to
 every Ka0s addon*. New keys with defaults, so AceDB merges them into every existing profile and no
 migration is owed; `pickerSeen` is false on every profile, old and new, so each shows the first-run
-picker once.
+picker once. `skin.outline` (LibKa0s v1.82.0) is the Skin tab's *Font outline*: `all`, `hud`
+(the default since LibKa0s v1.83.0; a stored choice stays) or `off`; the popup is window text, so
+`hud` leaves it unoutlined.
 
 `scale`, `alpha` and `locked` are **clamped or read at use time** in `modules/Frame.lua` exactly as
 the size rows are, and for the same reason. `visibility` fails **open**: `always` and any value the

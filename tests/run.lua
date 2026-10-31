@@ -175,9 +175,13 @@ Kit.run{
         -- The skin seam (core/SkinSetup.lua, skinning-§1 to §3): the owner, its tokens, the skin
         -- rows, the Skin tab's place, the profile events and the degraded arm.
         "test_skinsetup",
+        -- The font outline (LibKa0s v1.82.0, D-06): skin.outline, its write seam and its apply.
+        "test_skin_outline",
         -- The first-run skin picker (core/SkinSetup.lua, WG-04): when it shows, the spec, the real
         -- window's preview, Apply, close, gear and eye, and the stand-down.
         "test_skin_picker",
+        -- The reserved `/wg skin` verb (LibKa0s v1.82.0's O.SkinVerb, D-16).
+        "test_skin_verb",
         -- The addon's own AceGUI acquisitions and the debug console on the skin (WG-04).
         "test_skin_tools",
         "test_profiles",
@@ -195,6 +199,8 @@ Kit.run{
         "test_register",
         "test_disabled",
         "test_vendor_sync",
+        -- The display-glyph guard (kit revision 45, D-19): no string a skin face cannot draw.
+        "test_glyphs",
         -- The kit has shipped one suite of its own since revision 15: the working-tree
         -- line-ending gate, over every path `git ls-files` reports. It lives where the rest
         -- of the kit lives rather than being re-typed into nine repositories, so it is

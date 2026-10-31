@@ -2,7 +2,7 @@
 --
 -- What this addon owes the skin engine, and nothing the library pins itself: the owner is
 -- registered under the FOLDER name at file load with this addon's read and write seams and its own
--- tokens; the seven `skin.*` keys default to Ka0s Default and are skip-render schema rows on the
+-- tokens; the eight `skin.*` keys default to Ka0s Default and are skip-render schema rows on the
 -- Appearance tab, written only through Helpers.Set; the tab sits after Notifications and before
 -- Keybindings; the profile's skin is applied right after AceDB exists and again on every profile
 -- event; the popup's window edge is handed the owner; and the degraded arm answers Ka0s Default
@@ -17,7 +17,7 @@ local test, assertEqual, assertTrue, assertFalse, assertNil =
 local OWNER = "WhatGroup"
 local PATHS = {
     "skin.source", "skin.skin", "skin.ignorePanel", "skin.ignoreFonts",
-    "skin.font", "skin.texture", "skin.pickerSeen",
+    "skin.font", "skin.texture", "skin.outline", "skin.pickerSeen",
 }
 
 local function skinLib(mock) return mock.LibStub("LibKa0s-Skin-1.0") end
@@ -123,6 +123,7 @@ test("skin seam: the skin keys default to Ka0s Default, with the picker unseen",
     assertEqual(d.ignoreFonts, false)
     assertEqual(d.font, "")
     assertEqual(d.texture, "")
+    assertEqual(d.outline, "hud")
     assertEqual(d.pickerSeen, false)
     assertEqual(NS.C.skin.skin, "ka0s", "the value lives in defaults/Profile.lua")
 end)
@@ -184,17 +185,17 @@ function()
     local ok, err = pcall(function()
         quietly(NS, function()
             NS.WriteSkinChoice("ka0s", "ember", { panel = false, fonts = true },
-                { font = "Ka0s Oxanium Bold", texture = false })
+                { font = "Ka0s Expressway", texture = false })
         end)
     end)
     H.Set = real
     if not ok then error(err, 0) end
     assertEqual(table.concat(wrote, " "), "skin.source=ka0s skin.skin=ember skin.ignorePanel=false "
-        .. "skin.ignoreFonts=true skin.font=Ka0s Oxanium Bold skin.texture=")
+        .. "skin.ignoreFonts=true skin.font=Ka0s Expressway skin.texture=")
     local p = NS.addon.db.profile.skin
     assertEqual(p.skin, "ember")
     assertEqual(p.ignoreFonts, true)
-    assertEqual(p.font, "Ka0s Oxanium Bold")
+    assertEqual(p.font, "Ka0s Expressway")
     assertEqual(p.texture, "", "false is the skin's own, stored as the empty key")
 end)
 

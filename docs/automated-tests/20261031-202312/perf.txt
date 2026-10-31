@@ -1,0 +1,17 @@
+Ka0s WhatGroup — offline perf  (v1.6.0, label 'pre-merge')
+
+scenario                iters     ms/iter  api/iter  bytes/iter
+cooldownTick             2000     0.00172       2.0       240.4
+formatDurationLong       2000     0.00065       0.0        34.5
+formatDurationShort      2000     0.00038       0.0         0.8
+combatGateSteady         2000     0.00027       0.0         0.0
+combatGateFlipping       2000     0.00502       7.0      1056.0
+showFrameRepeat           500     0.06611      25.0      3712.2
+applyScale                500     0.00027       1.0         0.0
+applyAlpha                500     0.00021       1.0         0.0
+
+timings are for orientation only — compare scenarios within a run, never across machines
+
+1 assertion FAILED:
+  - showFrameRepeat allocated 3712.2 bytes/iter, over its 1769-byte ceiling
+wrote docs/automated-tests/20261031-202312/perf.json
