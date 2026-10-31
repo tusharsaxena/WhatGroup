@@ -26,7 +26,7 @@ number out of use rather than handing it to a new one.
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-20 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
-| SKIN-1 – SKIN-30 | [Skins](#skins) | Ka0s Default as before but for its face, title band and Close button; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries |
+| SKIN-1 – SKIN-31 | [Skins](#skins) | Ka0s Default as before but for its face, title band and Close button; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
 | LOC-1 – LOC-6 | [Non-English client](#non-english-client) | A deDE or frFR client, and the `IsSpellKnown` readers |
 
@@ -1005,6 +1005,14 @@ Default is SKIN-1's list and nothing else.
   key; **Reset font** and **Reset texture** bring *Skin's default (…)* back. Fail: a row in the wrong
   face or the default face, a texture row with no bar, or a stored key that differs from the name
   shown. Result: Owner reported pass, 2026-10-31
+- **SKIN-31. The Font and Texture rows are the one Ka0s picker (M3-MEDIA; LibKa0s v1.84.0, LibKa0s#73,
+  ruling of 2026-11-01).** WhatGroup's panel has no border row of its own, so these two rows stand for
+  every media kind here. With **Look** on Azeroth, `/wg config` → General → **Skin** → open **Font**,
+  then **Texture** → each pull-out and its scrollbar wear the skin, rows previewed as in SKIN-30.
+  Switch **Look** to another skin with both pull-outs closed, open them again → they wear the new
+  skin. Repeat with another addon loaded that vendors AceGUI-3.0-SharedMediaWidgets → the same picker,
+  skinned the same way. Fail: a plain Blizzard-looking pull-out on either row, or a Lua error on open.
+  Result:
 
 ## Library-absent install
 
@@ -1124,4 +1132,5 @@ SLASH-1, SKIN-1, SKIN-2, SKIN-5, SKIN-6, SKIN-9, SKIN-17 and SKIN-25 to SKIN-30,
 `Result:` line as `Owner reported pass, 2026-10-31`.
 
 Owed from the findings remediation (Ka0sAddonsCommonTasks `docs/2026-10-31-FINDINGS_REMEDIATION/`,
-items FX-WG-PERF and FX-WG-SIZE, 2026-10-31): the new POPUP-11, POPUP-12 and LAUNCH-20.
+items FX-WG-PERF and FX-WG-SIZE, 2026-10-31): the new POPUP-11, POPUP-12 and LAUNCH-20; and from its
+M3-MEDIA item, 2026-11-01: the new SKIN-31.
