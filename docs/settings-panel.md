@@ -595,7 +595,7 @@ tab, not a schema group: `settings/Panel.lua` passes
 `before`, so `LibKa0s-Options-1.0` (`OptionsKeybinds.lua`, LibKa0s v1.77.0) puts it after every
 schema tab and draws it. Nothing in it is this addon's own code:
 
-- **One row per `NS.BINDINGS` entry** (`modules/Frame.lua`), which is `Bindings.xml` order. WhatGroup
+- **One row per `NS.BINDINGS` entry** (`modules/FrameBinding.lua`), which is `Bindings.xml` order. WhatGroup
   has one: **Toggle group popup**, the `GetBindingName` text, so the row and Options → Keybindings
   cannot disagree. One key button and a Clear button (`OptionsKeybinds` minor 4), with the tooltip
   *Shows or hides the group popup.* The button binds the first key and shows it; when the game's

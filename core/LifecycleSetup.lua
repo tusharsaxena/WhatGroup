@@ -54,7 +54,7 @@ end
 -- collection's perf line answers instead. Both held: the disabled line wins, because enabling is
 -- still a step the player has to take and the capture's hold ends by itself.
 --
--- Its caller today is the Show window key binding's button (modules/Frame.lua, launcher-§6): a
+-- Its caller today is the Show window key binding's button (modules/FrameBinding.lua, launcher-§6): a
 -- key cannot be grayed the way the launcher menu's entry is, so the press asks here first. The
 -- slash verbs are refused by LibKa0s-Slash-1.0's dispatcher gate instead. There is no third
 -- wording. Defined above the `if not lib` branch so the degraded stub latch answers it too, and

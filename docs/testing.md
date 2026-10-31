@@ -399,9 +399,9 @@ Why it exists here. `.luacheckrc` carried
 lines turned up **twenty-four** findings, and **fifteen were not conventions at
 all** — ten files opening `local addonName, NS = ...` over a folder name they
 never read, and five parameters carried into the two `hooksecurefunc` handlers
-and never used. All fifteen were fixed in the source. The **eight** that remain
+and never used. All fifteen were fixed in the source. The **nine** that remain
 are receivers a calling convention forces (`212/self` on method-sugar bodies
-that read upvalues, `212/event` on the AceEvent handler), and they sit in three
+that read upvalues, `212/event` on the AceEvent handler), and they sit in four
 per-file `<code>/<variable>` stanzas. A ninth, the line-scoped
 `-- luacheck: ignore 542` on the deliberately empty `invited` branch, went when
 that branch began stamping the application's role (WhatGroup#1).

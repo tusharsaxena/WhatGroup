@@ -226,7 +226,7 @@ When the user does ask, the version sites are:
 
 The user has a `/dev-copilot:bump-version <X.Y.Z>` slash command in their personal `dev-copilot` plugin that updates every site in one pass. Prefer that over manual edits.
 
-**In the same change, re-look at the test-mode sample** (preview-mode, *Kept current at every release*, a MUST from the first release after standard v2.87.0). The data is `WhatGroup:SampleInfo()` (`core/WhatGroup.lua`): check that its dungeon (name, `mapID` and the teleport spell that `mapID` resolves to) is still in the season the TOC `## Interface:` targets, and that every field the popup reads is still in it (§ Test mode in [frame.md](./frame.md#test-mode)). WhatGroup has no simulator yet (WhatGroup#24), so there are no scenarios to re-look at. Record the answer (Current, Refreshed or Deferred) in the release run's `ANALYSIS.md` under `## Preview and simulation data`. From dev-copilot 2.5.0, `/dev-copilot:bump-version` asks the question before its release gate and writes that section.
+**In the same change, re-look at the test-mode sample** (preview-mode, *Kept current at every release*, a MUST from the first release after standard v2.87.0). The data is `WhatGroup:SampleInfo()` (`core/TestPreview.lua`): check that its dungeon (name, `mapID` and the teleport spell that `mapID` resolves to) is still in the season the TOC `## Interface:` targets, and that every field the popup reads is still in it (§ Test mode in [frame.md](./frame.md#test-mode)). WhatGroup has no simulator yet (WhatGroup#24), so there are no scenarios to re-look at. Record the answer (Current, Refreshed or Deferred) in the release run's `ANALYSIS.md` under `## Preview and simulation data`. From dev-copilot 2.5.0, `/dev-copilot:bump-version` asks the question before its release gate and writes that section.
 
 **In the same change, before the tag:** regenerate the complexity report through the kit and read its diff —
 
@@ -241,7 +241,7 @@ bash tests/_kit/run-automated-tests.sh --suite complexity
 If `C_LFGList.GetSearchResultInfo` or `C_LFGList.GetActivityInfoTable` exposes a new field worth showing:
 
 1. Add it to the `captured` table literal inside the file-local `buildCapture` in `WhatGroup.lua`, with a sensible default. `CaptureGroupInfo` no longer holds that table — it is control flow only (nil guard, `buildCapture`, then the activity block). Write the default as an `or` chain like every other line there: `or` replaces a stored `false` with the default and `if x == nil` does not, and downstream consumers assume the `or` semantics. A field that comes from `C_LFGList.GetActivityInfoTable` rather than the search result goes in the sibling `applyActivityInfo` instead, and — unless it is deliberately absent-until-resolved like `shortName` — gets a placeholder in `buildCapture` too.
-2. If it's surfaced in the popup, add a row to `modules/Frame.lua`:
+2. If it's surfaced in the popup, add a row to `modules/FrameLayout.lua` and fill it in `modules/Frame.lua`'s `PopulateFields`:
    - Add a new `MakeLabel` call after the existing rows, anchored against the previous label.
    - Add a `fields.<name>` entry to the storage table.
    - Add a populator branch in `PopulateFields` reading `info.<field>`.
