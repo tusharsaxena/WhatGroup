@@ -25,7 +25,7 @@ exclude_files = { "libs/", "docs/audits/", "docs/reviews/", "docs/revendor/", "_
 -- the file never read, and five parameters carried into the two `hooksecurefunc` handlers in
 -- core/WhatGroup.lua and never used. All fifteen are fixed in the source rather than moved into a
 -- narrower suppression. The NINE that remain are below -- `<code>/<variable>` entries across
--- four per-file stanzas. A ninth, the line-scoped `-- luacheck: ignore 542` on core/WhatGroup.lua's
+-- four per-file stanzas. One more, the line-scoped `-- luacheck: ignore 542` on core/WhatGroup.lua's
 -- empty `invited` branch, went when that branch began stamping the application's role
 -- (WhatGroup#1). tests/test_lintconfig.lua is what keeps the blanket from re-entering.
 

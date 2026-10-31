@@ -402,7 +402,7 @@ never read, and five parameters carried into the two `hooksecurefunc` handlers
 and never used. All fifteen were fixed in the source. The **nine** that remain
 are receivers a calling convention forces (`212/self` on method-sugar bodies
 that read upvalues, `212/event` on the AceEvent handler), and they sit in four
-per-file `<code>/<variable>` stanzas. A ninth, the line-scoped
+per-file `<code>/<variable>` stanzas. One more, the line-scoped
 `-- luacheck: ignore 542` on the deliberately empty `invited` branch, went when
 that branch began stamping the application's role (WhatGroup#1).
 
