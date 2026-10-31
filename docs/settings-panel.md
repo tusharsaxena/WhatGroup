@@ -312,9 +312,9 @@ profile = {
     showTeleport  = true,
     showRole      = true,
   },
-  skin    = {          -- the skin this addon wears (skinning-§2); the Skin tab's seven rows
+  skin    = {          -- the skin this addon wears (skinning-§2); the Skin tab's eight rows
     source = "ka0s", skin = "ka0s", ignorePanel = true, ignoreFonts = false,
-    font = "", texture = "", pickerSeen = false,
+    font = "", texture = "", outline = "hud", pickerSeen = false,
   },
 }
 global = {
@@ -569,7 +569,9 @@ Every pick goes through `NS.WriteSkinChoice`, which writes each half through `He
 logs, validates and fires its row's `onChange` like any other setting; each row's `onChange` applies
 only its own half (`core/SkinSetup.lua` says why). The same rows answer `/wg get|set skin.*`
 (`/wg set skin.skin obsidian` repaints live) and *Reset all settings* returns them to Ka0s Default.
-The first-run skin picker's gear opens this tab (`page = "general"`, `tab = "Appearance"`).
+The first-run skin picker's gear opens this tab (`page = "general"`, `tab = "Appearance"`), and the
+picker carries the tab's Font, Texture, Font outline and Scope rows itself (LibKa0s v1.83.0), which
+preview until Apply ([ARCHITECTURE.md → Skins](./ARCHITECTURE.md#skins)).
 
 **What the tab skins when the Scope lets it.** With **Ignore settings panel** off, the library paints
 the settings chrome for this owner, and the addon paints the two AceGUI acquisitions the library

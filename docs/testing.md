@@ -59,10 +59,10 @@ label like **Enable WhatGroup** honest about which addon it is turning off.
 The suites, in run order: `test_harness`, `test_libka0s`,
 `test_surface_parity`, `test_mediasetup`, `test_envsetup`, `test_util`,
 `test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
-`test_capture`, `test_notify`, `test_frame`, `test_frame_visibility`, `test_frame_secure`, `test_frame_layers`, `test_panel`, `test_profiles`, `test_testmode`,
+`test_capture`, `test_notify`, `test_frame`, `test_frame_visibility`, `test_frame_secure`, `test_frame_layers`, `test_frame_skin`, `test_skin_literals`, `test_panel`, `test_skinsetup`, `test_skin_outline`, `test_skin_picker`, `test_skin_verb`, `test_skin_tools`, `test_profiles`, `test_testmode`,
 `test_snapshot`, `test_diagnostics`, `test_launcher`, `test_keybinds`, `test_lifecycle`,
 `test_debuglog`, `test_library_lines`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
-`test_register`, `test_disabled`, `test_vendor_sync`. Five more run last and arrive with the
+`test_register`, `test_disabled`, `test_vendor_sync`, `test_glyphs`. Five more run last and arrive with the
 vendored kit rather than living in `tests/`, each declared by the pair form
 `{ name = ..., dir = "tests/_kit/" }` (testing-§9): `test_eol` (line-endings-§7), `test_prose`
 (localization-§5, reading this repo's per-file, per-word waivers from `tests/prose_waivers.lua`),

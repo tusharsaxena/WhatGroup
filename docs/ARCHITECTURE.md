@@ -103,7 +103,7 @@ section carries no row counts, because a count restated in prose goes stale with
 | `frame.autoShow` | bool | Notifications — open the popup automatically on join |
 | `frame.width` | number | Notifications — popup width in pixels, clamped 320..700 (was `FRAME_WIDTH`) |
 | `frame.height` | number | Notifications — popup height in pixels, clamped 200..520 (was `FRAME_HEIGHT`) |
-| `skin.*` (seven rows) | string / bool | Skin — `source`, `skin`, the Scope's `ignorePanel` / `ignoreFonts`, the `font` / `texture` overrides and `pickerSeen`, all `skipRender` and drawn by the library's tab ([schema.md](./schema.md)) |
+| `skin.*` (eight rows) | string / bool | Skin — `source`, `skin`, the Scope's `ignorePanel` / `ignoreFonts`, the `font` / `texture` overrides, the Font outline `outline` and `pickerSeen`, all `skipRender` and drawn by the library's tab ([schema.md](./schema.md)) |
 
 Every path is **absolute**: there are no window-relative paths, there being no active-window state
 to be relative to. The account-wide `global` table carries `schemaVersion`, `windows` and `minimap`. **Exactly one
@@ -341,7 +341,10 @@ surface carries a typed look value.
   it down without writing. Its eye starts test mode (X6: the addon has one), as `/wg test on` does.
   Since LibKa0s v1.81.0 the window is titled *Choose a skin*, and the addon's label (`NS.BRAND_NAME`,
   given as `RegisterOwner`'s `label`) has its own line above the dropdown, `frame.ownerLabel`, never
-  cut off; `NS.SkinPickerSpec` passes no label of its own.
+  cut off; `NS.SkinPickerSpec` passes no label of its own. Since LibKa0s v1.83.0 the window also
+  carries the Skin tab's rows (Font, Texture, Font outline, the Scope): a change previews and writes
+  nothing, Apply and the gear write what moved through the spec's `set`, `NS.WriteSkinChoice`, and a
+  dismissal puts back what the window opened with.
 - **Owners on every library surface.** The debug console and its copy window follow the owner
   through the DebugLog descriptor's `addonName` (no `skin` or `applySkin` is passed). They are
   windows, so they wear the skin whatever *Ignore settings panel* says; since LibKa0s v1.81.0
@@ -463,7 +466,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 
 | Doc | Status | Trigger |
 |---|---|---|
-| `slash-dispatch.md` | Present | 15 verbs in the command table |
+| `slash-dispatch.md` | Present | 16 verbs in the command table |
 | `midnight-quirks.md` | Present | LFG and group-API behavior the addon works around |
 | `debug.md` | Present | The diagnostics report (`/wg diagnostics`, debug-logging-§14) is a debug surface beyond the LibKa0s console, and documentation-§3 makes the page a MUST in every addon that ships it. The console content stays in the Tier 3 `debug-content.md` |
 | `message-bus.md` | Not applicable | Below the `architecture-§4` threshold: a shell plus one feature module, so no cross-module messages (see `## Message Bus`) |
@@ -513,4 +516,4 @@ A `WG-NN` or `WG-A-NN` id in a **Why** cell is a deviation an audit filed and re
 
 The `layout-§1` census: every authored `.lua` file this repository tracks that is over the 1500-line cap, with its terminal state. Vendored code (`libs/`, `tests/_kit/`) is out of scope, and this repository has no generated data to carve out.
 
-Nothing is over the cap today. Measured 2026-10-07 with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l | sort -n`: the largest authored file is `modules/Frame.lua` at 1384 lines (1472 on 2026-10-24, after item 030), then `core/WhatGroup.lua` at 1340 and `tests/test_libka0s.lua` at 1037. `tests/test_frame.lua`, 1422 before the split, was split on 2026-09-27 into itself (756), `tests/test_frame_visibility.lua` (616) and `tests/frame_fixture.lua` (85). `tests/_kit/test_layout_cap.lua` holds this census to the tree on every run.
+Nothing is over the cap today. Measured 2026-10-31 with `git ls-files '*.lua' | grep -v '^libs/' | grep -v '^tests/_kit/' | xargs wc -l | sort -n`: the largest authored file is `modules/Frame.lua` at 1467 lines, then `core/WhatGroup.lua` at 1367 and `tests/test_libka0s.lua` at 1066. `tests/test_frame.lua`, 1422 before the split, was split on 2026-09-27 into itself (756), `tests/test_frame_visibility.lua` (616) and `tests/frame_fixture.lua` (85). `tests/_kit/test_layout_cap.lua` holds this census to the tree on every run.

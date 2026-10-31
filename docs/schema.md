@@ -41,6 +41,7 @@ db.profile = {
     ignoreFonts = false,          -- Scope: leave every font the client's
     font        = "",             -- an LSM font key over the skin's own; "" keeps the skin's
     texture     = "",             -- an LSM statusbar key over the skin's own; "" keeps the skin's
+    outline     = "hud",          -- Font outline: all | hud | off
     pickerSeen  = false,          -- the first-run skin picker was closed on this profile
   },
 }
