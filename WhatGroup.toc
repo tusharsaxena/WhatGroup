@@ -92,8 +92,9 @@ core\LifecycleSetup.lua
 defaults\Profile.lua
 defaults\TeleportSpells.lua
 
-# Modules (conventional: modules\Frame.lua reads NS.addon, NS.L and NS.BRAND_NAME (core\CoreSetup.lua)
-# at file scope, all published above this group. One later file reads Frame's output at load:
+# Modules (conventional: modules\Frame.lua reads NS.addon and NS.L, and modules\FrameBinding.lua reads
+# NS.BRAND_NAME (core\CoreSetup.lua), at file scope, all published above this group. One later file
+# reads FrameBinding's output at load:
 # settings\Panel.lua builds GENERAL_OPTS from NS.BINDINGS at file scope (settings/Panel.lua:328),
 # which modules\FrameBinding.lua publishes. The # Modules -> # Settings group order already
 # guarantees that read, so the slot stays conventional (toc-file-§5).)

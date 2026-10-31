@@ -327,7 +327,7 @@ end)
 -- The Show window key binding (launcher-§6, standard v2.86.0)
 -- ---------------------------------------------------------------------------
 --
--- One CLICK binding in the root Bindings.xml, naming a plain hidden button modules/Frame.lua
+-- One CLICK binding in the root Bindings.xml, naming a plain hidden button modules/FrameBinding.lua
 -- creates at load, whose click runs the handler the launcher's toggleWindow runs. Pinned here: the
 -- file's one line, the button's shape, the two labels and that a press IS the Show window click.
 -- The press while stood down is tests/test_disabled.lua step 8's (slash-commands-§7).
@@ -606,7 +606,7 @@ test("launcher: there is no host tooltip hook, and the retired label's locale ro
     local src = readFile("core/LauncherSetup.lua")
     assertNil(src:find("\n%s*onTooltipShow%s*="), "no host tooltip hook")
     -- The key itself came back in WG-01 as the Show window key binding's label (launcher-§6), so
-    -- what is pinned now is that its one reader is modules/Frame.lua's binding, never the launcher.
+    -- what is pinned now is that its one reader is modules/FrameBinding.lua's binding, never the launcher.
     assertNil(src:find("Toggle group popup", 1, true), "the launcher reads no left-click label")
     assertTrue(readFile("modules/FrameBinding.lua"):find('rawset(_G, "BINDING_NAME_" .. NS.TOGGLE_COMMAND, L["Toggle group popup"])', 1, true) ~= nil,
         "the locale row's reader is the key binding's label")
