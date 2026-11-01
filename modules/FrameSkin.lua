@@ -13,6 +13,12 @@ local _, NS = ...
 --   Value(fs, text, dim) a field value: the text, in `text.highlight`, or with `dim` in
 --                        `wg.placeholder` (the "No data" and em-dash placeholders).
 --   Note(fs)             the teleport note beside the button, in `wg.placeholder`.
+--   TitleBar(f, bar, fs) the bar as the skin's title bar: `title.bg`, `title.height`, and the text
+--                        placed by `title.align`. The bar paints the band, so the window's Shell
+--                        is re-run with `noTopBar`: two bands would draw `title.bg`'s alpha twice.
+--                        S.TitleBar and S.Shell are recorded, so a switch redoes both.
+--   IconEdge(frame)      the skin's icon border family (`icon.border`, `icon.borderStyle`,
+--                        `icon.borderSize`) on a plain frame over the teleport icon.
 --   Button(btn)          the skin's push button (the Close button). Called after its OnClick is
 --                        set: the primitive HookScripts its hover pair.
 --   Attach(parts)        hands over the popup's frame, title, Teleport label and secure button,
@@ -68,6 +74,13 @@ function FrameSkin.Value(fs, text, dim)
 end
 
 function FrameSkin.Note(fs) NS.Skin.Text(fs, "wg.placeholder") end
+
+function FrameSkin.TitleBar(f, bar, fs)
+    NS.Skin.Shell(f, { noTopBar = true })
+    NS.Skin.TitleBar(bar, { text = fs, place = true })
+end
+
+function FrameSkin.IconEdge(frame) NS.Skin.IconBorder(frame, { fromSkin = true }) end
 
 function FrameSkin.Button(btn) NS.Skin.Button(btn) end
 

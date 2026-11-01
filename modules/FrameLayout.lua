@@ -34,7 +34,7 @@ function FrameLayout.Build(f, dismissPopup)
     local titleBar = CreateFrame("Frame", nil, f)
     titleBar:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
     titleBar:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
-    titleBar:SetHeight(30)
+    titleBar:SetHeight(30)   -- the skin's title.height takes over at Look.TitleBar, below; 30 degraded
     titleBar:EnableMouse(true)
     -- LOCKED IS READ AT DRAG TIME, not wired once: the checkbox is a plain profile value with no
     -- onChange, because there is nothing to apply -- the next mouse-down is where it takes effect.
@@ -52,7 +52,7 @@ function FrameLayout.Build(f, dismissPopup)
     end)
 
     local titleText = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    titleText:SetPoint("CENTER", titleBar, "CENTER", 0, -2)
+    titleText:SetPoint("CENTER", titleBar, "CENTER", 0, 0)
     Look.Title(titleText)
     f.title = titleText
 
@@ -60,16 +60,17 @@ function FrameLayout.Build(f, dismissPopup)
     -- the normative Ka0s divider), so no literal here.
     local sep = f:CreateTexture(nil, "ARTWORK")
     sep:SetHeight(1)
-    sep:SetPoint("TOPLEFT",  f, "TOPLEFT",  14, -30)
-    sep:SetPoint("TOPRIGHT", f, "TOPRIGHT", -14, -30)
+    sep:SetPoint("TOPLEFT",  titleBar, "BOTTOMLEFT",  14, 0)
+    sep:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", -14, 0)
     f.divider = sep
 
     -- Wear the shared skin for this owner (skinning-§1), now that the two regions it tints exist.
     NS.ApplySkin(f, nil, addonName)
+    Look.TitleBar(f, titleBar, titleText)
 
-    -- Content frame (plain, no scroll)
+    -- Content frame (plain, no scroll). Hung off the bar, as the divider is, so title.height moves both.
     local content = CreateFrame("Frame", nil, f)
-    content:SetPoint("TOPLEFT",     f, "TOPLEFT",   14, -38)
+    content:SetPoint("TOPLEFT",     titleBar, "BOTTOMLEFT", 14, -8)
     content:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -14, 44)
 
     -- Label builder
@@ -136,6 +137,13 @@ function FrameLayout.Build(f, dismissPopup)
 
     local teleportIcon = teleportBtn:CreateTexture(nil, "ARTWORK")
     teleportIcon:SetAllPoints()
+
+    -- The icon's edge is the skin's (S.IconBorder), on a plain child and never on the secure button:
+    -- a skin switch repaints in combat, and a nine-slice skin re-anchors the holder against whatever
+    -- it was handed. A child shows, hides and dims with the button, and takes no mouse.
+    local teleportEdge = CreateFrame("Frame", nil, teleportBtn)
+    teleportEdge:SetAllPoints()
+    Look.IconEdge(teleportEdge)
 
     -- The swipe has no Lua-side repeat: the Cooldown widget animates engine-side once armed, so it
     -- costs the addon no OnUpdate and no timer of its own. The note's countdown beside the button

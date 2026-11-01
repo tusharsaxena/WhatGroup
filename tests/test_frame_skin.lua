@@ -209,6 +209,132 @@ test("popup skin: a repopulate paints only the values whose token moved, and the
     assertEqual(colorOf(s.values[1]), tokenColor(NS, "text.highlight"), "a skipped paint still follows a switch")
 end)
 
+-- ── the title bar (cause L9 of Ka0sAddonsCommonTasks docs/2026-11-01-FULL_SKINNING/) ─────────
+
+test("popup skin: the title bar is the skin's TitleBar and places its own text", function()
+    -- red under: a hand-built bar (typed height, a typed CENTER at -2): title.height and title.align
+    -- never reach the popup.
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    local f, bar = popup(mock), F.dragHandle(mock)
+    local rec = skinLib(mock).painted[bar]
+    assertTrue(rec ~= nil and rec.owner == OWNER and rec.calls.TitleBar ~= nil, "the bar is not S.TitleBar'd")
+    local opts = rec.calls.TitleBar[1]
+    assertTrue(opts.place == true, "the bar takes title.height and title.align")
+    assertTrue(opts.text == f.title, "the title is the bar's text")
+    assertEqual(bar:GetHeight(), NS.Skin.Token("title.height"))
+    local point, relativeTo, relativePoint, x, y = f.title:GetPoint(1)
+    assertEqual(point, "CENTER")
+    assertTrue(relativeTo == bar, "anchored to the bar")
+    assertEqual(relativePoint, "CENTER")
+    assertEqual(x, 0)
+    assertEqual(y, 0, "the middle of the band, no typed -2")
+end)
+
+test("popup skin: a skin switch puts the bar's height and the title's anchor back from the tokens", function()
+    -- red under: a geometry set once at build. The drawing setters, not a getter of a value that
+    -- never moved: the token is the same in every skin, so a switch must still write it.
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    local f, bar = popup(mock), F.dragHandle(mock)
+    bar:SetHeight(26)
+    f.title:ClearAllPoints()
+    f.title:SetPoint("TOPLEFT", bar, "TOPLEFT", 3, 3)
+    quietly(NS, function() NS.ApplySkinChoice("ka0s", OTHER) end)
+    assertEqual(bar:GetHeight(), NS.Skin.Token("title.height"))
+    assertEqual(f.title:GetNumPoints(), 1)
+    assertEqual((f.title:GetPoint(1)), NS.Skin.Token("title.align"))
+end)
+
+test("popup skin: the divider and the content hang off the bar, at today's offsets", function()
+    -- red under: the typed -30 and -38 against the window, which a taller title.height overruns.
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    local f, bar = popup(mock), F.dragHandle(mock)
+    local point, relativeTo, relativePoint, x, y = f.divider:GetPoint(1)
+    assertEqual(point, "TOPLEFT")
+    assertTrue(relativeTo == bar, "the divider follows the bar")
+    assertEqual(relativePoint, "BOTTOMLEFT")
+    assertEqual(x, 14)
+    assertEqual(y, 0)
+    local content
+    for _, kid in ipairs(mock.frames) do
+        if #kid.__fontStrings >= 14 then content = kid end
+    end
+    point, relativeTo, relativePoint, x, y = content:GetPoint(1)
+    assertEqual(point, "TOPLEFT")
+    assertTrue(relativeTo == bar, "the content follows the bar")
+    assertEqual(relativePoint, "BOTTOMLEFT")
+    assertEqual(x, 14)
+    assertEqual(y, -8)
+end)
+
+test("popup skin: one title band: the bar paints it and the Shell's top bar stays off", function()
+    -- red under: S.TitleBar over a plain Shell: title.bg's 0.9 alpha drawn twice, darker than any
+    -- other window's band.
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    local shell = skinLib(mock).painted[popup(mock)]
+    assertTrue(shell.calls.Shell[1] ~= nil and shell.calls.Shell[1].noTopBar == true, "the Shell owes noTopBar")
+    local top = shell.regions.top
+    assertTrue(top == nil or not top:IsShown(), "the Shell's band is not drawn")
+    local bar = skinLib(mock).painted[F.dragHandle(mock)]
+    assertTrue(bar.regions.fill ~= nil, "the bar's own band is")
+    -- A switch replays what was recorded, so the band stays single.
+    quietly(NS, function() NS.ApplySkinChoice("ka0s", OTHER) end)
+    top = shell.regions.top
+    assertTrue(top == nil or not top:IsShown(), "still one band after a switch")
+end)
+
+-- ── the teleport icon's border (cause A1) ─────────────────────────────────────────────────────
+
+--- The plain frame that carries the icon's edge: the one frame recorded with IconBorder.
+local function iconEdge(mock)
+    for _, kid in ipairs(mock.frames) do
+        local rec = skinLib(mock).painted[kid]
+        if rec and rec.calls.IconBorder then return kid, rec end
+    end
+end
+
+test("popup skin: the teleport icon wears the skin's icon border, on a plain frame", function()
+    -- red under: the bare 24px texture (no IconBorder), a flat 1px edge with no fromSkin, or the
+    -- library handed the secure button itself, whose holder a nine-slice skin re-anchors.
+    local NS, _, mock = T.bootAddon()
+    NS.TeleportSpells[2652] = 445269
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    local edge, rec = iconEdge(mock)
+    assertTrue(edge ~= nil, "nothing drew the icon's border")
+    assertEqual(rec.owner, OWNER)
+    assertTrue(rec.calls.IconBorder[1].fromSkin == true, "the skin's family, not a flat 1px")
+    assertTrue(edge ~= teleportBtn(mock), "the secure button is not the library's to touch")
+    assertTrue(edge.__parent == teleportBtn(mock), "a child, so it shows and dims with the button")
+    assertEqual(rec.regions.edgeLeft:GetWidth(), NS.Skin.Token("icon.borderSize"))
+    assertEqual(NS.Skin.Token("icon.borderSize"), 2, "Ka0s Default's Solid 2px")
+end)
+
+test("popup skin: a skin switch redraws the icon's border at the new skin's size, in combat too", function()
+    -- red under: an edge drawn once at build, or a repaint that reaches the secure button in combat.
+    -- obsidian's edge is 1px to Ka0s Default's 2 (SkinDefsOthers ICON_EDGE). The spy is on the
+    -- setter, which the width getter alone could not tell from a stale read.
+    local NS, _, mock = T.bootAddon()
+    NS.addon:ShowFrame()
+    local _, rec = iconEdge(mock)
+    local left, wrote = rec.regions.edgeLeft, {}
+    local real = left.SetWidth
+    left.SetWidth = function(self, w)
+        wrote[#wrote + 1] = w
+        return real(self, w)
+    end
+    mock.combat = true
+    quietly(NS, function() NS.ApplySkinChoice("ka0s", OTHER) end)
+    mock.combat = false
+    assertEqual(wrote[#wrote], 1, "obsidian's 1px edge drew")
+    assertEqual(#mock.blocked, 0, "nothing protected was touched: " .. table.concat(mock.blocked, ", "))
+    quietly(NS, function() NS.ApplySkinChoice("ka0s", "ka0s") end)
+    assertEqual(wrote[#wrote], 2, "and Ka0s Default's 2px again")
+end)
+
 -- ── the secure teleport button's anchor (inventory R2) ───────────────────────────────────────
 
 test("popup skin: a skin switch re-anchors the teleport button beside its moved label", function()
@@ -281,6 +407,18 @@ test("popup skin: a switch before the popup exists builds nothing", function()
 end)
 
 -- ── the degraded facade ───────────────────────────────────────────────────────────────────────
+
+test("popup skin: the degraded popup keeps its 30px bar and centered title, with no edge", function()
+    -- Without the library S.TitleBar colors the text and S.IconBorder is a no-op, so the bar's
+    -- own build is what a degraded install draws.
+    -- red under: a bar whose height or title anchor only the skin's `place` writes.
+    local NS, _, mock = T.bootAddon{ skip = T.loadAddon.libFiles }
+    NS.addon:ShowFrame()
+    local f, bar = popup(mock), F.dragHandle(mock)
+    assertEqual(bar:GetHeight(), 30)
+    assertEqual((f.title:GetPoint(1)), "CENTER")
+    assertEqual(colorOf(f.title), rgb(1, 0.82, 0), "title.text from the host copy")
+end)
 
 test("popup skin: the degraded facade paints a token name with that token's color", function()
     -- Without the library S.Text is core/SkinSetup.lua's: a role maps to text.<role>, and a token
