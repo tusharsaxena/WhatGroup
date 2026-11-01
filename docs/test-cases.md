@@ -627,7 +627,7 @@ Total.
 - layers: the owed Hide at combat end leaves the controls ready for the next show
 - layers: no SetFrameStrata literal and no absolute SetFrameLevel in core, modules or settings
 
-### test_frame_skin.lua (13)
+### test_frame_skin.lua (20)
 
 - popup skin: the title's brand span reads wg.brand, FFD700 byte for byte on Ka0s Default
 - popup skin: every field label is painted in wg.label, with no inline color
@@ -637,10 +637,17 @@ Total.
 - popup skin: the window is the owner's Shell, so a switch repaints its edge and title
 - popup skin: a skin switch repaints the labels, values, note and brand span live
 - popup skin: a repopulate paints only the values whose token moved, and the look survives
+- popup skin: the title bar is the skin's TitleBar and places its own text
+- popup skin: a skin switch puts the bar's height and the title's anchor back from the tokens
+- popup skin: the divider and the content hang off the bar, at today's offsets
+- popup skin: one title band: the bar paints it and the Shell's top bar stays off
+- popup skin: the teleport icon wears the skin's icon border, on a plain frame
+- popup skin: a skin switch redraws the icon's border at the new skin's size, in combat too
 - popup skin: a skin switch re-anchors the teleport button beside its moved label
 - popup skin: in combat the re-anchor waits for combat end, then lands
 - popup skin: a switch while stood down queues no anchor; the stand-up re-anchors
 - popup skin: a switch before the popup exists builds nothing
+- popup skin: the degraded popup keeps its 30px bar and centered title, with no edge
 - popup skin: the degraded facade paints a token name with that token's color
 
 ### test_skin_literals.lua (3)
@@ -1214,7 +1221,7 @@ Total.
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_frame_layers.lua | 8 |
-| test_frame_skin.lua | 13 |
+| test_frame_skin.lua | 20 |
 | test_skin_literals.lua | 3 |
 | test_panel.lua | 62 |
 | test_skinsetup.lua | 17 |
@@ -1244,4 +1251,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1046** |
+| **Total** | **1053** |

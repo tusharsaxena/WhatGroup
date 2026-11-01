@@ -26,7 +26,7 @@ number out of use rather than handing it to a new one.
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-20 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
-| SKIN-1 – SKIN-31 | [Skins](#skins) | Ka0s Default as before but for its face, title band and Close button; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws |
+| SKIN-1 – SKIN-33 | [Skins](#skins) | Ka0s Default as before but for its face, title band, Close button and teleport icon edge; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
 | LOC-1 – LOC-6 | [Non-English client](#non-english-client) | A deDE or frFR client, and the `IsSpellKnown` readers |
 
@@ -431,7 +431,8 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   `modules/FrameLayout.lua`, by a pure move. `/wg test notify` → the title, the six value rows, the
   `Teleport:` row with its button beside the label, and **Close**, each where it was. The title bar
   drags the popup, the teleport tooltip shows on hover, and **Close** closes it. Fail: a missing or
-  shifted row, a button off its label, or a Lua error. Result:
+  shifted row, a button off its label, or a Lua error. (The title sits 2px higher since FS-WG-FIX:
+  SKIN-1.) Result:
 - **POPUP-12. A repeated show keeps its colors (FX-WG-PERF).** A value now takes its color only when
   its token moves. `/wg show` with nothing captured → the rows read `No data` in gray. `/wg test
   notify` → the same rows read white, with no gray left on any row that has data. With it open, pick
@@ -788,15 +789,16 @@ Default is SKIN-1's list and nothing else.
   spacing: the near-black body, the 1px black edge with its gray inner line, the "WhatGroup" span
   of the title and the seven field labels in the same bright gold, the rest of the title in the
   title gold, the values white, the "No data" and em-dash placeholders and the teleport note in
-  the same mid gray. Four things changed, and they are the skin runs': every string reads in
+  the same mid gray. Six things changed, and they are the skin runs': every string reads in
   **Prototype** (a squared, technical face; one weight for labels, values and title alike; LibKa0s
   v1.82.0, ruling D-02) instead of the game's Friz Quadrata, with no outline (the Font outline's
   default is *HUD text only* since LibKa0s v1.83.0, D-10, and the popup is window text); the 30px title band behind the title is filled a shade
-  darker than the body; and **Close** is the skin's flat button (a dark fill inside a 1px edge) instead of
-  Blizzard's red stone button. Fail: any other changed color, edge or
+  darker than the body; **Close** is the skin's flat button (a dark fill inside a 1px edge) instead of
+  Blizzard's red stone button; the title sits 2px higher, on the band's middle (FS-WG-FIX, cause L9);
+  and the teleport icon wears a 2px black edge (FS-WG-FIX, cause A1). Fail: any other changed color, edge or
   spacing, a label in a different gold from the "WhatGroup" span, a string still in Friz Quadrata
   or in the retired Oxanium, an outlined string, or text clipped or overlapping because the
-  face is wider. Result: Owner reported pass, 2026-10-31
+  face is wider. Result:
 - **SKIN-2. The Skin tab (WG-01).** `/wg config` → General → the strip reads **Master controls |
   Notifications | Skin | Keybindings**. **Skin** → a **Skin source** heading over *Ka0s skins* (on)
   and *EllesmereUI* (disabled with a line saying why, unless EllesmereUI is loaded and can skin this
@@ -866,12 +868,13 @@ Default is SKIN-1's list and nothing else.
   settings panel, a title-bar label that ignores Ignore fonts, or the Diagnostics link's click area
   not matching its text. Result: Owner reported pass, 2026-10-31
 - **SKIN-10. What stays Blizzard's (inventory § Exceptions; X7).** Under **High Contrast** and
-  **Azeroth** → the teleport icon (no new edge round it, desaturated at 50% when not ready), its
-  cooldown swipe, its spell tooltip, the *Reset all settings* confirmation, the minimap button, its
-  hover tooltip and its right-click menu all look as they did before the run. The chat summary is
+  **Azeroth** → the teleport icon's art (desaturated at 50% when not ready), its cooldown swipe, its
+  spell tooltip, the *Reset all settings* confirmation, the minimap button, the frame of its hover
+  tooltip and its right-click menu all look as they did before the run. The chat summary is
   unchanged too: the cyan `[WG]` tag, the gold row labels, the green details link and the yellow
-  command words in help text. Fail: any of these recolored, or a frame drawn round the teleport
-  icon. Result: pass (owner-marked 2026-10-30)
+  command words in help text. The icon's edge (SKIN-32) and the hover tooltip's lines (SKIN-33) are
+  no longer on this list: since LibKa0s v1.85.0 both follow the skin. Fail: any of these recolored.
+  Result:
 - **SKIN-11. EllesmereUI on (WG-01; LibKa0s's EllesmereUI provider).** With EllesmereUI loaded, its
   third-party skinning on and WhatGroup on in its Third-Party list → Skin → **Skin source** offers
   **EllesmereUI**; choosing it repaints the popup (`/wg test`) in EllesmereUI's look, live; the
@@ -1014,6 +1017,27 @@ Default is SKIN-1's list and nothing else.
   skinned the same way. Fail: a plain Blizzard-looking pull-out on either row, or a Lua error on open.
   Result:
 
+- **SKIN-32. The title bar and the icon's edge (FS-WG-FIX; causes L9, A1).** `/wg test`, on a mapped
+  dungeon so the teleport icon shows, then pick each skin → the title stays on the middle of its
+  band, one band with no darker strip along its top, and the divider and the first row stay where
+  they were. The icon's edge is black and follows the skin's size: 1px on Obsidian, Glass and WoW
+  Forever, 2px on Azeroth, High Contrast, Ember, WoW Midnight and Ka0s Default, and the client's
+  tooltip edge on WoW Default. Then on a learned teleport: the edge dims with the icon at 50% when
+  not ready, hides with the button when no spell maps, and the icon's tooltip and click still work
+  through it. In combat, `/wg set skin.skin obsidian` → the edge changes at once, with no
+  `ADDON_ACTION_BLOCKED`. Fail: a darker double band, a title off the middle, an edge left behind
+  when the icon hides, a click the edge eats, or a blocked-action error. Result:
+- **SKIN-33. What the re-vendor brought (LibKa0s v1.85.0).** Under **High Contrast**, hover the minimap
+  button → the tooltip's title, lines and status words take the skin's tooltip colors; under Ka0s
+  Default they look as before. `/wg debug` → the console's title bar is 30 high, 4px taller than it
+  was, its labels on the middle, and its **Copy** window's bar matches. Clear **Ignore settings
+  panel** on a non-default skin → on General, a section heading keeps the skin's face, a row's
+  tooltip body takes the skin's tooltip color, the scroll bar's step arrows are the Ka0s chevrons in
+  the skin's tint, the landing page's slash command rows take the skin's colors; on **Profiles**, the
+  delete confirmation wears the skin. Tick the row again → all of that is stock, and another addon's
+  delete confirmation stays stock throughout. Fail: a stock mark or a Blizzard arrow beside a skinned
+  control with the Scope cleared, or a skinned box for another addon. Result:
+
 ## Library-absent install
 
 Quit the game and rename `Interface/AddOns/WhatGroup/libs/LibKa0s` to `libs/LibKa0s.off` first,
@@ -1134,3 +1158,7 @@ SLASH-1, SKIN-1, SKIN-2, SKIN-5, SKIN-6, SKIN-9, SKIN-17 and SKIN-25 to SKIN-30,
 Owed from the findings remediation (Ka0sAddonsCommonTasks `docs/2026-10-31-FINDINGS_REMEDIATION/`,
 items FX-WG-PERF and FX-WG-SIZE, 2026-10-31): the new POPUP-11, POPUP-12 and LAUNCH-20; and from its
 M3-MEDIA item, 2026-11-01: the new SKIN-31.
+
+Owed from the full skinning run (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/`, items FS-WG-RV
+and FS-WG-FIX, LibKa0s v1.85.0, 2026-11-01): the new SKIN-32 and SKIN-33, and SKIN-1 and SKIN-10,
+whose expected results changed and which lost their owner pass marks.
