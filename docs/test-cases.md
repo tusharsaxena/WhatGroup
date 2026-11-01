@@ -627,7 +627,7 @@ Total.
 - layers: the owed Hide at combat end leaves the controls ready for the next show
 - layers: no SetFrameStrata literal and no absolute SetFrameLevel in core, modules or settings
 
-### test_frame_skin.lua (20)
+### test_frame_skin.lua (23)
 
 - popup skin: the title's brand span reads wg.brand, FFD700 byte for byte on Ka0s Default
 - popup skin: every field label is painted in wg.label, with no inline color
@@ -648,6 +648,9 @@ Total.
 - popup skin: a switch while stood down queues no anchor; the stand-up re-anchors
 - popup skin: a switch before the popup exists builds nothing
 - popup skin: the degraded popup keeps its 30px bar and centered title, with no edge
+- popup skin: the degraded S.HudFont draws: a face, a size and the From skin flags
+- popup skin: the degraded S.HudFont clears the shadow on its off arm
+- popup skin: the degraded S.MarkText answers a string a caller can concatenate
 - popup skin: the degraded facade paints a token name with that token's color
 
 ### test_skin_literals.lua (3)
@@ -1221,7 +1224,7 @@ Total.
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_frame_layers.lua | 8 |
-| test_frame_skin.lua | 20 |
+| test_frame_skin.lua | 23 |
 | test_skin_literals.lua | 3 |
 | test_panel.lua | 62 |
 | test_skinsetup.lua | 17 |
@@ -1251,4 +1254,4 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | Skipped | 1 |
-| **Total** | **1053** |
+| **Total** | **1056** |

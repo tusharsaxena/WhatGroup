@@ -257,6 +257,13 @@ test("popup skin: the divider and the content hang off the bar, at today's offse
     assertEqual(relativePoint, "BOTTOMLEFT")
     assertEqual(x, 14)
     assertEqual(y, 0)
+    -- The far end too: one end left on the window, and a taller title.height tilts the line.
+    point, relativeTo, relativePoint, x, y = f.divider:GetPoint(2)
+    assertEqual(point, "TOPRIGHT")
+    assertTrue(relativeTo == bar, "both of the divider's ends follow the bar")
+    assertEqual(relativePoint, "BOTTOMRIGHT")
+    assertEqual(x, -14)
+    assertEqual(y, 0)
     local content
     for _, kid in ipairs(mock.frames) do
         if #kid.__fontStrings >= 14 then content = kid end
@@ -416,8 +423,52 @@ test("popup skin: the degraded popup keeps its 30px bar and centered title, with
     NS.addon:ShowFrame()
     local f, bar = popup(mock), F.dragHandle(mock)
     assertEqual(bar:GetHeight(), 30)
-    assertEqual((f.title:GetPoint(1)), "CENTER")
+    local point, _, _, x, y = f.title:GetPoint(1)
+    assertEqual(point, "CENTER")
+    assertEqual(x, 0)
+    assertEqual(y, 0, "the host's S.TitleBar never places the text, so the build anchor is what draws")
     assertEqual(colorOf(f.title), rgb(1, 0.82, 0), "title.text from the host copy")
+end)
+
+-- A string that records the three calls S.HudFont owes it.
+local function recordingString()
+    local fs = {}
+    function fs.SetFont(_, face, size, flags) fs.font = { face, size, flags } end
+    function fs.SetShadowColor(_, _, _, _, a) fs.shadowAlpha = a end
+    function fs.SetShadowOffset(_, x, y) fs.shadowOffset = { x, y } end
+    return fs
+end
+
+test("popup skin: the degraded S.HudFont draws: a face, a size and the From skin flags", function()
+    -- The Options document's Moving-to, step 7: the one member that must draw, or a string has no face.
+    -- red under: a no-op stub, or opts.flags handed to SetFont without S.FontFlags ("@skin" as flags).
+    local degraded, env = T.newAddon{ skip = T.loadAddon.libFiles }
+    local fs = recordingString()
+    degraded.Skin.HudFont(fs, { flags = degraded.Skin.FROM_SKIN, shadow = true })
+    assertTrue(fs.font ~= nil, "S.HudFont set no font")
+    assertEqual(fs.font[1], env.STANDARD_TEXT_FONT)
+    assertEqual(fs.font[2], 12)
+    assertEqual(fs.font[3], "OUTLINE")
+    assertEqual(fs.shadowAlpha, 1)
+    assertEqual(fs.shadowOffset[1], 1)
+    assertEqual(fs.shadowOffset[2], -1)
+end)
+
+test("popup skin: the degraded S.HudFont clears the shadow on its off arm", function()
+    -- red under: a stub that writes the on arm only, which leaves a reused string's shadow standing.
+    local degraded = T.newAddon{ skip = T.loadAddon.libFiles }
+    local fs = recordingString()
+    degraded.Skin.HudFont(fs, {})
+    assertEqual(fs.shadowAlpha, 0)
+    assertEqual(fs.shadowOffset[1], 0)
+    assertEqual(fs.shadowOffset[2], 0)
+end)
+
+test("popup skin: the degraded S.MarkText answers a string a caller can concatenate", function()
+    -- red under: a stub answering nil, which a caller's `..` raises on.
+    local degraded = T.newAddon{ skip = T.loadAddon.libFiles }
+    assertEqual(degraded.Skin.MarkText("x\\y", 16), "|Tx\\y:16:16|t")
+    assertEqual(degraded.Skin.MarkText("x\\y"), "|Tx\\y:14:14|t")
 end)
 
 test("popup skin: the degraded facade paints a token name with that token's color", function()
