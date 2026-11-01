@@ -129,6 +129,25 @@ Kit.diagnostics = {
     reset       = function() diagNS = enableAddon() end,
 }
 
+-- The typed-value gate (kit revision 50, anti-pattern #107): no typed color or texture the skin
+-- cannot reach. Every category tests/test_skin_literals.lua's allow-list named is the kit's now; a
+-- row here is what is left of this addon's own, { file, substring, why, cause }.
+Kit.skinValues = {
+    rows = {
+        { file = "core/WhatGroup.lua", substring = "|cff71d5ff",
+          why = "the chat summary's spell-link fallback, the client's spell-link blue: chat is not a "
+              .. "skinned surface", cause = "L13" },
+        { file = "core/WhatGroup.lua", substring = '" |cff888888"',
+          why = "the chat summary's teleport tag: chat is not a skinned surface", cause = "L13" },
+        { file = "modules/Frame.lua", substring = "local GRAY",
+          why = "the test-mode refusal's chat line: chat is not a skinned surface", cause = "L13" },
+    },
+}
+
+-- The skin-switch test (kit revision 50, skinning-§1): the painted surfaces tests/skin_surfaces.lua
+-- declares, on one instance of their own.
+Kit.skinSwitch = dofile("tests/skin_surfaces.lua")(enableAddon)
+
 -- Order is load-order-sensitive; keep it stable.
 --
 -- What holds this list honest is `Kit.assertSuiteInventory` (tests/_kit/framework.lua), which
@@ -169,8 +188,6 @@ Kit.run{
         -- The popup's look on the skin (modules/FrameSkin.lua, WG-02): tokens, live repaint, the
         -- secure button's re-anchor.
         "test_frame_skin",
-        -- The hard-coded color gate (anti-pattern #107): no literal the skin cannot reach.
-        "test_skin_literals",
         "test_panel",
         -- The skin seam (core/SkinSetup.lua, skinning-§1 to §3): the owner, its tokens, the skin
         -- rows, the Skin tab's place, the profile events and the degraded arm.
@@ -222,5 +239,9 @@ Kit.run{
         -- The sighted complexity shadow (automated-tests-§3), new in kit revision 35: pins the
         -- sanitizer the runner's complexity suite measures through, and the parity check.
         { name = "test_lizard_sighted", dir = "tests/_kit/" },
+        -- Kit revision 50's skin gates (skinning-§1): the typed-value gate and the probe-skin switch
+        -- test, run against Kit.skinValues and Kit.skinSwitch above.
+        { name = "test_skin_values", dir = "tests/_kit/" },
+        { name = "test_skin_switch", dir = "tests/_kit/" },
     },
 }

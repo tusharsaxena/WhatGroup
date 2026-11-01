@@ -17,8 +17,10 @@ local _, NS = ...
 --                        placed by `title.align`. The bar paints the band, so the window's Shell
 --                        is re-run with `noTopBar`: two bands would draw `title.bg`'s alpha twice.
 --                        S.TitleBar and S.Shell are recorded, so a switch redoes both.
---   IconEdge(frame)      the skin's icon border family (`icon.border`, `icon.borderStyle`,
---                        `icon.borderSize`) on a plain frame over the teleport icon.
+--   IconEdge(texture)    the skin's icon border family (`icon.border`, `icon.borderStyle`,
+--                        `icon.borderSize`) on the teleport icon's Texture. The library hangs the
+--                        edge on a plain child of the Texture's parent, so the secure button is
+--                        never written to (SkinPaintControls minor 15).
 --   Button(btn)          the skin's push button (the Close button). Called after its OnClick is
 --                        set: the primitive HookScripts its hover pair.
 --   Attach(parts)        hands over the popup's frame, title, Teleport label and secure button,
@@ -80,7 +82,7 @@ function FrameSkin.TitleBar(f, bar, fs)
     NS.Skin.TitleBar(bar, { text = fs, place = true })
 end
 
-function FrameSkin.IconEdge(frame) NS.Skin.IconBorder(frame, { fromSkin = true }) end
+function FrameSkin.IconEdge(texture) NS.Skin.IconBorder(texture, { fromSkin = true }) end
 
 function FrameSkin.Button(btn) NS.Skin.Button(btn) end
 

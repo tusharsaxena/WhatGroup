@@ -34,6 +34,7 @@ What stays this addon's is what is genuinely per-addon:
 | `tests/wow_mock.lua` | a thin **extender** over `mock_base`, never a replacement |
 | `tests/test_*.lua` | the suites |
 | `tests/frame_fixture.lua` | the popup helpers `test_frame` and `test_frame_visibility` both use: a pending capture, the popup and its Close button, the drag handle, the ESC proxy and a simulated Escape. Not a suite; each of the two `dofile`s it |
+| `tests/skin_surfaces.lua` | this addon's painted surfaces for the kit's skin-switch test: `tests/run.lua` sets `Kit.skinSwitch` from it; not a suite |
 | `tests/prose_waivers.lua` | the kit prose gate's per-file, per-word waivers: tokens this repo does not own (Blizzard's LFG status, AceTimer's field name) |
 
 `tests/loader.lua` derives the addon's own load list **from the TOC**
@@ -59,18 +60,20 @@ label like **Enable WhatGroup** honest about which addon it is turning off.
 The suites, in run order: `test_harness`, `test_libka0s`,
 `test_surface_parity`, `test_mediasetup`, `test_envsetup`, `test_util`,
 `test_compat`, `test_database`, `test_settings`, `test_slash`, `test_labels`,
-`test_capture`, `test_notify`, `test_frame`, `test_frame_visibility`, `test_frame_secure`, `test_frame_layers`, `test_frame_skin`, `test_skin_literals`, `test_panel`, `test_skinsetup`, `test_skin_outline`, `test_skin_picker`, `test_skin_verb`, `test_skin_tools`, `test_profiles`, `test_testmode`,
+`test_capture`, `test_notify`, `test_frame`, `test_frame_visibility`, `test_frame_secure`, `test_frame_layers`, `test_frame_skin`, `test_panel`, `test_skinsetup`, `test_skin_outline`, `test_skin_picker`, `test_skin_verb`, `test_skin_tools`, `test_profiles`, `test_testmode`,
 `test_snapshot`, `test_diagnostics`, `test_launcher`, `test_keybinds`, `test_lifecycle`,
 `test_debuglog`, `test_library_lines`, `test_docmap`, `test_lintconfig`, `test_doc_structure`,
-`test_register`, `test_disabled`, `test_vendor_sync`, `test_glyphs`. Five more run last and arrive with the
+`test_register`, `test_disabled`, `test_vendor_sync`, `test_glyphs`. Seven more run last and arrive with the
 vendored kit rather than living in `tests/`, each declared by the pair form
 `{ name = ..., dir = "tests/_kit/" }` (testing-§9): `test_eol` (line-endings-§7), `test_prose`
 (localization-§5, reading this repo's per-file, per-word waivers from `tests/prose_waivers.lua`),
 `test_layout_cap` (layout-§1, holding the census in `docs/ARCHITECTURE.md` to the tree),
 `test_diagnostics_contract` (debug-logging-§14, run against this addon's own dispatcher through
 `Kit.diagnostics` in `tests/run.lua`, down to the run turning logging on for the session;
-`test_diagnostics` holds the report's sections) and `test_lizard_sighted` (automated-tests-§3, the
-cases behind the sighted complexity shadow `run-automated-tests.sh` builds).
+`test_diagnostics` holds the report's sections), `test_lizard_sighted` (automated-tests-§3, the
+cases behind the sighted complexity shadow `run-automated-tests.sh` builds), and `test_skin_values`
+and `test_skin_switch` (skinning-§1, run against `Kit.skinValues` and `Kit.skinSwitch` in
+`tests/run.lua`, the second over the surfaces `tests/skin_surfaces.lua` declares).
 
 `test_libka0s` is the integration suite for the adopted LibKa0s majors: that
 each really registers, that each descriptor is well-formed, that the degraded

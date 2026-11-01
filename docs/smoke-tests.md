@@ -1020,9 +1020,10 @@ Default is SKIN-1's list and nothing else.
 - **SKIN-32. The title bar and the icon's edge (FS-WG-FIX; causes L9, A1).** `/wg test`, on a mapped
   dungeon so the teleport icon shows, then pick each skin → the title stays on the middle of its
   band, one band with no darker strip along its top, and the divider and the first row stay where
-  they were. The icon's edge is black and follows the skin's size: 1px on Obsidian, Glass and WoW
-  Forever, 2px on Azeroth, High Contrast, Ember, WoW Midnight and Ka0s Default, and the client's
-  tooltip edge on WoW Default. Then on a learned teleport: the edge dims with the icon at 50% when
+  they were. The icon's edge takes the skin's own color and size (rulings of 2026-11-01): 1px on
+  Obsidian, Glass and WoW Forever, 2px on Azeroth, High Contrast, Ember and WoW Midnight, each in a
+  color of its palette and none of them black, the client's tooltip edge on WoW Default, and black
+  2px on Ka0s Default, as before. Then on a learned teleport: the edge dims with the icon at 50% when
   not ready, hides with the button when no spell maps, and the icon's tooltip and click still work
   through it. In combat, `/wg set skin.skin obsidian` → the edge changes at once, with no
   `ADDON_ACTION_BLOCKED`. Fail: a darker double band, a title off the middle, an edge left behind
@@ -1161,4 +1162,6 @@ M3-MEDIA item, 2026-11-01: the new SKIN-31.
 
 Owed from the full skinning run (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/`, items FS-WG-RV
 and FS-WG-FIX, LibKa0s v1.85.0, 2026-11-01): the new SKIN-32 and SKIN-33, and SKIN-1 and SKIN-10,
-whose expected results changed and which lost their owner pass marks.
+whose expected results changed and which lost their owner pass marks. FS-WG-GATE (the re-cut tag's
+per-skin values and `S.IconBorder` on the icon's Texture) moved SKIN-32's expected edge, a check
+still owed, so no pass mark moved. This addon draws no bar, glow or cover, so no other check changed.

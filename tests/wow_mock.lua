@@ -334,6 +334,8 @@ local function build()
         end
         api.CreateTexture = function(_, texName, _layer)
             local tex = stubFrame("Texture", texName)
+            -- Modeled, not caught: S.IconBorder on a Texture hangs its edge on this parent.
+            tex.GetParent = function() return f end
             f.__textures[#f.__textures + 1] = tex
             mock.textures[#mock.textures + 1] = tex
             return tex

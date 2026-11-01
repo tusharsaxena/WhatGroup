@@ -295,27 +295,29 @@ end)
 
 -- ── the teleport icon's border (cause A1) ─────────────────────────────────────────────────────
 
---- The plain frame that carries the icon's edge: the one frame recorded with IconBorder.
+--- The icon's Texture, the one region recorded with IconBorder, and the library's record of it.
 local function iconEdge(mock)
-    for _, kid in ipairs(mock.frames) do
-        local rec = skinLib(mock).painted[kid]
-        if rec and rec.calls.IconBorder then return kid, rec end
+    for _, tex in ipairs(mock.textures) do
+        local rec = skinLib(mock).painted[tex]
+        if rec and rec.calls.IconBorder then return tex, rec end
     end
 end
 
-test("popup skin: the teleport icon wears the skin's icon border, on a plain frame", function()
+test("popup skin: the teleport icon wears the skin's icon border, on its Texture", function()
     -- red under: the bare 24px texture (no IconBorder), a flat 1px edge with no fromSkin, or the
-    -- library handed the secure button itself, whose holder a nine-slice skin re-anchors.
+    -- library handed the secure button itself, which a skin switch would write to in combat.
     local NS, _, mock = T.bootAddon()
     NS.TeleportSpells[2652] = 445269
     NS.addon.pendingInfo = pending({ mapID = 2652 })
     NS.addon:ShowFrame()
-    local edge, rec = iconEdge(mock)
-    assertTrue(edge ~= nil, "nothing drew the icon's border")
+    local icon, rec = iconEdge(mock)
+    assertTrue(icon ~= nil, "nothing drew the icon's border")
     assertEqual(rec.owner, OWNER)
     assertTrue(rec.calls.IconBorder[1].fromSkin == true, "the skin's family, not a flat 1px")
-    assertTrue(edge ~= teleportBtn(mock), "the secure button is not the library's to touch")
-    assertTrue(edge.__parent == teleportBtn(mock), "a child, so it shows and dims with the button")
+    assertEqual(icon, teleportBtn(mock).__textures[1], "the icon's own Texture, not the secure button")
+    assertTrue(skinLib(mock).painted[teleportBtn(mock)] == nil, "nothing recorded on the secure button")
+    local holder = rec.regions.holder
+    assertTrue(holder.__parent == teleportBtn(mock), "a child, so it shows and dims with the button")
     assertEqual(rec.regions.edgeLeft:GetWidth(), NS.Skin.Token("icon.borderSize"))
     assertEqual(NS.Skin.Token("icon.borderSize"), 2, "Ka0s Default's Solid 2px")
 end)
@@ -452,6 +454,16 @@ test("popup skin: the degraded S.HudFont draws: a face, a size and the From skin
     assertEqual(fs.shadowAlpha, 1)
     assertEqual(fs.shadowOffset[1], 1)
     assertEqual(fs.shadowOffset[2], -1)
+end)
+
+test("popup skin: the degraded S.BarBorder answers its stored three, and S.HoverArt draws nothing", function()
+    -- red under: a no-op BarBorder, which would lose a future bar's border with the library absent.
+    local degraded = T.newAddon{ skip = T.loadAddon.libFiles }
+    local style, show, size = degraded.Skin.BarBorder("Solid", true, 2, true)
+    assertEqual(style, "Solid")
+    assertEqual(show, true)
+    assertEqual(size, 2)
+    assertEqual(degraded.Skin.HoverArt({}), nil)
 end)
 
 test("popup skin: the degraded S.HudFont clears the shadow on its off arm", function()

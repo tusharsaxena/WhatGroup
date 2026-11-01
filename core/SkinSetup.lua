@@ -367,8 +367,8 @@ if not Skin then
         "Tooltip", "Strip", "Cover", "Text", "ChartStyle", "BarStyle", "IconBorder", "GlowColor",
         "BarTexture", "FontFlags", "HudFontSize", "Mark",
         -- LibKa0s v1.85.0: nil is each getter's degraded answer, and this addon has no HUD to read
-        -- them. BarGloss draws nothing: no skin, no gloss.
-        "HudTextColor", "HudLabelColor", "BarFillColor", "HudShadow", "BarGloss",
+        -- them. BarGloss and HoverArt draw nothing: no skin, no gloss and no hover art.
+        "HudTextColor", "HudLabelColor", "BarFillColor", "HudShadow", "BarGloss", "HoverArt",
     }) do S[name] = noop end
 
     S.Token = function(name) return NS.SKIN_FALLBACK[name] end
@@ -434,6 +434,9 @@ if not Skin then
         fs:SetShadowColor(0, 0, 0, on and 1 or 0)
         fs:SetShadowOffset(on and 1 or 0, on and -1 or 0)
     end
+    -- The re-cut v1.85.0 (SkinPaintExtras minor 16): with no skin the stored border stands, so the
+    -- stub answers its first three arguments. No caller here (no bar); it keeps the facade whole.
+    S.BarBorder = function(style, show, size) return style, show, size end
 
     NS.Skin = S
     function NS.ApplySkinChoice() return false, false end

@@ -138,12 +138,10 @@ function FrameLayout.Build(f, dismissPopup)
     local teleportIcon = teleportBtn:CreateTexture(nil, "ARTWORK")
     teleportIcon:SetAllPoints()
 
-    -- The icon's edge is the skin's (S.IconBorder), on a plain child and never on the secure button:
-    -- a skin switch repaints in combat, and a nine-slice skin re-anchors the holder against whatever
-    -- it was handed. A child shows, hides and dims with the button, and takes no mouse.
-    local teleportEdge = CreateFrame("Frame", nil, teleportBtn)
-    teleportEdge:SetAllPoints()
-    Look.IconEdge(teleportEdge)
+    -- The icon's edge is the skin's (S.IconBorder), handed the Texture and never the secure button:
+    -- a skin switch repaints in combat, so the library draws on a plain child it makes, which shows,
+    -- hides and dims with the button and takes no mouse.
+    Look.IconEdge(teleportIcon)
 
     -- The swipe has no Lua-side repeat: the Cooldown widget animates engine-side once armed, so it
     -- costs the addon no OnUpdate and no timer of its own. The note's countdown beside the button

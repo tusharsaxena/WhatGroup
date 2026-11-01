@@ -323,7 +323,7 @@ surface carries a typed look value.
   addonName)` (the skin's Shell: body, edge, divider, title color), the title bar through
   `S.TitleBar` with `place` (`title.bg`, `title.height`, `title.align`; the Shell then runs with
   `noTopBar`, so the band draws once), the teleport icon's edge through `S.IconBorder` with
-  `fromSkin` on a plain child of the secure button, the labels in `wg.label`, the values in `text.highlight`, the placeholders and the teleport note in
+  `fromSkin` on the icon's Texture, which the library hangs on a plain child of the secure button, the labels in `wg.label`, the values in `text.highlight`, the placeholders and the teleport note in
   `wg.placeholder`, and **Close** as the skin's `Button` (the flat control under Ka0s Default too,
   inventory D4). Its `OnLooksChanged` hook does the two things the library cannot replay: it re-sets
   the title, whose "WhatGroup" span is a `NS.SkinEscape("wg.brand")` escape, and it re-anchors the
@@ -361,12 +361,12 @@ surface carries a typed look value.
   entry. With source `eui` and its gate holding, EllesmereUI paints the vocabulary it has; otherwise
   the addon wears its Ka0s skin and the Skin tab names the failing condition. Ka0s to EllesmereUI
   applies live; EllesmereUI back to Ka0s asks for a reload.
-- **The color gate.** `tests/test_skin_literals.lua` fails on a numeric literal in a color position of
-  `SetTextColor`, `SetColorTexture`, `SetVertexColor`, `SetBackdropColor`, `SetBackdropBorderColor`,
-  `AddLine` and `AddDoubleLine`, and on any `|cff` escape, in every file under `core/`, `modules/`
-  and `settings/` outside `core/SkinSetup.lua`. Its allow-list is **chat output** only, each entry
-  with its reason: chat is not a skinned surface (the rollout's X7, inventory D6), so the cyan `[WG]`
-  prefix, the chat summary's gold labels and link colors and the command highlights stay as they are.
+- **The gates.** The kit's `tests/_kit/test_skin_values.lua` (kit revision 50, anti-pattern #107)
+  fails on a typed color or texture outside its categories and the rows in `tests/run.lua`, each
+  naming a cause. Those rows are **chat output** only (cause L13): chat is not a skinned surface, so
+  the chat summary's spell-link fallback and teleport tag and the test-mode refusal stay as they are.
+  Its `tests/_kit/test_skin_switch.lua` fails a surface `tests/skin_surfaces.lua` declares that does
+  not change under a probe skin.
 - **What stays Blizzard's** (skinning-§7): the secure teleport button and its spell icon (no edge is
   added to a protected frame, D5), the cooldown swipe, the spell tooltip, the StaticPopups, the
   launcher's menu and the LibDBIcon button, and the `SettingsPanel` chrome. The library-absent path
