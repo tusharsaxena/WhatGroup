@@ -23,13 +23,16 @@ local VENDORED = "Interface\\AddOns\\WhatGroup\\libs\\LibKa0s\\media\\"
 --          addonName; and NS.MakeCloseButton (core/CoreSetup.lua), which has no caller today.
 --   copy   the debug console's title bar (libs/LibKa0s/DebugLog.lua, makeIconButton "copy").
 --   clear  the debug console's title bar (libs/LibKa0s/DebugLog.lua, makeIconButton "clear").
--- Not here: info, drawn only by an Options id list's help mark, and this addon builds no id list
--- (tests/test_libka0s.lua holds that line).
+--   chevron-down, chevron-up, confirm, info, move, reset, volume-high  the library's marks beside
+--          skinned controls, owed by every host with a list (LibKa0s v1.85.0, docs/releasing.md,
+--          VendorSync.LIBRARY_MARKS, kit revision 49). This addon wires few of them today; the
+--          vendor gate holds the line all the same. `close` is the eighth.
 --   eye, settings  the first-run skin picker's preview eye and settings gear (LibKa0s v1.79.0,
 --          OptionsSkinPicker minor 1), each read through the owner's Media.Icon. Declared at the
 --          re-vendor (WG-RV) so one prune covers the picker WG-04 shows; the eye because the popup's
 --          test mode is something to preview in (skinning rollout X6).
-local LIBRARY_DRAWN = { "clear", "close", "copy", "eye", "settings" }
+local LIBRARY_DRAWN = { "chevron-down", "chevron-up", "clear", "close", "confirm", "copy", "eye", "info",
+    "move", "reset", "settings", "volume-high" }
 
 -- The library files that ARE the payload, for the degraded case. Core.lua absent means every other
 -- major returns before LibStub:NewLibrary too, which makes this the whole-library-missing scenario
