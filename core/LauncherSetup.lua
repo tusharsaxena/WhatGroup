@@ -151,6 +151,7 @@ NS.Launcher = lib:New({
     -- ENABLED. The latch, not `db.profile.enabled`, so the perf hold and the disabled hold give the
     -- menu, the tooltip and the CLI one answer (slash-commands-§7). While it answers false the
     -- library grays the other three entries. setEnabled is `/wg enable` / `/wg disable`'s body.
+    openSkinPicker = function() if NS.RunSkinVerb then NS.RunSkinVerb() end end,
     isEnabled  = function() return not NS.IsStoodDown() end,
     setEnabled = function(on) NS.addon:SlashEnabled(on) end,
 

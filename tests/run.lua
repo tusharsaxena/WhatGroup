@@ -206,6 +206,7 @@ Kit.run{
         "test_snapshot",
         "test_diagnostics",
         "test_launcher",
+        "test_launcher_skin_entry",
         "test_keybinds",
         "test_lifecycle",
         "test_debuglog",
