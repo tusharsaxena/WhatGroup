@@ -642,7 +642,7 @@ Total.
 - popup skin: the divider and the content hang off the bar, at today's offsets
 - popup skin: one title band: the bar paints it and the Shell's top bar stays off
 - popup skin: the teleport icon wears the skin's icon border, on its Texture
-- popup skin: a skin switch redraws the icon's border at the new skin's size, in combat too
+- popup skin: a skin switch redraws the icon's border, 1 px in every skin, in combat too
 - popup skin: a skin switch re-anchors the teleport button beside its moved label
 - popup skin: in combat the re-anchor waits for combat end, then lands
 - popup skin: a switch while stood down queues no anchor; the stand-up re-anchors

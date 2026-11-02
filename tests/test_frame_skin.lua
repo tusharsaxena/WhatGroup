@@ -318,13 +318,13 @@ test("popup skin: the teleport icon wears the skin's icon border, on its Texture
     assertTrue(skinLib(mock).painted[teleportBtn(mock)] == nil, "nothing recorded on the secure button")
     local holder = rec.regions.holder
     assertTrue(holder.__parent == teleportBtn(mock), "a child, so it shows and dims with the button")
-    assertEqual(rec.regions.edgeLeft:GetWidth(), NS.Skin.Token("icon.borderSize"))
-    assertEqual(NS.Skin.Token("icon.borderSize"), 2, "Ka0s Default's Solid 2px")
+    -- LibKa0s R3-L3: 1 px in every skin, though Ka0s Default's icon.borderSize is 2.
+    assertEqual(rec.regions.edgeLeft:GetWidth(), 1, "the 1 px outline")
 end)
 
-test("popup skin: a skin switch redraws the icon's border at the new skin's size, in combat too", function()
+test("popup skin: a skin switch redraws the icon's border, 1 px in every skin, in combat too", function()
     -- red under: an edge drawn once at build, or a repaint that reaches the secure button in combat.
-    -- obsidian's edge is 1px to Ka0s Default's 2 (SkinDefsOthers ICON_EDGE). The spy is on the
+    -- The edge is 1 px in every skin since LibKa0s R3-L3; a switch still rewrites it. The spy is on the
     -- setter, which the width getter alone could not tell from a stale read.
     local NS, _, mock = T.bootAddon()
     NS.addon:ShowFrame()
@@ -341,7 +341,7 @@ test("popup skin: a skin switch redraws the icon's border at the new skin's size
     assertEqual(wrote[#wrote], 1, "obsidian's 1px edge drew")
     assertEqual(#mock.blocked, 0, "nothing protected was touched: " .. table.concat(mock.blocked, ", "))
     quietly(NS, function() NS.ApplySkinChoice("ka0s", "ka0s") end)
-    assertEqual(wrote[#wrote], 2, "and Ka0s Default's 2px again")
+    assertEqual(wrote[#wrote], 1, "and Ka0s Default's 1 px again (LibKa0s R3-L3: 1 px in every skin)")
 end)
 
 -- ── the secure teleport button's anchor (inventory R2) ───────────────────────────────────────
