@@ -26,7 +26,7 @@ number out of use rather than handing it to a new one.
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-20 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
-| SKIN-1 – SKIN-33 | [Skins](#skins) | Ka0s Default as before but for its face, title band, Close button and teleport icon edge; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws |
+| SKIN-1 – SKIN-34 | [Skins](#skins) | Ka0s Default as before but for its face, title band, Close button and teleport icon edge; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws; a stored pick of the deleted Friz |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
 | LOC-1 – LOC-6 | [Non-English client](#non-english-client) | A deDE or frFR client, and the `IsSpellKnown` readers |
 
@@ -837,12 +837,13 @@ Default is SKIN-1's list and nothing else.
   popup, title and labels alike, with no fallback squares: Ka0s Default **Prototype**, Obsidian
   **Expressway**, Azeroth **Open Sans Semibold** (its title Open Sans Bold), Glass **Avant Garde**, High Contrast
   **Doris PP**, Ember **Emblem**, WoW Midnight **Segoe UI Semibold** (its title Segoe UI Bold), WoW
-  Forever **Fira Sans Medium** (its title Fira Sans SemiBold), WoW Default **Ka0s Friz Quadrata TT**
-  (LibKa0s v1.83.0, D-01, D-06), which no longer looks like Ka0s Default whatever the client's own
-  Friz file holds. Ka0s Default, Obsidian, Glass, High Contrast, Ember and WoW Default draw one weight
+  Forever **Fira Sans Medium** (its title Fira Sans SemiBold), WoW Default **Ka0s Ubuntu**
+  (LibKa0s R3-L6; Ka0s Friz Quadrata TT from LibKa0s v1.83.0, D-01, D-06), which does not look like
+  Ka0s Default. Ka0s Default, Obsidian, Glass, High Contrast, Ember and WoW Default draw one weight
   for body and title, their titles differing by size; the others' titles are the family's heavier
   weight, never a different face. Obsidian's title is its primary button's blue. Fail: an empty square where a letter should be, two skins in the same face, or
-  Inter or Oxanium anywhere (both left the payload). Result: Owner reported pass, 2026-10-31
+  Inter or Oxanium anywhere (both left the payload). Fully restart the client first (a new font file).
+  Result: not run (re-opened by R3-FRIZ)
 - **SKIN-7. Window corners (WG-02).** Under **Azeroth**, **High Contrast** and **WoW Midnight**,
   `/wg test` and look at the popup's four corners → the edge runs unbroken round each one, and the
   title band sits inside it. Ka0s Default's 1px edge is where it was. Result: pass (owner-marked 2026-10-30)
@@ -1038,6 +1039,11 @@ Default is SKIN-1's list and nothing else.
   delete confirmation wears the skin. Tick the row again → all of that is stock, and another addon's
   delete confirmation stays stock throughout. Fail: a stock mark or a Blizzard arrow beside a skinned
   control with the Scope cleared, or a skinned box for another addon. Result:
+- **SKIN-34. A stored pick of the deleted Friz lands on Ka0s Ubuntu (R3-FRIZ, schema v2).** Before
+  updating, set the Skin tab's **Font** to *Ka0s Friz Quadrata TT* in two profiles and log out. Update and
+  fully restart the client (a new font file) → `/wg test`: the popup draws in Ubuntu and the Font row
+  reads *Ka0s Ubuntu*; switch to the other profile → the same. Fail: the game's default face, or the row
+  still naming Ka0s Friz Quadrata TT. Result: not run
 
 ## Library-absent install
 
@@ -1165,3 +1171,5 @@ and FS-WG-FIX, LibKa0s v1.85.0, 2026-11-01): the new SKIN-32 and SKIN-33, and SK
 whose expected results changed and which lost their owner pass marks. FS-WG-GATE (the re-cut tag's
 per-skin values and `S.IconBorder` on the icon's Texture) moved SKIN-32's expected edge, a check
 still owed, so no pass mark moved. This addon draws no bar, glow or cover, so no other check changed.
+
+The owner's third smoke round (Ka0sAddonsCommonTasks `docs/2026-11-02-SMOKE_ROUND3/`, R3-FRIZ) adds SKIN-34 and re-opens SKIN-6, whose WoW Default face is now Ka0s Ubuntu; its pass mark came off.

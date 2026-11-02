@@ -214,9 +214,9 @@ Total.
 - compat: GetSpellTexture hands back one value when the client answers two
 - compat degraded: with LibKa0s absent the spell readers answer the library's absent values
 
-### test_database.lua (11)
+### test_database.lua (12)
 
-- database: fresh DB lands at schemaVersion 1
+- database: fresh DB lands at schemaVersion 2
 - database: RunMigrations is idempotent
 - database: RunMigrations re-seeds a missing schemaVersion
 - database: defaults declare global.schemaVersion 0 (savedvariables-§1)
@@ -227,6 +227,7 @@ Total.
 - database: a version move is logged, a no-op migration is silent (debug-logging-§8)
 - database: migrations run before any profile read (OnInitialize order)
 - database: the profile is untouched by a migration pass
+- database: a stored pick of Ka0s Friz Quadrata TT moves to Ka0s Ubuntu, in every profile (R3-FRIZ)
 
 ### test_settings.lua (60)
 
@@ -926,6 +927,10 @@ Total.
 - launcher: the row still stores with no broker library at all
 - launcher: with LibKa0s absent the seam answers honestly and the store still moves
 
+### test_launcher_skin_entry.lua (1)
+
+- launcher descriptor passes openSkinPicker, which runs the skin verb
+
 ### test_keybinds.lua (8)
 
 - keybinds: Bindings.xml files every binding in the addon's own category, labeled, brand-titled
@@ -1243,7 +1248,7 @@ Total.
 | test_envsetup.lua | 10 |
 | test_util.lua | 31 |
 | test_compat.lua | 47 |
-| test_database.lua | 11 |
+| test_database.lua | 12 |
 | test_settings.lua | 60 |
 | test_slash.lua | 62 |
 | test_labels.lua | 40 |
@@ -1265,6 +1270,7 @@ Total.
 | test_snapshot.lua | 10 |
 | test_diagnostics.lua | 20 |
 | test_launcher.lua | 41 |
+| test_launcher_skin_entry.lua | 1 |
 | test_keybinds.lua | 8 |
 | test_lifecycle.lua | 46 |
 | test_debuglog.lua | 72 |
@@ -1284,4 +1290,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 25 |
 | Skipped | 1 |
-| **Total** | **1082** |
+| **Total** | **1084** |

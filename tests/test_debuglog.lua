@@ -451,8 +451,8 @@ test("debuglog: InitSummary leads with the debug-logging-§5 identity fields, th
     local NS = T.bootAddon()
     local s = NS.addon:InitSummary()
     -- Standard-mandated identity prefix (name/version/schema/profile) comes first.
-    assertEqual(s:sub(1, #("WhatGroup v" .. NS.addon.VERSION .. ", schema v1, profile 'Default'")),
-        "WhatGroup v" .. NS.addon.VERSION .. ", schema v1, profile 'Default'")
+    assertEqual(s:sub(1, #("WhatGroup v" .. NS.addon.VERSION .. ", schema v2, profile 'Default'")),
+        "WhatGroup v" .. NS.addon.VERSION .. ", schema v2, profile 'Default'")
     -- Runtime state appended on the same one line.
     for _, frag in ipairs({ "enabled=true", "notify.delay=0s", "autoShow=true",
                             "inGroup=false", "hasPending=false" }) do

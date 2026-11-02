@@ -86,7 +86,7 @@ test("lifecycle: OnInitialize builds the db from the schema defaults", function(
     local NS = T.bootAddon()
     assertTrue(NS.addon.db ~= nil)
     assertEqual(NS.addon.db.profile.enabled, true)
-    assertEqual(NS.addon.db.global.schemaVersion, 1)
+    assertEqual(NS.addon.db.global.schemaVersion, 2)
 end)
 
 test("lifecycle: OnInitialize registers both slash verbs", function()
