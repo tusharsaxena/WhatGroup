@@ -432,7 +432,7 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   `Teleport:` row with its button beside the label, and **Close**, each where it was. The title bar
   drags the popup, the teleport tooltip shows on hover, and **Close** closes it. Fail: a missing or
   shifted row, a button off its label, or a Lua error. (The title sits 2px higher since FS-WG-FIX:
-  SKIN-1.) Result:
+  SKIN-1.) Result: Passed (owner, 2026-11-02)
 - **POPUP-12. A repeated show keeps its colors (FX-WG-PERF).** A value now takes its color only when
   its token moves. `/wg show` with nothing captured → the rows read `No data` in gray. `/wg test
   notify` → the same rows read white, with no gray left on any row that has data. With it open, pick
@@ -798,7 +798,7 @@ Default is SKIN-1's list and nothing else.
   and the teleport icon wears a 2px black edge (FS-WG-FIX, cause A1). Fail: any other changed color, edge or
   spacing, a label in a different gold from the "WhatGroup" span, a string still in Friz Quadrata
   or in the retired Oxanium, an outlined string, or text clipped or overlapping because the
-  face is wider. Result:
+  face is wider. Result: Passed (owner, 2026-11-02)
 - **SKIN-2. The Skin tab (WG-01).** `/wg config` → General → the strip reads **Master controls |
   Notifications | Skin | Keybindings**. **Skin** → a **Skin source** heading over *Ka0s skins* (on)
   and *EllesmereUI* (disabled with a line saying why, unless EllesmereUI is loaded and can skin this
@@ -875,7 +875,7 @@ Default is SKIN-1's list and nothing else.
   unchanged too: the cyan `[WG]` tag, the gold row labels, the green details link and the yellow
   command words in help text. The icon's edge (SKIN-32) and the hover tooltip's lines (SKIN-33) are
   no longer on this list: since LibKa0s v1.85.0 both follow the skin. Fail: any of these recolored.
-  Result:
+  Result: Passed (owner, 2026-11-02)
 - **SKIN-11. EllesmereUI on (WG-01; LibKa0s's EllesmereUI provider).** With EllesmereUI loaded, its
   third-party skinning on and WhatGroup on in its Third-Party list → Skin → **Skin source** offers
   **EllesmereUI**; choosing it repaints the popup (`/wg test`) in EllesmereUI's look, live; the
@@ -1028,7 +1028,7 @@ Default is SKIN-1's list and nothing else.
   not ready, hides with the button when no spell maps, and the icon's tooltip and click still work
   through it. In combat, `/wg set skin.skin obsidian` → the edge changes at once, with no
   `ADDON_ACTION_BLOCKED`. Fail: a darker double band, a title off the middle, an edge left behind
-  when the icon hides, a click the edge eats, or a blocked-action error. Result:
+  when the icon hides, a click the edge eats, or a blocked-action error. Result: Failed (owner, 2026-11-02): re-opened as R3-L3
 - **SKIN-33. What the re-vendor brought (LibKa0s v1.85.0).** Under **High Contrast**, hover the minimap
   button → the tooltip's title, lines and status words take the skin's tooltip colors; under Ka0s
   Default they look as before. `/wg debug` → the console's title bar is 30 high, 4px taller than it
@@ -1038,7 +1038,7 @@ Default is SKIN-1's list and nothing else.
   the skin's tint, the landing page's slash command rows take the skin's colors; on **Profiles**, the
   delete confirmation wears the skin. Tick the row again → all of that is stock, and another addon's
   delete confirmation stays stock throughout. Fail: a stock mark or a Blizzard arrow beside a skinned
-  control with the Scope cleared, or a skinned box for another addon. Result:
+  control with the Scope cleared, or a skinned box for another addon. Result: Passed (owner, 2026-11-02)
 - **SKIN-34. A stored pick of the deleted Friz lands on Ka0s Ubuntu (R3-FRIZ, schema v2).** Before
   updating, set the Skin tab's **Font** to *Ka0s Friz Quadrata TT* in two profiles and log out. Update and
   fully restart the client (a new font file) → `/wg test`: the popup draws in Ubuntu and the Font row
@@ -1173,3 +1173,5 @@ per-skin values and `S.IconBorder` on the icon's Texture) moved SKIN-32's expect
 still owed, so no pass mark moved. This addon draws no bar, glow or cover, so no other check changed.
 
 The owner's third smoke round (Ka0sAddonsCommonTasks `docs/2026-11-02-SMOKE_ROUND3/`, R3-FRIZ) adds SKIN-34 and re-opens SKIN-6, whose WoW Default face is now Ka0s Ubuntu; its pass mark came off.
+
+On 2026-11-02 the owner reported that every check on the smoke lists of the full skinning run and its smoke feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/` and `docs/2026-11-01-SMOKE_FEEDBACK/`) passed, apart from DpsRace's clock font, the skinned look of the AceGUI Dropdown and the Ka0sMedia_Font and Ka0sMedia_Statusbar pickers, FadeNineSlice and IconBorder (`docs/2026-11-02-SMOKE_ROUND3/`, R3-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-02)`: POPUP-11, SKIN-1, SKIN-10 and SKIN-33. Failed, re-opened as R3-L3 (IconBorder's 1 px outline and zoom) and recorded as `Failed (owner, 2026-11-02): re-opened as R3-L3`: SKIN-32.
