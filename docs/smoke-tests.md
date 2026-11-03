@@ -26,7 +26,7 @@ number out of use rather than handing it to a new one.
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-20 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
-| SKIN-1 – SKIN-34 | [Skins](#skins) | Ka0s Default as before but for its face, title band, Close button and teleport icon edge; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws; a stored pick of the deleted Friz |
+| SKIN-1 – SKIN-35 | [Skins](#skins) | Ka0s Default as before but for its face, title band, Close button and teleport icon edge; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws; a stored pick of the deleted Friz; a dropdown's list closing on an outside press |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
 | LOC-1 – LOC-6 | [Non-English client](#non-english-client) | A deDE or frFR client, and the `IsSpellKnown` readers |
 
@@ -1046,6 +1046,15 @@ Default is SKIN-1's list and nothing else.
   fully restart the client (a new font file) → `/wg test`: the popup draws in Ubuntu and the Font row
   reads *Ka0s Ubuntu*; switch to the other profile → the same. Fail: the game's default face, or the row
   still naming Ka0s Friz Quadrata TT. Result: not run
+- **SKIN-35. A dropdown's list closes on a press outside it (R4-RV; LibKa0s R4-L1, OptionsCombat minor 4).**
+  `/wg config` → Skin tab: open the **Font** picker's list, then left-click empty space on the settings
+  page → the list closes and nothing under the click changes. Open it again and click another dropdown
+  on the page → the Font list closes and that dropdown's list opens. Open a list and pick a row → it applies and closes as
+  before; scroll the list with its scroll bar → it stays open. On **Profiles**, open **Existing
+  Profiles** and click outside it → it closes. Repeat once in combat → the same, with no
+  `ADDON_ACTION_BLOCKED`. Another addon's AceGUI dropdown outside a Ka0s window keeps its stock
+  behavior. Fail: a list that stays open after an outside press, a click that closes the list but
+  also lands as a pick, or a blocked-action error. Result:
 
 ## Library-absent install
 
@@ -1179,3 +1188,5 @@ The owner's third smoke round (Ka0sAddonsCommonTasks `docs/2026-11-02-SMOKE_ROUN
 On 2026-11-02 the owner reported that every check on the smoke lists of the full skinning run and its smoke feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/` and `docs/2026-11-01-SMOKE_FEEDBACK/`) passed, apart from DpsRace's clock font, the skinned look of the AceGUI Dropdown and the Ka0sMedia_Font and Ka0sMedia_Statusbar pickers, FadeNineSlice and IconBorder (`docs/2026-11-02-SMOKE_ROUND3/`, R3-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-02)`: POPUP-11, SKIN-1, SKIN-10 and SKIN-33. Failed, re-opened as R3-L3 (IconBorder's 1 px outline and zoom) and recorded as `Failed (owner, 2026-11-02): re-opened as R3-L3`: SKIN-32.
 
 The round's R3-FIX (LibKa0s v1.85.0 re-cut at fd57b83: every skin's icon border is Solid 1px, and the icon's zoom reaches the teleport icon's Texture) amends SKIN-32's expected edge and re-opens SKIN-1, whose teleport icon edge is 1 px where it was 2; its pass mark came off.
+
+The owner's fourth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND4/`, R4-RV: LibKa0s v1.85.0 re-cut at 7404d96, whose OptionsCombat minor 4 closes an AceGUI dropdown's list on an outside press on a Ka0s surface) adds SKIN-35. No addon code moved and no pass mark came off.
