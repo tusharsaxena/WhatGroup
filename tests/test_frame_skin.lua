@@ -329,6 +329,32 @@ test("popup skin: the teleport icon wears the skin's icon border, on its Texture
     assertEqual(table.concat(crop, " "), "0.07 0.93 0.07 0.93", "the icon's art zoomed to 0.07..0.93")
 end)
 
+test("popup skin: the teleport icon is a window icon, so its edge is icon.outline, never the HUD's", function()
+    -- LibKa0s R4-L4 (SMOKE_ROUND4 R4_ADDENDUM_HUD_ICON_EDGE.md): `opts.hud = true` draws a HUD
+    -- icon's edge in `icon.border` (black under Ka0s Default). The popup is a window, so the
+    -- teleport icon keeps the outline (#4D4D57 under Ka0s Default). Red if FrameSkin.IconEdge passed
+    -- hud, or if the edge came out in icon.border.
+    local NS, _, mock = T.bootAddon()
+    NS.TeleportSpells[2652] = 445269
+    NS.addon.pendingInfo = pending({ mapID = 2652 })
+    NS.addon:ShowFrame()
+    local _, rec = iconEdge(mock)
+    assertTrue(rec ~= nil, "nothing drew the icon's border")
+    assertTrue(rec.calls.IconBorder[1].hud ~= true, "a window icon, not a HUD one")
+    -- The mock's SetColorTexture is a catch-all, so a spy on the setter reads a repaint's color.
+    local c
+    rec.regions.edgeLeft.SetColorTexture = function(self, ...)
+        c = { ... }
+        return self
+    end
+    quietly(NS, function() NS.ApplySkinChoice("ka0s", OTHER) end)
+    quietly(NS, function() NS.ApplySkinChoice("ka0s", "ka0s") end)
+    assertTrue(type(c) == "table" and type(c[1]) == "number", "the repaint never colored the edge")
+    local hex = string.format("%02X%02X%02X", math.floor(c[1] * 255 + 0.5),
+        math.floor(c[2] * 255 + 0.5), math.floor(c[3] * 255 + 0.5))
+    assertEqual(hex, "4D4D57", "Ka0s Default's window outline, not the HUD's black icon.border")
+end)
+
 test("popup skin: a skin switch redraws the icon's border, 1 px in every skin, in combat too", function()
     -- red under: an edge drawn once at build, or a repaint that reaches the secure button in combat.
     -- The edge is 1 px in every skin since LibKa0s R3-L3; a switch still rewrites it. The spy is on the

@@ -26,7 +26,7 @@ number out of use rather than handing it to a new one.
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-20 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
-| SKIN-1 – SKIN-37 | [Skins](#skins) | Ka0s Default as before but for its face, title band, Close button and teleport icon edge; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws; a stored pick of the deleted Friz; a dropdown's list closing on an outside press; the dark gold title band, no line under it and the icon's outline; the popup built with no divider |
+| SKIN-1 – SKIN-38 | [Skins](#skins) | Ka0s Default as before but for its face, title band, Close button and teleport icon edge; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws; a stored pick of the deleted Friz; a dropdown's list closing on an outside press; the dark gold title band, no line under it and the icon's outline; the popup built with no divider; the teleport icon keeping the window outline beside HUD icons |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
 | LOC-1 – LOC-6 | [Non-English client](#non-english-client) | A deDE or frFR client, and the `IsSpellKnown` readers |
 
@@ -1071,6 +1071,13 @@ Default is SKIN-1's list and nothing else.
   **High Contrast**, then **Ka0s Default** → the rows stay put under the band, and no line appears in
   either. Fail: a thin line or a gap of another color under the title, a row overlapping the band,
   or a Lua error. Result:
+- **SKIN-38. The teleport icon keeps the window outline (R4-RV3; LibKa0s R4-L4).** With DpsRace,
+  MultiMeters or PartyFrameEnhanced also loaded, on **Ka0s Default**, `/wg test` on a mapped dungeon →
+  the teleport icon's 1px outline is the window's mid gray (#4D4D57), as in SKIN-36, while those
+  addons' HUD icons (DpsRace's race HUD spell rows, MultiMeters' meter row icons, the party cast bar's
+  spell icon) keep a black edge. Pick **Obsidian**, then **Ka0s Default** → the teleport outline
+  follows each skin and comes back gray. Fail: a black teleport outline under Ka0s Default, an
+  outline that stays on Obsidian's color after the switch back, or a Lua error. Result:
 
 ## Library-absent install
 
@@ -1210,3 +1217,5 @@ The owner's fourth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROU
 The round's second milestone (R4-RV2: LibKa0s v1.85.0 re-cut at bea4ac8, R4-L2's dark gold title band, R4-L3's `icon.outline` and R4-SEP's no line under a window title) adds SKIN-36 and amends SKIN-1, SKIN-3 and SKIN-32, whose title band, divider and Ka0s Default icon edge moved. SKIN-1 and SKIN-32 carried no pass mark. SKIN-3 keeps its 2026-10-30 mark for the repaint it checks, whose list loses only the divider.
 
 R4-SEP (the same round) drops the popup's own `f.divider` texture, which the library already hid, and adds SKIN-37. No pass mark came off.
+
+The round's M2b (R4-RV3: LibKa0s v1.85.0 re-cut at 2a78817, R4-L4's `opts.hud`, which draws a HUD icon's edge in `icon.border` and never `icon.outline`) adds SKIN-38. The popup is a window, so the teleport icon passes no `hud` and keeps SKIN-36's outline. No addon code moved and no pass mark came off.
