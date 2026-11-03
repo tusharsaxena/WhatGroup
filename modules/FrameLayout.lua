@@ -27,13 +27,17 @@ function FrameLayout.Build(f, dismissPopup)
     -- The whole look comes from the owner's skin (skinning-§3): the window through NS.ApplySkin
     -- with the owner, which hands it to the skin's Shell, and every string and control through
     -- modules/FrameSkin.lua, which also repaints the title and re-anchors the secure button on a
-    -- skin change. `f.title` and `f.divider` are assigned first, below, because the Shell tints
-    -- whichever of them the frame carries, so the call sits after the header.
+    -- skin change. `f.title` is assigned first, below, because the Shell tints it, so the call sits
+    -- after the header. No line is drawn under the title (R4-SEP of Ka0sAddonsCommonTasks
+    -- docs/2026-11-03-SMOKE_ROUND4, the owner's "no separator line below header", every window like
+    -- the Skin Tester's), so the popup carries no `f.divider`.
 
     -- Title bar (drag handle)
     local titleBar = CreateFrame("Frame", nil, f)
     titleBar:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
     titleBar:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
+    -- The build geometry is what a degraded install draws; with the library, Look.TitleBar (below)
+    -- hands the bar to S.Header, which lays it on the skin's band (Shell's inset, title.height).
     titleBar:SetHeight(30)
     titleBar:EnableMouse(true)
     -- LOCKED IS READ AT DRAG TIME, not wired once: the checkbox is a plain profile value with no
@@ -52,24 +56,17 @@ function FrameLayout.Build(f, dismissPopup)
     end)
 
     local titleText = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    titleText:SetPoint("CENTER", titleBar, "CENTER", 0, -2)
+    titleText:SetPoint("CENTER", titleBar, "CENTER", 0, 0)
     Look.Title(titleText)
     f.title = titleText
 
-    -- Separator line under title. The color is set by ApplySkin below (0.24, 0.24, 0.27, 0.85 —
-    -- the normative Ka0s divider), so no literal here.
-    local sep = f:CreateTexture(nil, "ARTWORK")
-    sep:SetHeight(1)
-    sep:SetPoint("TOPLEFT",  f, "TOPLEFT",  14, -30)
-    sep:SetPoint("TOPRIGHT", f, "TOPRIGHT", -14, -30)
-    f.divider = sep
-
-    -- Wear the shared skin for this owner (skinning-§1), now that the two regions it tints exist.
+    -- Wear the shared skin for this owner (skinning-§1), now that the title it tints exists.
     NS.ApplySkin(f, nil, addonName)
+    Look.TitleBar(f, titleBar, titleText)
 
-    -- Content frame (plain, no scroll)
+    -- Content frame (plain, no scroll). Hung off the bar, so title.height moves it.
     local content = CreateFrame("Frame", nil, f)
-    content:SetPoint("TOPLEFT",     f, "TOPLEFT",   14, -38)
+    content:SetPoint("TOPLEFT",     titleBar, "BOTTOMLEFT", 14, -8)
     content:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -14, 44)
 
     -- Label builder
@@ -136,6 +133,11 @@ function FrameLayout.Build(f, dismissPopup)
 
     local teleportIcon = teleportBtn:CreateTexture(nil, "ARTWORK")
     teleportIcon:SetAllPoints()
+
+    -- The icon's edge is the skin's (S.IconBorder), handed the Texture and never the secure button:
+    -- a skin switch repaints in combat, so the library draws on a plain child it makes, which shows,
+    -- hides and dims with the button and takes no mouse.
+    Look.IconEdge(teleportIcon)
 
     -- The swipe has no Lua-side repeat: the Cooldown widget animates engine-side once armed, so it
     -- costs the addon no OnUpdate and no timer of its own. The note's countdown beside the button

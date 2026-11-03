@@ -43,6 +43,15 @@ local function enableAddon(opts)
     return NS, env, m
 end
 
+-- A profile event shows the first-run picker on a profile that has not closed it, and since R6-PV
+-- the picker shown over a hidden popup enters test mode: a [Set] line, a panel refresh and a chat
+-- line of its own, which tests/test_skin_picker.lua pins. A case that counts a profile event's OWN
+-- lines or refreshes takes the picker out with this, so it counts the event and nothing it shows.
+local function quietPicker(NS)
+    NS.MaybeShowSkinPicker = function() end
+    return NS
+end
+
 -- Where Kit.assertSurfaceParity's by-name form looks the LIVE half up (kit 15, vendored by M4-01).
 --
 -- Registered explicitly, and the explicitness is doing two jobs at once. `Kit.expose` auto-wires a
@@ -102,6 +111,7 @@ _G.WHATGROUP_TEST = Kit.expose{
     bootAddon   = bootAddon,
     enableAddon = enableAddon,
     loadAddon   = loadAddon,
+    quietPicker = quietPicker,
     root        = root,
     LibStub     = surfaceMock.LibStub,
     -- The secret-value simulator (kit revision 38): a case that reads secrets installs the global
@@ -128,6 +138,25 @@ Kit.diagnostics = {
     setDisabled = function(off) diagNS.addon.Settings.Helpers.Set("enabled", not off) end,
     reset       = function() diagNS = enableAddon() end,
 }
+
+-- The typed-value gate (kit revision 50, anti-pattern #107): no typed color or texture the skin
+-- cannot reach. Every category tests/test_skin_literals.lua's allow-list named is the kit's now; a
+-- row here is what is left of this addon's own, { file, substring, why, cause }.
+Kit.skinValues = {
+    rows = {
+        { file = "core/WhatGroup.lua", substring = "|cff71d5ff",
+          why = "the chat summary's spell-link fallback, the client's spell-link blue: chat is not a "
+              .. "skinned surface", cause = "L13" },
+        { file = "core/WhatGroup.lua", substring = '" |cff888888"',
+          why = "the chat summary's teleport tag: chat is not a skinned surface", cause = "L13" },
+        { file = "modules/Frame.lua", substring = "local GRAY",
+          why = "the test-mode refusal's chat line: chat is not a skinned surface", cause = "L13" },
+    },
+}
+
+-- The skin-switch test (kit revision 50, skinning-§1): the painted surfaces tests/skin_surfaces.lua
+-- declares, on one instance of their own.
+Kit.skinSwitch = dofile("tests/skin_surfaces.lua")(enableAddon)
 
 -- Order is load-order-sensitive; keep it stable.
 --
@@ -169,8 +198,6 @@ Kit.run{
         -- The popup's look on the skin (modules/FrameSkin.lua, WG-02): tokens, live repaint, the
         -- secure button's re-anchor.
         "test_frame_skin",
-        -- The hard-coded color gate (anti-pattern #107): no literal the skin cannot reach.
-        "test_skin_literals",
         "test_panel",
         -- The skin seam (core/SkinSetup.lua, skinning-§1 to §3): the owner, its tokens, the skin
         -- rows, the Skin tab's place, the profile events and the degraded arm.
@@ -189,6 +216,7 @@ Kit.run{
         "test_snapshot",
         "test_diagnostics",
         "test_launcher",
+        "test_launcher_skin_entry",
         "test_keybinds",
         "test_lifecycle",
         "test_debuglog",
@@ -222,5 +250,9 @@ Kit.run{
         -- The sighted complexity shadow (automated-tests-§3), new in kit revision 35: pins the
         -- sanitizer the runner's complexity suite measures through, and the parity check.
         { name = "test_lizard_sighted", dir = "tests/_kit/" },
+        -- Kit revision 50's skin gates (skinning-§1): the typed-value gate and the probe-skin switch
+        -- test, run against Kit.skinValues and Kit.skinSwitch above.
+        { name = "test_skin_values", dir = "tests/_kit/" },
+        { name = "test_skin_switch", dir = "tests/_kit/" },
     },
 }

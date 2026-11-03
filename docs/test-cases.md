@@ -214,9 +214,9 @@ Total.
 - compat: GetSpellTexture hands back one value when the client answers two
 - compat degraded: with LibKa0s absent the spell readers answer the library's absent values
 
-### test_database.lua (11)
+### test_database.lua (12)
 
-- database: fresh DB lands at schemaVersion 1
+- database: fresh DB lands at schemaVersion 2
 - database: RunMigrations is idempotent
 - database: RunMigrations re-seeds a missing schemaVersion
 - database: defaults declare global.schemaVersion 0 (savedvariables-§1)
@@ -227,6 +227,7 @@ Total.
 - database: a version move is logged, a no-op migration is silent (debug-logging-§8)
 - database: migrations run before any profile read (OnInitialize order)
 - database: the profile is untouched by a migration pass
+- database: a stored pick of Ka0s Friz Quadrata TT moves to Ka0s Ubuntu, in every profile (R3-FRIZ)
 
 ### test_settings.lua (60)
 
@@ -627,7 +628,7 @@ Total.
 - layers: the owed Hide at combat end leaves the controls ready for the next show
 - layers: no SetFrameStrata literal and no absolute SetFrameLevel in core, modules or settings
 
-### test_frame_skin.lua (13)
+### test_frame_skin.lua (25)
 
 - popup skin: the title's brand span reads wg.brand, FFD700 byte for byte on Ka0s Default
 - popup skin: every field label is painted in wg.label, with no inline color
@@ -637,19 +638,25 @@ Total.
 - popup skin: the window is the owner's Shell, so a switch repaints its edge and title
 - popup skin: a skin switch repaints the labels, values, note and brand span live
 - popup skin: a repopulate paints only the values whose token moved, and the look survives
+- popup skin: the title bar is the skin's TitleBar, and the header is placed on the band
+- popup skin: in every skin the header sits on the band, and a switch lays it again
+- popup skin: no line under the title, and the content hangs off the bar (R4-SEP)
+- popup skin: one title band: the bar paints it and the Shell's top bar stays off
+- popup skin: the teleport icon wears the skin's icon border, on its Texture
+- popup skin: the teleport icon is a window icon, so its edge is icon.outline, never the HUD's
+- popup skin: a skin switch redraws the icon's border, 1 px in every skin, in combat too
 - popup skin: a skin switch re-anchors the teleport button beside its moved label
 - popup skin: in combat the re-anchor waits for combat end, then lands
 - popup skin: a switch while stood down queues no anchor; the stand-up re-anchors
 - popup skin: a switch before the popup exists builds nothing
+- popup skin: the degraded popup keeps its 30px bar and centered title, with no edge
+- popup skin: the degraded S.HudFont draws: a face, a size and the From skin flags
+- popup skin: the degraded S.BarBorder answers its stored three, and S.HoverArt draws nothing
+- popup skin: the degraded S.HudFont clears the shadow on its off arm
+- popup skin: the degraded S.MarkText answers a string a caller can concatenate
 - popup skin: the degraded facade paints a token name with that token's color
 
-### test_skin_literals.lua (3)
-
-- skin literals: no color literal outside core/SkinSetup.lua and the named allow-list
-- skin literals: every allow-list entry carries its reason
-- skin literals: the gate is falsifiable, a planted literal of each shape is reported
-
-### test_panel.lua (62)
+### test_panel.lua (63)
 
 - panel: OnEnable registers the parent category and the General subcategory
 - panel: the parent category is added to the AddOns list
@@ -711,6 +718,7 @@ Total.
 - panel: the delay and size sliders name their units (options-ui-§21, WG-OC3)
 - panel: one noun per output -- chat summary, group info popup (WHA-L06, L09, L13, L15)
 - panel: the composed rows name the popup through `notes`, never a host rewrite (WHA-L11, L17)
+- panel: Master controls draws no Sim mode row, because WhatGroup has no simulation (R6-RV2)
 - panel: the Test notification button names its run and its preview (WHA-L08)
 - panel: the header Defaults tooltip is the library's Reset all settings wording (WHA-L12)
 
@@ -747,7 +755,7 @@ Total.
 - outline: a stored mode the library does not know applies its default
 - outline: without the skin engine the apply is a quiet no-op
 
-### test_skin_picker.lua (20)
+### test_skin_picker.lua (33)
 
 - skin picker: pickerSeen defaults to false, a skip-render row on the Appearance group
 - skin picker: the spec names this owner, its seams, General's Skin tab and the eye
@@ -764,7 +772,20 @@ Total.
 - skin picker: a pick previews, unsaved; Apply saves it and marks the picker seen
 - skin picker: the close control puts the stored skin back and saves nothing
 - skin picker: the gear saves the pick and opens General on its Skin tab
-- skin picker: the eye starts the popup's test mode and leaves the picker up
+- skin picker: opened over a hidden popup, it turns test mode on and stays in front
+- skin picker: the eye toggles test mode off and on, dimming and lighting
+- skin picker: closed by apply, test mode the picker turned on goes off
+- skin picker: closed by close, test mode the picker turned on goes off
+- skin picker: closed by escape, test mode the picker turned on goes off
+- skin picker: closed by gear, test mode the picker turned on goes off
+- skin picker: closed by hide, test mode the picker turned on goes off
+- skin picker: the eye turned off then closed with no change leaves test mode off
+- skin picker: test mode already on at open is left on, and the eye's off is put back
+- skin picker: a real popup already shown is left alone, before and after
+- skin picker: the eye over a real popup, then the close, gives the real popup back
+- skin picker: a profile reset shows it over the hidden popup and enters test mode
+- skin picker: a refused enter in combat moves nothing, and the close undoes nothing
+- skin picker: a real popup the eye covered and combat ended is not shown by a later eye
 - skin picker: a profile switch with a preview pending wears the new profile's skin
 - skin picker: a switch to an unseen profile starts a fresh showing, the old preview dropped
 - skin picker: the stand-down with a preview pending puts the old skin back, unseen
@@ -920,6 +941,10 @@ Total.
 - launcher: with no LibDBIcon the broker plugin still registers
 - launcher: the row still stores with no broker library at all
 - launcher: with LibKa0s absent the seam answers honestly and the store still moves
+
+### test_launcher_skin_entry.lua (1)
+
+- launcher descriptor passes openSkinPicker, which runs the skin verb
 
 ### test_keybinds.lua (8)
 
@@ -1193,6 +1218,40 @@ Total.
 - lizard sighted: parity names every file whose counts differ, and only those
 - lizard sighted: lizard lists every function of a hazard fixture once it is sanitized
 
+### test_skin_values.lua (3)
+
+- skin values: every host row carries its file, substring, why and cause id
+- skin values: no typed value outside the kit's categories and the host's rows
+- skin values: the check is falsifiable, a planted value of each shape is reported
+
+### test_skin_switch.lua (25)
+
+- skin switch: the check is falsifiable, a surface that redraws a literal is reported
+- skin switch: the popup's window changes
+- skin switch: the popup's window changes with the Scope ignored
+- skin switch: the popup's title bar changes
+- skin switch: the popup's title bar changes with the Scope ignored
+- skin switch: the popup's title changes
+- skin switch: the popup's title changes with the Scope ignored
+- skin switch: the title's brand span changes
+- skin switch: the title's brand span changes with the Scope ignored
+- skin switch: a field label changes
+- skin switch: a field label changes with the Scope ignored
+- skin switch: a field value changes
+- skin switch: a field value changes with the Scope ignored
+- skin switch: a placeholder value changes
+- skin switch: a placeholder value changes with the Scope ignored
+- skin switch: the Teleport label changes
+- skin switch: the Teleport label changes with the Scope ignored
+- skin switch: the teleport note changes
+- skin switch: the teleport note changes with the Scope ignored
+- skin switch: the Close button changes
+- skin switch: the Close button changes with the Scope ignored
+- skin switch: the teleport icon's edge changes
+- skin switch: the teleport icon's edge changes with the Scope ignored
+- skin switch: the Test notification button changes
+- skin switch: the Profiles page's tree changes
+
 ## Totals
 
 | Suite | Cases |
@@ -1204,7 +1263,7 @@ Total.
 | test_envsetup.lua | 10 |
 | test_util.lua | 31 |
 | test_compat.lua | 47 |
-| test_database.lua | 11 |
+| test_database.lua | 12 |
 | test_settings.lua | 60 |
 | test_slash.lua | 62 |
 | test_labels.lua | 40 |
@@ -1214,12 +1273,11 @@ Total.
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_frame_layers.lua | 8 |
-| test_frame_skin.lua | 13 |
-| test_skin_literals.lua | 3 |
-| test_panel.lua | 62 |
+| test_frame_skin.lua | 25 |
+| test_panel.lua | 63 |
 | test_skinsetup.lua | 17 |
 | test_skin_outline.lua | 10 |
-| test_skin_picker.lua | 20 |
+| test_skin_picker.lua | 33 |
 | test_skin_verb.lua | 7 |
 | test_skin_tools.lua | 5 |
 | test_profiles.lua | 19 |
@@ -1227,6 +1285,7 @@ Total.
 | test_snapshot.lua | 10 |
 | test_diagnostics.lua | 20 |
 | test_launcher.lua | 41 |
+| test_launcher_skin_entry.lua | 1 |
 | test_keybinds.lua | 8 |
 | test_lifecycle.lua | 46 |
 | test_debuglog.lua | 72 |
@@ -1243,5 +1302,7 @@ Total.
 | test_layout_cap.lua | 13 |
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
+| test_skin_values.lua | 3 |
+| test_skin_switch.lua | 25 |
 | Skipped | 1 |
-| **Total** | **1046** |
+| **Total** | **1099** |

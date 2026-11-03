@@ -320,8 +320,12 @@ surface carries a typed look value.
   `core/SkinSetup.lua`'s header). It calls `Skin:SetChoice`, which repaints every frame recorded for
   this owner and then fires `NS.Skin.OnLooksChanged`. No reload, no OnUpdate, no events.
 - **The popup.** `modules/FrameSkin.lua` owns its look: the window through `NS.ApplySkin(f, nil,
-  addonName)` (the skin's Shell: body, edge, the 30px title band, divider, title color), the labels
-  in `wg.label`, the values in `text.highlight`, the placeholders and the teleport note in
+  addonName)` (the skin's Shell: body, edge, title color; no line under the title, R4-SEP), the title bar through
+  `S.TitleBar` (`title.bg`; the Shell then runs with `noTopBar`, so the band draws once), the
+  header through `S.Header` on the library's band (LibKa0s R5-L3: the bar takes the band's rect, in
+  by Shell's inset and `title.height` high, and the title is anchored by `title.align` to the band's
+  middle at y 0, in every skin), the teleport icon's edge through `S.IconBorder` with
+  `fromSkin` on the icon's Texture, which the library hangs on a plain child of the secure button, the labels in `wg.label`, the values in `text.highlight`, the placeholders and the teleport note in
   `wg.placeholder`, and **Close** as the skin's `Button` (the flat control under Ka0s Default too,
   inventory D4). Its `OnLooksChanged` hook does the two things the library cannot replay: it re-sets
   the title, whose "WhatGroup" span is a `NS.SkinEscape("wg.brand")` escape, and it re-anchors the
@@ -338,7 +342,17 @@ surface carries a typed look value.
   `skinPicker`). A pick previews; Apply, the gear and another addon's Apply to all save through
   `NS.WriteSkinChoice`; the close mark and Escape put the stored skin back. Only the player's close
   writes `pickerSeen`; `NS.HideSkinPicker` (the stand-down, and first on every profile event) takes
-  it down without writing. Its eye starts test mode (X6: the addon has one), as `/wg test on` does.
+  it down without writing. **The preview** (R6-PV; LibKa0s OptionsSkinPicker minor 11,
+  `spec.preview` with `mode = "test"`): a picker that shows while the popup is off screen and test
+  mode is off turns test mode on; the eye toggles it, lit while on and dimmed while off; every close
+  (Apply, the gear, the close mark, Escape, `NS.HideSkinPicker`) puts back the state it opened with.
+  Each enter and exit is the session row `/wg test on|off` writes (`Helpers.Set("state.testMode")`),
+  so the Master controls box and the launcher follow and the combat refusal still prints; a refused
+  enter moves nothing and leaves nothing to undo. A real popup up at open is left alone; if the eye
+  starts test mode over it, the exit shows it again, as `/wg show` does; every close drops that mark,
+  so a test mode combat or the popup's Close ended cannot hand a later picker's eye a real popup that
+  was never under it. The one-shot `onPreview`
+  is gone.
   Since LibKa0s v1.81.0 the window is titled *Choose a skin*, and the addon's label (`NS.BRAND_NAME`,
   given as `RegisterOwner`'s `label`) has its own line above the dropdown, `frame.ownerLabel`, never
   cut off; `NS.SkinPickerSpec` passes no label of its own. Since LibKa0s v1.83.0 the window also
@@ -359,12 +373,12 @@ surface carries a typed look value.
   entry. With source `eui` and its gate holding, EllesmereUI paints the vocabulary it has; otherwise
   the addon wears its Ka0s skin and the Skin tab names the failing condition. Ka0s to EllesmereUI
   applies live; EllesmereUI back to Ka0s asks for a reload.
-- **The color gate.** `tests/test_skin_literals.lua` fails on a numeric literal in a color position of
-  `SetTextColor`, `SetColorTexture`, `SetVertexColor`, `SetBackdropColor`, `SetBackdropBorderColor`,
-  `AddLine` and `AddDoubleLine`, and on any `|cff` escape, in every file under `core/`, `modules/`
-  and `settings/` outside `core/SkinSetup.lua`. Its allow-list is **chat output** only, each entry
-  with its reason: chat is not a skinned surface (the rollout's X7, inventory D6), so the cyan `[WG]`
-  prefix, the chat summary's gold labels and link colors and the command highlights stay as they are.
+- **The gates.** The kit's `tests/_kit/test_skin_values.lua` (kit revision 50, anti-pattern #107)
+  fails on a typed color or texture outside its categories and the rows in `tests/run.lua`, each
+  naming a cause. Those rows are **chat output** only (cause L13): chat is not a skinned surface, so
+  the chat summary's spell-link fallback and teleport tag and the test-mode refusal stay as they are.
+  Its `tests/_kit/test_skin_switch.lua` fails a surface `tests/skin_surfaces.lua` declares that does
+  not change under a probe skin.
 - **What stays Blizzard's** (skinning-§7): the secure teleport button and its spell icon (no edge is
   added to a protected frame, D5), the cooldown swipe, the spell tooltip, the StaticPopups, the
   launcher's menu and the LibDBIcon button, and the `SettingsPanel` chrome. The library-absent path
@@ -404,7 +418,7 @@ surface carries a typed look value.
 
 - **Dual-path WSL.** `/home/tushar/GIT/WhatGroup/` and `/mnt/d/Profile/Users/Tushar/Documents/GIT/WhatGroup/` are the same repo via symlink; either path works for git and file tools.
 - **CRLF on disk.** `.gitattributes` enforces CRLF for `.lua` / `.toc` / `.xml` (WoW client expectation) and for `.md`. The generated `docs/test-cases.md` no longer needs a `sed`/`tr` pair: the shared kit's `--list` renderer writes CRLF itself, so a plain redirect is correct ([docs/testing.md](./testing.md)).
-- **Match the sibling addons.** WhatGroup is on the same shared library as the rest of the collection: `libs/LibKa0s/` and `tests/_kit/` are **whole-folder copies** of `../LibKa0s`'s ship folders and MUST stay byte-identical to them — never edit either in place, and never copy a single file. The one carve-out is `libs/LibKa0s/media/icons/`, pruned by the tag's `tools/prune-icons.lua` to the icons the `CLAUDE.md` `LibKa0s icons:` line declares (`close, copy, clear`: the debug console's marks). A library problem is a finding to fix upstream and re-vendor ([docs/testing.md](./testing.md), [docs/common-tasks.md](./common-tasks.md#refresh-embedded-libs)). The Ace3 libs are copied verbatim from KickCD (except `LibSharedMedia-3.0`, from AbsorbTracker).
+- **Match the sibling addons.** WhatGroup is on the same shared library as the rest of the collection: `libs/LibKa0s/` and `tests/_kit/` are **whole-folder copies** of `../LibKa0s`'s ship folders and MUST stay byte-identical to them — never edit either in place, and never copy a single file. The one carve-out is `libs/LibKa0s/media/icons/`, pruned by the tag's `tools/prune-icons.lua` to the icons the `CLAUDE.md` `LibKa0s icons:` line declares (twelve names today: the debug console's `close, copy, clear`, the skin picker's `eye` and `settings`, and the marks the library draws beside skinned controls). A library problem is a finding to fix upstream and re-vendor ([docs/testing.md](./testing.md), [docs/common-tasks.md](./common-tasks.md#refresh-embedded-libs)). The Ace3 libs are copied verbatim from KickCD (except `LibSharedMedia-3.0`, from AbsorbTracker).
 
 ## External dependencies
 

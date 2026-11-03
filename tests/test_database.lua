@@ -2,24 +2,24 @@
 local T = _G.WHATGROUP_TEST
 local test, assertEqual = T.test, T.assertEqual
 
-test("database: fresh DB lands at schemaVersion 1", function()
+test("database: fresh DB lands at schemaVersion 2", function()
     local NS = T.bootAddon()
-    assertEqual(NS.SCHEMA_VERSION, 1)
-    assertEqual(NS.addon.db.global.schemaVersion, 1)
+    assertEqual(NS.SCHEMA_VERSION, 2)
+    assertEqual(NS.addon.db.global.schemaVersion, 2)
 end)
 
 test("database: RunMigrations is idempotent", function()
     local NS = T.bootAddon()
     NS.addon:RunMigrations()
     NS.addon:RunMigrations()
-    assertEqual(NS.addon.db.global.schemaVersion, 1)
+    assertEqual(NS.addon.db.global.schemaVersion, 2)
 end)
 
 test("database: RunMigrations re-seeds a missing schemaVersion", function()
     local NS = T.bootAddon()
     NS.addon.db.global.schemaVersion = nil
     NS.addon:RunMigrations()
-    assertEqual(NS.addon.db.global.schemaVersion, 1)
+    assertEqual(NS.addon.db.global.schemaVersion, 2)
 end)
 
 local assertTrue = T.assertTrue
@@ -58,11 +58,11 @@ test("database: the stamp survives AceDB's logout strip, so the first real migra
     local first = T.bootAddon()
     local sv = _G.WhatGroupDB
     logoutStrip(first, sv)
-    assertEqual(sv.global.schemaVersion, 1, "the stamp the runner wrote must outlive the logout strip")
+    assertEqual(sv.global.schemaVersion, 2, "the stamp the runner wrote must outlive the logout strip")
 
-    local NS = rebootWithStep(sv, 2, { [2] = function(db) db.global.__stepRan = true end })
-    assertTrue(NS.addon.db.global.__stepRan == true, "the 1 -> 2 step must run for an existing user")
-    assertEqual(NS.addon.db.global.schemaVersion, 2)
+    local NS = rebootWithStep(sv, 3, { [3] = function(db) db.global.__stepRan = true end })
+    assertTrue(NS.addon.db.global.__stepRan == true, "the 2 -> 3 step must run for an existing user")
+    assertEqual(NS.addon.db.global.schemaVersion, 3)
 end)
 
 test("database: a raising step leaves the stamp at the last completed version", function()
@@ -104,7 +104,7 @@ test("database: a version move is logged, a no-op migration is silent (debug-log
     NS.addon:RunMigrations()
     local last = NS.DebugLog.buffer[#NS.DebugLog.buffer]
     assertTrue(last:find("[Migrate]", 1, true) ~= nil, "a real move is logged")
-    assertTrue(last:find("v0 -> v1", 1, true) ~= nil, "the line names both versions")
+    assertTrue(last:find("v0 -> v2", 1, true) ~= nil, "the line names both versions")
 end)
 
 test("database: migrations run before any profile read (OnInitialize order)", function()
@@ -120,4 +120,19 @@ test("database: the profile is untouched by a migration pass", function()
     NS.addon.db.global.schemaVersion = 0
     NS.addon:RunMigrations()
     assertEqual(NS.addon.Settings.Helpers.Get("notify.delay"), 6)
+end)
+
+-- red under: no step 2, or one that reaches only the active profile
+test("database: a stored pick of Ka0s Friz Quadrata TT moves to Ka0s Ubuntu, in every profile (R3-FRIZ)", function()
+    local NS = T.bootAddon()
+    local sv = NS.addon.db.sv
+    NS.addon.db.profile.skin.font = "Ka0s Friz Quadrata TT"
+    sv.profiles.Alt = { skin = { font = "Ka0s Friz Quadrata TT" } }
+    sv.profiles.Other = { skin = { font = "Friz Quadrata TT" } }
+    NS.addon.db.global.schemaVersion = 1
+    NS.addon:RunMigrations()
+    assertEqual(NS.addon.db.profile.skin.font, "Ka0s Ubuntu", "the active profile's override")
+    assertEqual(sv.profiles.Alt.skin.font, "Ka0s Ubuntu", "a profile never activated")
+    assertEqual(sv.profiles.Other.skin.font, "Friz Quadrata TT", "Blizzard's own Friz stays")
+    assertEqual(NS.addon.db.global.schemaVersion, 2)
 end)

@@ -927,6 +927,19 @@ function()
     assertNil(src:find("row%.tooltip%s*="), "no host stamp of a composed row's tooltip")
 end)
 
+test("panel: Master controls draws no Sim mode row, because WhatGroup has no simulation (R6-RV2)",
+function()
+    -- LibKa0s OptionsCompose minor 19 (R6-SIM-L) draws a Sim mode box only for a host that passes
+    -- isSimMode and toggleSim. WhatGroup passes neither, so the tab stays what minor 18 drew.
+    -- red under: a stray sim hook on the MasterControls spec, or a composer that draws the row
+    -- without both hooks.
+    local NS, _, mock = openGeneral()
+    local H = NS.addon.Settings.Helpers
+    assertNil(H.FindSchema("state.sim"), "no state.sim row")
+    assertNil(widget(mock, "CheckBox", "Sim mode"), "no Sim mode checkbox on Master controls")
+    assertTrue(widget(mock, "CheckBox", "Test mode") ~= nil, "Test mode is still drawn")
+end)
+
 test("panel: the Test notification button names its run and its preview (WHA-L08)", function()
     local _, _, mock = openGeneral()
     selectTab(mock, "Notifications")

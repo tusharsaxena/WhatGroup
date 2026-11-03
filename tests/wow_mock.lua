@@ -269,6 +269,17 @@ local function build()
             return f
         end
         api.ClearAllPoints = function() f.__points = {}; return f end
+        -- Two anchors on `rel`'s corners, as the client lays them (LibKa0s R5-L3's S.Header gives a
+        -- drag strip the band's rect this way), so a case can read where a bar was hung.
+        api.SetAllPoints = function(_, rel)
+            if rel == nil then   -- the parent's corners: recorded with no relative frame
+                f.__points = { recordPoint("TOPLEFT"), recordPoint("BOTTOMRIGHT") }
+                return f
+            end
+            f.__points = { recordPoint("TOPLEFT", rel, "TOPLEFT", 0, 0),
+                           recordPoint("BOTTOMRIGHT", rel, "BOTTOMRIGHT", 0, 0) }
+            return f
+        end
         api.GetPoint = function(_, i)
             local pt = f.__points[i or 1]
             if not pt then return nil end
@@ -334,6 +345,8 @@ local function build()
         end
         api.CreateTexture = function(_, texName, _layer)
             local tex = stubFrame("Texture", texName)
+            -- Modeled, not caught: S.IconBorder on a Texture hangs its edge on this parent.
+            tex.GetParent = function() return f end
             f.__textures[#f.__textures + 1] = tex
             mock.textures[#mock.textures + 1] = tex
             return tex

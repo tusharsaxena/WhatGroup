@@ -182,11 +182,14 @@ mapping is a code change — the recipe is in
 
 ## The migration seam
 
-`core/Database.lua` owns `NS.SCHEMA_VERSION` (currently **1**) and `NS:RunMigrations()`, called once
+`core/Database.lua` owns `NS.SCHEMA_VERSION` (currently **2**) and `NS:RunMigrations()`, called once
 from `OnInitialize` immediately after `AceDB:New` and **before any code reads the profile**.
 
 The runner is **step-driven**. `NS.MIGRATIONS[N]` takes the store from N-1 to N and receives the
-AceDB handle; the only step today is `[1]`, the no-op 0 -> 1 that exists to write the stamp. The seam
+AceDB handle. `[1]` is the no-op 0 -> 1 that exists to write the stamp. `[2]` (R3-FRIZ) moves every
+stored string naming `Ka0s Friz Quadrata TT`, which LibKa0s v1.85.0 deleted (R3-L7), to `Ka0s Ubuntu`,
+WoW Default's face now (R3-L6), at any depth (the skin's Font override), in every stored profile through
+the raw `db.sv.profiles`; Blizzard's own `Friz Quadrata TT` stays. The seam
 exists from day one (`toc-file-§2` / `savedvariables-§1`) so the first real migration lands in a
 structured, ordered, idempotent place instead of being retrofitted under pressure.
 
@@ -195,11 +198,11 @@ stored), runs each missing step in order, and advances the stamp one version at 
 step that returned**. A raising step propagates and leaves the stamp at the last completed version, so
 the next login retries it. Lifecycle logging is deliberately conditional (`debug-logging-§8`): the
 `Migrate` line, `v<from> -> v<to>`, is emitted **only** when the version actually moved, so an
-already-current DB stays silent. A fresh install logs `v0 -> v1` once.
+already-current DB stays silent. A fresh install logs `v0 -> v2` once.
 
 **Adding a migration:** bump `NS.SCHEMA_VERSION` to N and add `NS.MIGRATIONS[N]`. Every step MUST be
-idempotent against a fresh default profile, because a fresh install walks every step too. WhatGroup has
-no profile-scoped step yet; the first one MUST walk every stored profile through the raw
+idempotent against a fresh default profile, because a fresh install walks every step too. A
+profile-scoped step (step 2 is the first) MUST walk every stored profile through the raw
 `db.sv.profiles` (`WhatGroupDB.profiles`), not only the active `db.profile`. A profile nobody has
 switched to since would otherwise keep the old shape while the account-wide stamp is already past it.
 
@@ -208,4 +211,4 @@ addon that already stored it under `profile` owes a migration carrying `hide` an
 across (in the collection that is Multi Meters alone). WhatGroup has never stored a minimap table
 anywhere — `grep -rin minimap` over the source before the launcher landed returned one line, in
 `docs/scope.md`, saying the addon did not provide one — so adopting it created a new global branch
-rather than moving an existing one, and `NS.SCHEMA_VERSION` stays at **1**.
+rather than moving an existing one, and `NS.SCHEMA_VERSION` stayed at **1** for it.

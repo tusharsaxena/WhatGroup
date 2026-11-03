@@ -13,6 +13,19 @@ local _, NS = ...
 --   Value(fs, text, dim) a field value: the text, in `text.highlight`, or with `dim` in
 --                        `wg.placeholder` (the "No data" and em-dash placeholders).
 --   Note(fs)             the teleport note beside the button, in `wg.placeholder`.
+--   TitleBar(f, bar, fs) the bar as the skin's title bar: `title.bg` and the title's color and font.
+--                        The bar paints the band, so the window's Shell is re-run with `noTopBar`:
+--                        two bands would draw `title.bg`'s alpha twice. Then the header goes on the
+--                        library's band (S.Header, LibKa0s R5-L3): the bar takes the band's rect, in
+--                        by Shell's own inset and `title.height` high, and the title is anchored by
+--                        `title.align` to the band's middle at y 0, so it is vertically centered in
+--                        every skin. S.TitleBar, S.Shell and S.Header are recorded, so a switch
+--                        redoes all three.
+--   IconEdge(texture)    the skin's window icon outline on the teleport icon's Texture: a flat 1 px
+--                        edge in `icon.outline`, else `icon.border` (LibKa0s R3-L3, R4-L3), with the
+--                        art zoomed to 0.07..0.93 so its own edge never shows. The library hangs the
+--                        edge on a plain child of the Texture's parent, so the secure button is
+--                        never written to (SkinPaintControls minor 15).
 --   Button(btn)          the skin's push button (the Close button). Called after its OnClick is
 --                        set: the primitive HookScripts its hover pair.
 --   Attach(parts)        hands over the popup's frame, title, Teleport label and secure button,
@@ -68,6 +81,14 @@ function FrameSkin.Value(fs, text, dim)
 end
 
 function FrameSkin.Note(fs) NS.Skin.Text(fs, "wg.placeholder") end
+
+function FrameSkin.TitleBar(f, bar, fs)
+    NS.Skin.Shell(f, { noTopBar = true })
+    NS.Skin.TitleBar(bar, { text = fs })
+    NS.Skin.Header(f, { title = fs, bars = { bar } })
+end
+
+function FrameSkin.IconEdge(texture) NS.Skin.IconBorder(texture, { fromSkin = true }) end
 
 function FrameSkin.Button(btn) NS.Skin.Button(btn) end
 

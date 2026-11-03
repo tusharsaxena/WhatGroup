@@ -8,8 +8,10 @@
 -- combat-end queue); and that only the player's close marks it seen. The trigger cases spy on
 -- Helpers.SkinPicker; the rest drive the library's real window: a pick previews and Apply saves
 -- through NS.WriteSkinChoice, the close control puts the stored skin back, the gear opens General
--- on its Skin tab, the eye starts the popup's test mode, a profile switch with a preview pending
--- wears the new profile's skin, and the stand-down puts a pending preview back, unseen. Last, the
+-- on its Skin tab, a profile switch with a preview pending
+-- wears the new profile's skin, and the stand-down puts a pending preview back, unseen. The preview
+-- (R6-PV): test mode on at a show over a hidden popup, the eye toggling it, every close putting it
+-- back. Last, the
 -- degraded install, where the picker is absent and nothing raises.
 --
 -- Every case builds its own instance (tests/run.lua), so no picker, queue or skin state leaks.
@@ -94,7 +96,14 @@ test("skin picker: the spec names this owner, its seams, General's Skin tab and 
     assertEqual(spec.page, "general")
     assertEqual(spec.tab, "Appearance", "the Skin tab's key")
     assertTrue(H.__panelFor("general") ~= nil, "\"general\" is the page key the library finds")
-    assertEqual(type(spec.onPreview), "function", "X6: this addon has a test mode, so the eye shows")
+    -- R6-PV: the eye is spec.preview's test mode, and the one-shot onPreview is gone (with both,
+    -- the library ignores onPreview, so a leftover one is dead code).
+    assertEqual(type(spec.preview), "table", "X6: this addon has a test mode, so the eye shows")
+    assertEqual(spec.preview.mode, "test", "the round 6 mode table: WhatGroup is a test host")
+    for _, k in ipairs({ "enter", "exit", "isActive", "isShown" }) do
+        assertEqual(type(spec.preview[k]), "function", "spec.preview." .. k)
+    end
+    assertNil(spec.onPreview, "the one-shot onPreview is gone")
     assertEqual(type(spec.onClose), "function")
 end)
 
@@ -272,19 +281,165 @@ test("skin picker: the gear saves the pick and opens General on its Skin tab", f
     assertEqual(H.Get(PATH), true, "and marks the picker seen")
 end)
 
-test("skin picker: the eye starts the popup's test mode and leaves the picker up", function()
-    -- X6: the preview is this addon's own window wearing the skin. red under: an eye that opens
-    -- nothing, or one that bypasses the session row (the Master controls box would read unticked).
+-- ── the preview (R6-PV; LibKa0s R6-L1, spec.preview) ─────────────────────────────────────────
+--
+-- The owner's rule: the picker shown over a hidden popup turns test mode on; the eye toggles it;
+-- every close puts it back as it was at open. Each enter and exit is the session row `/wg test`
+-- writes, so the Master controls box and the launcher's Test mode entry read the same flag.
+
+local function testOn(NS, H)
+    local on = NS.State.testMode == true
+    assertEqual(H.Get("state.testMode") == true, on, "the session row and NS.State agree")
+    return on
+end
+
+local function popupShown(mock)
+    local popup = mock.frames["WhatGroupFrame"]
+    return popup ~= nil and popup:IsShown()
+end
+
+test("skin picker: opened over a hidden popup, it turns test mode on and stays in front", function()
+    -- red under: the one-shot onPreview (nothing runs at show), or an enter that bypasses the row.
+    local NS, _, mock, H = enabled()
+    assertFalse(popupShown(mock), "the popup starts hidden")
+    local f = window(NS)
+    assertTrue(testOn(NS, H), "the picker's show did not start test mode")
+    assertTrue(popupShown(mock), "test mode shows the popup")
+    assertTrue(f:IsShown(), "the picker stays up")
+    assertTrue(f.preview.lit == true, "the eye is lit while test mode is on")
+end)
+
+test("skin picker: the eye toggles test mode off and on, dimming and lighting", function()
+    -- red under: the old set-only eye (a second click left test mode on).
     local NS, _, mock, H = enabled()
     local f = window(NS)
     f.preview.__fire("OnClick")
-    assertTrue(NS.State.testMode == true, "the eye did not start test mode")
-    assertTrue(H.Get("state.testMode") == true, "through the session row /wg test on writes")
-    local popup = mock.frames["WhatGroupFrame"]
-    assertTrue(popup ~= nil and popup:IsShown(), "the eye did not show the popup")
+    assertFalse(testOn(NS, H), "the eye did not turn test mode off")
+    assertFalse(popupShown(mock), "test mode off hides the popup")
+    assertFalse(f.preview.lit == true, "the eye dims while test mode is off")
     assertTrue(f:IsShown(), "the eye leaves the picker up")
     f.preview.__fire("OnClick")
-    assertTrue(NS.State.testMode == true, "a second click keeps test mode on")
+    assertTrue(testOn(NS, H), "a second click turns it back on")
+    assertTrue(popupShown(mock), "and shows the popup again")
+    assertTrue(f.preview.lit == true)
+end)
+
+--- Each close route, by the name the smoke check uses, run on a shown window `f`.
+local CLOSES = {
+    apply = function(f) f.apply.__fire("OnClick") end,
+    close = function(f) f.close.__fire("OnClick") end,
+    escape = function(f) f:Hide() end,
+    gear = function(f) f.settings.__fire("OnClick") end,
+    hide = function(_, NS) NS.HideSkinPicker() end,
+}
+
+for _, route in ipairs({ "apply", "close", "escape", "gear", "hide" }) do
+    test("skin picker: closed by " .. route .. ", test mode the picker turned on goes off", function()
+        -- red under: the old enter-only eye (test mode and the popup stayed after the close).
+        local NS, _, mock, H = enabled()
+        local f = window(NS)
+        assertTrue(testOn(NS, H))
+        CLOSES[route](f, NS)
+        assertFalse(f:IsShown(), route .. " closes the window")
+        assertFalse(testOn(NS, H), route .. " left test mode on")
+        assertFalse(popupShown(mock), route .. " left the popup up")
+    end)
+end
+
+test("skin picker: the eye turned off then closed with no change leaves test mode off", function()
+    local NS, _, _, H = enabled()
+    local f = window(NS)
+    f.preview.__fire("OnClick")
+    f.close.__fire("OnClick")
+    assertFalse(testOn(NS, H), "a close after the eye's off turned it on again")
+end)
+
+test("skin picker: test mode already on at open is left on, and the eye's off is put back", function()
+    local NS, _, mock, H = enabled()
+    H.Set("state.testMode", true)
+    local f = window(NS)
+    assertTrue(testOn(NS, H), "the picker turned off a test mode the player had on")
+    f.close.__fire("OnClick")
+    assertTrue(testOn(NS, H), "a close with no eye click turned it off")
+    H.Set(PATH, false)                   -- the close marked it seen: a fresh showing again
+    f = window(NS)
+    f.preview.__fire("OnClick")
+    assertFalse(testOn(NS, H), "the eye turns it off")
+    f.close.__fire("OnClick")
+    assertTrue(testOn(NS, H), "the close puts back the test mode it opened with")
+    assertTrue(popupShown(mock), "and the popup with it")
+end)
+
+test("skin picker: a real popup already shown is left alone, before and after", function()
+    -- red under: an enter at show over a shown surface (the sample would replace the real group).
+    local NS, _, mock, H = enabled()
+    NS.addon.pendingInfo = NS.addon:SampleInfo()
+    NS.addon:ShowFrame()
+    assertTrue(popupShown(mock), "the real popup is up")
+    local f = window(NS)
+    assertFalse(testOn(NS, H), "the picker entered test mode over a shown popup")
+    f.close.__fire("OnClick")
+    assertFalse(testOn(NS, H))
+    assertTrue(popupShown(mock), "the close took the real popup down")
+end)
+
+test("skin picker: the eye over a real popup, then the close, gives the real popup back", function()
+    -- The owner's rule: the close goes back to the state at open, and that was the real popup up.
+    local NS, _, mock, H = enabled()
+    NS.addon.pendingInfo = NS.addon:SampleInfo()
+    NS.addon:ShowFrame()
+    local f = window(NS)
+    f.preview.__fire("OnClick")
+    assertTrue(testOn(NS, H), "the eye starts test mode over the real popup")
+    f.close.__fire("OnClick")
+    assertFalse(testOn(NS, H), "the close ends the test mode the eye started")
+    assertTrue(popupShown(mock), "and the real popup is shown again")
+end)
+
+test("skin picker: a profile reset shows it over the hidden popup and enters test mode", function()
+    -- The cases that count a profile event's own lines take the picker out (tests/run.lua's
+    -- quietPicker); this is what they leave out: the picker a reset shows enters test mode.
+    local NS, _, mock, H = enabled()
+    window(NS).close.__fire("OnClick")
+    assertFalse(testOn(NS, H))
+    NS.addon.db:ResetProfile()
+    assertTrue(testOn(NS, H), "the picker a reset shows did not enter test mode")
+    assertTrue(popupShown(mock))
+end)
+
+test("skin picker: a refused enter in combat moves nothing, and the close undoes nothing", function()
+    local NS, _, mock, H = enabled()
+    local f = window(NS)
+    f.preview.__fire("OnClick")          -- off: back to the opening state
+    mock.combat = true
+    f.preview.__fire("OnClick")          -- refused: startTestMode's gray line
+    assertFalse(testOn(NS, H), "test mode started in combat")
+    f.close.__fire("OnClick")
+    mock.combat = false
+    assertFalse(testOn(NS, H), "the close turned on a test mode that never moved")
+end)
+
+test("skin picker: a real popup the eye covered and combat ended is not shown by a later eye", function()
+    -- red under: the eye's "real popup under" mark outliving its test mode (ended here by combat,
+    -- not by the picker), so a later picker's eye-off over the PLAYER's own test mode put the real
+    -- popup on screen instead of hiding the popup, as `/wg test off` does.
+    local NS, _, mock, H = enabled()
+    NS.addon.pendingInfo = NS.addon:SampleInfo()
+    NS.addon:ShowFrame()
+    local f = window(NS)
+    f.preview.__fire("OnClick")          -- test mode over the real popup
+    NS.addon:EndTestModeForCombat()      -- combat ends it, and the popup with it
+    f.close.__fire("OnClick")
+    assertFalse(testOn(NS, H))
+    assertFalse(popupShown(mock))
+    H.Set("state.testMode", true)        -- the player's own test mode, later
+    H.Set(PATH, false)
+    f = window(NS)
+    f.preview.__fire("OnClick")
+    assertFalse(testOn(NS, H), "the eye turns the player's test mode off")
+    assertFalse(popupShown(mock), "and the popup goes with it: no real popup was under this one")
+    f.close.__fire("OnClick")
+    assertTrue(testOn(NS, H), "the close puts the player's test mode back")
 end)
 
 test("skin picker: a profile switch with a preview pending wears the new profile's skin", function()

@@ -115,6 +115,9 @@ if not lib then
     -- O.PositionBlock (OptionsCompose minor 15, LibKa0s v1.84.0): no call site here, stubbed for the
     -- shape reason above. Two values, as the live one gives: no rows and no hook.
     H.PositionBlock        = function() return {}, nil end
+    -- O.LabelFont (OptionsWidgets minor 43, LibKa0s v1.85.0), owed by every Options stub. No library,
+    -- no widget to set it on.
+    H.LabelFont            = function() end
     -- No FONT_FLAGS / FONT_FLAGS_SORT / VISIBILITY_VALUES / VISIBILITY_SORT / MASTER_GROUP /
     -- CLASS_COLOR_NOTE. They are the composers' published DATA, and hand-copying the value sets
     -- and the wording whose nine-way drift OptionsCompose exists to end is anti-patterns #47 in
@@ -179,6 +182,7 @@ if not lib then
     -- without the library there is no picker, so it answers nil, "absent" and NS.RunSkinVerb prints
     -- the library-absent line.
     H.SkinVerb             = function() return nil, "absent" end
+    H.SkinNotice = function() return nil, "unavailable" end
     H.SetRenderer          = function() end
     H.RegisterOptionsPage  = function() end
     H.RefreshAllPanels     = function() end

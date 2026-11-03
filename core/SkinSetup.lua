@@ -224,9 +224,10 @@ end
 -- PREVIEW. A pick only previews; `set` (NS.WriteSkinChoice) runs on Apply, the gear or Apply to
 -- all, and the close control and Escape put back the stored choice as `get` reads it at the close.
 -- A profile event takes the picker down FIRST, before the new profile's skin is applied, so that
--- skin is the last one worn. The eye is the popup's test mode (X6: this addon has one), started
--- through the same session row `/wg test on` writes; the library raises its DIALOG window after
--- the eye returns, so the popup it shows cannot cover it.
+-- skin is the last one worn. The eye is the popup's test mode (X6: this addon has one): entered
+-- when the picker shows over a hidden popup, toggled by the eye, and put back by every close
+-- (R6-PV, THE PREVIEW below); the library raises its DIALOG window after each enter, so the popup
+-- the mode shows cannot cover it.
 --
 -- QUEUED. One picker is up at a time across every Ka0s addon: while another addon's is up,
 -- Helpers.SkinPicker queues this one and answers nil, "queued", which NS.MaybeShowSkinPicker
@@ -237,17 +238,63 @@ local pickerHeld = false   -- true while a start made in combat waits on the com
 local quietClose = false   -- true while NS.HideSkinPicker takes the picker down
 local loginTimer           -- the AceTimer handle of the login start, until it fires
 
---- The eye: the popup in test mode, so the player sees the skin on this addon's own window. A mode
---- already on is a no-op write; a refused start (combat) prints its own line.
-local function previewSkin()
+--- THE PREVIEW (R6-PV; LibKa0s OptionsSkinPicker minor 11, spec.preview; the round 6 mode table:
+--- WhatGroup is a test host). The library enters the mode when the picker shows over a hidden
+--- popup, the eye toggles it, and every close (Apply, the gear, the close mark, Escape,
+--- NS.HideSkinPicker) puts back the state it opened with. Every enter and exit is the session row
+--- `/wg test on|off` writes, through Helpers.Set: the Master controls box and the launcher's Test
+--- mode entry read the same flag, and startTestMode's combat refusal still prints its gray line
+--- (a refused enter moves nothing, so the library has nothing to undo). isShown is the launcher's
+--- isWindowShown, the popup on screen; a real popup up at open is left alone. The one thing the
+--- row cannot give back is that real popup when the eye starts test mode over it (test mode's end
+--- hides the popup, as `/wg test off` does), so the exit re-shows it, the way `/wg show` does.
+local realUnder = false   -- true while a test mode this preview entered sits over the real popup
+
+local function testModeRow()
     local H = seam()
-    if not (H and H.FindSchema and H.FindSchema(TEST_MODE_PATH)) then return end
-    H.Set(TEST_MODE_PATH, true)
+    if not (H and H.FindSchema and H.FindSchema(TEST_MODE_PATH)) then return nil end
+    return H
 end
 
---- The player's close: the picker seen, and nothing else (the library's put-back wears the stored
---- choice already).
+local function testModeOn() return NS.State ~= nil and NS.State.testMode == true end
+
+local function popupOnScreen()
+    local a = NS.addon
+    return (a and a.IsFrameOnScreen and a:IsFrameOnScreen()) and true or false
+end
+
+local function previewEnter()
+    local H = testModeRow()
+    if not H or testModeOn() then return end
+    local under = popupOnScreen()
+    H.Set(TEST_MODE_PATH, true)
+    realUnder = under and testModeOn()
+end
+
+local function previewExit()
+    local H = testModeRow()
+    if not H then return end
+    local under = realUnder
+    realUnder = false
+    H.Set(TEST_MODE_PATH, false)
+    local a = NS.addon
+    if under and not testModeOn() and a.pendingInfo and not popupOnScreen() then a:ShowFrame() end
+end
+
+local PREVIEW = {
+    mode = "test",
+    enter = previewEnter,
+    exit = previewExit,
+    isActive = testModeOn,
+    isShown = popupOnScreen,
+}
+
+--- The player's close: the picker seen (the library's put-back wears the stored choice already).
+--- Every close, the quiet one included, drops the real-popup mark: the library's restore has run by
+--- now, and a mark a test mode ended by another route (combat, the popup's Close) left behind would
+--- make a later picker's eye-off show a real popup that was never under it.
 local function pickerClosed()
+    realUnder = false
     if quietClose then return end
     local H = seam()
     if H then H.Set(PICKER_PATH, true) end
@@ -259,7 +306,7 @@ function NS.SkinPickerSpec()
         -- The gear's default: Helpers.OpenOptionsPanel("general"), the key settings/Panel.lua's
         -- RegisterOptionsPage gave General, then SelectTab on the Skin tab's key.
         page = "general", tab = "Appearance",
-        onPreview = previewSkin, onClose = pickerClosed,
+        preview = PREVIEW, onClose = pickerClosed,
     }
 end
 
@@ -314,6 +361,51 @@ function NS.MaybeShowSkinPicker()
     return O.SkinPicker(NS.SkinPickerSpec())
 end
 
+-- ── the one-time skin notice (LibKa0s OptionsSkinPicker minor 9, SG-L3) ────────────────────────
+-- A release that wants every account to learn skins exist raises lib.SKIN_NOTICE_VERSION. The first
+-- addon to ask in a session claims the notice and shows the picker; every other addon records the
+-- version and stays quiet. The record is `db.global.skinNotice`, a number: account-wide, so a profile
+-- switch never shows it twice. In combat nothing is claimed; it asks again every NOTICE_RETRY seconds until combat ends.
+local NOTICE_RETRY = 5   -- seconds between asks while the player is in combat
+local noticeWaiting = false
+
+local function noticeGlobal()
+    local d = NS.db or (NS.addon and NS.addon.db)
+    return d and d.global or nil
+end
+
+local noticeStore = {
+    get = function() local g = noticeGlobal(); return g and g.skinNotice or nil end,
+    set = function(v) local g = noticeGlobal(); if g then g.skinNotice = v end end,
+}
+
+function NS.MaybeShowSkinNotice()
+    local O = optionsInstance()
+    if not (O and type(O.SkinNotice) == "function" and noticeGlobal()) then return nil, "unavailable" end
+    if NS.IsStoodDown and NS.IsStoodDown() then
+        -- A stood-down addon shows nothing, but a seen record still silences the rest (SG-L3).
+        O.SkinNotice(nil, noticeStore, true)
+        return nil, "standdown"
+    end
+    local spec = NS.SkinPickerSpec()
+    local frame, why = O.SkinNotice(spec, noticeStore)
+    if why == "combat" and not noticeWaiting and type(_G.C_Timer) == "table" and _G.C_Timer.After then
+        noticeWaiting = true
+        _G.C_Timer.After(NOTICE_RETRY, function()
+            noticeWaiting = false
+            NS.MaybeShowSkinNotice()
+        end)
+    end
+    return frame, why
+end
+
+local pickerFirstRun = NS.MaybeShowSkinPicker
+function NS.MaybeShowSkinPicker()
+    local frame, why = NS.MaybeShowSkinNotice()
+    if frame or why == "queued" then return frame, why end
+    return pickerFirstRun()
+end
+
 --- The reserved `/wg skin` verb's act: O.SkinVerb with the spec the first-run start builds, so it
 --- shows the picker a new profile shows whatever skin.pickerSeen says. The library prints its own
 --- lines (combat on every call, queued, unavailable); without LibKa0s the stub answers nil, "absent"
@@ -365,7 +457,13 @@ if not Skin then
         "GetAccentColor", "GetPanelColor", "GetFont",
         "TitleBar", "Divider", "Footer", "Card", "Slider", "NavItem", "Drawer", "ListRow", "MenuFrame",
         "Tooltip", "Strip", "Cover", "Text", "ChartStyle", "BarStyle", "IconBorder", "GlowColor",
-        "BarTexture", "FontFlags", "HudFontSize",
+        "BarTexture", "FontFlags", "HudFontSize", "Mark",
+        -- LibKa0s v1.85.0: nil is each getter's degraded answer, and this addon has no HUD to read
+        -- them. BarGloss and HoverArt draw nothing: no skin, no gloss and no hover art.
+        "HudTextColor", "HudLabelColor", "BarFillColor", "HudShadow", "BarGloss", "HoverArt",
+        -- LibKa0s v1.85.0 round 5 (Skin minor 16): Band answers nil, there being no painted band to
+        -- anchor to, and Header lays out nothing; the popup's own title bar stands without them.
+        "Band", "Header",
     }) do S[name] = noop end
 
     S.Token = function(name) return NS.SKIN_FALLBACK[name] end
@@ -412,6 +510,28 @@ if not Skin then
         local n = tonumber(size)
         return (n and n > 0) and n or 12
     end
+    -- LibKa0s v1.85.0 (SkinPaintExtras minor 9): a string a caller concatenates, so never nil. The
+    -- same markup in the art's own color, there being no tint to read.
+    S.MarkText = function(path, size)
+        size = size or 14
+        return ("|T%s:%d:%d|t"):format(path, size, size)
+    end
+    -- The Options document's Moving-to, step 7: the one member that must draw, or a string has no
+    -- face. No caller here (no HUD); it keeps the facade whole. Both shadow arms are written, so
+    -- the off arm clears; a 12.0.7 client draws neither, which the library accepts.
+    S.HudFont = function(fs, opts)
+        opts = type(opts) == "table" and opts or {}
+        local face = opts.face
+        if type(face) ~= "string" or face == "" then face = _G.STANDARD_TEXT_FONT end
+        if type(face) ~= "string" then return nil end
+        fs:SetFont(face, S.HudFontSize(opts.size), S.FontFlags(opts.flags))
+        local on = opts.shadow and true or false
+        fs:SetShadowColor(0, 0, 0, on and 1 or 0)
+        fs:SetShadowOffset(on and 1 or 0, on and -1 or 0)
+    end
+    -- The re-cut v1.85.0 (SkinPaintExtras minor 16): with no skin the stored border stands, so the
+    -- stub answers its first three arguments. No caller here (no bar); it keeps the facade whole.
+    S.BarBorder = function(style, show, size) return style, show, size end
 
     NS.Skin = S
     function NS.ApplySkinChoice() return false, false end

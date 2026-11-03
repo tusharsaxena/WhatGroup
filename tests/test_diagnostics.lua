@@ -56,7 +56,7 @@ local POS_MAP, POS_SPELL = 658, 1254555
 test("diagnostics: the host identity names schema, profile, enabled, stood-down, holds, test mode", function()
     local NS = T.enableAddon()
     local lines = report(NS)
-    assertTrue(has(lines, "schema stored=1 code=1"), "both schema versions")
+    assertTrue(has(lines, "schema stored=2 code=2"), "both schema versions")
     assertTrue(has(lines, "profile=Default"), "the active AceDB profile")
     assertTrue(has(lines, "enabled=true stoodDown=false"), "stored switch and the latch")
     assertTrue(has(lines, "holds -"), "no lifecycle hold while up")

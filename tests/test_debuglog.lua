@@ -227,7 +227,7 @@ local function dirtyTwoRows(NS)
 end
 
 test("debuglog: RestoreAllDefaults logs one [Set] reset profile line counting the rows it changed (debug-logging-§10)", function()
-    local NS = T.bootAddon()
+    local NS = T.quietPicker(T.bootAddon())   -- the reset's lines, not the picker's (R6-PV)
     dirtyTwoRows(NS)
     NS.State.debug = true
     local setBefore = countLines(NS, "[Set]")
@@ -246,7 +246,7 @@ test("debuglog: RestoreAllDefaults logs one [Set] reset profile line counting th
 end)
 
 test("debuglog: RestoreAllDefaults on a pristine profile counts 0 rows (debug-logging-§10)", function()
-    local NS = T.bootAddon()
+    local NS = T.quietPicker(T.bootAddon())   -- the reset's lines, not the picker's (R6-PV)
     NS.State.debug = true
     local setBefore = countLines(NS, "[Set]")
     NS.addon.Settings.Helpers.RestoreAllDefaults()
@@ -259,7 +259,7 @@ test("debuglog: a profile reset from outside the helper is logged once, without 
     -- The line belongs to the profile-event handler, not to RestoreAllDefaults, so a reset driven
     -- straight at the db (AceDBOptions, a /run) is logged too, and only once. Nothing counted the
     -- changed rows before that reset, and debug-logging-§10 lets the line omit a count that is not cheap to know.
-    local NS = T.bootAddon()
+    local NS = T.quietPicker(T.bootAddon())   -- the reset's lines, not the picker's (R6-PV)
     dirtyTwoRows(NS)
     NS.State.debug = true
     local before = countLines(NS, "[Set]")
@@ -404,7 +404,7 @@ end)
 test("debuglog: a profile reset that raises leaves no count for a later reset (debug-logging-§10)", function()
     -- RestoreAllDefaults counts before it resets. If the reset raises, that count must not survive
     -- for some later, unrelated reset to claim: the later reset below changed no row it counted.
-    local NS = T.bootAddon()
+    local NS = T.quietPicker(T.bootAddon())   -- the reset's lines, not the picker's (R6-PV)
     dirtyTwoRows(NS)
     local db = NS.addon.db
     local real = db.ResetProfile
@@ -438,7 +438,7 @@ test("debuglog: a profile copy logs one [Set] copied line naming the source (deb
     -- Real AceDB fires OnProfileCopied(event, db, sourceProfileKey), so the handler is called with
     -- exactly that. Through kit revision 17 the AceDB mock passed the CURRENT profile key there,
     -- the destination; since revision 18 it passes the source, as AceDB does.
-    local NS = T.bootAddon()
+    local NS = T.quietPicker(T.bootAddon())   -- the reset's lines, not the picker's (R6-PV)
     NS.State.debug = true
     local before = countLines(NS, "[Set]")
     NS.addon:OnProfileCopied("OnProfileCopied", NS.addon.db, "Alt")
@@ -451,8 +451,8 @@ test("debuglog: InitSummary leads with the debug-logging-§5 identity fields, th
     local NS = T.bootAddon()
     local s = NS.addon:InitSummary()
     -- Standard-mandated identity prefix (name/version/schema/profile) comes first.
-    assertEqual(s:sub(1, #("WhatGroup v" .. NS.addon.VERSION .. ", schema v1, profile 'Default'")),
-        "WhatGroup v" .. NS.addon.VERSION .. ", schema v1, profile 'Default'")
+    assertEqual(s:sub(1, #("WhatGroup v" .. NS.addon.VERSION .. ", schema v2, profile 'Default'")),
+        "WhatGroup v" .. NS.addon.VERSION .. ", schema v2, profile 'Default'")
     -- Runtime state appended on the same one line.
     for _, frag in ipairs({ "enabled=true", "notify.delay=0s", "autoShow=true",
                             "inGroup=false", "hasPending=false" }) do
