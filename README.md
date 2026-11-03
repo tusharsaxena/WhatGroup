@@ -71,7 +71,7 @@ The group info doesn't outlive the session. WhatGroup drops it the moment you le
 | The teleport button is grayed out | You haven't learned that dungeon's teleport spell on this character, or the dungeon has no teleport. |
 | I opened Settings but can't find the toggles | `/wg config` lands on the landing page. Click **General** in the sidebar. |
 | `/wg config` says "cannot open settings during combat" and nothing opens | The Blizzard settings panel can't be opened in combat. Leave combat and run it again. |
-| **Test mode** turned itself off | It ends when a fight starts, when you close the popup, and when you ask for the real one (`/wg show`, `/wg test notify`, or the chat link). It also won't start during combat. Joining a group while it's on doesn't end it; click the chat link to see that group. |
+| **Test mode** turned itself off | It ends when a fight starts, when you close the popup, and when you ask for the real one (`/wg show`, `/wg test notify`, or the chat link). If the skin window turned it on, closing that window turns it off again. It also won't start during combat. Joining a group while it's on doesn't end it; click the chat link to see that group. |
 | I ticked **Debug console** but no debug output shows up | That checkbox only shows or hides the window. Turn logging on with `/wg debug on`, or the **Debug: OFF** button inside the window itself. Logging always starts off after a login or `/reload`. |
 | Something looks wrong and I want to report it | Follow [Reporting a bug](#reporting-a-bug) below. |
 
