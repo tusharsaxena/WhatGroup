@@ -1057,11 +1057,11 @@ Default is SKIN-1's list and nothing else.
   also lands as a pick, or a blocked-action error. Result:
 - **SKIN-36. The dark gold title band, no line under any title, the icon's outline (R4-RV2; LibKa0s
   R4-L2, R4-L3, R4-SEP).** On **Ka0s Default**, `/wg test` on a mapped dungeon → the popup's title band
-  is an opaque dark gold gradient, lighter at the top (#3A2F0A) than at the bottom (#1F1905), under the
+  is an opaque dark gold gradient, lighter at the top than at the bottom, under the
   gold title, and nothing draws a line between the band and the first row. The teleport icon's 1px
   outline is a mid gray (#4D4D57), no longer black. `/wg debug` → the console's title bar has no line
   under it; its **Copy** window's bar neither. `/wg config` → General → **Skin**: Ka0s Default's
-  second swatch is the band's dark gold (#2C2408). Pick **Obsidian**, then **Ka0s Default** → the band
+  second swatch is the band's dark gold. Pick **Obsidian**, then **Ka0s Default** → the band
   and the outline follow each skin and no line appears under the title in either. The settings pages'
   own header rule stays. Fail: a black or translucent band under Ka0s Default, a line under the
   popup's or the console's title, a black teleport outline under Ka0s Default, or a Lua error. Result:
@@ -1078,6 +1078,17 @@ Default is SKIN-1's list and nothing else.
   spell icon) keep a black edge. Pick **Obsidian**, then **Ka0s Default** → the teleport outline
   follows each skin and comes back gray. Fail: a black teleport outline under Ka0s Default, an
   outline that stays on Obsidian's color after the switch back, or a Lua error. Result:
+- **SKIN-39. A darker title band, the library windows' band, and the skin list closes on an outside
+  press (R5-RV; LibKa0s R5-L1, R5-L2, R5-L3, R5-L4).** On **Ka0s Default**, `/wg test` → the popup's
+  title band is the same dark gold gradient, a step darker than round 4, and the gold title still
+  reads clearly on it. `/wg debug` → the console's header band is the same darker gold, flush inside
+  its edge, with its title and its Close, Clear and Copy buttons on the band's vertical middle; its
+  **Copy** window's band and title the same. `/wg skin` → the skin picker window's title and close
+  sit on its band's vertical middle. Open its skin list, then press the window's body → the list
+  closes; open it again and press the game world → it closes; open it again and press the **Font**
+  dropdown → the skin list closes and the Font list opens. Fail: a band as light as round 4's, a
+  console or copy window with no band, a title or close above or below the band's middle, a skin list
+  that stays open after any of the three presses, or a Lua error. Result:
 
 ## Library-absent install
 
@@ -1219,3 +1230,5 @@ The round's second milestone (R4-RV2: LibKa0s v1.85.0 re-cut at bea4ac8, R4-L2's
 R4-SEP (the same round) drops the popup's own `f.divider` texture, which the library already hid, and adds SKIN-37. No pass mark came off.
 
 The round's M2b (R4-RV3: LibKa0s v1.85.0 re-cut at 2a78817, R4-L4's `opts.hud`, which draws a HUD icon's edge in `icon.border` and never `icon.outline`) adds SKIN-38. The popup is a window, so the teleport icon passes no `hud` and keeps SKIN-36's outline. No addon code moved and no pass mark came off.
+
+The owner's fifth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND5/`, R5-RV: LibKa0s v1.85.0 re-cut at 17d18aa, R5-L1's darker title band, R5-L2's band over a backdrop window's fill, R5-L3's `S.Band` and `S.Header`, R5-L4's skin list that closes on an outside press and R5-L5's cropped library icons) adds SKIN-39 and drops SKIN-36's quoted round 4 hexes, which the darker band made stale. The degraded facade gains `Band` and `Header`. No pass mark came off.

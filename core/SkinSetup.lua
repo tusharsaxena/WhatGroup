@@ -414,6 +414,9 @@ if not Skin then
         -- LibKa0s v1.85.0: nil is each getter's degraded answer, and this addon has no HUD to read
         -- them. BarGloss and HoverArt draw nothing: no skin, no gloss and no hover art.
         "HudTextColor", "HudLabelColor", "BarFillColor", "HudShadow", "BarGloss", "HoverArt",
+        -- LibKa0s v1.85.0 round 5 (Skin minor 16): Band answers nil, there being no painted band to
+        -- anchor to, and Header lays out nothing; the popup's own title bar stands without them.
+        "Band", "Header",
     }) do S[name] = noop end
 
     S.Token = function(name) return NS.SKIN_FALLBACK[name] end
