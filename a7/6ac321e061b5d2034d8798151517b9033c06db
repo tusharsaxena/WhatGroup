@@ -1,0 +1,1 @@
+ka0s-review (R6 follow-up, independent reviewer, 2026-11-04): R6-RV2 review fix a76ac32 (inventory regenerate). Lockstep diff silent; gate 1099/0/1, luacheck 0/0.
