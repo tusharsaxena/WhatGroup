@@ -1089,6 +1089,16 @@ Default is SKIN-1's list and nothing else.
   dropdown → the skin list closes and the Font list opens. Fail: a band as light as round 4's, a
   console or copy window with no band, a title or close above or below the band's middle, a skin list
   that stays open after any of the three presses, or a Lua error. Result:
+- **SKIN-40. The popup's header on the band, like Loot History's (R5-WIN; LibKa0s R5-L3).** With Loot
+  History's browser open beside it for reference, `/wg test` on **Ka0s Default** → the popup's title
+  band sits flush inside the 1 px edge on the top, left and right, with no strip of body color
+  between edge and band, and only one band (no darker double band). The title's letters sit on the
+  band's vertical middle, as Loot History's do. Pick **WoW Midnight** (the 2 px edge), then
+  **Obsidian**, **WoW Default** and back to **Ka0s Default** → in each the band stays flush inside
+  that skin's edge, the title stays on its middle (by the skin's alignment), the first row stays 8 px
+  under the band, and dragging the popup by its title still moves it. Fail: a gap of body color
+  above or beside the band, a title above or below the band's middle in any skin, a band that does
+  not move with the skin's edge, a drag that no longer works, or a Lua error. Result:
 
 ## Library-absent install
 
@@ -1232,3 +1242,5 @@ R4-SEP (the same round) drops the popup's own `f.divider` texture, which the lib
 The round's M2b (R4-RV3: LibKa0s v1.85.0 re-cut at 2a78817, R4-L4's `opts.hud`, which draws a HUD icon's edge in `icon.border` and never `icon.outline`) adds SKIN-38. The popup is a window, so the teleport icon passes no `hud` and keeps SKIN-36's outline. No addon code moved and no pass mark came off.
 
 The owner's fifth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND5/`, R5-RV: LibKa0s v1.85.0 re-cut at 17d18aa, R5-L1's darker title band, R5-L2's band over a backdrop window's fill, R5-L3's `S.Band` and `S.Header`, R5-L4's skin list that closes on an outside press and R5-L5's cropped library icons) adds SKIN-39 and drops SKIN-36's quoted round 4 hexes, which the darker band made stale. The degraded facade gains `Band` and `Header`. No pass mark came off.
+
+R5-WIN (the same round) lays the popup's header on the library's band through `S.Header`: the drag bar takes the band's rect at Shell's own inset and the title is anchored by `title.align` to the band's middle. Adds SKIN-40. No pass mark came off.

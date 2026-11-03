@@ -211,39 +211,81 @@ end)
 
 -- ── the title bar (cause L9 of Ka0sAddonsCommonTasks docs/2026-11-01-FULL_SKINNING/) ─────────
 
-test("popup skin: the title bar is the skin's TitleBar and places its own text", function()
-    -- red under: a hand-built bar (typed height, a typed CENTER at -2): title.height and title.align
-    -- never reach the popup.
+--- The popup's band holder, the frame S.Band answers (LibKa0s R5-L3): read off the Shell's record,
+--- so the case asks the library nothing that would add a record of its own.
+local function band(mock)
+    local rec = skinLib(mock).painted[popup(mock)]
+    return rec and rec.regions.band
+end
+
+--- Shell's inset and band height under the live skin, the arithmetic the library lays the band by.
+local function bandGeometry(NS)
+    local style = NS.Skin.Token("win.borderStyle") or "flat"
+    local inset = style == "flat" and NS.Skin.Token("win.borderSize") or 1
+    return inset, NS.Skin.Token("title.height") or 30
+end
+
+--- The header on the band in the live skin: the band where Shell paints, the bar on the band's rect,
+--- the title on the band's middle by title.align.
+local function assertHeaderOnBand(NS, mock, what)
+    local f, bar, b = popup(mock), F.dragHandle(mock), band(mock)
+    assertTrue(b ~= nil, what .. ": the popup has a band frame")
+    local inset, h = bandGeometry(NS)
+    local p1 = { b:GetPoint(1) }
+    assertEqual(p1[1], "TOPLEFT", what .. ": the band's first anchor")
+    assertTrue(p1[2] == f, what .. ": on the popup")
+    assertEqual(p1[4], inset, what .. ": in by Shell's inset")
+    assertEqual(p1[5], -inset, what .. ": down by Shell's inset")
+    assertEqual(b:GetHeight(), h, what .. ": title.height high")
+    assertEqual(bar:GetNumPoints(), 2, what .. ": the bar takes the band's rect")
+    for i = 1, 2 do
+        local _, rel, _, x, y = bar:GetPoint(i)
+        assertTrue(rel == b, what .. ": the bar's anchor " .. i .. " is the band")
+        assertEqual(x, 0, what .. ": flush, x")
+        assertEqual(y, 0, what .. ": flush, y")
+    end
+    assertEqual(f.title:GetNumPoints(), 1, what .. ": one anchor on the title")
+    local point, rel, relPoint, _, y = f.title:GetPoint(1)
+    local align = NS.Skin.Token("title.align") or "CENTER"
+    assertEqual(point, align, what .. ": the title by title.align")
+    assertTrue(rel == b, what .. ": the title hangs off the band")
+    assertEqual(relPoint, align, what .. ": on the band's own " .. align)
+    assertEqual(y, 0, what .. ": the band's vertical middle, no typed offset")
+end
+
+test("popup skin: the title bar is the skin's TitleBar, and the header is placed on the band", function()
+    -- red under: the R4 build, where the bar hung at the popup's (0,0) with S.TitleBar's `place`
+    -- anchoring the title to the bar: a 2 px edge skin then sat the band 1 px high (LibKa0s R5-L3,
+    -- the owner's item 5 of Ka0sAddonsCommonTasks docs/2026-11-03-SMOKE_ROUND5).
     local NS, _, mock = T.bootAddon()
     NS.addon:ShowFrame()
     local f, bar = popup(mock), F.dragHandle(mock)
     local rec = skinLib(mock).painted[bar]
     assertTrue(rec ~= nil and rec.owner == OWNER and rec.calls.TitleBar ~= nil, "the bar is not S.TitleBar'd")
-    local opts = rec.calls.TitleBar[1]
-    assertTrue(opts.place == true, "the bar takes title.height and title.align")
-    assertTrue(opts.text == f.title, "the title is the bar's text")
-    assertEqual(bar:GetHeight(), NS.Skin.Token("title.height"))
-    local point, relativeTo, relativePoint, x, y = f.title:GetPoint(1)
-    assertEqual(point, "CENTER")
-    assertTrue(relativeTo == bar, "anchored to the bar")
-    assertEqual(relativePoint, "CENTER")
-    assertEqual(x, 0)
-    assertEqual(y, 0, "the middle of the band, no typed -2")
+    assertTrue(rec.calls.TitleBar[1].text == f.title, "the title is the bar's text")
+    local head = skinLib(mock).painted[f]
+    assertTrue(head.calls.Header ~= nil, "the popup's header is S.Header'd")
+    local spec = head.calls.Header[1]
+    assertTrue(spec.title == f.title, "S.Header places the title")
+    assertTrue(spec.bars and spec.bars[1] == bar, "and gives the drag bar the band's rect")
+    assertHeaderOnBand(NS, mock, "Ka0s Default")
 end)
 
-test("popup skin: a skin switch puts the bar's height and the title's anchor back from the tokens", function()
-    -- red under: a geometry set once at build. The drawing setters, not a getter of a value that
-    -- never moved: the token is the same in every skin, so a switch must still write it.
+test("popup skin: in every skin the header sits on the band, and a switch lays it again", function()
+    -- red under: a header placed once at build, or a title left on a bar at the popup's corner.
     local NS, _, mock = T.bootAddon()
     NS.addon:ShowFrame()
     local f, bar = popup(mock), F.dragHandle(mock)
-    bar:SetHeight(26)
-    f.title:ClearAllPoints()
-    f.title:SetPoint("TOPLEFT", bar, "TOPLEFT", 3, 3)
-    quietly(NS, function() NS.ApplySkinChoice("ka0s", OTHER) end)
-    assertEqual(bar:GetHeight(), NS.Skin.Token("title.height"))
-    assertEqual(f.title:GetNumPoints(), 1)
-    assertEqual((f.title:GetPoint(1)), NS.Skin.Token("title.align"))
+    for _, def in ipairs(skinLib(mock):Skins()) do
+        -- From another skin first, so the pick below is a real switch that replays the record.
+        quietly(NS, function() NS.ApplySkinChoice("ka0s", def.key == OTHER and "ka0s" or OTHER) end)
+        bar:ClearAllPoints()
+        bar:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+        f.title:ClearAllPoints()
+        f.title:SetPoint("TOPLEFT", bar, "TOPLEFT", 3, 3)
+        quietly(NS, function() NS.ApplySkinChoice("ka0s", def.key) end)
+        assertHeaderOnBand(NS, mock, def.key)
+    end
 end)
 
 test("popup skin: no line under the title, and the content hangs off the bar (R4-SEP)", function()

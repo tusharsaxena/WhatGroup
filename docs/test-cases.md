@@ -628,7 +628,7 @@ Total.
 - layers: the owed Hide at combat end leaves the controls ready for the next show
 - layers: no SetFrameStrata literal and no absolute SetFrameLevel in core, modules or settings
 
-### test_frame_skin.lua (24)
+### test_frame_skin.lua (25)
 
 - popup skin: the title's brand span reads wg.brand, FFD700 byte for byte on Ka0s Default
 - popup skin: every field label is painted in wg.label, with no inline color
@@ -638,11 +638,12 @@ Total.
 - popup skin: the window is the owner's Shell, so a switch repaints its edge and title
 - popup skin: a skin switch repaints the labels, values, note and brand span live
 - popup skin: a repopulate paints only the values whose token moved, and the look survives
-- popup skin: the title bar is the skin's TitleBar and places its own text
-- popup skin: a skin switch puts the bar's height and the title's anchor back from the tokens
+- popup skin: the title bar is the skin's TitleBar, and the header is placed on the band
+- popup skin: in every skin the header sits on the band, and a switch lays it again
 - popup skin: no line under the title, and the content hangs off the bar (R4-SEP)
 - popup skin: one title band: the bar paints it and the Shell's top bar stays off
 - popup skin: the teleport icon wears the skin's icon border, on its Texture
+- popup skin: the teleport icon is a window icon, so its edge is icon.outline, never the HUD's
 - popup skin: a skin switch redraws the icon's border, 1 px in every skin, in combat too
 - popup skin: a skin switch re-anchors the teleport button beside its moved label
 - popup skin: in combat the re-anchor waits for combat end, then lands
@@ -1258,7 +1259,7 @@ Total.
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_frame_layers.lua | 8 |
-| test_frame_skin.lua | 24 |
+| test_frame_skin.lua | 25 |
 | test_panel.lua | 62 |
 | test_skinsetup.lua | 17 |
 | test_skin_outline.lua | 10 |
@@ -1290,4 +1291,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 25 |
 | Skipped | 1 |
-| **Total** | **1084** |
+| **Total** | **1085** |

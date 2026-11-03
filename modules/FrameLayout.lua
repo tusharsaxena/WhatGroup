@@ -36,7 +36,9 @@ function FrameLayout.Build(f, dismissPopup)
     local titleBar = CreateFrame("Frame", nil, f)
     titleBar:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
     titleBar:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
-    titleBar:SetHeight(30)   -- the skin's title.height takes over at Look.TitleBar, below; 30 degraded
+    -- The build geometry is what a degraded install draws; with the library, Look.TitleBar (below)
+    -- hands the bar to S.Header, which lays it on the skin's band (Shell's inset, title.height).
+    titleBar:SetHeight(30)
     titleBar:EnableMouse(true)
     -- LOCKED IS READ AT DRAG TIME, not wired once: the checkbox is a plain profile value with no
     -- onChange, because there is nothing to apply -- the next mouse-down is where it takes effect.

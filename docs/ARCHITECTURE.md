@@ -321,8 +321,10 @@ surface carries a typed look value.
   this owner and then fires `NS.Skin.OnLooksChanged`. No reload, no OnUpdate, no events.
 - **The popup.** `modules/FrameSkin.lua` owns its look: the window through `NS.ApplySkin(f, nil,
   addonName)` (the skin's Shell: body, edge, title color; no line under the title, R4-SEP), the title bar through
-  `S.TitleBar` with `place` (`title.bg`, `title.height`, `title.align`; the Shell then runs with
-  `noTopBar`, so the band draws once), the teleport icon's edge through `S.IconBorder` with
+  `S.TitleBar` (`title.bg`; the Shell then runs with `noTopBar`, so the band draws once), the
+  header through `S.Header` on the library's band (LibKa0s R5-L3: the bar takes the band's rect, in
+  by Shell's inset and `title.height` high, and the title is anchored by `title.align` to the band's
+  middle at y 0, in every skin), the teleport icon's edge through `S.IconBorder` with
   `fromSkin` on the icon's Texture, which the library hangs on a plain child of the secure button, the labels in `wg.label`, the values in `text.highlight`, the placeholders and the teleport note in
   `wg.placeholder`, and **Close** as the skin's `Button` (the flat control under Ka0s Default too,
   inventory D4). Its `OnLooksChanged` hook does the two things the library cannot replay: it re-sets
