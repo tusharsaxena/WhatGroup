@@ -795,10 +795,11 @@ Default is SKIN-1's list and nothing else.
   default is *HUD text only* since LibKa0s v1.83.0, D-10, and the popup is window text); the 30px title band behind the title is filled a shade
   darker than the body; **Close** is the skin's flat button (a dark fill inside a 1px edge) instead of
   Blizzard's red stone button; the title sits 2px higher, on the band's middle (FS-WG-FIX, cause L9);
-  and the teleport icon wears a 2px black edge (FS-WG-FIX, cause A1). Fail: any other changed color, edge or
+  and the teleport icon wears a 1px black edge, its art zoomed so its own edge never shows inside it
+  (FS-WG-FIX, cause A1; 2px until LibKa0s v1.85.0's R3-FIX). Fail: any other changed color, edge or
   spacing, a label in a different gold from the "WhatGroup" span, a string still in Friz Quadrata
   or in the retired Oxanium, an outlined string, or text clipped or overlapping because the
-  face is wider. Result: Passed (owner, 2026-11-02)
+  face is wider. Re-opened by R3-FIX: the icon's edge is 1 px, where it was 2. Result: not run
 - **SKIN-2. The Skin tab (WG-01).** `/wg config` → General → the strip reads **Master controls |
   Notifications | Skin | Keybindings**. **Skin** → a **Skin source** heading over *Ka0s skins* (on)
   and *EllesmereUI* (disabled with a line saying why, unless EllesmereUI is loaded and can skin this
@@ -1021,14 +1022,15 @@ Default is SKIN-1's list and nothing else.
 - **SKIN-32. The title bar and the icon's edge (FS-WG-FIX; causes L9, A1).** `/wg test`, on a mapped
   dungeon so the teleport icon shows, then pick each skin → the title stays on the middle of its
   band, one band with no darker strip along its top, and the divider and the first row stay where
-  they were. The icon's edge takes the skin's own color and size (rulings of 2026-11-01): 1px on
-  Obsidian, Glass and WoW Forever, 2px on Azeroth, High Contrast, Ember and WoW Midnight, each in a
-  color of its palette and none of them black, the client's tooltip edge on WoW Default, and black
-  2px on Ka0s Default, as before. Then on a learned teleport: the edge dims with the icon at 50% when
+  they were. The icon's edge takes the skin's own color (rulings of 2026-11-01) and is a flat
+  1px outline in every skin (R3-L3, 2026-11-03): each non-default skin's in a color of its palette
+  and none of them black, WoW Default's included, with no client tooltip edge, and black on Ka0s
+  Default. The icon's art is zoomed inside it, so the spell icon's own beveled edge never shows. Then on a learned teleport: the edge dims with the icon at 50% when
   not ready, hides with the button when no spell maps, and the icon's tooltip and click still work
   through it. In combat, `/wg set skin.skin obsidian` → the edge changes at once, with no
   `ADDON_ACTION_BLOCKED`. Fail: a darker double band, a title off the middle, an edge left behind
-  when the icon hides, a click the edge eats, or a blocked-action error. Result: Failed (owner, 2026-11-02): re-opened as R3-L3
+  when the icon hides, a click the edge eats, a blocked-action error, or a 2px or tooltip-art edge under any skin.
+  (Amended by R3-FIX, 2026-11-03, after R3-L3.) Result: Failed (owner, 2026-11-02): re-opened as R3-L3
 - **SKIN-33. What the re-vendor brought (LibKa0s v1.85.0).** Under **High Contrast**, hover the minimap
   button → the tooltip's title, lines and status words take the skin's tooltip colors; under Ka0s
   Default they look as before. `/wg debug` → the console's title bar is 30 high, 4px taller than it
@@ -1175,3 +1177,5 @@ still owed, so no pass mark moved. This addon draws no bar, glow or cover, so no
 The owner's third smoke round (Ka0sAddonsCommonTasks `docs/2026-11-02-SMOKE_ROUND3/`, R3-FRIZ) adds SKIN-34 and re-opens SKIN-6, whose WoW Default face is now Ka0s Ubuntu; its pass mark came off.
 
 On 2026-11-02 the owner reported that every check on the smoke lists of the full skinning run and its smoke feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-01-FULL_SKINNING/` and `docs/2026-11-01-SMOKE_FEEDBACK/`) passed, apart from DpsRace's clock font, the skinned look of the AceGUI Dropdown and the Ka0sMedia_Font and Ka0sMedia_Statusbar pickers, FadeNineSlice and IconBorder (`docs/2026-11-02-SMOKE_ROUND3/`, R3-SMOKE). Passed, recorded on each `Result:` line as `Passed (owner, 2026-11-02)`: POPUP-11, SKIN-1, SKIN-10 and SKIN-33. Failed, re-opened as R3-L3 (IconBorder's 1 px outline and zoom) and recorded as `Failed (owner, 2026-11-02): re-opened as R3-L3`: SKIN-32.
+
+The round's R3-FIX (LibKa0s v1.85.0 re-cut at fd57b83: every skin's icon border is Solid 1px, and the icon's zoom reaches the teleport icon's Texture) amends SKIN-32's expected edge and re-opens SKIN-1, whose teleport icon edge is 1 px where it was 2; its pass mark came off.

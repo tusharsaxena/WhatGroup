@@ -318,8 +318,19 @@ test("popup skin: the teleport icon wears the skin's icon border, on its Texture
     assertTrue(skinLib(mock).painted[teleportBtn(mock)] == nil, "nothing recorded on the secure button")
     local holder = rec.regions.holder
     assertTrue(holder.__parent == teleportBtn(mock), "a child, so it shows and dims with the button")
-    -- LibKa0s R3-L3: 1 px in every skin, though Ka0s Default's icon.borderSize is 2.
+    -- LibKa0s R3-L3: 1 px in every skin, Ka0s Default included.
     assertEqual(rec.regions.edgeLeft:GetWidth(), 1, "the 1 px outline")
+    -- R3-L3's zoom: the library crops the icon's own Texture to 0.07..0.93, so the art's beveled
+    -- edge never shows inside the outline. Red if the edge were hung where no icon is named. The
+    -- mock's SetTexCoord is a catch-all, so a spy on the setter reads a repaint's crop.
+    local crop
+    icon.SetTexCoord = function(self, ...)
+        crop = { ... }
+        return self
+    end
+    quietly(NS, function() NS.ApplySkinChoice("ka0s", OTHER) end)
+    assertTrue(crop ~= nil, "the repaint never zoomed the icon")
+    assertEqual(table.concat(crop, " "), "0.07 0.93 0.07 0.93", "the icon's art zoomed to 0.07..0.93")
 end)
 
 test("popup skin: a skin switch redraws the icon's border, 1 px in every skin, in combat too", function()
