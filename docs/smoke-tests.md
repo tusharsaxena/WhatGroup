@@ -26,7 +26,7 @@ number out of use rather than handing it to a new one.
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-20 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
-| SKIN-1 – SKIN-38 | [Skins](#skins) | Ka0s Default as before but for its face, title band, Close button and teleport icon edge; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws; a stored pick of the deleted Friz; a dropdown's list closing on an outside press; the dark gold title band, no line under it and the icon's outline; the popup built with no divider; the teleport icon keeping the window outline beside HUD icons |
+| SKIN-1 – SKIN-41 | [Skins](#skins) | Ka0s Default as before but for its face, title band, Close button and teleport icon edge; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws; a stored pick of the deleted Friz; a dropdown's list closing on an outside press; the dark gold title band, no line under it and the icon's outline; the popup built with no divider; the teleport icon keeping the window outline beside HUD icons |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
 | LOC-1 – LOC-6 | [Non-English client](#non-english-client) | A deDE or frFR client, and the `IsSpellKnown` readers |
 
@@ -1099,6 +1099,11 @@ Default is SKIN-1's list and nothing else.
   under the band, and dragging the popup by its title still moves it. Fail: a gap of body color
   above or beside the band, a title above or below the band's middle in any skin, a band that does
   not move with the skin's edge, a drag that no longer works, or a Lua error. Result:
+- **SKIN-41. The skin picker on the round 6 cut (R6-RV; LibKa0s R6-L1, OptionsSkinPicker minor 11).** `/wg
+  skin` → the picker opens with its dropdown, eye, gear, **Apply** and close mark, and lists every skin.
+  Close it once by each route (**Apply**, the gear, the close mark, **Escape**) → each closes it with
+  no Lua error, and `/wg skin` opens it again each time. Fail: a picker that does not open, a close
+  route that leaves it up, or a Lua error. Result:
 
 ## Library-absent install
 
@@ -1244,3 +1249,5 @@ The round's M2b (R4-RV3: LibKa0s v1.85.0 re-cut at 2a78817, R4-L4's `opts.hud`, 
 The owner's fifth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND5/`, R5-RV: LibKa0s v1.85.0 re-cut at 17d18aa, R5-L1's darker title band, R5-L2's band over a backdrop window's fill, R5-L3's `S.Band` and `S.Header`, R5-L4's skin list that closes on an outside press and R5-L5's cropped library icons) adds SKIN-39 and drops SKIN-36's quoted round 4 hexes, which the darker band made stale. The degraded facade gains `Band` and `Header`. No pass mark came off.
 
 R5-WIN (the same round) lays the popup's header on the library's band through `S.Header`: the drag bar takes the band's rect at Shell's own inset and the title is anchored by `title.align` to the band's middle. Adds SKIN-40. No pass mark came off.
+
+The owner's sixth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND6/`, R6-RV: LibKa0s v1.85.0 re-cut at 79d043d, R6-L1's skin picker preview contract, `OptionsSkinPicker.lua` minor 11 and no other file) adds SKIN-41. No facade name, stub or `VOCAB` entry moves, and no pass mark came off.
