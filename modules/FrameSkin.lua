@@ -17,8 +17,9 @@ local _, NS = ...
 --                        placed by `title.align`. The bar paints the band, so the window's Shell
 --                        is re-run with `noTopBar`: two bands would draw `title.bg`'s alpha twice.
 --                        S.TitleBar and S.Shell are recorded, so a switch redoes both.
---   IconEdge(texture)    the skin's icon border family (`icon.border`, `icon.borderStyle`,
---                        `icon.borderSize`) on the teleport icon's Texture. The library hangs the
+--   IconEdge(texture)    the skin's window icon outline on the teleport icon's Texture: a flat 1 px
+--                        edge in `icon.outline`, else `icon.border` (LibKa0s R3-L3, R4-L3), with the
+--                        art zoomed to 0.07..0.93 so its own edge never shows. The library hangs the
 --                        edge on a plain child of the Texture's parent, so the secure button is
 --                        never written to (SkinPaintControls minor 15).
 --   Button(btn)          the skin's push button (the Close button). Called after its OnClick is
