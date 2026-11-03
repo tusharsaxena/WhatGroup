@@ -349,7 +349,9 @@ surface carries a typed look value.
   Each enter and exit is the session row `/wg test on|off` writes (`Helpers.Set("state.testMode")`),
   so the Master controls box and the launcher follow and the combat refusal still prints; a refused
   enter moves nothing and leaves nothing to undo. A real popup up at open is left alone; if the eye
-  starts test mode over it, the exit shows it again, as `/wg show` does. The one-shot `onPreview`
+  starts test mode over it, the exit shows it again, as `/wg show` does; every close drops that mark,
+  so a test mode combat or the popup's Close ended cannot hand a later picker's eye a real popup that
+  was never under it. The one-shot `onPreview`
   is gone.
   Since LibKa0s v1.81.0 the window is titled *Choose a skin*, and the addon's label (`NS.BRAND_NAME`,
   given as `RegisterOwner`'s `label`) has its own line above the dropdown, `frame.ownerLabel`, never

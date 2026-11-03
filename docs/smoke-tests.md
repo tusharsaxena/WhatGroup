@@ -1116,7 +1116,10 @@ Default is SKIN-1's list and nothing else.
   the picker up → the same, then `/wg enable`. Turn test mode on first (`/wg test`), then `/wg skin`
   → it stays on; press the eye (off), then close → test mode is on again. With a real group's popup
   up (`/wg show` after a join), `/wg skin` → the popup keeps the real group and test mode stays
-  off; press the eye → the sample shows; close → the real group's popup is back. In combat, with
+  off; press the eye → the sample shows; close → the real group's popup is back. Again over the real
+  popup: press the eye (the sample shows), enter combat (test mode ends, the popup closes), leave
+  combat and close the picker; then `/wg test`, `/wg skin`, press the eye → test mode turns off and
+  the popup closes, with no real group's popup coming up; close → test mode is on again. In combat, with
   test mode off, press the eye → the gray "cannot start test mode during combat" line, and nothing
   turns on, so the close turns nothing off. Fail: test mode not on at a show over the closed popup,
   an eye that only turns it on, a close by any route that leaves test mode on or a player's test
@@ -1270,4 +1273,4 @@ R5-WIN (the same round) lays the popup's header on the library's band through `S
 
 The owner's sixth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND6/`, R6-RV: LibKa0s v1.85.0 re-cut at 79d043d, R6-L1's skin picker preview contract, `OptionsSkinPicker.lua` minor 11 and no other file) adds SKIN-41. No facade name, stub or `VOCAB` entry moves, and no pass mark came off.
 
-R6-PV (the same round) moves the picker's eye onto `spec.preview` in test mode: the picker shown over a closed popup turns test mode on, the eye toggles it, and every close puts it back. Adds SKIN-42 and amends SKIN-19, whose eye now toggles; its pass mark came off.
+R6-PV (the same round) moves the picker's eye onto `spec.preview` in test mode: the picker shown over a closed popup turns test mode on, the eye toggles it, and every close puts it back. Adds SKIN-42 and amends SKIN-19, whose eye now toggles; its pass mark came off. Its review added a SKIN-42 step: a real popup the eye covered, once combat ended that test mode, is not brought up by a later picker's eye.

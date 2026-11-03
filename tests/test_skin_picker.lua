@@ -419,6 +419,29 @@ test("skin picker: a refused enter in combat moves nothing, and the close undoes
     assertFalse(testOn(NS, H), "the close turned on a test mode that never moved")
 end)
 
+test("skin picker: a real popup the eye covered and combat ended is not shown by a later eye", function()
+    -- red under: the eye's "real popup under" mark outliving its test mode (ended here by combat,
+    -- not by the picker), so a later picker's eye-off over the PLAYER's own test mode put the real
+    -- popup on screen instead of hiding the popup, as `/wg test off` does.
+    local NS, _, mock, H = enabled()
+    NS.addon.pendingInfo = NS.addon:SampleInfo()
+    NS.addon:ShowFrame()
+    local f = window(NS)
+    f.preview.__fire("OnClick")          -- test mode over the real popup
+    NS.addon:EndTestModeForCombat()      -- combat ends it, and the popup with it
+    f.close.__fire("OnClick")
+    assertFalse(testOn(NS, H))
+    assertFalse(popupShown(mock))
+    H.Set("state.testMode", true)        -- the player's own test mode, later
+    H.Set(PATH, false)
+    f = window(NS)
+    f.preview.__fire("OnClick")
+    assertFalse(testOn(NS, H), "the eye turns the player's test mode off")
+    assertFalse(popupShown(mock), "and the popup goes with it: no real popup was under this one")
+    f.close.__fire("OnClick")
+    assertTrue(testOn(NS, H), "the close puts the player's test mode back")
+end)
+
 test("skin picker: a profile switch with a preview pending wears the new profile's skin", function()
     -- red under: taking the picker down after the new profile's skin is applied (its put-back would
     -- wear the old profile's skin over the new one's).

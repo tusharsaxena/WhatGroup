@@ -289,9 +289,12 @@ local PREVIEW = {
     isShown = popupOnScreen,
 }
 
---- The player's close: the picker seen, and nothing else (the library's put-back wears the stored
---- choice already).
+--- The player's close: the picker seen (the library's put-back wears the stored choice already).
+--- Every close, the quiet one included, drops the real-popup mark: the library's restore has run by
+--- now, and a mark a test mode ended by another route (combat, the popup's Close) left behind would
+--- make a later picker's eye-off show a real popup that was never under it.
 local function pickerClosed()
+    realUnder = false
     if quietClose then return end
     local H = seam()
     if H then H.Set(PICKER_PATH, true) end
