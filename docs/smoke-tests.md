@@ -26,7 +26,7 @@ number out of use rather than handing it to a new one.
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-20 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
-| SKIN-1 – SKIN-35 | [Skins](#skins) | Ka0s Default as before but for its face, title band, Close button and teleport icon edge; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws; a stored pick of the deleted Friz; a dropdown's list closing on an outside press |
+| SKIN-1 – SKIN-36 | [Skins](#skins) | Ka0s Default as before but for its face, title band, Close button and teleport icon edge; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws; a stored pick of the deleted Friz; a dropdown's list closing on an outside press; the dark gold title band, no line under it and the icon's outline |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
 | LOC-1 – LOC-6 | [Non-English client](#non-english-client) | A deDE or frFR client, and the `IsSpellKnown` readers |
 
@@ -792,10 +792,10 @@ Default is SKIN-1's list and nothing else.
   the same mid gray. Six things changed, and they are the skin runs': every string reads in
   **Prototype** (a squared, technical face; one weight for labels, values and title alike; LibKa0s
   v1.82.0, ruling D-02) instead of the game's Friz Quadrata, with no outline (the Font outline's
-  default is *HUD text only* since LibKa0s v1.83.0, D-10, and the popup is window text); the 30px title band behind the title is filled a shade
-  darker than the body; **Close** is the skin's flat button (a dark fill inside a 1px edge) instead of
+  default is *HUD text only* since LibKa0s v1.83.0, D-10, and the popup is window text); the 30px title band behind the title is the dark gold gradient
+  of SKIN-36 (LibKa0s R4-L2), with no line under it (R4-SEP); **Close** is the skin's flat button (a dark fill inside a 1px edge) instead of
   Blizzard's red stone button; the title sits 2px higher, on the band's middle (FS-WG-FIX, cause L9);
-  and the teleport icon wears a 1px black edge, its art zoomed so its own edge never shows inside it
+  and the teleport icon wears a 1px gray outline (#4D4D57, LibKa0s R4-L3), its art zoomed so its own edge never shows inside it
   (FS-WG-FIX, cause A1; 2px until LibKa0s v1.85.0's R3-FIX). Fail: any other changed color, edge or
   spacing, a label in a different gold from the "WhatGroup" span, a string still in Friz Quadrata
   or in the retired Oxanium, an outlined string, or text clipped or overlapping because the
@@ -817,7 +817,7 @@ Default is SKIN-1's list and nothing else.
 - **SKIN-3. Each skin, live, on the popup (WG-02).** `/wg test`, then pick each skin in turn on the
   Skin tab: Obsidian, Azeroth, Glass, High Contrast, Ember, WoW Default, WoW Midnight, WoW Forever,
   then Ka0s Default → with **no reload** the popup's body, edge, title band, title (the "WhatGroup"
-  span included), divider, labels, values, teleport note and **Close** button all repaint, and every
+  span included), labels, values, teleport note and **Close** button all repaint, and every
   string stays readable. Repeat once from `/wg show` with nothing captured (the launcher's **Show
   window** after a `/reload`) → the "No data" placeholders repaint too. `/wg set skin.skin azeroth`
   with the popup open → the same repaint, from the CLI. Fail: a part of the popup that keeps the old
@@ -1021,11 +1021,11 @@ Default is SKIN-1's list and nothing else.
 
 - **SKIN-32. The title bar and the icon's edge (FS-WG-FIX; causes L9, A1).** `/wg test`, on a mapped
   dungeon so the teleport icon shows, then pick each skin → the title stays on the middle of its
-  band, one band with no darker strip along its top, and the divider and the first row stay where
-  they were. The icon's edge takes the skin's own color (rulings of 2026-11-01) and is a flat
+  band, one band with no darker strip along its top and no line under it, and the first row stays where
+  it was. The icon's edge takes the skin's own color (rulings of 2026-11-01) and is a flat
   1px outline in every skin (R3-L3, 2026-11-03): each non-default skin's in a color of its palette
-  and none of them black, WoW Default's included, with no client tooltip edge, and black on Ka0s
-  Default. The icon's art is zoomed inside it, so the spell icon's own beveled edge never shows. Then on a learned teleport: the edge dims with the icon at 50% when
+  and none of them black, WoW Default's included, with no client tooltip edge, and gray (#4D4D57) on
+  Ka0s Default (R4-L3). The icon's art is zoomed inside it, so the spell icon's own beveled edge never shows. Then on a learned teleport: the edge dims with the icon at 50% when
   not ready, hides with the button when no spell maps, and the icon's tooltip and click still work
   through it. In combat, `/wg set skin.skin obsidian` → the edge changes at once, with no
   `ADDON_ACTION_BLOCKED`. Fail: a darker double band, a title off the middle, an edge left behind
@@ -1055,6 +1055,16 @@ Default is SKIN-1's list and nothing else.
   `ADDON_ACTION_BLOCKED`. Another addon's AceGUI dropdown outside a Ka0s window keeps its stock
   behavior. Fail: a list that stays open after an outside press, a click that closes the list but
   also lands as a pick, or a blocked-action error. Result:
+- **SKIN-36. The dark gold title band, no line under any title, the icon's outline (R4-RV2; LibKa0s
+  R4-L2, R4-L3, R4-SEP).** On **Ka0s Default**, `/wg test` on a mapped dungeon → the popup's title band
+  is an opaque dark gold gradient, lighter at the top (#3A2F0A) than at the bottom (#1F1905), under the
+  gold title, and nothing draws a line between the band and the first row. The teleport icon's 1px
+  outline is a mid gray (#4D4D57), no longer black. `/wg debug` → the console's title bar has no line
+  under it; its **Copy** window's bar neither. `/wg config` → General → **Skin**: Ka0s Default's
+  second swatch is the band's dark gold (#2C2408). Pick **Obsidian**, then **Ka0s Default** → the band
+  and the outline follow each skin and no line appears under the title in either. The settings pages'
+  own header rule stays. Fail: a black or translucent band under Ka0s Default, a line under the
+  popup's or the console's title, a black teleport outline under Ka0s Default, or a Lua error. Result:
 
 ## Library-absent install
 
@@ -1190,3 +1200,5 @@ On 2026-11-02 the owner reported that every check on the smoke lists of the full
 The round's R3-FIX (LibKa0s v1.85.0 re-cut at fd57b83: every skin's icon border is Solid 1px, and the icon's zoom reaches the teleport icon's Texture) amends SKIN-32's expected edge and re-opens SKIN-1, whose teleport icon edge is 1 px where it was 2; its pass mark came off.
 
 The owner's fourth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND4/`, R4-RV: LibKa0s v1.85.0 re-cut at 7404d96, whose OptionsCombat minor 4 closes an AceGUI dropdown's list on an outside press on a Ka0s surface) adds SKIN-35. No addon code moved and no pass mark came off.
+
+The round's second milestone (R4-RV2: LibKa0s v1.85.0 re-cut at bea4ac8, R4-L2's dark gold title band, R4-L3's `icon.outline` and R4-SEP's no line under a window title) adds SKIN-36 and amends SKIN-1, SKIN-3 and SKIN-32, whose title band, divider and Ka0s Default icon edge moved. SKIN-1 and SKIN-32 carried no pass mark. SKIN-3 keeps its 2026-10-30 mark for the repaint it checks, whose list loses only the divider.

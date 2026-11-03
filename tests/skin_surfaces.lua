@@ -102,6 +102,16 @@ return function(enableAddon)
         return unpack(out)
     end
 
+    --- Only the regions the library's record of `target` keeps, not `target` itself. For the title
+    --- bar, a plain Frame with no backdrop: the spy puts its watch on every setter the mock's
+    --- catch-all answers, SetBackdrop among them, and a bar that then owns a SetBackdrop is painted
+    --- down the library's backdrop path mid-pass (P.hasBackdrop), into a gradient region made after
+    --- the watch. Ka0s Default's band is an opaque gradient since LibKa0s R4-L2, so both skins clear
+    --- that backdrop and the switch went unseen. The band the client draws is the bar's fill region.
+    local function regionsOf(target)
+        return select(2, withRegions(target))
+    end
+
     --- The icon's Texture, the one the library recorded with IconBorder.
     local function iconTexture()
         local _, m = instance()
@@ -170,7 +180,7 @@ return function(enableAddon)
               build = function() return withRegions((popup())) end },
 
             { name = "the popup's title bar",
-              build = function() return withRegions(titleBar()) end },
+              build = function() return regionsOf(titleBar()) end },
 
             { name = "the popup's title",
               build = function() return popup().title end },
