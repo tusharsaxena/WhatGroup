@@ -416,6 +416,7 @@ end)
 -- the way the client does) is part of the setup rather than an incidental detail.
 local function probedPanel()
     local NS, _, mock = T.enableAddon()
+    T.quietPicker(NS)   -- the reset's own refreshes, not the picker's test mode (R6-PV)
     local panel = mock.frames["WhatGroupGeneralPanel"]
     panel:Show()
     mock.fireCTimers()

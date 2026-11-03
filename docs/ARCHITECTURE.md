@@ -342,7 +342,15 @@ surface carries a typed look value.
   `skinPicker`). A pick previews; Apply, the gear and another addon's Apply to all save through
   `NS.WriteSkinChoice`; the close mark and Escape put the stored skin back. Only the player's close
   writes `pickerSeen`; `NS.HideSkinPicker` (the stand-down, and first on every profile event) takes
-  it down without writing. Its eye starts test mode (X6: the addon has one), as `/wg test on` does.
+  it down without writing. **The preview** (R6-PV; LibKa0s OptionsSkinPicker minor 11,
+  `spec.preview` with `mode = "test"`): a picker that shows while the popup is off screen and test
+  mode is off turns test mode on; the eye toggles it, lit while on and dimmed while off; every close
+  (Apply, the gear, the close mark, Escape, `NS.HideSkinPicker`) puts back the state it opened with.
+  Each enter and exit is the session row `/wg test on|off` writes (`Helpers.Set("state.testMode")`),
+  so the Master controls box and the launcher follow and the combat refusal still prints; a refused
+  enter moves nothing and leaves nothing to undo. A real popup up at open is left alone; if the eye
+  starts test mode over it, the exit shows it again, as `/wg show` does. The one-shot `onPreview`
+  is gone.
   Since LibKa0s v1.81.0 the window is titled *Choose a skin*, and the addon's label (`NS.BRAND_NAME`,
   given as `RegisterOwner`'s `label`) has its own line above the dropdown, `frame.ownerLabel`, never
   cut off; `NS.SkinPickerSpec` passes no label of its own. Since LibKa0s v1.83.0 the window also

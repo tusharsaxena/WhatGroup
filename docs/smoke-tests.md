@@ -26,7 +26,7 @@ number out of use rather than handing it to a new one.
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-20 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
-| SKIN-1 – SKIN-41 | [Skins](#skins) | Ka0s Default as before but for its face, title band, Close button and teleport icon edge; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws; a stored pick of the deleted Friz; a dropdown's list closing on an outside press; the dark gold title band, no line under it and the icon's outline; the popup built with no divider; the teleport icon keeping the window outline beside HUD icons |
+| SKIN-1 – SKIN-42 | [Skins](#skins) | Ka0s Default as before but for its face, title band, Close button and teleport icon edge; the Skin tab; each skin live on the popup; the teleport button beside its label; fonts, corners, the settings panel's Scope, the debug console; what stays Blizzard's; EllesmereUI on and off; copy, profiles, combat, the overrides; the first-run skin picker; other addons unchanged; the popup without the library; the Font outline, no font settings of its own, `/wg skin`, width parity across skins, the picker and the overrides; every media picker previewing its entries; the one picker every media row draws; a stored pick of the deleted Friz; a dropdown's list closing on an outside press; the dark gold title band, no line under it and the icon's outline; the popup built with no divider; the teleport icon keeping the window outline beside HUD icons |
 | DEGRADED-1 – DEGRADED-5 | [Library-absent install](#library-absent-install) | Running with `libs/LibKa0s` missing |
 | LOC-1 – LOC-6 | [Non-English client](#non-english-client) | A deDE or frFR client, and the `IsSpellKnown` readers |
 
@@ -924,9 +924,10 @@ Default is SKIN-1's list and nothing else.
 - **SKIN-19. The picker previews, and its eye (WG-04; X6).** Open the dropdown → every skin, each row
   in that skin's face with its swatches. Pick **Obsidian** → the popup and the picker repaint with
   no reload, the picker stays up, and `/wg get skin.skin` still prints the skin it opened with. Press
-  the eye → the popup opens in test mode (the sample group) in the previewed skin, and the picker
-  stays above it, clickable. Hover the eye → its tooltip says it opens test mode. Fail: the popup
-  over the picker, or the preview lost on the eye. Result: pass (owner-marked 2026-10-30)
+  the eye → test mode toggles (SKIN-42), the popup showing the sample group in the previewed skin
+  while it is on, and the picker stays above it, clickable. Hover the eye → its tooltip says
+  whether test mode is on or off. Fail: the popup over the picker, or the preview lost on the eye.
+  Result:
 - **SKIN-20. Apply, the gear, the close mark and Escape (WG-04).** On a fresh profile: preview
   **Obsidian** and press **Apply** → the picker closes, Obsidian stays and is saved (`/wg get
   skin.skin` → `obsidian`), and `/reload` does not bring the picker back. On another fresh profile,
@@ -1104,6 +1105,23 @@ Default is SKIN-1's list and nothing else.
   Close it once by each route (**Apply**, the gear, the close mark, **Escape**) → each closes it with
   no Lua error, and `/wg skin` opens it again each time. Fail: a picker that does not open, a close
   route that leaves it up, or a Lua error. Result:
+- **SKIN-42. The picker's preview is test mode, and every close puts it back (R6-PV; LibKa0s R6-L1,
+  `spec.preview` mode "test").** With the popup closed and test mode off, `/wg skin` → test mode
+  turns on: the popup opens with the sample group in the skin worn, the Master controls **Test
+  mode** box reads ticked, and the picker stays in front of the popup, clickable. Press the eye →
+  test mode turns off and the popup closes; the eye dims and its tooltip says test mode is off.
+  Press it again → test mode is on, the popup back, the eye lit, its tooltip saying it is on. Close
+  the picker by each route in turn, reopening it with `/wg skin` each time: **Apply**, the gear, the
+  close mark, **Escape** → each time test mode turns off and the popup closes. `/wg disable` with
+  the picker up → the same, then `/wg enable`. Turn test mode on first (`/wg test`), then `/wg skin`
+  → it stays on; press the eye (off), then close → test mode is on again. With a real group's popup
+  up (`/wg show` after a join), `/wg skin` → the popup keeps the real group and test mode stays
+  off; press the eye → the sample shows; close → the real group's popup is back. In combat, with
+  test mode off, press the eye → the gray "cannot start test mode during combat" line, and nothing
+  turns on, so the close turns nothing off. Fail: test mode not on at a show over the closed popup,
+  an eye that only turns it on, a close by any route that leaves test mode on or a player's test
+  mode off, the real popup lost after the close, the popup over the picker, or a Lua error.
+  Result:
 
 ## Library-absent install
 
@@ -1251,3 +1269,5 @@ The owner's fifth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUN
 R5-WIN (the same round) lays the popup's header on the library's band through `S.Header`: the drag bar takes the band's rect at Shell's own inset and the title is anchored by `title.align` to the band's middle. Adds SKIN-40. No pass mark came off.
 
 The owner's sixth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND6/`, R6-RV: LibKa0s v1.85.0 re-cut at 79d043d, R6-L1's skin picker preview contract, `OptionsSkinPicker.lua` minor 11 and no other file) adds SKIN-41. No facade name, stub or `VOCAB` entry moves, and no pass mark came off.
+
+R6-PV (the same round) moves the picker's eye onto `spec.preview` in test mode: the picker shown over a closed popup turns test mode on, the eye toggles it, and every close puts it back. Adds SKIN-42 and amends SKIN-19, whose eye now toggles; its pass mark came off.

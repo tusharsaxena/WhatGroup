@@ -224,9 +224,10 @@ end
 -- PREVIEW. A pick only previews; `set` (NS.WriteSkinChoice) runs on Apply, the gear or Apply to
 -- all, and the close control and Escape put back the stored choice as `get` reads it at the close.
 -- A profile event takes the picker down FIRST, before the new profile's skin is applied, so that
--- skin is the last one worn. The eye is the popup's test mode (X6: this addon has one), started
--- through the same session row `/wg test on` writes; the library raises its DIALOG window after
--- the eye returns, so the popup it shows cannot cover it.
+-- skin is the last one worn. The eye is the popup's test mode (X6: this addon has one): entered
+-- when the picker shows over a hidden popup, toggled by the eye, and put back by every close
+-- (R6-PV, THE PREVIEW below); the library raises its DIALOG window after each enter, so the popup
+-- the mode shows cannot cover it.
 --
 -- QUEUED. One picker is up at a time across every Ka0s addon: while another addon's is up,
 -- Helpers.SkinPicker queues this one and answers nil, "queued", which NS.MaybeShowSkinPicker
@@ -237,13 +238,56 @@ local pickerHeld = false   -- true while a start made in combat waits on the com
 local quietClose = false   -- true while NS.HideSkinPicker takes the picker down
 local loginTimer           -- the AceTimer handle of the login start, until it fires
 
---- The eye: the popup in test mode, so the player sees the skin on this addon's own window. A mode
---- already on is a no-op write; a refused start (combat) prints its own line.
-local function previewSkin()
+--- THE PREVIEW (R6-PV; LibKa0s OptionsSkinPicker minor 11, spec.preview; the round 6 mode table:
+--- WhatGroup is a test host). The library enters the mode when the picker shows over a hidden
+--- popup, the eye toggles it, and every close (Apply, the gear, the close mark, Escape,
+--- NS.HideSkinPicker) puts back the state it opened with. Every enter and exit is the session row
+--- `/wg test on|off` writes, through Helpers.Set: the Master controls box and the launcher's Test
+--- mode entry read the same flag, and startTestMode's combat refusal still prints its gray line
+--- (a refused enter moves nothing, so the library has nothing to undo). isShown is the launcher's
+--- isWindowShown, the popup on screen; a real popup up at open is left alone. The one thing the
+--- row cannot give back is that real popup when the eye starts test mode over it (test mode's end
+--- hides the popup, as `/wg test off` does), so the exit re-shows it, the way `/wg show` does.
+local realUnder = false   -- true while a test mode this preview entered sits over the real popup
+
+local function testModeRow()
     local H = seam()
-    if not (H and H.FindSchema and H.FindSchema(TEST_MODE_PATH)) then return end
-    H.Set(TEST_MODE_PATH, true)
+    if not (H and H.FindSchema and H.FindSchema(TEST_MODE_PATH)) then return nil end
+    return H
 end
+
+local function testModeOn() return NS.State ~= nil and NS.State.testMode == true end
+
+local function popupOnScreen()
+    local a = NS.addon
+    return (a and a.IsFrameOnScreen and a:IsFrameOnScreen()) and true or false
+end
+
+local function previewEnter()
+    local H = testModeRow()
+    if not H or testModeOn() then return end
+    local under = popupOnScreen()
+    H.Set(TEST_MODE_PATH, true)
+    realUnder = under and testModeOn()
+end
+
+local function previewExit()
+    local H = testModeRow()
+    if not H then return end
+    local under = realUnder
+    realUnder = false
+    H.Set(TEST_MODE_PATH, false)
+    local a = NS.addon
+    if under and not testModeOn() and a.pendingInfo and not popupOnScreen() then a:ShowFrame() end
+end
+
+local PREVIEW = {
+    mode = "test",
+    enter = previewEnter,
+    exit = previewExit,
+    isActive = testModeOn,
+    isShown = popupOnScreen,
+}
 
 --- The player's close: the picker seen, and nothing else (the library's put-back wears the stored
 --- choice already).
@@ -259,7 +303,7 @@ function NS.SkinPickerSpec()
         -- The gear's default: Helpers.OpenOptionsPanel("general"), the key settings/Panel.lua's
         -- RegisterOptionsPage gave General, then SelectTab on the Skin tab's key.
         page = "general", tab = "Appearance",
-        onPreview = previewSkin, onClose = pickerClosed,
+        preview = PREVIEW, onClose = pickerClosed,
     }
 end
 

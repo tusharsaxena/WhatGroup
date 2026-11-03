@@ -754,7 +754,7 @@ Total.
 - outline: a stored mode the library does not know applies its default
 - outline: without the skin engine the apply is a quiet no-op
 
-### test_skin_picker.lua (20)
+### test_skin_picker.lua (32)
 
 - skin picker: pickerSeen defaults to false, a skip-render row on the Appearance group
 - skin picker: the spec names this owner, its seams, General's Skin tab and the eye
@@ -771,7 +771,19 @@ Total.
 - skin picker: a pick previews, unsaved; Apply saves it and marks the picker seen
 - skin picker: the close control puts the stored skin back and saves nothing
 - skin picker: the gear saves the pick and opens General on its Skin tab
-- skin picker: the eye starts the popup's test mode and leaves the picker up
+- skin picker: opened over a hidden popup, it turns test mode on and stays in front
+- skin picker: the eye toggles test mode off and on, dimming and lighting
+- skin picker: closed by apply, test mode the picker turned on goes off
+- skin picker: closed by close, test mode the picker turned on goes off
+- skin picker: closed by escape, test mode the picker turned on goes off
+- skin picker: closed by gear, test mode the picker turned on goes off
+- skin picker: closed by hide, test mode the picker turned on goes off
+- skin picker: the eye turned off then closed with no change leaves test mode off
+- skin picker: test mode already on at open is left on, and the eye's off is put back
+- skin picker: a real popup already shown is left alone, before and after
+- skin picker: the eye over a real popup, then the close, gives the real popup back
+- skin picker: a profile reset shows it over the hidden popup and enters test mode
+- skin picker: a refused enter in combat moves nothing, and the close undoes nothing
 - skin picker: a profile switch with a preview pending wears the new profile's skin
 - skin picker: a switch to an unseen profile starts a fresh showing, the old preview dropped
 - skin picker: the stand-down with a preview pending puts the old skin back, unseen
@@ -1263,7 +1275,7 @@ Total.
 | test_panel.lua | 62 |
 | test_skinsetup.lua | 17 |
 | test_skin_outline.lua | 10 |
-| test_skin_picker.lua | 20 |
+| test_skin_picker.lua | 32 |
 | test_skin_verb.lua | 7 |
 | test_skin_tools.lua | 5 |
 | test_profiles.lua | 19 |
@@ -1291,4 +1303,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 25 |
 | Skipped | 1 |
-| **Total** | **1085** |
+| **Total** | **1097** |

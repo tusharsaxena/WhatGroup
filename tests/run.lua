@@ -43,6 +43,15 @@ local function enableAddon(opts)
     return NS, env, m
 end
 
+-- A profile event shows the first-run picker on a profile that has not closed it, and since R6-PV
+-- the picker shown over a hidden popup enters test mode: a [Set] line, a panel refresh and a chat
+-- line of its own, which tests/test_skin_picker.lua pins. A case that counts a profile event's OWN
+-- lines or refreshes takes the picker out with this, so it counts the event and nothing it shows.
+local function quietPicker(NS)
+    NS.MaybeShowSkinPicker = function() end
+    return NS
+end
+
 -- Where Kit.assertSurfaceParity's by-name form looks the LIVE half up (kit 15, vendored by M4-01).
 --
 -- Registered explicitly, and the explicitness is doing two jobs at once. `Kit.expose` auto-wires a
@@ -102,6 +111,7 @@ _G.WHATGROUP_TEST = Kit.expose{
     bootAddon   = bootAddon,
     enableAddon = enableAddon,
     loadAddon   = loadAddon,
+    quietPicker = quietPicker,
     root        = root,
     LibStub     = surfaceMock.LibStub,
     -- The secret-value simulator (kit revision 38): a case that reads secrets installs the global

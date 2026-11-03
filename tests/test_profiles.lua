@@ -172,7 +172,7 @@ test("profiles: a switch logs ONE [Profile] line naming the incoming profile (de
     -- A switch rewrites no row through the seam, so it gets no [Set] line; the profile-event
     -- handler logs it once, as KickCD and MultiMeters word theirs.
     -- red under: OnProfileChanged going back to a bare reload with no line.
-    local NS = T.bootAddon()
+    local NS = T.quietPicker(T.bootAddon())   -- the switch's lines, not the picker's (R6-PV)
     NS.State.debug = true
     local set, prof = countLines(NS, "[Set]"), countLines(NS, "[Profile]")
     NS.addon.db:SetProfile("Alt")
@@ -350,6 +350,7 @@ end)
 -- red under: a row that switches through anything but CliProfile, or a store other than NS.addon.db.
 test("profile verb: `/wg profile <name>` switches to an existing profile and runs the handler", function()
     local NS, _, mock = T.enableAddon()
+    T.quietPicker(NS)   -- the verb's acknowledgment, not the picker's test mode line (R6-PV)
     local db, H = NS.addon.db, NS.addon.Settings.Helpers
     db:SetProfile("Alt")
     H.Set("notify.delay", 7)

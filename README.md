@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1085%2F1085_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1097%2F1097_passing-green)
 
 WhatGroup remembers the group you signed up for through the Group Finder tool. You get accepted, you shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who's leading, and the playstyle.
 
@@ -35,7 +35,7 @@ The **Notifications** tab holds the whole join flow. Under **Chat summary** you 
 
 You can also bind a key to open and close the popup, **Toggle group popup**, in either of two places that show the same keys: Options → Keybindings → **Ka0s WhatGroup**, or **General → Keybindings** in this addon's settings. A key set in one shows in the other. The tab has one key button and **Clear**; when Options → Keybindings holds a second key for it, the button reads `<key> +1` and its tooltip names both. It has no key until you pick one, and the key is saved by the game, so Defaults and Reset all settings leave it alone. A press does what the minimap menu's **Show window** does, and while WhatGroup is disabled it says so in chat instead.
 
-The popup wears a skin, Ka0s Default to start with. The first time a profile loads, a small window asks you to pick one: choosing from its list previews it on the popup, the eye shows it on the sample group, and **Apply** keeps it, while closing the window leaves the skin you had. The same window lets you swap the font and texture, set the font outline and choose what the skin leaves alone, and `/wg skin` brings it back whenever you like. The **Skin** tab of **General** has all of that too, plus EllesmereUI's look when EllesmereUI is installed and a button that gives the same skin to your other Ka0s addons. Each profile keeps its own skin.
+The popup wears a skin, Ka0s Default to start with. The first time a profile loads, a small window asks you to pick one: choosing from its list previews it on the popup, and while the popup is closed the window turns test mode on so you see the skin on the sample group. The eye turns test mode off and on, and closing the window, however you close it, puts test mode back as it was. **Apply** keeps it, while closing the window leaves the skin you had. The same window lets you swap the font and texture, set the font outline and choose what the skin leaves alone, and `/wg skin` brings it back whenever you like. The **Skin** tab of **General** has all of that too, plus EllesmereUI's look when EllesmereUI is installed and a button that gives the same skin to your other Ka0s addons. Each profile keeps its own skin.
 
 Everything else is on the **Ka0s WhatGroup** page in Settings → AddOns, which `/wg` opens, and `/wg help` lists every command.
 
