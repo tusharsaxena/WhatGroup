@@ -320,7 +320,7 @@ surface carries a typed look value.
   `core/SkinSetup.lua`'s header). It calls `Skin:SetChoice`, which repaints every frame recorded for
   this owner and then fires `NS.Skin.OnLooksChanged`. No reload, no OnUpdate, no events.
 - **The popup.** `modules/FrameSkin.lua` owns its look: the window through `NS.ApplySkin(f, nil,
-  addonName)` (the skin's Shell: body, edge, divider, title color), the title bar through
+  addonName)` (the skin's Shell: body, edge, title color; no line under the title, R4-SEP), the title bar through
   `S.TitleBar` with `place` (`title.bg`, `title.height`, `title.align`; the Shell then runs with
   `noTopBar`, so the band draws once), the teleport icon's edge through `S.IconBorder` with
   `fromSkin` on the icon's Texture, which the library hangs on a plain child of the secure button, the labels in `wg.label`, the values in `text.highlight`, the placeholders and the teleport note in

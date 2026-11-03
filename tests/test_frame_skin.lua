@@ -246,29 +246,25 @@ test("popup skin: a skin switch puts the bar's height and the title's anchor bac
     assertEqual((f.title:GetPoint(1)), NS.Skin.Token("title.align"))
 end)
 
-test("popup skin: the divider and the content hang off the bar, at today's offsets", function()
-    -- red under: the typed -30 and -38 against the window, which a taller title.height overruns.
+test("popup skin: no line under the title, and the content hangs off the bar (R4-SEP)", function()
+    -- red under: a 1px rule under the title bar (the owner's "no separator line below header", every
+    -- window like the Skin Tester's), or the typed -38 against the window, which a taller
+    -- title.height overruns.
     local NS, _, mock = T.bootAddon()
     NS.addon:ShowFrame()
     local f, bar = popup(mock), F.dragHandle(mock)
-    local point, relativeTo, relativePoint, x, y = f.divider:GetPoint(1)
-    assertEqual(point, "TOPLEFT")
-    assertTrue(relativeTo == bar, "the divider follows the bar")
-    assertEqual(relativePoint, "BOTTOMLEFT")
-    assertEqual(x, 14)
-    assertEqual(y, 0)
-    -- The far end too: one end left on the window, and a taller title.height tilts the line.
-    point, relativeTo, relativePoint, x, y = f.divider:GetPoint(2)
-    assertEqual(point, "TOPRIGHT")
-    assertTrue(relativeTo == bar, "both of the divider's ends follow the bar")
-    assertEqual(relativePoint, "BOTTOMRIGHT")
-    assertEqual(x, -14)
-    assertEqual(y, 0)
+    assertTrue(f.divider == nil, "the popup carries no divider for the Shell to tint")
+    for _, tex in ipairs(f.__textures) do
+        for i = 1, tex:GetNumPoints() do
+            local _, relativeTo = tex:GetPoint(i)
+            assertFalse(relativeTo == bar, "no texture of the popup hangs off the title bar")
+        end
+    end
     local content
     for _, kid in ipairs(mock.frames) do
         if #kid.__fontStrings >= 14 then content = kid end
     end
-    point, relativeTo, relativePoint, x, y = content:GetPoint(1)
+    local point, relativeTo, relativePoint, x, y = content:GetPoint(1)
     assertEqual(point, "TOPLEFT")
     assertTrue(relativeTo == bar, "the content follows the bar")
     assertEqual(relativePoint, "BOTTOMLEFT")

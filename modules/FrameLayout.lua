@@ -27,8 +27,10 @@ function FrameLayout.Build(f, dismissPopup)
     -- The whole look comes from the owner's skin (skinning-§3): the window through NS.ApplySkin
     -- with the owner, which hands it to the skin's Shell, and every string and control through
     -- modules/FrameSkin.lua, which also repaints the title and re-anchors the secure button on a
-    -- skin change. `f.title` and `f.divider` are assigned first, below, because the Shell tints
-    -- whichever of them the frame carries, so the call sits after the header.
+    -- skin change. `f.title` is assigned first, below, because the Shell tints it, so the call sits
+    -- after the header. No line is drawn under the title (R4-SEP of Ka0sAddonsCommonTasks
+    -- docs/2026-11-03-SMOKE_ROUND4, the owner's "no separator line below header", every window like
+    -- the Skin Tester's), so the popup carries no `f.divider`.
 
     -- Title bar (drag handle)
     local titleBar = CreateFrame("Frame", nil, f)
@@ -56,19 +58,11 @@ function FrameLayout.Build(f, dismissPopup)
     Look.Title(titleText)
     f.title = titleText
 
-    -- Separator line under title. The color is set by ApplySkin below (0.24, 0.24, 0.27, 0.85 —
-    -- the normative Ka0s divider), so no literal here.
-    local sep = f:CreateTexture(nil, "ARTWORK")
-    sep:SetHeight(1)
-    sep:SetPoint("TOPLEFT",  titleBar, "BOTTOMLEFT",  14, 0)
-    sep:SetPoint("TOPRIGHT", titleBar, "BOTTOMRIGHT", -14, 0)
-    f.divider = sep
-
-    -- Wear the shared skin for this owner (skinning-§1), now that the two regions it tints exist.
+    -- Wear the shared skin for this owner (skinning-§1), now that the title it tints exists.
     NS.ApplySkin(f, nil, addonName)
     Look.TitleBar(f, titleBar, titleText)
 
-    -- Content frame (plain, no scroll). Hung off the bar, as the divider is, so title.height moves both.
+    -- Content frame (plain, no scroll). Hung off the bar, so title.height moves it.
     local content = CreateFrame("Frame", nil, f)
     content:SetPoint("TOPLEFT",     titleBar, "BOTTOMLEFT", 14, -8)
     content:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -14, 44)

@@ -640,7 +640,7 @@ Total.
 - popup skin: a repopulate paints only the values whose token moved, and the look survives
 - popup skin: the title bar is the skin's TitleBar and places its own text
 - popup skin: a skin switch puts the bar's height and the title's anchor back from the tokens
-- popup skin: the divider and the content hang off the bar, at today's offsets
+- popup skin: no line under the title, and the content hangs off the bar (R4-SEP)
 - popup skin: one title band: the bar paints it and the Shell's top bar stays off
 - popup skin: the teleport icon wears the skin's icon border, on its Texture
 - popup skin: a skin switch redraws the icon's border, 1 px in every skin, in combat too
