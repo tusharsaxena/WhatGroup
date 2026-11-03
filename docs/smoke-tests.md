@@ -16,7 +16,7 @@ number out of use rather than handing it to a new one.
 |---|---|---|
 | INSTALL-1 – INSTALL-5 | [Install](#install) | Cold load, `/reload`, the GameMenu Logout taint check, patch day |
 | SLASH-1 – SLASH-12 | [Slash commands](#slash-commands) | Help, alias, the schema CLI, reset verbs, `show` with nothing captured (`/wg skin` is SKIN-27) |
-| PANEL-1 – PANEL-22 | [Settings panel](#settings-panel) | Landing page, the General tab strip, widgets, Defaults, the frame rows, raw-key trap, the pooled strip, the folder name on the Options descriptor, the item 020 layout and wording |
+| PANEL-1 – PANEL-23 | [Settings panel](#settings-panel) | Landing page, the General tab strip, widgets, Defaults, the frame rows, raw-key trap, the pooled strip, the folder name on the Options descriptor, the item 020 layout and wording |
 | PROFILE-1 – PROFILE-14 | [Profiles](#profiles) | The Profiles page, `/wg profile`, persistence, what a switch leaves alone, the page in combat |
 | STATE-1 – STATE-8 | [Enable and disable](#enable-and-disable) | The stand-down, refusals while disabled, the way back, the chat-link callback |
 | COMBAT-1 – COMBAT-14 | [Combat](#combat) | Reset popup and Settings registration in combat, Close and ESC in combat, the visibility gate on combat edges, a soft-hidden popup's mouse-dead controls and its residual |
@@ -208,6 +208,12 @@ number out of use rather than handing it to a new one.
   `/wg show — Show the group info popup again`, `/wg config — Open the Ka0s WhatGroup settings`
   and `/wg resetall — Reset this profile to defaults`; `/wg help` prints the same three lines. The
   verbs themselves act as before. Result: pass (owner, 2026-10-24)
+- **PANEL-23. No Sim mode box on the round 6 sim checkbox cut (R6-RV2; LibKa0s R6-SIM-L,
+  OptionsCompose minor 19).** `/wg config` → General → **Master controls** → the rows end as
+  before: *Lock frame* and *Debug console*, then *Minimap button* and *Test mode* side by side, then
+  the reset pair. There is no *Sim mode* box, since WhatGroup has no simulation. Tick and untick
+  *Test mode* → the sample popup opens and closes as before. Fail: a *Sim mode* box, a row moved or
+  missing, or a Lua error. Result:
 
 ## Profiles
 
@@ -1274,3 +1280,5 @@ R5-WIN (the same round) lays the popup's header on the library's band through `S
 The owner's sixth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUND6/`, R6-RV: LibKa0s v1.85.0 re-cut at 79d043d, R6-L1's skin picker preview contract, `OptionsSkinPicker.lua` minor 11 and no other file) adds SKIN-41. No facade name, stub or `VOCAB` entry moves, and no pass mark came off.
 
 R6-PV (the same round) moves the picker's eye onto `spec.preview` in test mode: the picker shown over a closed popup turns test mode on, the eye toggles it, and every close puts it back. Adds SKIN-42 and amends SKIN-19, whose eye now toggles; its pass mark came off. Its review added a SKIN-42 step: a real popup the eye covered, once combat ended that test mode, is not brought up by a later picker's eye.
+
+R6-RV2 (the same round, LibKa0s v1.85.0 re-cut at 550ef68, R6-SIM-L's Master controls Sim mode checkbox, `OptionsCompose.lua` minor 19 and no other file) adds PANEL-23. WhatGroup has no simulation and passes no `isSimMode` or `toggleSim`, so its Master controls tab is unchanged. No facade name, stub or `VOCAB` entry moves, and no pass mark came off.
