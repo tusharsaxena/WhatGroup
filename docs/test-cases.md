@@ -656,7 +656,7 @@ Total.
 - popup skin: the degraded S.MarkText answers a string a caller can concatenate
 - popup skin: the degraded facade paints a token name with that token's color
 
-### test_panel.lua (62)
+### test_panel.lua (63)
 
 - panel: OnEnable registers the parent category and the General subcategory
 - panel: the parent category is added to the AddOns list
@@ -718,6 +718,7 @@ Total.
 - panel: the delay and size sliders name their units (options-ui-§21, WG-OC3)
 - panel: one noun per output -- chat summary, group info popup (WHA-L06, L09, L13, L15)
 - panel: the composed rows name the popup through `notes`, never a host rewrite (WHA-L11, L17)
+- panel: Master controls draws no Sim mode row, because WhatGroup has no simulation (R6-RV2)
 - panel: the Test notification button names its run and its preview (WHA-L08)
 - panel: the header Defaults tooltip is the library's Reset all settings wording (WHA-L12)
 
@@ -1273,7 +1274,7 @@ Total.
 | test_frame_secure.lua | 7 |
 | test_frame_layers.lua | 8 |
 | test_frame_skin.lua | 25 |
-| test_panel.lua | 62 |
+| test_panel.lua | 63 |
 | test_skinsetup.lua | 17 |
 | test_skin_outline.lua | 10 |
 | test_skin_picker.lua | 33 |
@@ -1304,4 +1305,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 25 |
 | Skipped | 1 |
-| **Total** | **1098** |
+| **Total** | **1099** |
