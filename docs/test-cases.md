@@ -292,8 +292,9 @@ Total.
 - settings: the Role label string is in the locale
 - settings: the layout pass moved no key, default, range or section (item 020)
 
-### test_slash.lua (62)
+### test_slash.lua (63)
 
+- slash: the library-absent stub's help rows are plain `cmd  desc`, no em dash
 - slash: COMMANDS has a standalone version verb (WG-29)
 - slash: /wg version prints [WG] v<version> on its own line (WG-29)
 - slash: help header has no trailing colon (WG-19)
@@ -1265,7 +1266,7 @@ Total.
 | test_compat.lua | 47 |
 | test_database.lua | 12 |
 | test_settings.lua | 60 |
-| test_slash.lua | 62 |
+| test_slash.lua | 63 |
 | test_labels.lua | 40 |
 | test_capture.lua | 43 |
 | test_notify.lua | 55 |
@@ -1305,4 +1306,4 @@ Total.
 | test_skin_values.lua | 3 |
 | test_skin_switch.lua | 25 |
 | Skipped | 1 |
-| **Total** | **1099** |
+| **Total** | **1100** |

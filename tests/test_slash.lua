@@ -12,6 +12,35 @@ local function runCmd(NS, name, rest)
     error("no command: " .. tostring(name))
 end
 
+-- slash-commands-§1: the stub MUST NOT copy FormatRow. A degraded help row prints `cmd  desc`
+-- plainly: two spaces, no gold command and no em dash. All three stub sites are pinned:
+-- PrintHelp, HelpRows and LandingRows.
+-- red under: any of the three joining the row with " — " (the library's separator, hand-copied)
+test("slash: the library-absent stub's help rows are plain `cmd  desc`, no em dash", function()
+    local NS, _, mock = T.newAddon{ skip = T.loadAddon.libFiles }
+    local Sl = NS.SlashCommands
+    local COMMANDS = NS.addon.COMMANDS
+    local rows, landing = Sl:HelpRows(), Sl:LandingRows()
+    T.assertEqual(#rows, #COMMANDS)
+    T.assertEqual(#landing, #COMMANDS)
+    local mark = #mock.prints
+    Sl:PrintHelp()
+    local printed = {}
+    for i = mark + 1, #mock.prints do
+        if not mock.prints[i]:find("library is missing", 1, true) then printed[#printed + 1] = mock.prints[i] end
+    end
+    T.assertEqual(#printed, #COMMANDS + 1, "the header plus one line per command")
+    for i, entry in ipairs(COMMANDS) do
+        local plain = "/wg " .. entry[1] .. "  " .. entry[2]
+        T.assertEqual(landing[i], plain)
+        T.assertEqual(rows[i], "  " .. plain)
+        T.assertEqual(printed[i + 1], NS.PREFIX .. " " .. "  " .. plain)
+        -- The joint after the verb, not the description: a description may carry its own dash.
+        assertFalse(landing[i]:sub(#("/wg " .. entry[1]) + 1):find("^ \226\128\148 ") ~= nil, landing[i])
+        assertFalse(landing[i]:find("|c", 1, true) ~= nil, landing[i])
+    end
+end)
+
 test("slash: COMMANDS has a standalone version verb (WG-29)", function()
     local NS = T.newAddon()
     local found = false

@@ -84,9 +84,9 @@ The first vararg is the addon's **folder** name, and it is spelled
 `local addonName, NS = ...` in the eleven files that read it (`core/CoreSetup.lua`,
 `core/EnvSetup.lua`, `core/MediaSetup.lua`, `core/DebugLogSetup.lua`,
 `core/LauncherSetup.lua`, `core/LifecycleSetup.lua`, `core/WhatGroup.lua`,
-`core/SkinSetup.lua`, `modules/Frame.lua`, `settings/Panel.lua`, `settings/OptionsSetup.lua` —
+`core/SkinSetup.lua`, `modules/FrameLayout.lua`, `settings/Panel.lua`, `settings/OptionsSetup.lua` —
 all eleven hand it to a vendored library that cannot infer which folder it was copied into) and
-`local _, NS = ...` in the thirteen that do not. The `_` is not a style preference: a named local nothing
+`local _, NS = ...` in every other source file. The `_` is not a style preference: a named local nothing
 reads is a `211` finding, and `M4c-04` took ten of them out of this tree rather
 than leave the blanket `ignore` that had been hiding them.
 

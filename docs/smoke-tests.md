@@ -64,7 +64,7 @@ number out of use rather than handing it to a new one.
   click **Logout**, then cancel the countdown → the countdown starts normally, with no Lua error and
   no `ADDON_ACTION_FORBIDDEN ... 'callback()'` line. `Settings.Register` runs at `OnEnable`, so this
   is the case that proves the login-time registration adds nothing to the secure chain. If it
-  fails, see [midnight-quirks.md → Taint propagation in the boot window](./midnight-quirks.md).
+  fails, see [midnight-quirks.md → Lazy popup and secure button (GameMenu Logout taint)](./midnight-quirks.md#lazy-popup-and-secure-button-gamemenu-logout-taint).
   Result: pass (owner-marked 2026-10-10)
 - **INSTALL-4. GameMenu Logout after each surface (critical).** Repeat INSTALL-3's ESC → Logout →
   cancel after each of these: `/wg test notify`; `/wg config`; `/wg resetall` →

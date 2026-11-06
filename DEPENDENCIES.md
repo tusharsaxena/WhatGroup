@@ -20,10 +20,10 @@ separate library addon and no dependency manager.
 
 | Need | Version | Evidence |
 |---|---|---|
-| World of Warcraft, Retail | Interface `120105` (Midnight 12.1.5) | `WhatGroup.toc:1` — `## Interface: 120105` |
-| Ace3 (AceAddon/AceEvent/AceConsole/AceTimer/AceDB/AceGUI/AceConfig/AceDBOptions), LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1, LibDBIcon-1.0, LibKa0s | as vendored | `WhatGroup.toc:16-39` lists each `libs\…` file directly; the folders exist under `libs/`. AceConfig (with its Registry, Cmd and Dialog parts) and AceDBOptions serve the Profiles page alone |
+| World of Warcraft, Retail | Interface `120105` (Midnight 12.1.5) | `WhatGroup.toc` — `## Interface: 120105` |
+| Ace3 (AceAddon/AceEvent/AceConsole/AceTimer/AceDB/AceGUI/AceConfig/AceDBOptions), LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibDataBroker-1.1, LibDBIcon-1.0, LibKa0s | as vendored | `WhatGroup.toc` lists each `libs\…` file directly, under its `# Libraries (must load first)` heading; the folders exist under `libs/`. AceConfig (with its Registry, Cmd and Dialog parts) and AceDBOptions serve the Profiles page alone |
 
-`WhatGroup.toc:8` declares those libraries under `## OptionalDeps:` rather than `## Dependencies:`
+`WhatGroup.toc`'s `## OptionalDeps:` line declares those libraries under `## OptionalDeps:` rather than `## Dependencies:`
 **deliberately** — they are optional *external* addons, and the vendored copies satisfy them either
 way. There is **no** `## Dependencies:` line, so the addon has no hard external addon requirement.
 The same line also names **EllesmereUI**, which is not vendored and not needed: when a player has
@@ -75,7 +75,7 @@ lua -v         # must ALSO say 5.1.x — if it says 5.3/5.4, use `lua5.1` explic
 
 ### 2.2 luacheck — **required** (half the commit gate)
 
-- Evidence: `docs/testing.md:16` — `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` is one of the two commands that MUST be green before
+- Evidence: `docs/testing.md` → *The green gate* — `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` is one of the two commands that MUST be green before
   every commit; `.luacheckrc` at the repo root is its config.
 - Version: **any recent** release. This repo is verified with 1.2.0; nothing here depends on a
   specific version, and pinning one would be false precision.
@@ -140,8 +140,8 @@ lizard --version
 
 ### 2.4 git and diff — **required for the vendor gate**
 
-- Evidence: `docs/testing.md:291-294` runs four `diff -r` comparisons of `libs/LibKa0s` and
-  `tests/_kit` against a **sibling checkout at `../LibKa0s`**; `docs/testing.md:339` uses
+- Evidence: `docs/testing.md` → *The vendor gate* runs four `diff -r` comparisons of `libs/LibKa0s` and
+  `tests/_kit` against a **sibling checkout at `../LibKa0s`**; its *When these diffs are supposed to be non-empty* table uses
   `git add --renormalize .` to fix a line-ending divergence.
 - Both ship with Ubuntu (`git` may need installing on a minimal image):
 
@@ -162,7 +162,7 @@ vendor gate cannot run; the green gate still can.
 
 ### 2.5 ka0s-bounded — **required** (the gate's lint runs through it)
 
-- Evidence: `docs/testing.md:16`. `~/.claude/dev-copilot/bin/ka0s-bounded` is the bounded runner the
+- Evidence: `docs/testing.md` → *The green gate*. `~/.claude/dev-copilot/bin/ka0s-bounded` is the bounded runner the
   dev-copilot plugin installs. The suite bounds itself through the kit, but `luacheck` loads no kit, so
   it runs under this wrapper (testing-§15). A run that hits the limit exits 124, and one killed exits 137.
 - Version: whatever the installed dev-copilot plugin ships.
@@ -184,22 +184,22 @@ Stated explicitly, because each of these is a reasonable guess that happens to b
 - **No Python scripts, no `Makefile`, no `scripts/` directory.** The repo contains no `.py` file of
   its own, no `Makefile` and no `scripts/`. There is **one** shell script:
   `tests/_kit/run-automated-tests.sh`, the vendored automated-test runner that ships whole with the
-  LibKa0s test kit (`docs/testing.md:418-424`, [`docs/automated-tests/README.md`](docs/automated-tests/README.md)).
+  LibKa0s test kit (`docs/testing.md` → *Automated test records — the consolidated run*, [`docs/automated-tests/README.md`](docs/automated-tests/README.md)).
   It needs **bash**, which Ubuntu already has, and it is a convenience wrapper — it shells out to
   the same `luacheck` / `lua tests/run.lua` / `lizard` above and treats a missing tool as a `skip`,
   never a failure. Every other documented command is typed directly.
-- **No CI.** There is no `.github/` directory and no workflow. `docs/testing.md:245-248` says so
+- **No CI.** There is no `.github/` directory and no workflow. `docs/testing.md` → *Current status & the case inventory* says so
   outright: the README `tests` badge is static and hand-maintained, with no GitHub Action behind it.
 - **No test dependency beyond `git` and a shell.** The suites `require` nothing outside `tests/`, and
   every shell-out needs only `git` or a POSIX shell, because the collection takes no LuaFileSystem
-  dependency: `tests/_kit/inventory.lua:190-191` lists a directory with `ls -A` (`dir /b` on
-  cmd.exe); `tests/test_register.lua:22` globs with `ls -1`; the doc-structure, lint-config, prose
-  and layout-cap gates read the tracked set with `git ls-files` (`tests/test_doc_structure.lua:141`,
-  `tests/test_lintconfig.lua:264`, `tests/_kit/test_prose.lua:379`,
-  `tests/_kit/test_layout_cap.lua:171`); `--jobs` fans the suites out as backgrounded `sh` children
-  (`tests/_kit/framework.lua:563`, run through `os.execute` at `:572`, with `nproc` at `:494` for `--jobs auto`); and the
-  vendored-payload gate reads the sibling checkout with `git` — `tests/_kit/vendor_sync.lua:441`
-  (the `git -C <sibling> …` runner behind its `show` and `ls-tree` reads) and `:482`
+  dependency: `tests/_kit/inventory.lua`'s `listDir` lists a directory with `ls -A` (`dir /b` on
+  cmd.exe); `tests/test_register.lua`'s `glob` globs with `ls -1`; the doc-structure, lint-config, prose
+  and layout-cap gates read the tracked set with `git ls-files` (`tests/test_doc_structure.lua`'s `trackedMarkdown`,
+  `tests/test_lintconfig.lua`'s `trackedLua`, `tests/_kit/test_prose.lua`'s `trackedPaths`,
+  `tests/_kit/test_layout_cap.lua`'s `trackedFiles`); `--jobs` fans the suites out as backgrounded `sh` children
+  (`tests/_kit/framework.lua`'s `spawnShards`, run through `os.execute`, with `nproc` in its `cpuCount` for `--jobs auto`); and the
+  vendored-payload gate reads the sibling checkout with `git` — `tests/_kit/vendor_sync.lua`'s `gitOut`
+  (the `git -C <sibling> …` runner behind its `show` and `ls-tree` reads) and `gitShowMany`
   (`git cat-file --batch`). With `git` or `../LibKa0s`
   absent, `tests/test_vendor_sync.lua`'s cases report **SKIP** with the reason and the run's exit code
   stays 0.
@@ -212,8 +212,8 @@ Stated explicitly, because each of these is a reasonable guess that happens to b
 to fix a typo.
 
 - **Packaging** is done by the **CurseForge/WoWAce packager**, a hosted service — not a local tool.
-  Evidence: `.pkgmeta` (its config) declares `package-as: WhatGroup` (`:1`) and an `ignore:` list
-  (`:6-33`), and `.pkgmeta:3-4` records that there is **no `externals:` block** because every
+  Evidence: `.pkgmeta` (its config) declares `package-as: WhatGroup` and an `ignore:` list,
+  and its header comment records that there is **no `externals:` block** because every
   library is vendored.
   There is nothing to install locally for this.
 - **Media** — `media/logos` and `media/screenshots` are **committed binary assets**,
