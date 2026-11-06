@@ -23,6 +23,9 @@ local Loader = dofile("tests/_kit/loader.lua")
 -- (testing-§9, anti-patterns #48).
 local LIBKA0S = {
     "libs/LibKa0s/Core.lua",
+    -- New in LibKa0s v1.91.0: the pixel edges peeled out of Core.lua (CorePixel minor 1). Internal;
+    -- nothing here adopts it.
+    "libs/LibKa0s/CorePixel.lua",
     "libs/LibKa0s/Env.lua",
     -- New in LibKa0s v1.55.0: three majors. Compat is looked up by core/Compat.lua; Bus and Schema
     -- are not adopted. The client loads every file of the XML, so this list carries all three in
@@ -54,10 +57,17 @@ local LIBKA0S = {
     "libs/LibKa0s/SkinDefsOthers.lua",
     "libs/LibKa0s/SkinPaint.lua",
     "libs/LibKa0s/SkinPaintExtras.lua",
+    -- New in LibKa0s v1.91.0: the HUD's shared looks and AceConfigDialog's confirmation box peeled
+    -- out of SkinPaintExtras.lua (SkinPaintHud minor 1, SkinAceConfirm minor 1).
+    "libs/LibKa0s/SkinPaintHud.lua",
+    "libs/LibKa0s/SkinAceConfirm.lua",
     "libs/LibKa0s/SkinPaintControls.lua",
     "libs/LibKa0s/SkinEUI.lua",
     "libs/LibKa0s/SkinAce.lua",
     "libs/LibKa0s/Widgets.lua",
+    -- New in LibKa0s v1.91.0: the dropdown and its shared menu peeled out of Widgets.lua
+    -- (WidgetsDropdown minor 1). Nothing here adopts it.
+    "libs/LibKa0s/WidgetsDropdown.lua",
     -- New in LibKa0s v1.66.0: ReorderList peeled out of Widgets.lua (WidgetsReorder minor 1),
     -- loaded right after it and before the drag handle, as the XML has it. Nothing here adopts it.
     "libs/LibKa0s/WidgetsReorder.lua",
