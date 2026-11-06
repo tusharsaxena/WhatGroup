@@ -175,20 +175,21 @@ if not lib then
             NS.Print("unknown command '" .. name .. "'")
             Sl:PrintHelp()
         end,
+        -- Plain `cmd  desc` (slash-commands-§1): the stub MUST NOT copy FormatRow's gold and em dash.
         PrintHelp = function()
             NS.Print("v" .. NS.Version() .. " slash commands")
             for _, entry in ipairs(COMMANDS) do
-                NS.Print("  /wg " .. entry[1] .. " — " .. entry[2])
+                NS.Print("  /wg " .. entry[1] .. "  " .. entry[2])
             end
         end,
         HelpRows = function()
             local out = {}
-            for i, entry in ipairs(COMMANDS) do out[i] = "  /wg " .. entry[1] .. " — " .. entry[2] end
+            for i, entry in ipairs(COMMANDS) do out[i] = "  /wg " .. entry[1] .. "  " .. entry[2] end
             return out
         end,
         LandingRows = function()
             local out = {}
-            for i, entry in ipairs(COMMANDS) do out[i] = "/wg " .. entry[1] .. " — " .. entry[2] end
+            for i, entry in ipairs(COMMANDS) do out[i] = "/wg " .. entry[1] .. "  " .. entry[2] end
             return out
         end,
         HelpHeader      = function() return "v" .. NS.Version() .. " slash commands" end,
