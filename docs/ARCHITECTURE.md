@@ -481,7 +481,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 | Doc | Status | Trigger |
 |---|---|---|
 | `slash-dispatch.md` | Present | 16 verbs in the command table |
-| `midnight-quirks.md` | Present | LFG and group-API behavior the addon works around |
+| `midnight-quirks.md` | Present | Always, from v2.102.0: the vendored client-quirks catalog, plus the LFG and group-API behavior the addon works around |
 | `debug.md` | Present | The diagnostics report (`/wg diagnostics`, debug-logging-§14) is a debug surface beyond the LibKa0s console, and documentation-§3 makes the page a MUST in every addon that ships it. The console content stays in the Tier 3 `debug-content.md` |
 | `message-bus.md` | Not applicable | Below the `architecture-§4` threshold: a shell plus one feature module, so no cross-module messages (see `## Message Bus`) |
 | `compat-layer.md` | Present | `core/Compat.lua` publishes nine addon-specific shims, the three role shims included, over the three-or-more threshold: `documentation-§3`'s count, `grep -cE '^\s*function\s+[A-Za-z_][A-Za-z0-9_]*\.' core/Compat.lua`, answers `9` |
