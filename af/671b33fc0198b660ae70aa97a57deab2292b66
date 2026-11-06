@@ -1,0 +1,1 @@
+V89 verify: PASS - payloads byte-match v1.89.0 (lib diff only unpruned icons, 12 declared icons present), Kit.VERSION 51, provenance v1.89.0 + icons line, bundle 01/02/03/05 with plan decisions and no issue, tests/loader.lua lists the 3 IconBrowser files (XML parity); luacheck 0 warnings / 0 errors in 77 files, tests 1100 passed / 0 failed / 1 skipped of 1101
