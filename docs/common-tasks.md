@@ -217,8 +217,8 @@ When the user does ask, the version sites are:
 
 | Site | Where |
 |---|---|
-| `## Version:` | `WhatGroup.toc` line 5 |
-| `WhatGroup.VERSION` | `core/WhatGroup.lua` line 36 |
+| `## Version:` | `WhatGroup.toc`, the `## Version:` line |
+| `WhatGroup.VERSION` | `core/WhatGroup.lua`, the `WhatGroup.VERSION = …` assignment near the top |
 | README badge | `README.md` (look for the version-shield URL) |
 | README "Version History" table | `README.md` |
 | Settings parent panel subtitle | derived from `WhatGroup.VERSION` at runtime — no hard-coded copy |
@@ -234,7 +234,7 @@ The user has a `/dev-copilot:bump-version <X.Y.Z>` slash command in their person
 bash tests/_kit/run-automated-tests.sh --suite complexity
 ```
 
-— lizard over the kit's sighted shadow, `-L 1500`, with function-count parity. Raw `lizard` run on the tree is blind in Lua and is not the gate; the tag needs `pass`, zero functions above CCN 15 and `blindFiles` 0. Write anything that newly crossed a threshold into `docs/automated-tests/RESULTS.md`'s watch list. This is a **release** checkpoint and **not** a commit gate; see [testing.md → The complexity report](./testing.md#the-complexity-report--a-release-checkpoint-not-a-commit-gate) and performance-§10.
+— lizard over the kit's sighted shadow, `-L 1500`, with function-count parity. Raw `lizard` run on the tree is blind in Lua and is not the gate; the tag needs `pass`, zero functions above CCN 15 and `blindFiles` 0. Write anything that newly crossed a threshold into `docs/automated-tests/RESULTS.md`'s watch list. This is a **release** checkpoint and **not** a commit gate; see [testing.md → Automated test records — the consolidated run](./testing.md#automated-test-records--the-consolidated-run) and performance-§10.
 
 ## Add a captured-info field
 

@@ -6,7 +6,7 @@ write these values are [settings-panel.md](settings-panel.md); the capture pipel
 
 ## The saved variable
 
-One SavedVariable, `WhatGroupDB` (`WhatGroup.toc:7`), an AceDB-3.0 store created in `OnInitialize`.
+One SavedVariable, `WhatGroupDB` (`WhatGroup.toc`'s `## SavedVariables:`), an AceDB-3.0 store created in `OnInitialize`.
 User settings live in the **profile** scope; the schema stamp lives in `db.global`.
 
 ```lua

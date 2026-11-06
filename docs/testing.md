@@ -85,11 +85,13 @@ the Options descriptor passes it too (LibKa0s#42, the IdList help-mark art).
 All three are invisible in game except by comparison: the factory receives no name,
 builds no texture path, and draws a perfectly good button.
 
-`test_surface_parity` is the degradation gate. Each of the eight adopted seams
-with a degradation arm carries a hand-written stub for the install where `libs/LibKa0s` is missing, and
+`test_surface_parity` is the degradation gate. Each adopted seam
+with a degradation arm — Core, DebugLog, Slash, Options, Schema, Launcher, Lifecycle, Skin and
+Compat — carries a hand-written stub for the install where `libs/LibKa0s` is missing, and
 a stub is a second implementation of somebody else's surface — so it drifts the
 moment the library grows a member the addon starts calling, staying green on the
-live path and raising on exactly the path the stub exists for. The nine cases
+live path and raising on exactly the path the stub exists for. Its cases — one per seam, and two
+for the Schema host (its instance and the library's own members) —
 compare the two halves as a **set**, and both halves come from a real load: the
 degraded arm loads the addon with the library's files omitted, never by
 hand-stubbing the member under test.
