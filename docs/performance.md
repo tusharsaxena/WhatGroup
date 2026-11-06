@@ -66,6 +66,11 @@ Every call site, with the per-hit work:
 
 **Zero `OnUpdate` handlers. One repeating timer** — the cooldown countdown in
 `modules/Frame.lua`'s `applyTeleportNote`, added 2026-08-06. Everything else above is one-shot or self-unregistering.
+**The skin notice's combat retry is not a second one, and not a combat path** (owner ruling,
+2026-11-06). `NS.MaybeShowSkinNotice` in `core/SkinSetup.lua` arms one one-shot at a time, and
+re-arms only while the account's skin notice is still pending; each tick is one library call that,
+in combat, shows nothing and records nothing. The `performance-§12` disposition below stands
+unchanged.
 Three *event* handlers are reachable inside or on the edge of a combat window: `GROUP_ROSTER_UPDATE`,
 whose body is an `IsInGroup()` and three comparisons, and the two combat-transition registrations
 sharing `OnCombatStateChanged`, whose body is one gate evaluation and then at most one `Show` on the
