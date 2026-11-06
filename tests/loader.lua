@@ -119,6 +119,12 @@ local LIBKA0S = {
     "libs/LibKa0s/OptionsSwitch.lua",
     -- New in LibKa0s v1.83.0: the Ka0sMedia_* picker widgets.
     "libs/LibKa0s/OptionsMedia.lua",
+    -- New in LibKa0s v1.86.0: the new major LibKa0s-IconBrowser-1.0 (IconBrowserSources,
+    -- IconBrowserWindow and IconBrowser, minor 1 each), after OptionsMedia in LibKa0s.xml. This addon
+    -- has no icon chooser and adopts nothing from it; the client loads every file of the XML.
+    "libs/LibKa0s/IconBrowserSources.lua",
+    "libs/LibKa0s/IconBrowserWindow.lua",
+    "libs/LibKa0s/IconBrowser.lua",
     "libs/LibKa0s/Perf.lua",
     -- New in LibKa0s v1.66.0: Perf's capture and its command surface peeled to two files of their
     -- own (PerfSampler minor 1, PerfCommands minor 1). Perf is declined here; the client loads
