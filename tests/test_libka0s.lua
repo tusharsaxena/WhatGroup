@@ -53,7 +53,8 @@ end)
 test("libka0s: MODULES names every file of every major, at a positive integer minor", function()
     local _, env = T.newAddon()
     local expected = {
-        ["LibKa0s-Core-1.0"]     = { "Core" },
+        -- CorePixel (v1.91.0): the pixel edges peeled out of Core.lua.
+        ["LibKa0s-Core-1.0"]     = { "Core", "CorePixel" },
         ["LibKa0s-DebugLog-1.0"] = { "DebugLog" },
         ["LibKa0s-Slash-1.0"]    = { "Slash" },
         -- OptionsAppearance (v1.78.0) draws the Skin tab and OptionsSkinPicker (v1.79.0) the
@@ -62,9 +63,11 @@ test("libka0s: MODULES names every file of every major, at a positive integer mi
                                      "OptionsTabbed", "OptionsIdSuggest", "OptionsAppearance",
                                      "OptionsSkinPicker", "OptionsSkinPickerRows" },
         ["LibKa0s-Perf-1.0"]     = { "Perf", "PerfPanel" },
-        -- LibKa0s-Skin-1.0 (v1.78.0; key 11.1.19.1.13.7.11.2.5 at v1.84.0): its nine files.
+        -- LibKa0s-Skin-1.0 (v1.78.0; key 11.1.19.1.13.7.11.2.5 at v1.84.0): its nine files, and
+        -- since v1.91.0 eleven (SkinPaintHud and SkinAceConfirm peeled out of SkinPaintExtras).
         ["LibKa0s-Skin-1.0"]     = { "Skin", "SkinOwnerTokens", "SkinDefs", "SkinDefsOthers",
-                                     "SkinPaint", "SkinPaintExtras", "SkinPaintControls",
+                                     "SkinPaint", "SkinPaintExtras", "SkinPaintHud",
+                                     "SkinAceConfirm", "SkinPaintControls",
                                      "SkinEUI", "SkinAce" },
         -- LibKa0s-Charts-1.0 (v1.84.0): nothing here adopts it, and the client loads both files.
         ["LibKa0s-Charts-1.0"]   = { "Charts", "ChartsRender" },
