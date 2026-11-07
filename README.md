@@ -6,7 +6,7 @@
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
 ![Tests](https://img.shields.io/badge/Tests-1100%2F1100_passing-green)
 
-WhatGroup remembers the group you signed up for through the Group Finder tool. You get accepted, you shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who's leading, and the playstyle.
+Retail only. WhatGroup remembers the group you signed up for through the Group Finder tool. You get accepted, you shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who's leading, and the playstyle.
 
 It tells you twice, on purpose. A moment after you join, a chat line appears with a cyan `[WG]` tag in front and a "view details" link at the end. A popup window shows the same fields, plus a teleport button for the dungeon. You can trim the chat line down to the fields you care about. The popup always shows everything.
 
