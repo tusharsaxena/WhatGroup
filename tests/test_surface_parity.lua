@@ -262,5 +262,7 @@ test("parity: the Compat reader arm carries every library member the addon wires
         -- Wired, but file-locally: GetSpellCooldownRemaining and GetSpellCooldownTimes are this
         -- addon's call surface, built on it with the GCD floor and the two-value truncation.
         "GetSpellCooldown",
+        -- LibKa0s v1.92.0 (Compat minor 2) added these four client helpers. No caller here until the Forever port.
+        "IsForever", "IsRetail", "ClientKey", "ForClient",
     })
 end)
