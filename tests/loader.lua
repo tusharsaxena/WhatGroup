@@ -109,6 +109,8 @@ local LIBKA0S = {
     "libs/LibKa0s/OptionsTabs.lua",
     -- New in LibKa0s v1.84.0: the tabbed page peeled out of OptionsTabs.lua (OptionsTabbed minor 2).
     "libs/LibKa0s/OptionsTabbed.lua",
+    -- New in LibKa0s v1.93.0: the page header block peeled out of OptionsTabs.lua (OptionsHeader minor 1).
+    "libs/LibKa0s/OptionsHeader.lua",
     "libs/LibKa0s/OptionsCombat.lua",
     "libs/LibKa0s/OptionsCompose.lua",
     "libs/LibKa0s/OptionsScroll.lua",
