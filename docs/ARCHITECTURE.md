@@ -455,7 +455,7 @@ Things the addon does not do, and the reason each is a boundary rather than a bu
 
 - **Capture is session-only.** `capturesByResult`, `pendingApplications`, `pendingInfo`, `wasInGroup` and `notifiedFor` never touch SavedVariables, so `/reload` mid-application loses the pending capture and the join that follows prints nothing. Deliberate: the data describes a group you are in right now, and persisting it would resurface a stale group after a relog.
 - **Only groups joined through the Premade Group Finder are captured.** A guild or party invite carries no LFG search result, so there is nothing to observe. `/wg test notify` exists precisely because the real path cannot be exercised on demand.
-- **Teleport is limited to dungeon Path-of spells the player has learned.** The button renders grayed until `IsSpellKnown` says otherwise, and only for map IDs present in `defaults/TeleportSpells.lua` — a hand-maintained table, so a newly added dungeon needs a data update.
+- **Teleport is limited to dungeon Path-of spells the player has learned.** The button renders grayed until `IsSpellKnown` says otherwise, and only for map IDs present in `defaults/TeleportSpells.lua` — a hand-maintained table, so a newly added dungeon needs a data update. The table is re-validated per build against the client's own DB2 data (`tools/seeds/teleports.py`, [validate-seeds.md](./validate-seeds.md)), which catches a wrong key or spell but cannot add a dungeon nobody has ruled on.
 - **English only.** The locale shell (`locales/enUS.lua`, `NS.L`) is mandatory and every authored player-facing string routes through it, but translation content is a non-goal (localization-§1 / WG-07). The partial routing is ratified in the deviation table, re-check trigger "the first non-English locale file".
 - **No profiler wiring.** `LibKa0s-Perf-1.0` is vendored but not wired; see the deviation table.
 - **A load missing LibKa0s draws the teleport button bare.** The spell name, icon and cooldown reads are `LibKa0s-Compat-1.0`'s, and without the library they answer its documented no-answer values rather than a copy of its ladder (LibKa0s `docs/api/Compat/version-1-docs.md`, *Degradation*). The popup shows the question-mark icon and no cooldown, and the secure `/cast` macro has no name. It never raises, and that install is already announced once by `core/CoreSetup.lua`.
@@ -463,7 +463,7 @@ Things the addon does not do, and the reason each is a boundary rather than a bu
 ## Documentation map
 
 Every `.md` under `docs/` appears in exactly one table below (`documentation-§3`). Frozen and
-generated directories are named once each and never enumerated per run: `docs/audits/`, `docs/reviews/`, `docs/automated-tests/`, `docs/revendor/`, `docs/superpowers/`.
+generated directories are named once each and never enumerated per run: `docs/audits/`, `docs/reviews/`, `docs/automated-tests/`, `docs/revendor/`, `docs/seed-research/`, `docs/superpowers/`.
 
 ### Required (documentation-§3, Tier 1)
 
@@ -505,6 +505,7 @@ generated directories are named once each and never enumerated per run: `docs/au
 |---|---|
 | `frame.md` | The popup frame: layout, rows, and the teleport buttons |
 | `stand-down.md` | What disabled means here: the one latch and its two holds, what goes down and what survives, the combat-owed `Hide`, the launcher click. Tier 3 because the stand-down is this addon's wiring of `slash-commands-§7`, not a Tier 1 or Tier 2 subject |
+| `validate-seeds.md` | The seed-validation contract `/dev-copilot:validate-seeds WhatGroup retail` runs: `tools/seeds/teleports.py`'s steps, the ruling precedent for `defaults/TeleportSpells.lua` and the gate. Tier 3 because the seed list and its tool are this addon's own |
 | `debug-content.md` | What WhatGroup feeds the LibKa0s console: the descriptor, the tag vocabulary, the session flag, `/wg debug`. Tier 3 because it is the console's addon-owned content, while the Tier 2 `debug.md` covers the diagnostics report |
 
 ## Documented deviations

@@ -12,6 +12,7 @@ ignore:
   - _dev        # the scratch dir packaging reserves; ignored whether or not it exists today
   - "*.bak"     # editor lockfiles and backups
   - .pkgmeta    # packager configuration: consumed before the zip is built, of no use inside it
+  - tools       # the seed validator (tools/seeds/teleports.py), dev-only Python, never loaded (layout-§1)
   # Agent tooling, and untracked here — `git ls-files .claude` returns nothing,
   # so no packager clone has ever carried it and this line changes no downloaded
   # byte. It stays because packaging MUSTs every root dot-entry present in

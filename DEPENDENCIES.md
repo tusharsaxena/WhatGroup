@@ -177,12 +177,13 @@ Verify:
 
 Stated explicitly, because each of these is a reasonable guess that happens to be wrong here:
 
-- **No Python** for anything in this repo's own code. The test harness, the runner and the `--list`
+- **No Python** for the addon, its tests or its gate. The test harness, the runner and the `--list`
   inventory generator are all Lua (`tests/run.lua`, `tests/loader.lua`, `tests/_kit/`). Python
-  arrives only as `lizard`'s host (section 2.3) and for the release-time logo recipe (section 3).
+  arrives only as `lizard`'s host (section 2.3), for the release-time logo recipe (section 3) and
+  for the seed validator under `tools/seeds/` (section 3).
 - **No Node.js, no npm.** There is no `package.json` anywhere outside `libs/`.
-- **No Python scripts, no `Makefile`, no `scripts/` directory.** The repo contains no `.py` file of
-  its own, no `Makefile` and no `scripts/`. There is **one** shell script:
+- **No `Makefile`, no `scripts/` directory.** The repo's only `.py` files are the seed validator
+  `tools/seeds/teleports.py` and its tests (section 3), dev-only and `.pkgmeta`-ignored. There is **one** shell script:
   `tests/_kit/run-automated-tests.sh`, the vendored automated-test runner that ships whole with the
   LibKa0s test kit (`docs/testing.md` → *Automated test records — the consolidated run*, [`docs/automated-tests/README.md`](docs/automated-tests/README.md)).
   It needs **bash**, which Ubuntu already has, and it is a convenience wrapper — it shells out to
@@ -240,6 +241,17 @@ to fix a typo.
   ```sh
   python3 -c 'import PIL; print(PIL.__version__)'
   ```
+
+- **Python 3.8+ and a connection to wago.tools** — the seed validator,
+  `tools/seeds/teleports.py`, which re-checks `defaults/TeleportSpells.lua` against the Retail
+  client's own DB2 tables (wago.tools product `wow`) and writes a frozen bundle under
+  `docs/seed-research/`. `/dev-copilot:validate-seeds WhatGroup retail` drives it through
+  [`docs/validate-seeds.md`](docs/validate-seeds.md). Evidence: `tools/seeds/teleports.py:1` is
+  `#!/usr/bin/env python3` and it imports only the standard library (`argparse`, `csv`, `gzip`,
+  `json`, `urllib`, …); `from __future__ import annotations` sets the 3.8 floor. Network only on a
+  run that is not `--replay`; downloads (about 93 MB a build) are cached in the git-ignored
+  `tools/seeds/.cache/`. Its tests are `python3 -m unittest discover -s tools/seeds -p 'test_*.py'`,
+  offline. Not part of the green gate, and not needed to build, run or test the addon.
 
 - **`lizard`** (section 2.3) is **required at release**: the complexity report is regenerated at
   release (performance-§10) and a skipped complexity suite is a release gate that did not pass

@@ -1,0 +1,4 @@
+# The DB2 CSV exports teleports.py caches, per build (about 70 MB). Re-downloadable at any time and
+# never part of the repo: only the gzipped copies inside a dated docs/seed-research/ bundle are committed.
+.cache/
+__pycache__/

@@ -16,6 +16,10 @@ lua tests/run.lua      # headless suites: PASS/FAIL per case, non-zero exit on a
 ~/.claude/dev-copilot/bin/ka0s-bounded luacheck .  # must report 0 warnings / 0 errors (config in .luacheckrc)
 ```
 
+A change under `tools/seeds/` also runs that tool's own offline cases,
+`python3 -m unittest discover -s tools/seeds -p 'test_*.py'`; the seed-validation contract
+([validate-seeds.md](./validate-seeds.md) → *Gate*) lists all three.
+
 ### The harness is the shared kit
 
 The registry, the assertions, the runner, the `--list` renderer, the sandboxed
