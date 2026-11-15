@@ -32,6 +32,14 @@
 --
 -- Refresh recipe (new season / patch): see
 -- docs/common-tasks.md → "Add a dungeon teleport spell mapping".
+--
+-- RE-VALIDATED AGAINST BUILD 12.1.5.70783 (Retail, 2026-11-15) by
+-- tools/seeds/teleports.py, against the client's own DB2 tables on wago.tools
+-- (docs/validate-seeds.md; the run is docs/seed-research/2026-11-15-retail/).
+-- That run moved three keys the build showed were wrong: Scarlet Halls is
+-- map 1001 and Scarlet Monastery 1004 (the two had been swapped), and
+-- Brackenhide Hollow is 2520 (2080 is no map at all). A key the Group Finder
+-- never hands over fails as quietly as a wrong spell: no teleport row at all.
 
 -- Writes straight to the shared private namespace (NS) so load order
 -- relative to WhatGroup.lua doesn't matter — `self.TeleportSpells`
@@ -57,8 +65,8 @@ NS.TeleportSpells = {
     [961]  = 131205,              -- Stormstout Brewery              (Path of the Stout Brew)
     [962]  = 131225,              -- Gate of the Setting Sun         (Path of the Setting Sun)
     [994]  = 131222,              -- Mogu'shan Palace                (Path of the Mogu King)
-    [1001] = 131229,              -- Scarlet Monastery               (Path of the Scarlet Mitre)
-    [1004] = 131231,              -- Scarlet Halls                   (Path of the Scarlet Blade)
+    [1001] = 131231,              -- Scarlet Halls                   (Path of the Scarlet Blade)
+    [1004] = 131229,              -- Scarlet Monastery               (Path of the Scarlet Mitre)
     [1007] = 131232,              -- Scholomance                     (Path of the Necromancer)
     [1011] = 131228,              -- Siege of Niuzao Temple          (Path of the Black Ox)
 
@@ -118,11 +126,11 @@ NS.TeleportSpells = {
 
     -- ===== Dragonflight =====
     -- Dungeons
-    [2080] = 393267,              -- Brackenhide Hollow              (Path of the Rotting Woods)
     [2451] = 393222,              -- Uldaman: Legacy of Tyr          (Path of the Watcher's Legacy)
     [2515] = 393279,              -- The Azure Vault                 (Path of Arcane Secrets)
     [2516] = 393262,              -- The Nokhud Offensive            (Path of the Windswept Plains)
     [2519] = 393276,              -- Neltharus                       (Path of the Obsidian Hoard)
+    [2520] = 393267,              -- Brackenhide Hollow              (Path of the Rotting Woods)
     [2521] = 393256,              -- Ruby Life Pools                 (Path of the Clutch Defender)
     [2526] = 393273,              -- Algeth'ar Academy               (Path of the Draconic Diploma)
     [2527] = 393283,              -- Halls of Infusion               (Path of the Titanic Reservoir)

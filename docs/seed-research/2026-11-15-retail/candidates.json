@@ -1,0 +1,176 @@
+{
+ "build": "12.1.5.70783",
+ "candidates": [
+  {
+   "activity": false,
+   "conflict": "",
+   "description": "Returns you to $z. Speak to an Innkeeper in a different place to change your home location.",
+   "expansion": null,
+   "instanceType": null,
+   "key": "candidate:412555",
+   "mapName": "",
+   "name": "Path of the Naaru",
+   "named": [],
+   "resolved": null,
+   "spell": 412555,
+   "subtext": "",
+   "why": "the description names no entrance"
+  },
+  {
+   "activity": true,
+   "conflict": "the subtext names 'Waterworks'",
+   "description": "Teleport to the entrance to Cinderbrew Meadery.",
+   "expansion": 10,
+   "instanceType": 1,
+   "key": "candidate:467546",
+   "mapName": "Cinderbrew Meadery",
+   "name": "Path of the Waterworks",
+   "named": [
+    2661
+   ],
+   "resolved": 2661,
+   "spell": 467546,
+   "subtext": "Waterworks",
+   "why": ""
+  }
+ ],
+ "client": "retail",
+ "date": "2026-11-15",
+ "fetched": "Sun, 15 Nov 2026 16:34:08 GMT",
+ "flags": [
+  {
+   "detail": "Map 1001 is 'Scarlet Halls'",
+   "dungeon": "Scarlet Monastery",
+   "key": "shipped:map-renamed:1001",
+   "kind": "map-renamed",
+   "map": 1001,
+   "mapName": "Scarlet Halls",
+   "rekeyTo": 1004,
+   "spell": null,
+   "spells": [
+    131229
+   ]
+  },
+  {
+   "destination": 1004,
+   "detail": "'Teleport to the entrance to Scarlet Monastery.' resolves to 1004 (Scarlet Monastery)",
+   "dungeon": "Scarlet Monastery",
+   "key": "shipped:pairing:1001:131229",
+   "kind": "pairing",
+   "map": 1001,
+   "rekeyTo": 1004,
+   "spell": 131229,
+   "spells": [
+    131229
+   ]
+  },
+  {
+   "detail": "Map 1004 is 'Scarlet Monastery'",
+   "dungeon": "Scarlet Halls",
+   "key": "shipped:map-renamed:1004",
+   "kind": "map-renamed",
+   "map": 1004,
+   "mapName": "Scarlet Monastery",
+   "rekeyTo": 1001,
+   "spell": null,
+   "spells": [
+    131231
+   ]
+  },
+  {
+   "destination": 1001,
+   "detail": "'Teleport to the entrance to Scarlet Halls.' resolves to 1001 (Scarlet Halls)",
+   "dungeon": "Scarlet Halls",
+   "key": "shipped:pairing:1004:131231",
+   "kind": "pairing",
+   "map": 1004,
+   "rekeyTo": 1001,
+   "spell": 131231,
+   "spells": [
+    131231
+   ]
+  },
+  {
+   "destination": null,
+   "detail": "'Teleport to the entrance to Siege of Niuzao.' unresolved: no party or raid map is named 'Siege of Niuzao'",
+   "dungeon": "Siege of Niuzao Temple",
+   "key": "shipped:pairing:1011:131228",
+   "kind": "pairing",
+   "map": 1011,
+   "rekeyTo": null,
+   "spell": 131228,
+   "spells": [
+    131228
+   ]
+  },
+  {
+   "destination": 532,
+   "detail": "'Teleport to the entrance to Karazhan.' resolves to 532 (Karazhan)",
+   "dungeon": "Return to Karazhan",
+   "key": "shipped:pairing:1651:373262",
+   "kind": "pairing",
+   "map": 1651,
+   "rekeyTo": 532,
+   "spell": 373262,
+   "spells": [
+    373262
+   ]
+  },
+  {
+   "detail": "Map 2441 is 'Tazavesh, the Veiled Market'",
+   "dungeon": "Tazavesh",
+   "key": "shipped:map-renamed:2441",
+   "kind": "map-renamed",
+   "map": 2441,
+   "mapName": "Tazavesh, the Veiled Market",
+   "rekeyTo": null,
+   "spell": null,
+   "spells": [
+    367416
+   ]
+  },
+  {
+   "detail": "the build's Map has no row 2080",
+   "dungeon": "Brackenhide Hollow",
+   "key": "shipped:map-missing:2080",
+   "kind": "map-missing",
+   "map": 2080,
+   "rekeyTo": 2520,
+   "spell": null,
+   "spells": [
+    393267
+   ]
+  },
+  {
+   "detail": "no GroupFinderActivity row has MapID 2080",
+   "dungeon": "Brackenhide Hollow",
+   "key": "shipped:no-activity:2080",
+   "kind": "no-activity",
+   "map": 2080,
+   "rekeyTo": 2520,
+   "spell": null,
+   "spells": [
+    393267
+   ]
+  },
+  {
+   "destination": 2520,
+   "detail": "'Teleport to the entrance to Brackenhide Hollow.' resolves to 2520 (Brackenhide Hollow)",
+   "dungeon": "Brackenhide Hollow",
+   "key": "shipped:pairing:2080:393267",
+   "kind": "pairing",
+   "map": 2080,
+   "rekeyTo": 2520,
+   "spell": 393267,
+   "spells": [
+    393267
+   ]
+  }
+ ],
+ "product": "wow",
+ "shipped": {
+  "rows": 82,
+  "spells": 85
+ },
+ "tool": "tools/seeds/teleports.py derive"
+}

@@ -140,6 +140,8 @@ After adding the row:
 
 No other code touches the table; the row is fire-and-forget.
 
+Then check it against the build: `/dev-copilot:validate-seeds WhatGroup retail` runs `tools/seeds/teleports.py` under [validate-seeds.md](./validate-seeds.md), which flags a key that is no map or no Group Finder activity, a spell that is not a teleport, and a spell whose own text names a different dungeon. It is how the swapped Scarlet Halls / Scarlet Monastery keys and Brackenhide Hollow's `2080` (really `2520`) were caught on 2026-11-15.
+
 ### Refreshing for a new season / patch
 
 When Blizzard ships a new M+ season or a patch that adds/changes dungeon teleports, sweep the table:

@@ -22,7 +22,7 @@ number out of use rather than handing it to a new one.
 | COMBAT-1 – COMBAT-14 | [Combat](#combat) | Reset popup and Settings registration in combat, Close and ESC in combat, the visibility gate on combat edges, a soft-hidden popup's mouse-dead controls and its residual |
 | POPUP-1 – POPUP-12 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome, the Role row at the minimum height, the popup's layering, the body-mouse probe |
 | TEST-1 – TEST-12 | [Test mode](#test-mode) | The sample popup, its checkbox and verb, every way it ends, the sample role |
-| TELE-1 – TELE-6 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker |
+| TELE-1 – TELE-8 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker, the rows the 2026-11-15 seed validation moved |
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-20 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
@@ -506,6 +506,15 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **TELE-6. The cooldown expires live.** Leave a cooldown popup open across the expiry → the button
   rearms itself: no swipe, no note, full alpha, and a click that casts, with no close and reopen.
   Result: pass (owner-marked 2026-10-10)
+- **TELE-7. Brackenhide Hollow gets its teleport.** With `/wg debug on`, apply to a real Group
+  Finder listing for Brackenhide Hollow and join → the `[Apply]` line shows `map=2520`; the chat
+  summary has a `Teleport: [Path of the Rotting Woods]` row and the popup's teleport icon is that
+  spell (desaturated if you have not learned it). Before the 2026-11-15 seed validation the row was
+  keyed `2080`, which is no map, and this group showed no teleport at all. Result:
+- **TELE-8. The Scarlet pair is the right way round.** Apply to and join a Scarlet Halls group →
+  `map=1001` and `Path of the Scarlet Blade`; then a Scarlet Monastery group → `map=1004` and
+  `Path of the Scarlet Mitre`. On a character that owns either, click the icon → it lands at the
+  entrance of the dungeon the group is for. Before 2026-11-15 the two were swapped. Result:
 
 ## Real Group Finder flow
 
@@ -1282,3 +1291,7 @@ The owner's sixth smoke round (Ka0sAddonsCommonTasks `docs/2026-11-03-SMOKE_ROUN
 R6-PV (the same round) moves the picker's eye onto `spec.preview` in test mode: the picker shown over a closed popup turns test mode on, the eye toggles it, and every close puts it back. Adds SKIN-42 and amends SKIN-19, whose eye now toggles; its pass mark came off. Its review added a SKIN-42 step: a real popup the eye covered, once combat ended that test mode, is not brought up by a later picker's eye.
 
 R6-RV2 (the same round, LibKa0s v1.85.0 re-cut at 550ef68, R6-SIM-L's Master controls Sim mode checkbox, `OptionsCompose.lua` minor 19 and no other file) adds PANEL-23. WhatGroup has no simulation and passes no `isSimMode` or `toggleSim`, so its Master controls tab is unchanged. No facade name, stub or `VOCAB` entry moves, and no pass mark came off.
+
+Owed from the first seed validation (`docs/seed-research/2026-11-15-retail/`, Retail build
+12.1.5.70783, Ka0sAddonsCommonTasks#1): the new TELE-7 (Brackenhide Hollow moved from `2080` to
+`2520`) and TELE-8 (Scarlet Halls and Scarlet Monastery swapped back). No other check changed.

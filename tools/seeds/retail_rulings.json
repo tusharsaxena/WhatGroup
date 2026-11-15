@@ -1,0 +1,50 @@
+{
+  "candidate:412555": {
+    "reason": "Not a dungeon teleport: Path of the Naaru \"Returns you to $z\" on target 9 (the hearthstone bind point), with no entrance and no map",
+    "ruling": "reject"
+  },
+  "candidate:467546": {
+    "reason": "needs owner review: the description says Cinderbrew Meadery (2661, already served by 445440 Path of the Flaming Brewery) while the name and subtext say Waterworks, a delve (map 2683), and no spellbook dump has confirmed a player owns it",
+    "ruling": "reject"
+  },
+  "shipped:map-missing:2080": {
+    "reason": "The build has no map 2080; Brackenhide Hollow is map 2520 (Map, LFGDungeons and GroupFinderActivity 1161 to 1164 all carry 2520), so this row has never matched a Group Finder listing",
+    "ruling": "rekey"
+  },
+  "shipped:map-renamed:1001": {
+    "reason": "Map 1001 is Scarlet Halls (GroupFinderActivity 77, 170, 1335, 1336 carry MapID 1001), but the row's spell 131229 Path of the Scarlet Mitre goes to Scarlet Monastery: the two Scarlet rows have their keys swapped, so the row moves to [1004]",
+    "ruling": "rekey"
+  },
+  "shipped:map-renamed:1004": {
+    "reason": "Map 1004 is Scarlet Monastery, but the row's spell 131231 Path of the Scarlet Blade goes to Scarlet Halls: the other half of the swapped Scarlet pair, so the row moves to [1001]",
+    "ruling": "rekey"
+  },
+  "shipped:map-renamed:2441": {
+    "reason": "The comment shortens Map 2441's \"Tazavesh, the Veiled Market\" to Tazavesh; the same instance, and 367416's own description names it in full",
+    "ruling": "keep"
+  },
+  "shipped:no-activity:2080": {
+    "reason": "No GroupFinderActivity row carries MapID 2080, so C_LFGList.GetActivityInfoTable never hands the addon this key; the Brackenhide Hollow activities carry 2520",
+    "ruling": "rekey"
+  },
+  "shipped:pairing:1001:131229": {
+    "reason": "Spell.Description_lang \"Teleport to the entrance to Scarlet Monastery.\" resolves to map 1004 alone, the MapID of the Scarlet Monastery activities (78, 169, 1337, 1338); the comment's dungeon and spell name were right, the key was not",
+    "ruling": "rekey"
+  },
+  "shipped:pairing:1004:131231": {
+    "reason": "Spell.Description_lang \"Teleport to the entrance to Scarlet Halls.\" resolves to map 1001 alone, the MapID of the Scarlet Halls activities; the comment's dungeon and spell name were right, the key was not",
+    "ruling": "rekey"
+  },
+  "shipped:pairing:1011:131228": {
+    "reason": "The description abbreviates the dungeon (\"Siege of Niuzao\"); Map 1011 is Siege of Niuzao Temple, the comment's dungeon, and the build names 131228 Path of the Black Ox, as the comment does",
+    "ruling": "keep"
+  },
+  "shipped:pairing:1651:373262": {
+    "reason": "The text names Karazhan, the raid (map 532), but 373262's name Path of the Fallen Guardian matches the comment read in-game, Return to Karazhan (1651) is entered at the same Deadwind Pass door, and moving the row to 532 would lose it for every Return to Karazhan group",
+    "ruling": "keep"
+  },
+  "shipped:pairing:2080:393267": {
+    "reason": "Spell.Description_lang \"Teleport to the entrance to Brackenhide Hollow.\" resolves to map 2520 alone; the spell and both names in the comment are right, only the key is wrong",
+    "ruling": "rekey"
+  }
+}
