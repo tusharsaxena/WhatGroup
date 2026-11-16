@@ -26,11 +26,16 @@ local LIBKA0S = {
     -- New in LibKa0s v1.91.0: the pixel edges peeled out of Core.lua (CorePixel minor 1). Internal;
     -- nothing here adopts it.
     "libs/LibKa0s/CorePixel.lua",
+    -- New in LibKa0s v1.105.0: the tooltip placement major (Tooltip minor 1, LibKa0s#92).
+    -- Nothing here adopts it yet.
+    "libs/LibKa0s/Tooltip.lua",
     "libs/LibKa0s/Env.lua",
     -- New in LibKa0s v1.55.0: three majors. Compat is looked up by core/Compat.lua; Bus and Schema
     -- are not adopted. The client loads every file of the XML, so this list carries all three in
     -- XML order.
     "libs/LibKa0s/Compat.lua",
+    -- New in LibKa0s v1.95.0: the Role major (Role minor 1). Nothing here adopts it.
+    "libs/LibKa0s/Role.lua",
     "libs/LibKa0s/Lifecycle.lua",
     "libs/LibKa0s/Bus.lua",
     "libs/LibKa0s/Schema.lua",
@@ -40,6 +45,13 @@ local LIBKA0S = {
     "libs/LibKa0s/Glow.lua",
     -- New in LibKa0s v1.79.0: the Toast major (Toast minor 1). Nothing here adopts it.
     "libs/LibKa0s/Toast.lua",
+    -- New in LibKa0s v1.96.0: the Callout major and its settings rows (Callout, CalloutSettings), and in
+    -- v1.99.0 the WaypointArrow major and its rows (WaypointArrow, WaypointArrowSettings). Nothing here
+    -- adopts either; the client loads every file of the XML.
+    "libs/LibKa0s/Callout.lua",
+    "libs/LibKa0s/CalloutSettings.lua",
+    "libs/LibKa0s/WaypointArrow.lua",
+    "libs/LibKa0s/WaypointArrowSettings.lua",
     -- New in LibKa0s v1.84.0: the Charts major (Charts minor 1, ChartsRender minor 1). Nothing here adopts it.
     "libs/LibKa0s/Charts.lua",
     "libs/LibKa0s/ChartsRender.lua",
@@ -75,11 +87,18 @@ local LIBKA0S = {
     -- its own LibStub minor. This addon adopts nothing from it, but the client loads every
     -- file of the XML, so this list carries it or the XML-order check fails.
     "libs/LibKa0s/WidgetsDragHandle.lua",
+    -- New in LibKa0s v1.105.0: the drag handle's tooltip peeled out of WidgetsDragHandle.lua
+    -- (WidgetsDragHandleTip minor 1).
+    "libs/LibKa0s/WidgetsDragHandleTip.lua",
     "libs/LibKa0s/WidgetsLineChart.lua",
     -- New in LibKa0s v1.70.0: the Autocomplete widget, one file per widget like the chart above. Nothing here adopts it.
     "libs/LibKa0s/WidgetsAutocomplete.lua",
     -- New in LibKa0s v1.78.0: the shared copy window (WidgetsCopyWindow minor 1). The debug console uses it.
     "libs/LibKa0s/WidgetsCopyWindow.lua",
+    -- New in LibKa0s v1.105.0: the title-bar button strip and the data bar (WidgetsHeader minor 1,
+    -- W.HeaderButtons, LibKa0s#86; WidgetsBar minor 1, W.Bar, LibKa0s#80). Nothing here adopts them yet.
+    "libs/LibKa0s/WidgetsHeader.lua",
+    "libs/LibKa0s/WidgetsBar.lua",
     "libs/LibKa0s/DebugLog.lua",
     -- New in LibKa0s v1.60.0: DebugLog's second file, the diagnostics report (debug-logging-§14).
     -- It attaches to the DebugLog shell, so it loads right after it, as the XML has it.
@@ -124,6 +143,9 @@ local LIBKA0S = {
     -- and in v1.79.0 the first-run skin picker (OptionsSkinPicker minor 1, O.SkinPicker / O.HideSkinPicker).
     "libs/LibKa0s/OptionsAppearance.lua",
     "libs/LibKa0s/OptionsSkinPicker.lua",
+    -- New in LibKa0s v1.105.0: the skin picker's owner queue peeled out of OptionsSkinPicker.lua
+    -- (OptionsSkinPickerQueue minor 1).
+    "libs/LibKa0s/OptionsSkinPickerQueue.lua",
     -- New in LibKa0s v1.84.0: the Skin tab's rows peeled out of OptionsSkinPicker.lua (OptionsSkinPickerRows minor 1).
     "libs/LibKa0s/OptionsSkinPickerRows.lua",
     -- New in LibKa0s v1.82.0: the switched sections peeled out of OptionsWidgets.lua (OptionsSwitch

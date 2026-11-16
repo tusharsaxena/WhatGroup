@@ -150,6 +150,10 @@ if not lib then
     -- NavRail, new at LibKa0s v1.61.0 (OptionsNav minor 1): drawn only by a page render, and no
     -- page here draws a rail, so the same inert no-op applies.
     H.NavRail              = function() end
+    -- SideTabs, new at LibKa0s v1.100.0 (OptionsNav minor 7): drawn only by a page render, and no
+    -- page here draws a side-tab group, so the same inert no-op applies (the live one answers nil
+    -- having drawn nothing when it cannot draw).
+    H.SideTabs             = function() end
     -- Drawer, new at LibKa0s v1.73.0 (OptionsDrawer minor 1): no call site here, so inert for the shape reason.
     H.Drawer               = function() end
     -- LibKa0s v1.77.0's four instance members: OptionsKeybinds minor 2's KeybindingsTab, KeybindRows

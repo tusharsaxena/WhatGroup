@@ -70,6 +70,27 @@ Compat.IsSecret = CompatLib and CompatLib.IsSecret or function(v)
     return issecretvalue ~= nil and issecretvalue(v) or false
 end
 
+-- ---------------------------------------------------------------------------
+-- Character identity (LibKa0s v1.94.0, Compat minor 4)
+-- ---------------------------------------------------------------------------
+
+-- The four identity readers, wired as the library's own members so any key this addon ever builds
+-- agrees with AceDB's profile keys on every client. Nothing here calls them yet: WhatGroup keys
+-- nothing by character or realm. THE READER ARM again: without the library each answers the value
+-- the library documents for a client with no rung (false, or nil), and copies none of its ladder.
+
+--- Whether character names are unique per region (true on WoW Forever). False without the library.
+Compat.RegionalNames = CompatLib and CompatLib.RegionalNames or function() return false end
+
+--- A unit's character name and realm, exactly two values. Nil, nil without the library.
+Compat.UnitCharacterName = CompatLib and CompatLib.UnitCharacterName or function() return nil, nil end
+
+--- The player's character key, AceDB-3.0 40's. Nil without the library.
+Compat.CharacterKey = CompatLib and CompatLib.CharacterKey or function() return nil end
+
+--- The player's realm key, AceDB-3.0 40's. Nil without the library.
+Compat.RealmKey = CompatLib and CompatLib.RealmKey or function() return nil end
+
 -- `startTime, duration, isEnabled, modRate, isActive` -- always five values. Kept file-local
 -- rather than published: the two cooldown shims below are this addon's call surface, and each
 -- keeps its own contract on top of it.
