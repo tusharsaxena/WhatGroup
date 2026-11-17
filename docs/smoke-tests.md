@@ -1141,6 +1141,12 @@ Default is SKIN-1's list and nothing else.
   mode off, the real popup lost after the close, the popup over the picker, or a Lua error.
   Result:
 
+- **SKIN-43. A new profile wears the client's default skin (AD-DS-WG, skinning-§2).** On Retail, in
+  `/wg config` → Profiles, create a new profile → `/wg get skin.skin` prints `ka0s` and the popup
+  (`/wg test`) wears Ka0s Default. Switch back to your own profile → its stored skin comes back
+  unchanged. Fail: a new profile on any other skin, a stored choice rewritten, or a Lua error.
+  Result:
+
 ## Library-absent install
 
 Quit the game and rename `Interface/AddOns/WhatGroup/libs/LibKa0s` to `libs/LibKa0s.off` first,

@@ -723,13 +723,14 @@ Total.
 - panel: the Test notification button names its run and its preview (WHA-L08)
 - panel: the header Defaults tooltip is the library's Reset all settings wording (WHA-L12)
 
-### test_skinsetup.lua (17)
+### test_skinsetup.lua (18)
 
 - skin seam: the owner is the folder name, registered at file load, and NS.Skin is its facade
 - skin seam: the read answers Ka0s Default before the profile store exists
 - skin seam: the owner tokens draw today's exact pixels under Ka0s Default
 - skin seam: each owner token follows its library role token under another skin
 - skin seam: the skin keys default to Ka0s Default, with the picker unseen
+- skin seam: the profile default and the pre-store read are the library's DefaultSkin()
 - skin seam: every skin key is a skip-render row on the Appearance tab
 - skin seam: the skin row's values are every registered skin, in the library's order
 - skin seam: /wg set refuses an unknown skin and applies a registered one live
@@ -1282,7 +1283,7 @@ Total.
 | test_frame_layers.lua | 8 |
 | test_frame_skin.lua | 25 |
 | test_panel.lua | 63 |
-| test_skinsetup.lua | 17 |
+| test_skinsetup.lua | 18 |
 | test_skin_outline.lua | 10 |
 | test_skin_picker.lua | 33 |
 | test_skin_verb.lua | 7 |
@@ -1313,4 +1314,4 @@ Total.
 | test_skin_switch.lua | 25 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1103** |
+| **Total** | **1104** |

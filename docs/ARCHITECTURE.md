@@ -303,7 +303,8 @@ surface carries a typed look value.
   which `tests/test_skinsetup.lua` holds to the library's values; `tests/test_surface_parity.lua`
   holds the degraded facade to the live one key for key.
 - **The stored choice.** Eight profile keys under `skin.*` ([schema.md](./schema.md)): `source`
-  (`ka0s` or `eui`) and `skin`, the Scope's `ignorePanel` (on in a new profile: the settings pages
+  (`ka0s` or `eui`) and `skin`, whose default is `NS.DEFAULT_SKIN`, `Skin:DefaultSkin()` read once
+  at file load (skinning-§2: Ka0s Default on Retail, `ka0s` without the library), the Scope's `ignorePanel` (on in a new profile: the settings pages
   stay the client's) and `ignoreFonts`, the two overrides `font` and `texture` (an LSM key each, `""`
   for the skin's own), the Font outline `outline` (`all`, `hud` or `off`; LibKa0s v1.82.0) and
   `pickerSeen`. All are `skipRender` schema rows on the **Appearance** group,

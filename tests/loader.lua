@@ -213,6 +213,12 @@ return function(root, mockBuilder)
     --- in the client is the folder the addon was installed into. It defaults to "WhatGroup" because
     --- that is what the folder is called; a case overrides it to prove a file reads the vararg
     --- rather than a literal it typed out, which is the only way that distinction is observable.
+    ---
+    --- opts.skin = "<skin key>" makes that skin this instance's client default skin
+    --- (LibKa0s-Skin-1.0's DefaultSkin, so NS.DEFAULT_SKIN and skin.skin's default), set after the
+    --- library loads and before the addon's first file. A case proving the defaults READ
+    --- Skin:DefaultSkin() rather than a literal "ka0s" names a skin other than Ka0s Default
+    --- (AD-DS-WG, skinning-§2): on Retail the two answers are otherwise the same string.
     local function build(opts)
         opts = opts or {}
         local skipSet = {}
@@ -227,7 +233,16 @@ return function(root, mockBuilder)
         -- instance's saved table would otherwise be adopted by this one.
         _G.WhatGroupDB = nil
 
+        local skinChosen = opts.skin == nil
         for _, src in ipairs(sources) do
+            if not skinChosen and not src.lib then
+                skinChosen = true
+                local Skin = mock.LibStub and mock.LibStub("LibKa0s-Skin-1.0", true)
+                if Skin then
+                    local key = opts.skin
+                    Skin.DefaultSkin = function() return key end
+                end
+            end
             if not skipSet[src.path] then
                 local chunk = chunkFor(src.path)
                 setfenv(chunk, env)

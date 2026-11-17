@@ -52,7 +52,9 @@ NS.C = {
     },
     -- The skin this addon wears (skinning-§2, per addon and per profile), applied through
     -- core/SkinSetup.lua: where it comes from ("ka0s", the Ka0s skins, or "eui", EllesmereUI's)
-    -- and which Ka0s skin; "ka0s"/"ka0s" is Ka0s Default. The Skin tab's Scope (LibKa0s-Skin-1.0
+    -- and which Ka0s skin; "ka0s"/"ka0s" is Ka0s Default. `skin` is the client's default skin
+    -- (NS.DEFAULT_SKIN, Skin:DefaultSkin(), skinning-§2): Ka0s Default on Retail; core/SkinSetup.lua
+    -- loads before this file and sets it. The Skin tab's Scope (LibKa0s-Skin-1.0
     -- minor 5): leave the settings panel the client's (true, the leg-1 owner call, 2026-10-27),
     -- leave every font the client's (false). Its Font and texture overrides (minor 6): an LSM key
     -- each, "" for the skin's own. `outline` (LibKa0s v1.82.0, Skin minor 9, ruling D-06): the Font
@@ -62,7 +64,7 @@ NS.C = {
     -- keys with defaults, so AceDB merges them into every existing profile and no migration is owed.
     skin = {
         source      = "ka0s",
-        skin        = "ka0s",
+        skin        = NS.DEFAULT_SKIN or "ka0s",
         ignorePanel = true,
         ignoreFonts = false,
         font        = "",

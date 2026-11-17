@@ -36,7 +36,7 @@ db.profile = {
   },
   skin = {                        -- the skin this addon wears (skinning-§2), core/SkinSetup.lua
     source      = "ka0s",         -- ka0s (a Ka0s skin) | eui (EllesmereUI)
-    skin        = "ka0s",         -- one of the library's nine skin keys; ka0s is Ka0s Default
+    skin        = NS.DEFAULT_SKIN, -- Skin:DefaultSkin() (skinning-§2): "ka0s", Ka0s Default, on Retail
     ignorePanel = true,           -- Scope: leave the settings panel the client's
     ignoreFonts = false,          -- Scope: leave every font the client's
     font        = "",             -- an LSM font key over the skin's own; "" keeps the skin's

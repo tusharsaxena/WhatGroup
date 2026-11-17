@@ -128,6 +128,27 @@ test("skin seam: the skin keys default to Ka0s Default, with the picker unseen",
     assertEqual(NS.C.skin.skin, "ka0s", "the value lives in defaults/Profile.lua")
 end)
 
+test("skin seam: the profile default and the pre-store read are the library's DefaultSkin()", function()
+    -- skinning-§2 (MUST, LibKa0s v1.94.0): a profile's default skin is Skin:DefaultSkin(), read
+    -- once at file load into NS.DEFAULT_SKIN, never the literal "ka0s"; the source stays "ka0s".
+    -- On Retail both answer "ka0s", so the case names another skin as the client's default.
+    -- red under: a literal "ka0s" in defaults/Profile.lua's skin.skin, in NS.SkinChoice's
+    -- pre-store fallback, or a default decided by asking which client this is (clients-§3).
+    local NS = T.newAddon{ skin = "obsidian" }
+    assertEqual(NS.DEFAULT_SKIN, "obsidian", "NS.DEFAULT_SKIN is not Skin:DefaultSkin()")
+    assertEqual(NS.C.skin.skin, "obsidian", "defaults/Profile.lua does not read NS.DEFAULT_SKIN")
+    local d = NS.addon.Settings.BuildDefaults().profile.skin
+    assertEqual(d.skin, "obsidian", "the schema row's default is not the client's default skin")
+    assertEqual(d.source, "ka0s", "the source is the Ka0s skins on every client")
+    local source, skin = NS.SkinChoice()
+    assertEqual(source, "ka0s")
+    assertEqual(skin, "obsidian", "the read before the store exists is not the client's default")
+    -- Retail's own answer: Ka0s Default, the look before skins.
+    assertEqual(T.newAddon().DEFAULT_SKIN, "ka0s")
+    -- Without the library the answer is "ka0s", the only look the degraded facade draws.
+    assertEqual(T.newAddon{ skip = T.loadAddon.libFiles }.DEFAULT_SKIN, "ka0s")
+end)
+
 test("skin seam: every skin key is a skip-render row on the Appearance tab", function()
     -- The tab is the library's O.AppearanceTab, which draws the rows itself; they stay schema rows
     -- so the defaults resolve, every reset reaches them and /wg get|set validates them.
