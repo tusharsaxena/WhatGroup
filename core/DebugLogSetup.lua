@@ -134,6 +134,12 @@ if not lib then
             return { lines = {}, dropped = 0, capped = false, capsHit = false }
         end,
         DebugVerb       = function() return false end,
+        -- LibKa0s v1.105.0's report seam (DebugLog minor 23, DebugLogDiagnostics minor 11,
+        -- LibKa0s#79), carried for the DebugLog parity case. No verb here routes a report through
+        -- it yet (that adoption is owed); without the library there is no console to write to, so
+        -- Report writes nothing and returns 0, and Serialize answers no lines, untruncated.
+        Report          = function() return 0 end,
+        Serialize       = function() return {}, false end,
     }
     NS.Debug = NS.DebugLog.Debug
     return
