@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1104%2F1104_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1114%2F1114_passing-green)
 
 Retail only. WhatGroup remembers the group you signed up for through the Group Finder tool. You get accepted, you shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who's leading, and the playstyle.
 
@@ -29,7 +29,7 @@ Joining a group through the Group Finder takes four steps.
 - Apply. Find a group in the Premade Group Finder and click **Apply**. WhatGroup notes what the listing said at that moment, so you can have several applications out and it still knows which is which. Groups you join from a guild or party invite aren't covered, because there's no listing to read.
 - Join, and read the summary. Accept the invite and a chat line with a cyan `[WG]` tag lists the instance, type, leader, the role you signed up as, and playstyle. The popup opens with the same details. The role is the one the leader assigned you if there is one, otherwise the role your application carried, otherwise the roles you offered. Both appear straight away unless you've set a pause under **Notifications → Delay after joining (seconds)**, and if you join mid-fight the popup waits until you're out of combat.
 - Teleport. The popup's last row is the dungeon's teleport, and it's a real spell button, so clicking it casts. It stays gray until you've learned that teleport, and goes gray again while it recharges, with the time left beside it. A dungeon with no teleport skips the row.
-- Close it, and bring it back. `ESC` or the **Close** button puts the popup away. `/wg show` or the "Click here to view details" link on the chat line opens it again, for as long as you're in the group. WhatGroup forgets the group once you leave.
+- Close it, and bring it back. `ESC`, the **Close** button or the X in the title bar's corner puts the popup away, and the gear beside the X opens the settings. `/wg show` or the "Click here to view details" link on the chat line opens it again, for as long as you're in the group. WhatGroup forgets the group once you leave.
 
 The **Notifications** tab holds the whole join flow. Under **Chat summary** you pick which lines the chat summary includes, and **Print to chat** turns it off. Under **Popup window**, **Open on join** does the same for the window, and **Width (px)** and **Height (px)** sit below it. The minimap button opens Settings on a left-click and a short menu on a right-click. Untick **Minimap button** on **Master controls** if you'd rather not have it.
 

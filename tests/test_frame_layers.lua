@@ -128,6 +128,24 @@ test("layers: a combat soft hide leaves no plain control mouse-live, and a reope
     assertEqual(#mock.blocked, 0)
 end)
 
+test("layers: the soft hide takes the title-bar marks' mouse too, and a reopen gives it back (AD-86-WG)", function()
+    -- red under: the settings and close marks left out of the soft hide's mouse-dead set, so an
+    -- invisible popup's corner still opens the settings or eats a click.
+    local NS, _, mock = layered()
+    local f = shown(NS, mock)
+    local hb = rawget(f, "headerButtons")
+    assertTrue(type(hb) == "table" and hb.settings and hb.close, "the popup has its header marks")
+    assertTrue(hb.settings:IsMouseEnabled() and hb.close:IsMouseEnabled(), "both take the mouse at build")
+    mock.combat = true
+    hb.close.__scripts.OnClick(hb.close)
+    assertEqual(f:GetAlpha(), 0, "the close mark soft-hides in combat")
+    assertFalse(hb.settings:IsMouseEnabled(), "the invisible settings mark is mouse-dead")
+    assertFalse(hb.close:IsMouseEnabled(), "the invisible close mark is mouse-dead")
+    assertEqual(#mock.blocked, 0, "nothing protected was written: " .. table.concat(mock.blocked, ","))
+    NS.addon:ShowFrame()
+    assertTrue(hb.settings:IsMouseEnabled() and hb.close:IsMouseEnabled(), "the soft show restores both")
+end)
+
 test("layers: the owed Hide at combat end leaves the controls ready for the next show", function()
     local NS, _, mock = layered()
     local f = shown(NS, mock)

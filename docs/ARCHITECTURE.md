@@ -278,10 +278,29 @@ its header comment holds the whole stack, library and Blizzard tiers included, a
   `WhatGroupTogglePopup`, with no visuals and no mouse.
 
 The popup body keeps the mouse, so a click on the visible popup stays on it. The combat soft hide
-makes the title bar and the Close button mouse-dead and every show restores them
+makes the title bar, its two marks and the Close button mouse-dead and every show restores them
 (frame-layering-§4); the body and the teleport button are the soft-hide residual (register row
 below). The addon sets no frame level, and
 `tests/test_frame_layers.lua` pins all of this. Popup detail: [docs/frame.md](./frame.md).
+
+**The popup's title-bar marks (LibKa0s#86, AD-86-WG; standalone-windows, *Title-bar controls*).**
+The popup is the one window the addon owns, and its title bar reads **settings · close**,
+right-aligned, built by `LibKa0s-Widgets-1.0`'s `W.HeaderButtons` in `modules/FrameLayout.lua`
+(`buildMarks`), so its marks share the size, pitch, paint path and tooltips of every Ka0s window:
+`icon.tint` at rest and `text.link` under the pointer, the close `close.hot`, settings saying
+"Open settings" and the close "Close". `owner` is the folder, which is the launcher descriptor's
+`name`, so the settings mark opens WhatGroup's settings through the opener
+`core/LauncherSetup.lua` registered (`Core.OpenSettings`). The close mark is built through
+`NS.MakeCloseButton`, the one close wrapper, and runs `dismissPopup`, the body the footer **Close**
+and Escape run: never the strip's default bare `f:Hide()`, which is refused in combat because `f`
+parents a secure button. No `hideOnSettings`: the popup is a DIALOG-tier notice made to sit above the
+Settings panel it is previewed from, and a bare Hide on it would be refused in combat.
+`modules/FrameSkin.lua`'s `TitleBar` hands the strip's `right` to `S.Header`, which lays both marks
+on the skin's band at the offsets they were laid at. The footer **Close** stays (its register row
+below). A library-less install has no Widgets and draws no marks. The addon builds no LibKa0s
+`DragHandle`, so the drag strip's settings mark has nothing to reach. The library's windows the
+addon opens (debug console, copy window, skin picker) carry their own strips from the re-vendor.
+`tests/test_frame_header.lua` pins the strip.
 
 ## Skins
 

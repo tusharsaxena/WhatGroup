@@ -198,6 +198,8 @@ Kit.run{
         -- The popup's look on the skin (modules/FrameSkin.lua, WG-02): tokens, live repaint, the
         -- secure button's re-anchor.
         "test_frame_skin",
+        -- The popup's title-bar marks (LibKa0s#86, AD-86-WG): W.HeaderButtons, settings and close.
+        "test_frame_header",
         "test_panel",
         -- The skin seam (core/SkinSetup.lua, skinning-§1 to §3): the owner, its tokens, the skin
         -- rows, the Skin tab's place, the profile events and the degraded arm.

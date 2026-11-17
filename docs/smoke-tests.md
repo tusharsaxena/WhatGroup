@@ -20,7 +20,7 @@ number out of use rather than handing it to a new one.
 | PROFILE-1 – PROFILE-14 | [Profiles](#profiles) | The Profiles page, `/wg profile`, persistence, what a switch leaves alone, the page in combat |
 | STATE-1 – STATE-8 | [Enable and disable](#enable-and-disable) | The stand-down, refusals while disabled, the way back, the chat-link callback |
 | COMBAT-1 – COMBAT-14 | [Combat](#combat) | Reset popup and Settings registration in combat, Close and ESC in combat, the visibility gate on combat edges, a soft-hidden popup's mouse-dead controls and its residual |
-| POPUP-1 – POPUP-12 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome, the Role row at the minimum height, the popup's layering, the body-mouse probe |
+| POPUP-1 – POPUP-13 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome, the Role row at the minimum height, the popup's layering, the body-mouse probe, the title bar's settings and close marks |
 | TEST-1 – TEST-12 | [Test mode](#test-mode) | The sample popup, its checkbox and verb, every way it ends, the sample role |
 | TELE-1 – TELE-8 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker, the rows the 2026-11-15 seed validation moved |
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
@@ -445,6 +445,16 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   another skin → the values take that skin's text color at once. Close it and `/wg test notify`
   again → still that skin's color. Fail: data in the placeholder's gray, or a value that keeps the
   old skin's color. Result:
+- **POPUP-13. The title bar's marks (AD-86-WG, LibKa0s#86).** `/wg test notify` → the title bar's
+  right end carries two small marks, a gear then an X in the corner, gray at rest. Hover the gear →
+  it lights in the skin's link color (orange under Ka0s Default) and "Open settings" shows above it;
+  hover the X → it turns red and "Close" shows above it. Click the gear → the **Ka0s WhatGroup**
+  settings open and the popup stays up over them. Click the X → the popup closes, as **Close** and
+  ESC do. Pick another skin with the popup open → both marks rest in that skin's icon color, still
+  vertically centered on the title band, and the title text does not overlap them. In combat, with
+  the popup up, click the X → the popup vanishes with no *Interface action failed* error, and
+  hovering where the marks were shows no tooltip. Fail: no marks, a mark off the band, settings
+  that open nothing or close the popup, or a Lua or blocked-action error. Result:
 
 ## Test mode
 
@@ -1301,3 +1311,7 @@ R6-RV2 (the same round, LibKa0s v1.85.0 re-cut at 550ef68, R6-SIM-L's Master con
 Owed from the first seed validation (`docs/seed-research/2026-11-15-retail/`, Retail build
 12.1.5.70783, Ka0sAddonsCommonTasks#1): the new TELE-7 (Brackenhide Hollow moved from `2080` to
 `2520`) and TELE-8 (Scarlet Halls and Scarlet Monastery swapped back). No other check changed.
+
+Owed from the LibKa0s v1.105.0 adoption (Ka0sAddonsCommonTasks `docs/2026-11-17-LIBKA0S_V1_105_ADOPTION/`,
+item AD-86-WG, LibKa0s#86): the new POPUP-13, the popup's title-bar settings and close marks. No other
+check changed: the footer Close, ESC and the drag keep their checks (POPUP-4, POPUP-5, POPUP-7).

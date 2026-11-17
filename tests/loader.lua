@@ -96,7 +96,8 @@ local LIBKA0S = {
     -- New in LibKa0s v1.78.0: the shared copy window (WidgetsCopyWindow minor 1). The debug console uses it.
     "libs/LibKa0s/WidgetsCopyWindow.lua",
     -- New in LibKa0s v1.105.0: the title-bar button strip and the data bar (WidgetsHeader minor 1,
-    -- W.HeaderButtons, LibKa0s#86; WidgetsBar minor 1, W.Bar, LibKa0s#80). Nothing here adopts them yet.
+    -- W.HeaderButtons, LibKa0s#86; WidgetsBar minor 1, W.Bar, LibKa0s#80). The popup's title-bar marks
+    -- are W.HeaderButtons' (modules/FrameLayout.lua, AD-86-WG); nothing here adopts W.Bar.
     "libs/LibKa0s/WidgetsHeader.lua",
     "libs/LibKa0s/WidgetsBar.lua",
     "libs/LibKa0s/DebugLog.lua",
