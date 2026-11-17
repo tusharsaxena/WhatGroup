@@ -671,6 +671,16 @@ Total.
 - popup header: the close mark in combat soft-hides and writes nothing protected
 - popup header: with LibKa0s absent the popup builds with no marks and still closes
 
+### test_frame_tooltip.lua (7)
+
+- teleport tooltip: a body element, it opens right of the popup, top level with the button
+- teleport tooltip: without room on the right it opens left of the popup
+- teleport tooltip: the placer is PlaceBeside, with the button and the popup as its group
+- teleport tooltip: unreadable geometry attaches it centered above the button, never the cursor
+- teleport tooltip: with the Tooltip major absent it is still attached above, never the cursor
+- teleport tooltip: the leave hides it
+- teleport tooltip: no cursor or corner anchor in the addon's own placing code
+
 ### test_panel.lua (63)
 
 - panel: OnEnable registers the parent category and the General subcategory
@@ -1297,6 +1307,7 @@ Total.
 | test_frame_layers.lua | 9 |
 | test_frame_skin.lua | 25 |
 | test_frame_header.lua | 10 |
+| test_frame_tooltip.lua | 7 |
 | test_panel.lua | 63 |
 | test_skinsetup.lua | 18 |
 | test_skin_outline.lua | 10 |
@@ -1329,4 +1340,4 @@ Total.
 | test_skin_switch.lua | 25 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1115** |
+| **Total** | **1122** |

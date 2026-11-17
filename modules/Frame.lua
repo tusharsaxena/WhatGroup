@@ -541,10 +541,30 @@ end
 -- The teleport button's three script handlers, defined once (WHATGROUP-R-16). Each configure
 -- writes the spell onto the button (`__wgSpellID`, `__wgSpellName`) and re-passes these same
 -- functions, so reopening the popup allocates no closures. They read the spell off `self`.
+--
+-- WHERE THE TOOLTIP OPENS (LibKa0s#92, AD-92-WG; standalone-windows, *Tooltip placement*). The
+-- button sits in the popup's content, so it is a body element: its tooltip opens beside the
+-- window group (the popup; nothing docks to it), outside its outer edge, right when it fits and
+-- otherwise left, its top level with the button's, through LibKa0s-Tooltip-1.0's PlaceBeside,
+-- after Show so the real size is measured. When the placer places nothing (geometry it cannot
+-- read, or the major absent) the tooltip is attached centered above the button, TIP_GAP up:
+-- never the cursor and never a corner offset (the retired owner anchor off the button's right
+-- was one). The major is read at call time, so a newer copy another addon loaded is the one used.
+local TIP_GAP = 2   -- LibKa0s-Tooltip-1.0's TIP_GAP, for the library-less attach
+
+local function placeTeleportTip(tip, btn)
+    local Tip = LibStub and LibStub("LibKa0s-Tooltip-1.0", true)
+    local lib = type(Tip) == "table" and type(Tip.PlaceBeside) == "function"
+    if lib and Tip.PlaceBeside(tip, btn, f) then return end
+    tip:ClearAllPoints()
+    tip:SetPoint("BOTTOM", btn, "TOP", 0, (lib and tonumber(Tip.TIP_GAP)) or TIP_GAP)
+end
+
 local function onTeleportEnter(self)
-    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetOwner(self, "ANCHOR_NONE")
     GameTooltip:SetSpellByID(self.__wgSpellID)
     GameTooltip:Show()
+    placeTeleportTip(GameTooltip, self)
 end
 
 local function onTeleportLeave() GameTooltip:Hide() end

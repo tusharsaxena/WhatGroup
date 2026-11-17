@@ -22,7 +22,7 @@ number out of use rather than handing it to a new one.
 | COMBAT-1 – COMBAT-14 | [Combat](#combat) | Reset popup and Settings registration in combat, Close and ESC in combat, the visibility gate on combat edges, a soft-hidden popup's mouse-dead controls and its residual |
 | POPUP-1 – POPUP-13 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome, the Role row at the minimum height, the popup's layering, the body-mouse probe, the title bar's settings and close marks |
 | TEST-1 – TEST-12 | [Test mode](#test-mode) | The sample popup, its checkbox and verb, every way it ends, the sample role |
-| TELE-1 – TELE-8 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker, the rows the 2026-11-15 seed validation moved |
+| TELE-1 – TELE-9 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker, the rows the 2026-11-15 seed validation moved, where the spell tooltip opens |
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-20 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
@@ -529,6 +529,15 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   `map=1001` and `Path of the Scarlet Blade`; then a Scarlet Monastery group → `map=1004` and
   `Path of the Scarlet Mitre`. On a character that owns either, click the icon → it lands at the
   entrance of the dungeon the group is for. Before 2026-11-15 the two were swapped. Result:
+- **TELE-9. Where the spell tooltip opens (AD-92-WG, LibKa0s#92).** `/wg test notify` with a teleport
+  you know, the popup in the middle of the screen. Hover the teleport icon → the spell tooltip (its
+  own text, unchanged) opens **right of the popup**, just outside its right edge with a small gap,
+  its top level with the icon's top; it covers no part of the popup and does not move when the
+  pointer moves over the icon. Drag the popup to the screen's right edge and hover again → it opens
+  **left of the popup**, just outside its left edge, top still level with the icon. Drag the popup to
+  the bottom of the screen → the tooltip stays on screen, sliding up only as far as it must. With
+  TELE-3's cooldown popup the tooltip opens in the same place. Never at the pointer and never off the
+  icon's top-right corner, where it opened before. Result:
 
 ## Real Group Finder flow
 
@@ -1321,3 +1330,8 @@ item AD-86-WG, LibKa0s#86): the new POPUP-13, the popup's title-bar settings and
 check changed: the footer Close, ESC and the drag keep their checks (POPUP-4, POPUP-5, POPUP-7).
 Its review amended POPUP-13: the owner's call on the gear leaving the popup up over the panel, and a
 combat click on the gear that leaves the popup unchanged.
+
+Owed from the same adoption (item AD-92-WG, LibKa0s#92, standalone-windows *Tooltip placement*): the
+new TELE-9, the teleport spell tooltip beside the popup. TELE-1 and TELE-3 keep their checks (the
+tooltip shows, on cooldown too) and only TELE-9 says where it opens. The title-bar marks' tooltips
+(POPUP-13) and the minimap button's (the launcher's) are the library's and did not change here.

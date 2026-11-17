@@ -306,6 +306,42 @@ below). A library-less install has no Widgets and draws no marks. The addon buil
 addon opens (debug console, copy window, skin picker) carry their own strips from the re-vendor.
 `tests/test_frame_header.lua` pins the strip.
 
+## Tooltip placement
+
+standalone-windows' *Tooltip placement* (v2.113.0; adopted by AD-92-WG, LibKa0s#92) binds every
+tooltip of the popup. The addon places **one tooltip of its own**, and no tooltip anywhere in
+`core/` or `modules/` is put on the cursor or at a corner offset; `tests/test_frame_tooltip.lua`
+pins both.
+
+- **The teleport button's spell tooltip: a body element, beside the popup.** The button sits in the
+  popup's content, so its tooltip (`GameTooltip:SetSpellByID`, the spell's own text, cooldown
+  included) opens beside the window group, outside the popup's outer edge: right when it fits,
+  otherwise left, its top level with the button's top, 2 px (`TIP_GAP`) off the edge.
+  `modules/Frame.lua`'s `onTeleportEnter` owns it at `ANCHOR_NONE`, fills and shows it, then places
+  it through `LibKa0s-Tooltip-1.0`'s `PlaceBeside` with the popup as the group (nothing docks to the
+  popup, so the group is the popup alone). When the placer places nothing (geometry it cannot read,
+  or the major absent) the tooltip is attached centered above the button, 2 px up: never the
+  cursor. Before AD-92-WG it was `SetOwner(self, "ANCHOR_RIGHT")`, the corner offset the rule names.
+- **Placed by the library, in scope and already compliant.** The title bar's settings and close
+  marks (`W.HeaderButtons` and `AttachTitleTip`, `PlaceAttached` above the mark; *The popup's
+  title-bar marks*, above); the minimap button's tooltip (`LibKa0s-Launcher-1.0` minor 11,
+  `PlaceLauncher`, toward the screen's center); and the library's own windows the addon opens (the
+  debug console and its copy window, the first-run skin picker's toolbar). The addon passes no
+  placement hook to any of them.
+
+**Left as they are, out of the rule's scope** (its *What it does not bind*):
+
+- **The settings panel's tooltips**: every row, button and tab under `settings/` (the Options
+  widgets' and AceGUI's, the Keybindings tab's `NS.BINDINGS` descriptions). They are pages inside
+  Blizzard's Settings canvas, which options-ui governs.
+- **The launcher's options menu**: the client's `MenuUtil.CreateContextMenu` menu (launcher-§2),
+  whose entries' tooltips the client's menu system places.
+- **A LibDataBroker display's bar** (Titan Panel and the like): the display places the tooltip, and
+  the launcher object only fills it (launcher-§1).
+- **The chat summary's spell link**: a click on the `Teleport:` row's spell link opens Blizzard's
+  `ItemRefTooltip`, which the client places. The details link (`addon:WhatGroup:show`) opens the
+  popup and shows no tooltip.
+
 ## Skins
 
 WhatGroup wears a LibKa0s skin (skinning-§1 to §3; Ka0sAddonsCommonTasks
