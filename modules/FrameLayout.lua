@@ -30,8 +30,12 @@ NS.FrameLayout = FrameLayout
 -- launcher registered (Core.OpenSettings). The close mark runs dismissPopup, the body the footer Close
 -- and Escape run, never the strip's default bare f:Hide(): f parents a secure button, so a Hide in
 -- combat is refused and blamed on the addon. Built through NS.MakeCloseButton, the one close wrapper.
--- NO hideOnSettings: the popup is a DIALOG-tier notice made to sit above the Settings panel it is
--- previewed from (docs/frame.md's Strata row), and a bare Hide on it would be refused in combat.
+-- NO hideOnSettings, ON PURPOSE (the popup does cover the top of the panel): it is the DIALOG-tier
+-- notice made to sit above the Settings panel it is previewed from (docs/frame.md's Strata row), and
+-- the gear is the way to that panel's Width/Height sliders and Test mode, which preview the popup
+-- live and only work while it stays up. Hiding it would also not be a combat matter: the opener
+-- refuses in combat on its own (settings/Slash.lua's OpenSettings). Confirmed or reversed by the
+-- owner at POPUP-13; the reversal is `settings = function() dismissPopup(); open() end`.
 -- A library-less install has no Widgets, so it draws no marks; the footer Close still closes.
 local function buildMarks(f, titleBar, dismissPopup)
     local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)

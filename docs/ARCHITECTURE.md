@@ -293,8 +293,12 @@ right-aligned, built by `LibKa0s-Widgets-1.0`'s `W.HeaderButtons` in `modules/Fr
 `core/LauncherSetup.lua` registered (`Core.OpenSettings`). The close mark is built through
 `NS.MakeCloseButton`, the one close wrapper, and runs `dismissPopup`, the body the footer **Close**
 and Escape run: never the strip's default bare `f:Hide()`, which is refused in combat because `f`
-parents a secure button. No `hideOnSettings`: the popup is a DIALOG-tier notice made to sit above the
-Settings panel it is previewed from, and a bare Hide on it would be refused in combat.
+parents a secure button. No `hideOnSettings`, on purpose, though the popup does cover the top of the
+panel: it is the DIALOG-tier notice made to sit above the Settings panel it is previewed from, and the
+gear is the way to that panel's Width/Height sliders and Test mode, which preview the popup live and
+only work while it stays up. Combat does not enter into it: the opener refuses in combat on its own
+(`settings/Slash.lua`'s `OpenSettings`). The owner confirms or reverses this at POPUP-13; the reversal
+is a `settings` function that runs `dismissPopup` before the opener.
 `modules/FrameSkin.lua`'s `TitleBar` hands the strip's `right` to `S.Header`, which lays both marks
 on the skin's band at the offsets they were laid at. The footer **Close** stays (its register row
 below). A library-less install has no Widgets and draws no marks. The addon builds no LibKa0s

@@ -82,6 +82,23 @@ test("popup header: the settings mark's click opens WhatGroup's settings through
     assertTrue(popup(mock):IsShown(), "no hideOnSettings: the popup stays above the panel it is previewed from")
 end)
 
+test("popup header: the settings mark in combat leaves the popup exactly as it was", function()
+    -- red under: a `settings` that hides the popup before the opener (the hideOnSettings reversal
+    -- POPUP-13 leaves to the owner) without the combat soft hide, or any protected write on the click.
+    -- The opener refuses in combat on its own; the gear must not lose the popup on the way.
+    local NS, _, mock = T.bootAddon()
+    local f = shown(NS, mock)
+    local hb = strip(mock)
+    local opened = 0
+    NS.addon.OpenSettings = function() opened = opened + 1 end
+    mock.combat = true
+    hb.settings.__scripts.OnClick(hb.settings, "LeftButton")
+    assertEqual(opened, 1, "the click still reaches the opener, which owns the combat refusal")
+    assertTrue(f:IsShown(), "the popup stays shown")
+    assertEqual(f:GetAlpha(), 1, "and is not soft-hidden")
+    assertEqual(#mock.blocked, 0, "nothing protected was written: " .. table.concat(mock.blocked, ","))
+end)
+
 test("popup header: every mark carries its tooltip, settings' own words and the close's Close", function()
     -- red under: a mark built without a tip, or a close with no title tip hooked (SR-L2).
     local NS, _, mock = T.bootAddon()

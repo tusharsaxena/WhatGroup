@@ -454,7 +454,11 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   vertically centered on the title band, and the title text does not overlap them. In combat, with
   the popup up, click the X → the popup vanishes with no *Interface action failed* error, and
   hovering where the marks were shows no tooltip. Fail: no marks, a mark off the band, settings
-  that open nothing or close the popup, or a Lua or blocked-action error. Result:
+  that open nothing or close the popup, or a Lua or blocked-action error. **Owner's call:** the popup
+  staying up over the top of the panel is by design (the Width/Height sliders and Test mode preview
+  it live there). If you would rather the gear close the popup first, say so here and it becomes a
+  `dismissPopup` before the opener. In combat, click the gear → the settings refuse to open (the
+  panel's own combat message) and the popup stays up, unchanged. Result:
 
 ## Test mode
 
@@ -1315,3 +1319,5 @@ Owed from the first seed validation (`docs/seed-research/2026-11-15-retail/`, Re
 Owed from the LibKa0s v1.105.0 adoption (Ka0sAddonsCommonTasks `docs/2026-11-17-LIBKA0S_V1_105_ADOPTION/`,
 item AD-86-WG, LibKa0s#86): the new POPUP-13, the popup's title-bar settings and close marks. No other
 check changed: the footer Close, ESC and the drag keep their checks (POPUP-4, POPUP-5, POPUP-7).
+Its review amended POPUP-13: the owner's call on the gear leaving the popup up over the panel, and a
+combat click on the gear that leaves the popup unchanged.
