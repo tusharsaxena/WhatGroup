@@ -136,10 +136,24 @@ if not lib then
         DebugVerb       = function() return false end,
         -- LibKa0s v1.105.0's report seam (DebugLog minor 23, DebugLogDiagnostics minor 11,
         -- LibKa0s#79), carried for the DebugLog parity case. No verb here routes a report through
-        -- it yet (that adoption is owed); without the library there is no console to write to, so
-        -- Report writes nothing and returns 0, and Serialize answers no lines, untruncated.
-        Report          = function() return 0 end,
-        Serialize       = function() return {}, false end,
+        -- it today (`/wg` has no report verb; AD-79-WG). Without the library there is no console,
+        -- and a report is the read-out the player asked for by name, so the stub streams the body
+        -- to chat line for line with no pointer and answers the line count; a body that writes
+        -- nothing prints nothing. Serialize answers one line. Both are the library-absent arm
+        -- DebugLog version-23.11.1.5-docs.md D9 prescribes for every host stub.
+        Report          = function(_, _, _, fn)
+            local n = 0
+            if type(fn) == "function" then
+                fn(function(line)
+                    n = n + 1
+                    if NS.Print then NS.Print(NS.SafeToString(line)) end
+                end)
+            end
+            return n
+        end,
+        Serialize       = function(_, v)
+            return { NS.SafeToString(type(v) == "table" and "<table>" or v) }
+        end,
     }
     NS.Debug = NS.DebugLog.Debug
     return

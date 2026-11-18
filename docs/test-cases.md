@@ -28,7 +28,7 @@ Total.
 - degraded: the Core stub's SafeRegisterEvent survives a bad name
 - events: a stand-up after a rejection records the name once
 
-### test_libka0s.lua (56)
+### test_libka0s.lua (59)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
@@ -67,6 +67,9 @@ Total.
 - degraded: the printer announces the absence exactly ONCE, then prints normally
 - degraded: the fallback printer still degrades a secret in place
 - degraded: every DebugLog member the addon calls still answers
+- degraded: a report goes to chat with no pointer, line for line (LibKa0s#79, D9)
+- degraded: a report body that writes nothing prints nothing (LibKa0s#79)
+- degraded: Serialize answers one line (LibKa0s#79, D9)
 - degraded: the console stub copies NO library formatter
 - degraded: every HAND-WRITTEN schema row survives the options library's absence (options-ui-§1)
 - degraded: the STORED profile is the same shape with the library absent
@@ -1291,7 +1294,7 @@ Total.
 | Suite | Cases |
 |-------|------:|
 | test_harness.lua | 17 |
-| test_libka0s.lua | 56 |
+| test_libka0s.lua | 59 |
 | test_surface_parity.lua | 10 |
 | test_mediasetup.lua | 14 |
 | test_envsetup.lua | 10 |
@@ -1342,4 +1345,4 @@ Total.
 | test_skin_switch.lua | 25 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1124** |
+| **Total** | **1127** |
