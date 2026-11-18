@@ -176,7 +176,7 @@ end)
 -- thing that keeps the refusals, the combat rules and the chat acks one addon's rather than two.
 -- The menu is driven through tests/mock_menu.lua, installed on every build by tests/wow_mock.lua.
 
-local CAPTURE = { title = "Stonevault", leaderName = "Testadin", fullName = "The Stonevault",
+local CAPTURE = { title = "Stonevault", leaderName = "Mockshield", fullName = "The Stonevault",
                   shortName = "", playstyleString = "", generalPlaystyle = 0,
                   activityID = 2516, mapID = 2652 }
 

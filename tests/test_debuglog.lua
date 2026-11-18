@@ -511,7 +511,7 @@ end
 
 local function pendingCapture(overrides)
     local i = {
-        title = "Stonevault Speedrun", leaderName = "Testadin-Silvermoon", numMembers = 3,
+        title = "Stonevault Speedrun", leaderName = "Mockshield-Mockrealm", numMembers = 3,
         voiceChat = "", age = 0, activityIDs = { 2516 }, activityID = 2516,
         fullName = "Dungeons > Mythic+ > The Stonevault", activityName = "The Stonevault",
         maxNumPlayers = 5, isMythicPlus = true, isCurrentRaid = false, isHeroicRaid = false,

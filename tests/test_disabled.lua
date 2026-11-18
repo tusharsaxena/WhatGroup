@@ -213,7 +213,7 @@ test("disabled 4: no timer, ticker or OnUpdate survives, and none is armed after
     -- red under: drop the WipeCapture call from NS.StandDown -- the AceTimer handle stays armed and
     -- mock.__timers() still answers non-empty.
     local NS, mock = up()
-    NS.addon.pendingInfo = { title = "Stonevault", leaderName = "Testadin",
+    NS.addon.pendingInfo = { title = "Stonevault", leaderName = "Mockshield",
                              fullName = "The Stonevault", shortName = "", playstyleString = "",
                              generalPlaystyle = 0 }
     helpers(NS).Set("notify.delay", 8)

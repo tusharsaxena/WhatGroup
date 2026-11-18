@@ -21,7 +21,7 @@ number out of use rather than handing it to a new one.
 | STATE-1 – STATE-8 | [Enable and disable](#enable-and-disable) | The stand-down, refusals while disabled, the way back, the chat-link callback |
 | COMBAT-1 – COMBAT-14 | [Combat](#combat) | Reset popup and Settings registration in combat, Close and ESC in combat, the visibility gate on combat edges, a soft-hidden popup's mouse-dead controls and its residual |
 | POPUP-1 – POPUP-13 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome, the Role row at the minimum height, the popup's layering, the body-mouse probe, the title bar's settings and close marks |
-| TEST-1 – TEST-12 | [Test mode](#test-mode) | The sample popup, its checkbox and verb, every way it ends, the sample role |
+| TEST-1 – TEST-13 | [Test mode](#test-mode) | The sample popup, its checkbox and verb, every way it ends, the sample role, the sample leader |
 | TELE-1 – TELE-9 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker, the rows the 2026-11-15 seed validation moved, where the spell tooltip opens |
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-20 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
@@ -387,7 +387,7 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   [WG]   - Group: Test Group — Windrunner Spire +12
   [WG]   - Instance: Dungeons > Mythic+ > Windrunner Spire
   [WG]   - Type: Mythic+
-  [WG]   - Leader: Testadin-Silvermoon
+  [WG]   - Leader: Mockshield-Mockrealm
   [WG]   - Role: <damage icon>Damage
   [WG]   - Playstyle: Fun (Serious)
   [WG]   - Teleport: [Path of the Windrunners]
@@ -397,7 +397,9 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   The Teleport row adds `(not learned)` or `(on cooldown)` when either applies; in a group where the
   leader assigned you a role, Role shows that one instead. The popup shows all seven rows (Group,
   Instance, Type, Leader, Role, Playstyle, Teleport); the teleport icon is at full alpha
-  when the spell is learned and ready, desaturated at 50% otherwise. Result: pass (owner-marked 2026-10-10)
+  when the spell is learned and ready, desaturated at 50% otherwise. (Amended by AD-87-WG,
+  2026-11-18: the Leader row is the shared sample tank, `Mockshield-Mockrealm`, where it read
+  `Testadin-Silvermoon`; the 2026-10-10 pass mark came off.) Result:
 - **POPUP-2. `/wg show` reopens.** Close the popup, `/wg show` → the same popup with the same data.
   Result: pass (owner-marked 2026-10-10)
 - **POPUP-3. The test link.** Click `[Click here to view details]` in POPUP-1's summary → the popup
@@ -492,6 +494,10 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **TEST-12. The sample role.** Out of a group, `/wg test` → the popup's `Role:` row reads the
   damage icon and `Damage`, and `/wg test notify` prints `Role: Damage` in the summary. In a group
   where the leader assigned you a role, the assigned role shows instead. Result: pass (owner, 2026-10-02)
+- **TEST-13. The sample leader (AD-87-WG, LibKa0s#87).** Out of a group, `/wg test` → the popup's
+  `Leader:` row reads `Mockshield-Mockrealm`, and `/wg test notify` prints
+  `Leader: Mockshield-Mockrealm` in the summary. No real realm name (never `Silvermoon`) appears
+  anywhere on the popup or in the summary. Result:
 
 ## The teleport button
 
@@ -1335,3 +1341,8 @@ Owed from the same adoption (item AD-92-WG, LibKa0s#92, standalone-windows *Tool
 new TELE-9, the teleport spell tooltip beside the popup. TELE-1 and TELE-3 keep their checks (the
 tooltip shows, on cooldown too) and only TELE-9 says where it opens. The title-bar marks' tooltips
 (POPUP-13) and the minimap button's (the launcher's) are the library's and did not change here.
+
+Owed from the same adoption (item AD-87-WG, LibKa0s#87, preview-mode *Sample characters*): the new
+TEST-13, the sample group's leader read from LibKa0s-Sim-1.0's shared set (`Mockshield-Mockrealm`,
+the set's tank), and POPUP-1 amended to that name, its pass mark off. No other check changed: the
+sample title, role and teleport are as they were.

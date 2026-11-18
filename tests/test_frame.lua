@@ -135,7 +135,7 @@ test("frame: fields render the pending capture", function()
     local f = fields(mock)
     assertEqual(f.group:GetText(), "Stonevault Speedrun")
     assertEqual(f.instance:GetText(), "Dungeons > Mythic+ > The Stonevault")
-    assertEqual(f.leader:GetText(), "Testadin-Silvermoon")
+    assertEqual(f.leader:GetText(), "Mockshield-Mockrealm")
 end)
 
 test("frame: with no pendingInfo every field reads 'No data'", function()

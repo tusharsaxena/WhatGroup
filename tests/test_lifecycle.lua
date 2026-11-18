@@ -25,7 +25,7 @@ end
 
 local function pending(overrides)
     local i = {
-        title = "Stonevault Speedrun", leaderName = "Testadin", numMembers = 3,
+        title = "Stonevault Speedrun", leaderName = "Mockshield", numMembers = 3,
         voiceChat = "", age = 0, activityIDs = { 2516 }, activityID = 2516,
         fullName = "The Stonevault", activityName = "The Stonevault",
         maxNumPlayers = 5, isMythicPlus = true, isCurrentRaid = false,

@@ -55,7 +55,7 @@ NS.addon:OnEnable()
 -- outside every measured loop — it is the client's data, not the addon's allocation.
 local INFO = {
     title            = "Stonevault Speedrun",
-    leaderName       = "Testadin-Silvermoon",
+    leaderName       = "Mockshield-Mockrealm",
     numMembers       = 3,
     voiceChat        = "",
     age              = 0,

@@ -857,7 +857,7 @@ Total.
 - profile verb: surrounding quotes are stripped, case and inner spaces kept
 - profile verb: a switch in combat is refused and nothing moves
 
-### test_testmode.lua (28)
+### test_testmode.lua (30)
 
 - testmode: bare /wg test toggles test mode, and the checkbox follows
 - testmode: /wg test on|off sets it, and repeating either changes nothing
@@ -887,6 +887,8 @@ Total.
 - testmode: /wg show ends it and shows the real capture
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
+- testmode: the sample leader is the shared set's tank, on a fictional realm (LibKa0s#87)
+- testmode: without the Sim major the sample leader is a copy of the library's row
 
 ### test_snapshot.lua (10)
 
@@ -1315,7 +1317,7 @@ Total.
 | test_skin_verb.lua | 7 |
 | test_skin_tools.lua | 5 |
 | test_profiles.lua | 19 |
-| test_testmode.lua | 28 |
+| test_testmode.lua | 30 |
 | test_snapshot.lua | 10 |
 | test_diagnostics.lua | 20 |
 | test_launcher.lua | 41 |
@@ -1340,4 +1342,4 @@ Total.
 | test_skin_switch.lua | 25 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1122** |
+| **Total** | **1124** |
