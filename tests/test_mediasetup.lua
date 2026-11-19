@@ -14,8 +14,9 @@ local test, assertEqual, assertTrue, assertNil, fail =
 local VENDORED = "Interface\\AddOns\\WhatGroup\\libs\\LibKa0s\\media\\"
 
 -- Every icon the LIBRARY draws for this addon, by the surfaces this addon wires. The addon draws
--- none of its own: NS.Icon has no caller outside this file's tests (the mark beside the popup's
--- footer Close button was removed, and modules/Frame.lua's Close is a text button). Each name here
+-- none of its own: NS.Icon's one caller outside core/MediaSetup.lua is FrameLayout.PaintLock
+-- (modules/FrameLayout.lua), which repaints the library-built header lock mark with `lock` or
+-- `unlock` (modules/Frame.lua's footer Close is a text button). Each name here
 -- must also be on the CLAUDE.md `LibKa0s icons:` line, because the re-vendor prunes the vendored
 -- icons/ folder to that line, and a pruned icon still resolves to a path and draws blank.
 --   close  Core.MakeCloseButton given the folder name (libs/LibKa0s/Core.lua, Media.Icon(addonName,

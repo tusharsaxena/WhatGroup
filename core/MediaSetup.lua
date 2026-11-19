@@ -28,9 +28,9 @@
 -- ── What a degraded install gets ───────────────────────────────────────────
 --
 -- No LibKa0s means no art and no face: they are inside the payload that is
--- missing. `NS.Icon` answers nil; it has no caller outside this file today,
--- since the mark beside the popup's footer Close label was removed, and it
--- stays published for the next addon-drawn icon. The library's own close
+-- missing. `NS.Icon` answers nil; its one caller outside this file is
+-- modules/FrameLayout.lua's FrameLayout.PaintLock, the header lock mark's
+-- repaint, which a library-less popup never reaches (it has no marks). The library's own close
 -- controls fall back to a multiplication sign. `NS.MediaFont` answers nil,
 -- which core/WhatGroup.lua turns into the client's own STANDARD_TEXT_FONT.
 -- Neither is an error. Chrome degrades; the group information the window
