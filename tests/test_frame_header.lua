@@ -1,5 +1,6 @@
 -- tests/test_frame_header.lua — the popup's title-bar marks (LibKa0s#86, AD-86-WG; standalone-windows,
--- *Title-bar controls*, WowAddonStandards v2.113.0). The popup's title bar reads settings · close,
+-- *Title-bar controls*, WowAddonStandards v2.113.0). The popup's title bar reads lock · settings · close
+-- (the lock from AF-HDR-WG: standalone-windows, *Which marks a window owes*, v2.115.0),
 -- right-aligned, built by LibKa0s-Widgets-1.0's W.HeaderButtons (modules/FrameLayout.lua): the
 -- settings mark opens WhatGroup's settings through the opener the launcher registered for the
 -- folder, and the close mark runs the same dismissPopup body the footer Close button and Escape run,
@@ -33,12 +34,13 @@ local function strip(mock)
     return hb
 end
 
-test("popup header: the title bar reads settings · close through W.HeaderButtons", function()
-    -- red under: a title bar with no marks (the popup before AD-86-WG), or marks built by hand.
+test("popup header: the title bar reads lock · settings · close through W.HeaderButtons", function()
+    -- red under: a title bar with no marks (the popup before AD-86-WG), marks built by hand, or no
+    -- lock (the popup before AF-HDR-WG; standalone-windows, *Which marks a window owes*).
     local NS, _, mock = T.bootAddon()
     shown(NS, mock)
     local hb = strip(mock)
-    assertEqual(table.concat(hb.order, ","), "settings,close", "left to right: settings, close")
+    assertEqual(table.concat(hb.order, ","), "lock,settings,close", "left to right: lock, settings, close")
     assertTrue(hb.settings ~= nil, "a settings mark")
     assertTrue(hb.close ~= nil, "a close mark")
     assertTrue(hb.optOut == nil, "no opt-out")
@@ -143,6 +145,134 @@ test("popup header: the close mark in combat soft-hides and writes nothing prote
     hb.close.__scripts.OnClick(hb.close, "LeftButton")
     assertEqual(f:GetAlpha(), 0, "the alpha-0 soft hide")
     assertEqual(#mock.blocked, 0, "nothing protected was written: " .. table.concat(mock.blocked, ","))
+end)
+
+-- ---------------------------------------------------------------------------
+-- The lock mark (AF-HDR-WG; standalone-windows, *Which marks a window owes*, v2.115.0)
+-- ---------------------------------------------------------------------------
+--
+-- The popup is this addon's primary window, so its header carries a lock beside the settings and
+-- close marks: a W.HeaderButtons `extras` entry whose click is the one lock seam the launcher's
+-- Locked entry and `/wg lock` also reach (WhatGroup:SlashToggleLock, the `locked` row's write), and
+-- whose art and tooltip are repainted from profile.locked whenever the row changes, from any surface.
+
+local function lockMark(mock)
+    local hb = strip(mock)
+    local b = hb.extras and hb.extras.lock
+    assertTrue(b ~= nil, "the popup carries a lock mark among its extras")
+    return b
+end
+
+local function art(b) return b.icon and b.icon:GetTexture() end
+
+test("popup header: the lock mark draws unlock and offers to lock while the popup is unlocked", function()
+    -- red under: no lock mark, a mark drawing `lock` on an unlocked popup, or a tip that names the
+    -- state rather than what a click does.
+    local NS, _, mock = T.bootAddon()
+    shown(NS, mock)
+    local b = lockMark(mock)
+    assertFalse(NS.addon.db.profile.locked, "unlocked by default")
+    assertTrue(art(b) ~= nil and art(b) == NS.Icon("unlock"), "the catalog's unlock art")
+    assertEqual(b.__tip, NS.L["Lock the popup in place"], "the tip says what a click does")
+end)
+
+test("popup header: a popup first shown locked builds its lock mark locked", function()
+    -- red under: art chosen once from the default rather than read from the profile at build.
+    local NS, _, mock = T.bootAddon()
+    NS.addon.db.profile.locked = true
+    shown(NS, mock)
+    local b = lockMark(mock)
+    assertEqual(art(b), NS.Icon("lock"), "the catalog's lock art")
+    assertEqual(b.__tip, NS.L["Unlock the popup so it can be dragged"])
+end)
+
+test("popup header: the lock mark's click runs SlashToggleLock and repaints from the profile", function()
+    -- red under: a click that writes db.profile.locked itself (a second lock path), or art and tip
+    -- left as built after the write.
+    local NS, _, mock = T.bootAddon()
+    shown(NS, mock)
+    local b = lockMark(mock)
+    local original, calls = NS.addon.SlashToggleLock, 0
+    NS.addon.SlashToggleLock = function(self) calls = calls + 1; return original(self) end
+    b.__scripts.OnClick(b, "LeftButton")
+    assertEqual(calls, 1, "one click, one toggle through the launcher's seam")
+    assertTrue(NS.addon.db.profile.locked, "the popup is locked")
+    assertEqual(art(b), NS.Icon("lock"), "the mark now draws lock")
+    assertEqual(b.__tip, NS.L["Unlock the popup so it can be dragged"], "and offers to unlock")
+    b.__scripts.OnClick(b, "LeftButton")
+    assertFalse(NS.addon.db.profile.locked, "a second click unlocks")
+    assertEqual(art(b), NS.Icon("unlock"))
+end)
+
+--- A tooltip stand-in that tracks its owner and its text, so a hovered mark's tip is assertable.
+local function recordingTip(mock)
+    local tip = { shown = false }
+    function tip:SetOwner(o) self.owner = o end
+    function tip:IsOwned(o) return self.shown and self.owner == o end
+    function tip:SetText(t) self.text = t end
+    function tip:Show() self.shown = true end
+    function tip:Hide() self.shown = false; self.owner = nil end
+    tip.ClearAllPoints = function() end
+    tip.SetPoint = function() end
+    mock.GameTooltip = tip
+    return tip
+end
+
+test("popup header: a click under the pointer re-shows the lock mark's tooltip with the new words", function()
+    -- red under: PaintLock swapping __tip only, so the open tooltip keeps the old words until the
+    -- next hover (POPUP-14 reads the new tip right after the click); or a repaint that shows a tip
+    -- the mark does not own.
+    local NS, _, mock = T.bootAddon()
+    shown(NS, mock)
+    local b = lockMark(mock)
+    local tip = recordingTip(mock)
+    b.__scripts.OnEnter(b)
+    assertEqual(tip.text, NS.L["Lock the popup in place"], "the hover shows what a click does")
+    b.__scripts.OnClick(b, "LeftButton")
+    assertTrue(tip:IsOwned(b), "the tip stays up on the mark")
+    assertEqual(tip.text, NS.L["Unlock the popup so it can be dragged"], "and now offers to unlock")
+    b.__scripts.OnLeave(b)
+    NS.addon:OnSlashCommand("unlock")
+    assertFalse(tip.shown, "a repaint with the pointer elsewhere shows no tip")
+end)
+
+test("popup header: the lock mark follows the row whichever surface writes it", function()
+    -- red under: a repaint wired to the mark's click alone, so `/wg lock`, `/wg set locked`, the
+    -- Lock frame checkbox and the launcher's Locked entry leave the mark showing the old state.
+    local NS, _, mock = T.bootAddon()
+    shown(NS, mock)
+    local b = lockMark(mock)
+    NS.addon:OnSlashCommand("lock")
+    assertEqual(art(b), NS.Icon("lock"), "/wg lock")
+    NS.addon:OnSlashCommand("unlock")
+    assertEqual(art(b), NS.Icon("unlock"), "/wg unlock")
+    NS.addon:OnSlashCommand("set locked true")
+    assertEqual(art(b), NS.Icon("lock"), "/wg set locked true")
+    NS.addon.Settings.Helpers.Set("locked", false)
+    assertEqual(art(b), NS.Icon("unlock"), "the Lock frame checkbox's write")
+    NS.addon:SlashToggleLock()
+    assertEqual(art(b), NS.Icon("lock"), "the launcher's Locked entry")
+end)
+
+test("popup header: a profile switch repaints the lock mark from the incoming profile", function()
+    -- red under: a repaint only on the row's onChange, which a profile event never fires.
+    local NS, _, mock = T.bootAddon()
+    shown(NS, mock)
+    local b = lockMark(mock)
+    NS.addon.db.profile.locked = true
+    NS.addon:OnProfileChanged(nil, nil, "Default")
+    assertEqual(art(b), NS.Icon("lock"), "the incoming profile is locked")
+    assertEqual(b.__tip, NS.L["Unlock the popup so it can be dragged"])
+end)
+
+test("popup header: the lock mark is the owner's Mark and carries a hover tooltip", function()
+    -- red under: a lock mark built with no owner, so it never takes the skin's icon.tint / text.link.
+    local NS, _, mock = T.bootAddon()
+    shown(NS, mock)
+    local b = lockMark(mock)
+    local rec = mock.LibStub("LibKa0s-Skin-1.0").painted[b.icon]
+    assertTrue(rec ~= nil and rec.owner == OWNER and rec.calls.Mark ~= nil, "painted by the owner's Mark")
+    assertTrue(type(b.__scripts.OnEnter) == "function", "a hover handler shows the tip")
 end)
 
 test("popup header: with LibKa0s absent the popup builds with no marks and still closes", function()

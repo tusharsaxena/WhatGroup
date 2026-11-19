@@ -186,6 +186,14 @@ function WhatGroup:ApplyFrameAlpha()
     f:SetAlpha(softHidden and 0 or masterAlpha())
 end
 
+-- The header lock mark's art and tooltip, repainted from profile.locked (AF-HDR-WG): the `locked`
+-- row's onChange (settings/Panel.lua) and the profile reload (core/WhatGroup.lua) call this, so the
+-- mark follows the lock whichever surface wrote it. A texture and a field on a plain child of f, so
+-- nothing here is protected in combat. A no-op before the popup is built: the build reads the lock.
+function WhatGroup:RefreshLockMark()
+    if f then Layout.PaintLock(f) end
+end
+
 -- Is the popup allowed on screen right now? `always` and anything unrecognized (a hand-edited
 -- SavedVariable, a profile from a future version) answer yes: a display setting that fails closed
 -- would make the addon look broken rather than configured.
@@ -847,7 +855,7 @@ local function buildFrame()
     titleBar, closeBtn, fields, marks = Layout.Build(f, dismissPopup)
 
     -- The plain controls the combat soft hide makes mouse-dead (setControlsMouse, above): the title
-    -- bar, the Close button and the title bar's marks (settings, close; AD-86-WG).
+    -- bar, the Close button and the title bar's marks (lock, settings, close; AD-86-WG, AF-HDR-WG).
     mouseControls[1], mouseControls[2] = titleBar, closeBtn
     for i = 1, #marks do mouseControls[#mouseControls + 1] = marks[i] end
 

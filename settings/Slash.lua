@@ -28,7 +28,7 @@ end
 local ENABLED_PATH = "enabled"
 
 local Sl                      -- forward-declared: the handlers below reach it at call time
-local runShow, runTest, runConfig, runSkin, runDebug, runReset, runResetAll, runEnabled
+local runShow, runTest, runConfig, runSkin, runDebug, runReset, runResetAll, runEnabled, runLock
 
 -- Positional triples, the shape the library reads (entry[1] / [2] / [3]); a table of named fields
 -- is silently invisible to it. The handler takes `rest` alone — everything after the verb, case and
@@ -44,6 +44,15 @@ local COMMANDS = {
         function() runShow() end},
     {"test",     L["Toggle test mode (sample group info on the popup) — `/wg test on|off`; `/wg test notify` runs the join notice + popup once"],
         function(rest) runTest(rest) end},
+    -- The reserved lock pair (slash-commands-§8, AF-HDR-WG): ALIASES for the Lock frame checkbox,
+    -- as `enable` / `disable` are for Enable WhatGroup. Both write the `locked` row through the
+    -- schema CLI, the seam the checkbox, the launcher's Locked entry and the popup's header lock
+    -- mark share, so no surface holds a second answer. Feature verbs (not on lib.LIVE_VERBS), so
+    -- they refuse while the addon is disabled: there is no popup to drag.
+    {"lock",     L["Lock the group info popup in place"],
+        function() runLock(true) end},
+    {"unlock",   L["Unlock the group info popup so it can be dragged"],
+        function() runLock(false) end},
     {"config",   L["Open the Ka0s WhatGroup settings"],
         function() runConfig() end},
     -- The reserved `skin` verb (LibKa0s v1.82.0's O.SkinVerb, ruling D-16): the skin picker a new
@@ -92,8 +101,8 @@ local COMMANDS = {
 -- ---------------------------------------------------------------------------
 --
 -- A DISABLED ADDON REFUSES A FEATURE VERB RATHER THAN ACTING ON IT, on one tagged line naming
--- `/wg enable` and nothing else. Three of this addon's sixteen verbs drive features — `show` and
--- `test`, the two that put the popup on screen, and `skin`, the skin picker (LibKa0s v1.82.0) — which is enough for a silent `/wg show` to read
+-- `/wg enable` and nothing else. Five of this addon's eighteen verbs drive features — `show` and
+-- `test`, the two that put the popup on screen, `lock` and `unlock`, which move it, and `skin`, the skin picker (LibKa0s v1.82.0) — which is enough for a silent `/wg show` to read
 -- as a bug, so this addon takes slash-commands-§2's SHOULD.
 --
 -- EVERYTHING ELSE ANSWERS NORMALLY, and that is a ruling rather than a default. The standard
@@ -323,6 +332,10 @@ end
 --- `/wg skin`: core/SkinSetup.lua's NS.RunSkinVerb, which prints the library-absent line itself.
 function runSkin() NS.RunSkinVerb() end
 
+--- `/wg lock` and `/wg unlock`: the `locked` row's schema write, `/wg set locked true|false`, so the
+--- ack, the clamp and the row's onChange (the header lock mark's repaint) are the CLI's own.
+function runLock(on) Sl:CliSet("locked " .. (on and "true" or "false")) end
+
 function runShow()
     if WhatGroup.pendingInfo then
         WhatGroup:ShowFrame()
@@ -525,9 +538,9 @@ end
 --
 --   SlashEnabled(on)      runEnabled -- the one body `/wg enable` and `/wg disable` both call.
 --   SlashToggleTestMode() runTest("") -- bare `/wg test`, the toggle form.
---   SlashToggleLock()     `/wg set locked toggle`. There is no `/wg lock` verb: the lock is a
---                         checkbox here (slash-commands-§8 MAY), so its CLI form is the schema
---                         verb over the Lock frame row's own path, through the same seam.
+--   SlashToggleLock()     `/wg set locked toggle`: the schema verb over the Lock frame row's own
+--                         path, the same seam `/wg lock` and `/wg unlock` write through
+--                         (slash-commands-§8, AF-HDR-WG). The popup's header lock mark calls it too.
 function WhatGroup:SlashEnabled(on) runEnabled(on and true or false) end
 function WhatGroup:SlashToggleTestMode() runTest("") end
 function WhatGroup:SlashToggleLock() Sl:CliSet("locked toggle") end

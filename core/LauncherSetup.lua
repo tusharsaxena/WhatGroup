@@ -184,8 +184,8 @@ NS.Launcher = lib:New({
     -- Test mode is NS.State.testMode (modules/Frame.lua owns it). The same stores the two
     -- Master-controls checkboxes read, so the tooltip, the menu and the panel say one thing.
     --
-    -- LOCKED has no `/wg lock` verb (slash-commands-§8 MAY: the lock is a checkbox here), so its
-    -- toggle is the row's CLI form, `/wg set locked toggle`. TEST MODE's is bare `/wg test`.
+    -- LOCKED's toggle is the row's CLI form, `/wg set locked toggle`, the seam `/wg lock`,
+    -- `/wg unlock` and the popup's header lock mark share (AF-HDR-WG). TEST MODE's is bare `/wg test`.
     isLocked       = function()
         local db = NS.addon and NS.addon.db
         return (db and db.profile and db.profile.locked) and true or false

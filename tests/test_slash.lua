@@ -490,17 +490,49 @@ test("slash: the reserved pair is in COMMANDS, so help and the landing page carr
     assertEqual(type(seen.disable[2]), "string")
 end)
 
-test("slash: COMMANDS order — `skin` after `config`, `profile` with the settings verbs, sixteen rows", function()
+test("slash: COMMANDS order — `skin` after `config`, `profile` with the settings verbs, eighteen rows", function()
     -- The help index and the landing page print this table in declaration order, so the order is
     -- what a player reads. `profile` (Slash minor 17's CliProfile) goes after the schema CLI,
-    -- where the other settings verbs are; `skin` (LibKa0s v1.82.0, D-16) right after `config`.
+    -- where the other settings verbs are; `skin` (LibKa0s v1.82.0, D-16) right after `config`;
+    -- `lock` and `unlock` (AF-HDR-WG, slash-commands-§8) beside the other feature verbs.
     -- red under: a missing, duplicated or relocated row.
     local NS = T.newAddon()
     local names = {}
     for i, c in ipairs(NS.addon.COMMANDS) do names[i] = c[1] end
     assertEqual(table.concat(names, " "),
-        "help show test config skin enable disable version list get set reset resetall profile debug "
-        .. "diagnostics")
+        "help show test lock unlock config skin enable disable version list get set reset resetall "
+        .. "profile debug diagnostics")
+end)
+
+-- ---------------------------------------------------------------------------
+-- `lock` and `unlock` (AF-HDR-WG; slash-commands-§8, the MAY taken)
+-- ---------------------------------------------------------------------------
+--
+-- Aliases for the Lock frame checkbox, like `enable` / `disable` for Enable WhatGroup: both write
+-- the `locked` row through the one schema seam the checkbox, the launcher's Locked entry and the
+-- popup's lock mark use, so no surface can show the player a second answer.
+
+test("slash: /wg lock and /wg unlock write the Lock frame row's own stored path", function()
+    -- red under: a second key, an NS.locked local, or a session flag beside the stored row.
+    local NS = T.bootAddon()
+    local H = NS.addon.Settings.Helpers
+    NS.addon:OnSlashCommand("lock")
+    assertTrue(H.Get("locked"), "lock locks")
+    assertTrue(NS.addon.db.profile.locked, "the STORED row, not a copy of it")
+    NS.addon:OnSlashCommand("lock")
+    assertTrue(H.Get("locked"), "lock is not a toggle: a second lock stays locked")
+    NS.addon:OnSlashCommand("unlock")
+    assertFalse(H.Get("locked"), "unlock unlocks")
+    assertFalse(NS.addon.db.profile.locked)
+end)
+
+test("slash: /wg lock acknowledges on the schema CLI's one `locked = true` line", function()
+    -- red under: a verb answering in its own words instead of the `set` shape it is an alias of.
+    local NS, _, mock = T.bootAddon()
+    local lines = capture(mock, function() NS.addon:OnSlashCommand("lock") end)
+    assertEqual(#lines, 1, "one line")
+    assertTrue(anyLine(lines, "locked"), "names the path")
+    assertTrue(anyLine(lines, "true"), "and the value that was stored")
 end)
 
 -- ---------------------------------------------------------------------------
@@ -519,7 +551,7 @@ end)
 -- pass over a verb that printed and then went ahead anyway, which is the exact failure this rule
 -- exists to prevent.
 
-local FEATURE_VERBS = { "show", "test", "skin" }
+local FEATURE_VERBS = { "show", "test", "lock", "unlock", "skin" }
 
 -- The verbs that keep answering, named here the way settings/Slash.lua names them: the standard's
 -- list, not this addon's subset. `perf` is absent from COMMANDS (LIBKA0S-15) and is checked as a
@@ -577,6 +609,17 @@ test("slash: `/wg test on` refuses while disabled, and does not enter test mode"
     assertFalse(popupShown(mock))
 end)
 
+test("slash: `/wg lock` refuses while disabled, and leaves the lock as it was", function()
+    -- slash-commands-§8: lock and unlock are feature verbs, so the §2 SHOULD reaches them.
+    -- red under: lock or unlock put on the live list, or a gate that prints and writes anyway.
+    local NS, _, mock = disabled()
+    local H = NS.addon.Settings.Helpers
+    local lines = capture(mock, function() NS.addon:OnSlashCommand("lock") end)
+    assertEqual(#lines, 1)
+    assertTrue(anyLine(lines, REFUSAL))
+    assertFalse(H.Get("locked"), "the popup stayed unlocked")
+end)
+
 test("slash: every verb is either on the live list or refuses — there is no third kind", function()
     -- THE COVERAGE CASE, and the reason the gate is one wrapper over COMMANDS rather than a guard
     -- pasted into each handler. It derives the feature half from the table instead of listing it,
@@ -613,7 +656,7 @@ test("slash: every verb is either on the live list or refuses — there is no th
             assertEqual(#lines, 1, verb .. " answers on ONE line and never the index")
         end
     end
-    assertEqual(refused, #FEATURE_VERBS, "show, test and skin, and nothing else, refuse today")
+    assertEqual(refused, #FEATURE_VERBS, "show, test, lock, unlock and skin, and nothing else, refuse today")
     assertEqual(allowed, #LIVE_VERBS, "and every live verb is a row — `perf` aside")
 
     -- The one that matters most: the way back is on the live list, so the pair is never one-way.

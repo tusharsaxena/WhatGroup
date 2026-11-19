@@ -295,7 +295,7 @@ Total.
 - settings: the Role label string is in the locale
 - settings: the layout pass moved no key, default, range or section (item 020)
 
-### test_slash.lua (63)
+### test_slash.lua (66)
 
 - slash: the library-absent stub's help rows are plain `cmd  desc`, no em dash
 - slash: COMMANDS has a standalone version verb (WG-29)
@@ -351,9 +351,12 @@ Total.
 - slash: each verb acknowledges on one `key = value` line
 - slash: the dispatcher answers while the addon is disabled
 - slash: the reserved pair is in COMMANDS, so help and the landing page carry it
-- slash: COMMANDS order — `skin` after `config`, `profile` with the settings verbs, sixteen rows
+- slash: COMMANDS order — `skin` after `config`, `profile` with the settings verbs, eighteen rows
+- slash: /wg lock and /wg unlock write the Lock frame row's own stored path
+- slash: /wg lock acknowledges on the schema CLI's one `locked = true` line
 - slash: `/wg show` refuses while disabled, and does not show the popup
 - slash: `/wg test on` refuses while disabled, and does not enter test mode
+- slash: `/wg lock` refuses while disabled, and leaves the lock as it was
 - slash: every verb is either on the live list or refuses — there is no third kind
 - slash: the gate lifts the moment the addon is enabled again
 - slash: the refusal REPLACES the handler — not even its own empty-state hint prints
@@ -661,9 +664,9 @@ Total.
 - popup skin: the degraded S.MarkText answers a string a caller can concatenate
 - popup skin: the degraded facade paints a token name with that token's color
 
-### test_frame_header.lua (10)
+### test_frame_header.lua (17)
 
-- popup header: the title bar reads settings · close through W.HeaderButtons
+- popup header: the title bar reads lock · settings · close through W.HeaderButtons
 - popup header: the marks sit right-aligned at the strip's one pitch, close in the corner
 - popup header: S.Header lays the marks on the band at the strip's offsets
 - popup header: the settings mark's click opens WhatGroup's settings through the launcher
@@ -672,6 +675,13 @@ Total.
 - popup header: the settings mark is the owner's Mark, so it rests in icon.tint and lights text.link
 - popup header: the close mark runs dismissPopup, out of combat a real hide
 - popup header: the close mark in combat soft-hides and writes nothing protected
+- popup header: the lock mark draws unlock and offers to lock while the popup is unlocked
+- popup header: a popup first shown locked builds its lock mark locked
+- popup header: the lock mark's click runs SlashToggleLock and repaints from the profile
+- popup header: a click under the pointer re-shows the lock mark's tooltip with the new words
+- popup header: the lock mark follows the row whichever surface writes it
+- popup header: a profile switch repaints the lock mark from the incoming profile
+- popup header: the lock mark is the owner's Mark and carries a hover tooltip
 - popup header: with LibKa0s absent the popup builds with no marks and still closes
 
 ### test_frame_tooltip.lua (7)
@@ -1302,7 +1312,7 @@ Total.
 | test_compat.lua | 47 |
 | test_database.lua | 12 |
 | test_settings.lua | 60 |
-| test_slash.lua | 63 |
+| test_slash.lua | 66 |
 | test_labels.lua | 40 |
 | test_capture.lua | 43 |
 | test_notify.lua | 55 |
@@ -1311,7 +1321,7 @@ Total.
 | test_frame_secure.lua | 7 |
 | test_frame_layers.lua | 9 |
 | test_frame_skin.lua | 25 |
-| test_frame_header.lua | 10 |
+| test_frame_header.lua | 17 |
 | test_frame_tooltip.lua | 7 |
 | test_panel.lua | 63 |
 | test_skinsetup.lua | 18 |
@@ -1345,4 +1355,4 @@ Total.
 | test_skin_switch.lua | 25 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1127** |
+| **Total** | **1137** |

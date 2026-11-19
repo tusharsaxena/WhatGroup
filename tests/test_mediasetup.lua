@@ -14,8 +14,9 @@ local test, assertEqual, assertTrue, assertNil, fail =
 local VENDORED = "Interface\\AddOns\\WhatGroup\\libs\\LibKa0s\\media\\"
 
 -- Every icon the LIBRARY draws for this addon, by the surfaces this addon wires. The addon draws
--- none of its own: NS.Icon has no caller outside this file's tests (the mark beside the popup's
--- footer Close button was removed, and modules/Frame.lua's Close is a text button). Each name here
+-- none of its own: NS.Icon's one caller outside core/MediaSetup.lua is FrameLayout.PaintLock
+-- (modules/FrameLayout.lua), which repaints the library-built header lock mark with `lock` or
+-- `unlock` (modules/Frame.lua's footer Close is a text button). Each name here
 -- must also be on the CLAUDE.md `LibKa0s icons:` line, because the re-vendor prunes the vendored
 -- icons/ folder to that line, and a pruned icon still resolves to a path and draws blank.
 --   close  Core.MakeCloseButton given the folder name (libs/LibKa0s/Core.lua, Media.Icon(addonName,
@@ -31,8 +32,11 @@ local VENDORED = "Interface\\AddOns\\WhatGroup\\libs\\LibKa0s\\media\\"
 --          OptionsSkinPicker minor 1), each read through the owner's Media.Icon. Declared at the
 --          re-vendor (WG-RV) so one prune covers the picker WG-04 shows; the eye because the popup's
 --          test mode is something to preview in (skinning rollout X6).
+--   lock, unlock  the popup's header lock mark (modules/FrameLayout.lua, AF-HDR-WG): drawn through
+--          W.HeaderButtons' extras (the owner's Media.Icon) at build and through NS.Icon on repaint,
+--          `lock` while the popup is locked and `unlock` while it is not.
 local LIBRARY_DRAWN = { "chevron-down", "chevron-up", "clear", "close", "confirm", "copy", "eye", "info",
-    "move", "reset", "settings", "volume-high" }
+    "lock", "move", "reset", "settings", "unlock", "volume-high" }
 
 -- The library files that ARE the payload, for the degraded case. Core.lua absent means every other
 -- major returns before LibStub:NewLibrary too, which makes this the whole-library-missing scenario

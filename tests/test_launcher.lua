@@ -263,8 +263,9 @@ end)
 
 test("launcher: the Locked entry runs `/wg set locked toggle`, the Lock frame row's write",
 function()
-    -- WhatGroup ships no `/wg lock` verb: the Lock frame row is written through the schema seam,
-    -- and its CLI form is `/wg set locked toggle` (the host's own `toggle` grammar). The entry
+    -- The Lock frame row is written through the schema seam, and its toggle's CLI form is
+    -- `/wg set locked toggle` (the host's own `toggle` grammar); `/wg lock` and `/wg unlock`
+    -- (AF-HDR-WG) write the same row through the same seam, as set true and set false. The entry
     -- runs exactly that, so its ack is the CLI's `locked = true`.
     -- red under: a toggleLock writing db.profile.locked directly, or a second lock path.
     local viaSlash = printedBy(function(NS) NS.addon:OnSlashCommand("set locked toggle") end)

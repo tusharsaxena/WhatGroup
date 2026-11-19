@@ -141,9 +141,13 @@ test("layers: the soft hide takes the title-bar marks' mouse too, and a reopen g
     assertEqual(f:GetAlpha(), 0, "the close mark soft-hides in combat")
     assertFalse(hb.settings:IsMouseEnabled(), "the invisible settings mark is mouse-dead")
     assertFalse(hb.close:IsMouseEnabled(), "the invisible close mark is mouse-dead")
+    -- The lock mark (AF-HDR-WG) joins the set: an invisible popup's lock must not toggle the lock.
+    assertTrue(hb.extras.lock ~= nil, "the popup has its lock mark")
+    assertFalse(hb.extras.lock:IsMouseEnabled(), "the invisible lock mark is mouse-dead")
     assertEqual(#mock.blocked, 0, "nothing protected was written: " .. table.concat(mock.blocked, ","))
     NS.addon:ShowFrame()
     assertTrue(hb.settings:IsMouseEnabled() and hb.close:IsMouseEnabled(), "the soft show restores both")
+    assertTrue(hb.extras.lock:IsMouseEnabled(), "and the lock mark")
 end)
 
 test("layers: the owed Hide at combat end leaves the controls ready for the next show", function()
