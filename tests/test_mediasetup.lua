@@ -31,8 +31,11 @@ local VENDORED = "Interface\\AddOns\\WhatGroup\\libs\\LibKa0s\\media\\"
 --          OptionsSkinPicker minor 1), each read through the owner's Media.Icon. Declared at the
 --          re-vendor (WG-RV) so one prune covers the picker WG-04 shows; the eye because the popup's
 --          test mode is something to preview in (skinning rollout X6).
+--   lock, unlock  the popup's header lock mark (modules/FrameLayout.lua, AF-HDR-WG): drawn through
+--          W.HeaderButtons' extras (the owner's Media.Icon) at build and through NS.Icon on repaint,
+--          `lock` while the popup is locked and `unlock` while it is not.
 local LIBRARY_DRAWN = { "chevron-down", "chevron-up", "clear", "close", "confirm", "copy", "eye", "info",
-    "move", "reset", "settings", "volume-high" }
+    "lock", "move", "reset", "settings", "unlock", "volume-high" }
 
 -- The library files that ARE the payload, for the degraded case. Core.lua absent means every other
 -- major returns before LibStub:NewLibrary too, which makes this the whole-library-missing scenario

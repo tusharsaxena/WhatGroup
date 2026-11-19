@@ -72,6 +72,9 @@ L["Unknown"]                  = "Unknown"
 L["WhatGroup"]                = "WhatGroup"
 L["Group Info"]               = "Group Info"
 L["Close"]                    = "Close"
+-- The popup's header lock mark (modules/FrameLayout.lua): what a click does, by the lock's state.
+L["Lock the popup in place"]  = "Lock the popup in place"
+L["Unlock the popup so it can be dragged"] = "Unlock the popup so it can be dragged"
 L["No data"]                  = "No data"
 
 -- Group-type labels (GetGroupTypeLabel)
@@ -108,6 +111,8 @@ L["List available commands"]  = "List available commands"
 L["Show the group info popup again"] = "Show the group info popup again"
 L["Toggle test mode (sample group info on the popup) — `/wg test on|off`; `/wg test notify` runs the join notice + popup once"] =
     "Toggle test mode (sample group info on the popup) — `/wg test on|off`; `/wg test notify` runs the join notice + popup once"
+L["Lock the group info popup in place"] = "Lock the group info popup in place"
+L["Unlock the group info popup so it can be dragged"] = "Unlock the group info popup so it can be dragged"
 L["Open the Ka0s WhatGroup settings"] = "Open the Ka0s WhatGroup settings"
 -- The reserved `skin` verb's help: LibKa0s's SKIN_PICKER_STRINGS.VERB_HELP, one wording for every host.
 L["Choose a skin: open the skin picker"] = "Choose a skin: open the skin picker"

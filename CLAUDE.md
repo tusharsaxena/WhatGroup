@@ -46,4 +46,4 @@ the vendor gate against the tag below (`tests/test_vendor_sync.lua`). Never auto
 and never bump the version without an explicit instruction.
 
 Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.107.0 (MIT).
-LibKa0s icons: chevron-down, chevron-up, clear, close, confirm, copy, eye, info, move, reset, settings, volume-high.
+LibKa0s icons: chevron-down, chevron-up, clear, close, confirm, copy, eye, info, lock, move, reset, settings, unlock, volume-high.

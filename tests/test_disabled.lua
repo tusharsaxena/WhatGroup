@@ -426,21 +426,20 @@ end)
 
 test("disabled 7: each FEATURE verb answers exactly one refusal line and reaches no write seam",
 function()
-    -- This addon TAKES slash-commands-§2's SHOULD, and there are two verbs in scope: `show` and `test`, the two
-    -- that put the popup on screen. Pinned so the choice cannot drift silently -- an addon that
-    -- declined the SHOULD would assert the opposite here, and either is conformant.
-    --
-    -- LOCK AND UNLOCK ARE NOT AMONG THEM. slash-commands-§8 is a MAY; this addon has lock
-    -- functionality as a CHECKBOX ONLY and registers no verbs for it, which the section names
-    -- explicitly as the case the MAY exists to leave alone. Declining a MAY owes no deviation row.
-    -- red under: letting `show` fall through to ShowFrame, or printing a second explanatory line.
+    -- This addon TAKES slash-commands-§2's SHOULD, and there are four verbs in scope: `show` and
+    -- `test`, the two that put the popup on screen, and `lock` and `unlock`, which move it
+    -- (slash-commands-§8's MAY, taken by AF-HDR-WG; §8 calls them feature verbs). Pinned so the
+    -- choice cannot drift silently -- an addon that declined the SHOULD would assert the opposite
+    -- here, and either is conformant.
+    -- red under: letting `show` fall through to ShowFrame, a lock verb that writes the row while
+    -- disabled, or printing a second explanatory line.
     local NS, mock = up()
     switchOff(NS)
     NS.addon.pendingInfo = { title = "Stonevault", leaderName = "L", fullName = "F",
                              shortName = "", playstyleString = "", generalPlaystyle = 0 }
     mock.__resetSvWrites()
 
-    for _, verb in ipairs({ "show", "test on", "test notify" }) do
+    for _, verb in ipairs({ "show", "test on", "test notify", "lock", "unlock" }) do
         local mark = #mock.prints
         NS.addon:OnSlashCommand(verb)
         assertEqual(#mock.prints - mark, 1, verb .. " answers on exactly one line")
@@ -451,12 +450,7 @@ function()
     end
     assertEqual(#mock.__svWrites(), 0, "and no refusal reached a write seam")
     assertFalse(helpers(NS).Get("state.testMode"), "test mode never started")
-
-    -- lock/unlock: reserved collection-wide, registered by nobody here.
-    for _, entry in ipairs(NS.addon.COMMANDS) do
-        assertTrue(entry[1] ~= "lock" and entry[1] ~= "unlock",
-            "this addon's lock is a checkbox, not a verb (slash-commands-§8 MAY)")
-    end
+    assertFalse(helpers(NS).Get("locked"), "the lock never moved")
 end)
 
 -- ---------------------------------------------------------------------------

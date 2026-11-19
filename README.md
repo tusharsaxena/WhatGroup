@@ -4,7 +4,7 @@
 ![CurseForge Version](https://img.shields.io/curseforge/v/1489907)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Standard](https://img.shields.io/badge/Ka0s-WoW_Addon_Standard-yellow)
-![Tests](https://img.shields.io/badge/Tests-1127%2F1127_passing-green)
+![Tests](https://img.shields.io/badge/Tests-1136%2F1136_passing-green)
 
 Retail only. WhatGroup remembers the group you signed up for through the Group Finder tool. You get accepted, you shut the LFG window, and the details are still in front of you: the group's name, the instance, the type (Mythic+, Raid, Dungeon, PvP and the rest), who's leading, and the playstyle.
 
@@ -22,7 +22,7 @@ It tells you twice, on purpose. A moment after you join, a chat line appears wit
 
 ## Usage
 
-WhatGroup starts working the moment it loads, and there's nothing to switch on. You won't see anything until you join a group. To preview it, type `/wg test` or tick **Test mode** on the **Master controls** tab. The popup opens with a sample group, and you drag it by its title bar to wherever you want it. **Lock frame** on the same tab stops it moving after that. `/wg test notify`, or the **Test notification** button on the **Notifications** tab, plays the chat line and the popup once.
+WhatGroup starts working the moment it loads, and there's nothing to switch on. You won't see anything until you join a group. To preview it, type `/wg test` or tick **Test mode** on the **Master controls** tab. The popup opens with a sample group, and you drag it by its title bar to wherever you want it. **Lock frame** on the same tab stops it moving after that, and so does the padlock in the popup's title bar or `/wg lock` (`/wg unlock` frees it again). `/wg test notify`, or the **Test notification** button on the **Notifications** tab, plays the chat line and the popup once.
 
 Joining a group through the Group Finder takes four steps.
 

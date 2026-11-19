@@ -15,12 +15,12 @@ number out of use rather than handing it to a new one.
 | ID range | Theme | What it covers |
 |---|---|---|
 | INSTALL-1 – INSTALL-5 | [Install](#install) | Cold load, `/reload`, the GameMenu Logout taint check, patch day |
-| SLASH-1 – SLASH-12 | [Slash commands](#slash-commands) | Help, alias, the schema CLI, reset verbs, `show` with nothing captured (`/wg skin` is SKIN-27) |
+| SLASH-1 – SLASH-13 | [Slash commands](#slash-commands) | Help, alias, the schema CLI, reset verbs, `show` with nothing captured, `lock` and `unlock` (`/wg skin` is SKIN-27) |
 | PANEL-1 – PANEL-23 | [Settings panel](#settings-panel) | Landing page, the General tab strip, widgets, Defaults, the frame rows, raw-key trap, the pooled strip, the folder name on the Options descriptor, the item 020 layout and wording |
 | PROFILE-1 – PROFILE-14 | [Profiles](#profiles) | The Profiles page, `/wg profile`, persistence, what a switch leaves alone, the page in combat |
 | STATE-1 – STATE-8 | [Enable and disable](#enable-and-disable) | The stand-down, refusals while disabled, the way back, the chat-link callback |
 | COMBAT-1 – COMBAT-14 | [Combat](#combat) | Reset popup and Settings registration in combat, Close and ESC in combat, the visibility gate on combat edges, a soft-hidden popup's mouse-dead controls and its residual |
-| POPUP-1 – POPUP-13 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome, the Role row at the minimum height, the popup's layering, the body-mouse probe, the title bar's settings and close marks |
+| POPUP-1 – POPUP-14 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome, the Role row at the minimum height, the popup's layering, the body-mouse probe, the title bar's settings and close marks, its lock mark |
 | TEST-1 – TEST-13 | [Test mode](#test-mode) | The sample popup, its checkbox and verb, every way it ends, the sample role, the sample leader |
 | TELE-1 – TELE-9 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker, the rows the 2026-11-15 seed validation moved, where the spell tooltip opens |
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
@@ -78,9 +78,9 @@ number out of use rather than handing it to a new one.
 
 - **SLASH-1. Help and the long alias.** `/wg help`, then `/whatgroup help` → both print the same
   index, every line tagged `[WG]`: a header `v<version> — slash commands (/whatgroup is an alias
-  for /wg)` with **no** trailing colon, then one row per command, sixteen in all, including
-  `version`, `profile` and `diagnostics`, and `skin — Choose a skin: open the skin picker` right
-  after `config` (LibKa0s v1.82.0). Result: Owner reported pass, 2026-10-31
+  for /wg)` with **no** trailing colon, then one row per command, eighteen in all, including
+  `version`, `profile` and `diagnostics`, `lock` and `unlock` right after `test` (AF-HDR-WG), and
+  `skin — Choose a skin: open the skin picker` right after `config` (LibKa0s v1.82.0). Result:
 - **SLASH-2. Bare `/wg` and `/wg config`.** `/wg`, close the panel, then `/wg config` → each opens
   Settings on the **Ka0s WhatGroup** landing page with the **General** and **Profiles**
   subcategories visible in the sidebar. No help index prints. Result: pass (owner-marked 2026-10-10)
@@ -106,6 +106,14 @@ number out of use rather than handing it to a new one.
   setting back to its default. Result: pass (owner-marked 2026-10-10)
 - **SLASH-12. `/wg show` with nothing captured.** After a `/reload`, before any group or test,
   `/wg show` → `No group info available. Use /wg test to preview.` and no popup. Result: pass (owner-marked 2026-10-10)
+- **SLASH-13. `/wg lock` and `/wg unlock` (AF-HDR-WG).** `/wg test` (the sample popup) → `/wg lock`
+  → chat prints `locked = true` on one `[WG]` line, the popup's title bar no longer drags, the
+  **Lock frame** checkbox on Master controls reads ticked, and the popup's header lock mark shows the
+  closed padlock. `/wg lock` again → `locked = true` again, still locked (not a toggle).
+  `/wg unlock` → `locked = false`, the title bar drags again, the checkbox clears and the mark shows
+  the open padlock. `/wg disable`, then `/wg unlock` → the one `WhatGroup is disabled` refusal line
+  naming `/wg enable`, and nothing changes; `/wg enable` afterwards. Fail: a second line, a verb
+  that toggles, a checkbox or mark that disagrees with the verb, or a write while disabled. Result:
 
 ## Settings panel
 
@@ -448,7 +456,7 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   again → still that skin's color. Fail: data in the placeholder's gray, or a value that keeps the
   old skin's color. Result:
 - **POPUP-13. The title bar's marks (AD-86-WG, LibKa0s#86).** `/wg test notify` → the title bar's
-  right end carries two small marks, a gear then an X in the corner, gray at rest. Hover the gear →
+  right end carries three small marks, a padlock (POPUP-14), a gear, then an X in the corner, gray at rest. Hover the gear →
   it lights in the skin's link color (orange under Ka0s Default) and "Open settings" shows above it;
   hover the X → it turns red and "Close" shows above it. Click the gear → the **Ka0s WhatGroup**
   settings open and the popup stays up over them. Click the X → the popup closes, as **Close** and
@@ -461,6 +469,22 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   it live there). If you would rather the gear close the popup first, say so here and it becomes a
   `dismissPopup` before the opener. In combat, click the gear → the settings refuse to open (the
   panel's own combat message) and the popup stays up, unchanged. Result:
+- **POPUP-14. The header lock mark (AF-HDR-WG; standalone-windows, *Which marks a window owes*).**
+  With **Lock frame** unticked, `/wg test` → the title bar's leftmost mark, inward of the gear, is an
+  **open** padlock, gray at rest. Hover it → it lights in the skin's link color (orange under Ka0s
+  Default) and "Lock the popup in place" shows above it. Click it → chat prints `locked = true`
+  (as the launcher's **Locked** entry does), the mark turns to a **closed** padlock, its tooltip now
+  reads "Unlock the popup so it can be dragged", and dragging the title bar no longer moves the
+  popup. Click again → `locked = false`, the open padlock, and the drag works. With the popup up,
+  tick **Lock frame** on Master controls, then use the minimap button's **Locked** entry, then
+  `/wg unlock` → the mark follows each change at once, without reopening the popup. Lock it, switch
+  to a profile with the popup unlocked (`/wg profile <name>`) → the mark shows the open padlock.
+  Pick another skin → the padlock rests in that skin's icon color, centered on the band beside the
+  gear. In combat, with the popup up, click the X → the popup vanishes, and hovering where the
+  padlock was shows no tooltip and a click there changes nothing. The bottom **Close** button stays
+  (the owner's waiver, `docs/ARCHITECTURE.md` → Documented deviations) and still closes the popup.
+  Fail: no padlock, a closed padlock on an unlocked popup or the reverse, a mark that lags a change
+  made elsewhere, a drag that ignores the lock, or a Lua or blocked-action error. Result:
 
 ## Test mode
 
@@ -1346,3 +1370,10 @@ Owed from the same adoption (item AD-87-WG, LibKa0s#87, preview-mode *Sample cha
 TEST-13, the sample group's leader read from LibKa0s-Sim-1.0's shared set (`Mockshield-Mockrealm`,
 the set's tank), and POPUP-1 amended to that name, its pass mark off. No other check changed: the
 sample title, role and teleport are as they were.
+
+Owed from the adoption feedback run (Ka0sAddonsCommonTasks `docs/2026-11-19-ADOPTION_FEEDBACK/`, item
+AF-HDR-WG, standalone-windows *Which marks a window owes*, v2.115.0): the new POPUP-14, the popup's
+header lock mark, and SLASH-13, the `/wg lock` and `/wg unlock` verbs. SLASH-1 is amended to the
+eighteen help rows, its pass mark off, and POPUP-13 to the three marks it now sees. The bottom Close
+keeps POPUP-4 and its new register row. The re-vendor of LibKa0s v1.107.0 (AF-RV-WG) moves only the
+drag strip, which this addon does not build, so it owes no check of its own.

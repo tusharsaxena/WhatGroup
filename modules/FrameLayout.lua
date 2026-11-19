@@ -11,7 +11,7 @@ local addonName, NS = ...
 --
 -- The returns are the title bar and the Close button, two of the plain controls the combat soft hide
 -- makes mouse-dead, `fields`, the table PopulateFields and the teleport configure write to, and
--- `marks`, the title bar's header marks (settings, close), the rest of that mouse-dead set.
+-- `marks`, the title bar's header marks (lock, settings, close), the rest of that mouse-dead set.
 
 local WhatGroup = NS.addon
 local L         = NS.L
@@ -37,15 +37,52 @@ NS.FrameLayout = FrameLayout
 -- refuses in combat on its own (settings/Slash.lua's OpenSettings). Confirmed or reversed by the
 -- owner at POPUP-13; the reversal is `settings = function() dismissPopup(); open() end`.
 -- A library-less install has no Widgets, so it draws no marks; the footer Close still closes.
+--
+-- THE LOCK MARK (AF-HDR-WG; standalone-windows, *Which marks a window owes*, v2.115.0): the popup is
+-- this addon's primary window, so its header carries a lock beside settings and close, as an
+-- `extras` entry (HeaderButtons has no lock of its own). Its click is WhatGroup:SlashToggleLock,
+-- the one seam the launcher's Locked entry runs and `/wg lock` / `/wg unlock` write through (the
+-- `locked` row's schema write), looked up at click time. HeaderButtons reads `icon` and `tip` once,
+-- at build, so FrameLayout.PaintLock below re-textures the mark and resets its `__tip` from
+-- profile.locked; the row's onChange (settings/Panel.lua) and the profile reload
+-- (core/WhatGroup.lua) call it through WhatGroup:RefreshLockMark, so every surface repaints it.
+local function isLocked()
+    local pr = WhatGroup.db and WhatGroup.db.profile
+    return (pr and pr.locked) and true or false
+end
+
+-- The mark shows the state (`lock` while locked, `unlock` while not); the tip says what a click does.
+local function lockLook(locked)
+    if locked then return "lock", L["Unlock the popup so it can be dragged"] end
+    return "unlock", L["Lock the popup in place"]
+end
+
 local function buildMarks(f, titleBar, dismissPopup)
     local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
     if not (W and type(W.HeaderButtons) == "function") then return nil end
+    local icon, tip = lockLook(isLocked())
     return W.HeaderButtons(titleBar, {
         owner     = addonName,
         frame     = f,
         makeClose = NS.MakeCloseButton,
         close     = dismissPopup,
+        extras    = {
+            { key = "lock", icon = icon, glyph = "L", tip = tip,
+              onClick = function() WhatGroup:SlashToggleLock() end },
+        },
     })
+end
+
+--- Repaint the lock mark on `f` (the popup) from profile.locked: its art through NS.Icon and its
+--- `__tip`, which the mark reads on each hover. A popup without marks (no library) is left alone.
+function FrameLayout.PaintLock(f)
+    local hb = f and rawget(f, "headerButtons")
+    local b = hb and hb.extras and hb.extras.lock
+    if not b then return end
+    local icon, tip = lockLook(isLocked())
+    b.__tip = tip
+    local path = b.icon and NS.Icon(icon)
+    if path then b.icon:SetTexture(path) end
 end
 
 --- f is the popup, dismissPopup what the Close button runs.
@@ -204,6 +241,7 @@ function FrameLayout.Build(f, dismissPopup)
 
     local marks = {}
     if hb then
+        marks[#marks + 1] = hb.extras.lock
         marks[#marks + 1] = hb.settings
         marks[#marks + 1] = hb.close
     end

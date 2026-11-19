@@ -214,8 +214,9 @@ local MASTER_ROWS, MASTER_TAIL = Helpers.MasterControls{
 -- the canonical row set stays the library's to change.
 --
 -- Every one of these is a MOVE or a first wiring, never a second control: `enabled`'s onChange is
--- the off-flip wipe that used to sit on the row in settings/Schema.lua, and the other three are
--- the settings modules/Frame.lua grew for this pass.
+-- the off-flip wipe that used to sit on the row in settings/Schema.lua, `visibility`, `scale` and
+-- `alpha` are the settings modules/Frame.lua grew for this pass, and `locked`'s repaints the
+-- header lock mark (AF-HDR-WG).
 local MASTER_HOOKS = {
     -- THE MASTER SWITCH, AND IT IS ONE LINE BECAUSE IT IS ONE LATCH (slash-commands-§7). This row
     -- used to call WipeCapture directly, which was the whole of what "disabled" meant here: the
@@ -236,6 +237,9 @@ local MASTER_HOOKS = {
     visibility = function() WhatGroup:ApplyFrameVisibility() end,
     scale      = function() WhatGroup:ApplyFrameScale() end,
     alpha      = function() WhatGroup:ApplyFrameAlpha() end,
+    -- The drag reads `locked` at mouse-down (modules/FrameLayout.lua), so there is nothing to apply;
+    -- what this repaints is the header's lock mark (AF-HDR-WG), whichever surface wrote the row.
+    locked     = function() WhatGroup:RefreshLockMark() end,
 }
 
 -- No tooltip is stamped here: what this addon adds to the composed words goes through `notes` in

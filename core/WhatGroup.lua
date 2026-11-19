@@ -286,6 +286,8 @@ local function reloadProfile(self)
         self:ApplyFrameScale()
         self:ApplyFrameAlpha()
         self:ApplyFrameVisibility()
+        -- The header lock mark reads `locked` too (AF-HDR-WG), and a profile event writes no row.
+        self:RefreshLockMark()
     end
 end
 
