@@ -19,8 +19,10 @@ local _, NS = ...
 --                        library's band (S.Header, LibKa0s R5-L3): the bar takes the band's rect, in
 --                        by Shell's own inset and `title.height` high, and the title is anchored by
 --                        `title.align` to the band's middle at y 0, so it is vertically centered in
---                        every skin. S.TitleBar, S.Shell and S.Header are recorded, so a switch
---                        redoes all three.
+--                        every skin. `right` is W.HeaderButtons' answer (settings, close; AD-86-WG),
+--                        so the header places the marks on the band at the offsets they were laid
+--                        at. S.TitleBar, S.Shell and S.Header are recorded, so a switch redoes all
+--                        three.
 --   IconEdge(texture)    the skin's window icon outline on the teleport icon's Texture: a flat 1 px
 --                        edge in `icon.outline`, else `icon.border` (LibKa0s R3-L3, R4-L3), with the
 --                        art zoomed to 0.07..0.93 so its own edge never shows. The library hangs the
@@ -82,10 +84,10 @@ end
 
 function FrameSkin.Note(fs) NS.Skin.Text(fs, "wg.placeholder") end
 
-function FrameSkin.TitleBar(f, bar, fs)
+function FrameSkin.TitleBar(f, bar, fs, right)
     NS.Skin.Shell(f, { noTopBar = true })
     NS.Skin.TitleBar(bar, { text = fs })
-    NS.Skin.Header(f, { title = fs, bars = { bar } })
+    NS.Skin.Header(f, { title = fs, bars = { bar }, right = right })
 end
 
 function FrameSkin.IconEdge(texture) NS.Skin.IconBorder(texture, { fromSkin = true }) end

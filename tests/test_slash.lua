@@ -552,7 +552,7 @@ test("slash: `/wg show` refuses while disabled, and does not show the popup", fu
     -- screen — which is what "did nothing else" has to mean to be worth writing down.
     -- red under: the gate printing and falling through, or guarding only `test`.
     local NS, _, mock = disabled()
-    NS.addon.pendingInfo = { title = "Stonevault", leaderName = "Testadin",
+    NS.addon.pendingInfo = { title = "Stonevault", leaderName = "Mockshield",
                              fullName = "The Stonevault", shortName = "", playstyleString = "",
                              generalPlaystyle = 0, activityID = 2516, mapID = 2652 }
     local lines = capture(mock, function() NS.addon:OnSlashCommand("show") end)
@@ -626,7 +626,7 @@ test("slash: the gate lifts the moment the addon is enabled again", function()
     -- followed by `/wg show` works in one breath.
     -- red under: caching the enabled state in the wrapper.
     local NS, _, mock = disabled()
-    NS.addon.pendingInfo = { title = "Stonevault", leaderName = "Testadin",
+    NS.addon.pendingInfo = { title = "Stonevault", leaderName = "Mockshield",
                              fullName = "The Stonevault", shortName = "", playstyleString = "",
                              generalPlaystyle = 0, activityID = 2516, mapID = 2652 }
     NS.addon:OnSlashCommand("enable")

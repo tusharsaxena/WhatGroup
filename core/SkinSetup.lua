@@ -11,8 +11,11 @@ local addonName, NS = ...
 --                           to RegisterOwner: the colors the popup draws that no library token
 --                           holds exactly. Each keeps its Ka0s Default value and follows a role
 --                           token in every other skin (the rollout's X1, X2 and X12).
+--   NS.DEFAULT_SKIN         the skin a new profile wears, `Skin:DefaultSkin()` (skinning-§2, Skin
+--                           minor 18), read once at file load: Ka0s Default on Retail; "ka0s" with
+--                           the library absent. defaults/Profile.lua's skin.skin reads it.
 --   NS.SkinChoice()         the stored (source, skin) pair, read through Helpers.Get; "ka0s",
---                           "ka0s" before OnInitialize has built the profile store.
+--                           NS.DEFAULT_SKIN before OnInitialize has built the profile store.
 --   NS.WriteSkinChoice(s,k,i,m) the write seam: every half through Helpers.Set, the one seam
 --                           `/wg set` and the panel already write through (architecture-§5); `i`,
 --                           the Scope's `{ panel, fonts }`, writes the two exceptions, and `m`, the
@@ -82,7 +85,12 @@ local SOURCE_PATH, SKIN_PATH = "skin.source", "skin.skin"
 local PANEL_PATH, FONTS_PATH = "skin.ignorePanel", "skin.ignoreFonts"
 local FONT_PATH, TEXTURE_PATH = "skin.font", "skin.texture"
 local OUTLINE_PATH, OUTLINE_DEFAULT = "skin.outline", "hud"
-local DEFAULT = "ka0s"
+-- The source is the Ka0s skins on every client; the skin is the client's default (skinning-§2,
+-- AD-DS-WG): Skin:DefaultSkin() answers only a registered skin and else Ka0s Default, and the
+-- degraded facade can draw Ka0s Default alone, so "ka0s" without the library.
+local SOURCE_DEFAULT = "ka0s"
+NS.DEFAULT_SKIN = Skin and type(Skin.DefaultSkin) == "function" and Skin:DefaultSkin() or "ka0s"
+local DEFAULT = NS.DEFAULT_SKIN
 
 -- This addon's own tokens (skinning-§1). The popup draws two colors no library token holds
 -- exactly: the brand gold FFD700 on the title's "WhatGroup" span and the field labels, 6/255 off
@@ -153,11 +161,11 @@ local function seam()
     return H
 end
 
---- The stored pair, lazily and nil-safely: Ka0s Default until the profile store exists.
+--- The stored pair, lazily and nil-safely: the client's default skin until the profile store exists.
 function NS.SkinChoice()
     local H = seam()
-    if not H then return DEFAULT, DEFAULT end
-    return H.Get(SOURCE_PATH) or DEFAULT, H.Get(SKIN_PATH) or DEFAULT
+    if not H then return SOURCE_DEFAULT, DEFAULT end
+    return H.Get(SOURCE_PATH) or SOURCE_DEFAULT, H.Get(SKIN_PATH) or DEFAULT
 end
 
 --- A stored override as the profile keeps it: the LSM key, or "" for the skin's own (false, nil, "").

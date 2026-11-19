@@ -9,8 +9,9 @@ local addonName, NS = ...
 -- reason modules/Frame.lua's header gives: a secure button created during boot is what broke the
 -- GameMenu's Logout.
 --
--- The returns are the title bar and the Close button, the two plain controls the combat soft hide
--- makes mouse-dead, and `fields`, the table PopulateFields and the teleport configure write to.
+-- The returns are the title bar and the Close button, two of the plain controls the combat soft hide
+-- makes mouse-dead, `fields`, the table PopulateFields and the teleport configure write to, and
+-- `marks`, the title bar's header marks (settings, close), the rest of that mouse-dead set.
 
 local WhatGroup = NS.addon
 local L         = NS.L
@@ -21,6 +22,31 @@ local Look         = NS.FrameSkin     -- the popup's look (modules/FrameSkin.lua
 
 local FrameLayout = {}
 NS.FrameLayout = FrameLayout
+
+-- THE TITLE BAR'S MARKS (LibKa0s#86, AD-86-WG; standalone-windows, *Title-bar controls*): settings ·
+-- close, right-aligned, through LibKa0s-Widgets-1.0's W.HeaderButtons, one size, pitch and paint path
+-- with every Ka0s window. `owner` is the folder, which is the launcher descriptor's `name`
+-- (core/LauncherSetup.lua), so `settings` left nil opens WhatGroup's settings through the opener the
+-- launcher registered (Core.OpenSettings). The close mark runs dismissPopup, the body the footer Close
+-- and Escape run, never the strip's default bare f:Hide(): f parents a secure button, so a Hide in
+-- combat is refused and blamed on the addon. Built through NS.MakeCloseButton, the one close wrapper.
+-- NO hideOnSettings, ON PURPOSE (the popup does cover the top of the panel): it is the DIALOG-tier
+-- notice made to sit above the Settings panel it is previewed from (docs/frame.md's Strata row), and
+-- the gear is the way to that panel's Width/Height sliders and Test mode, which preview the popup
+-- live and only work while it stays up. Hiding it would also not be a combat matter: the opener
+-- refuses in combat on its own (settings/Slash.lua's OpenSettings). Confirmed or reversed by the
+-- owner at POPUP-13; the reversal is `settings = function() dismissPopup(); open() end`.
+-- A library-less install has no Widgets, so it draws no marks; the footer Close still closes.
+local function buildMarks(f, titleBar, dismissPopup)
+    local W = LibStub and LibStub("LibKa0s-Widgets-1.0", true)
+    if not (W and type(W.HeaderButtons) == "function") then return nil end
+    return W.HeaderButtons(titleBar, {
+        owner     = addonName,
+        frame     = f,
+        makeClose = NS.MakeCloseButton,
+        close     = dismissPopup,
+    })
+end
 
 --- f is the popup, dismissPopup what the Close button runs.
 function FrameLayout.Build(f, dismissPopup)
@@ -60,9 +86,12 @@ function FrameLayout.Build(f, dismissPopup)
     Look.Title(titleText)
     f.title = titleText
 
+    -- The marks before the header, which lays them on the band at the offsets they were laid at.
+    local hb = buildMarks(f, titleBar, dismissPopup)
+
     -- Wear the shared skin for this owner (skinning-§1), now that the title it tints exists.
     NS.ApplySkin(f, nil, addonName)
-    Look.TitleBar(f, titleBar, titleText)
+    Look.TitleBar(f, titleBar, titleText, hb and hb.right)
 
     -- Content frame (plain, no scroll). Hung off the bar, so title.height moves it.
     local content = CreateFrame("Frame", nil, f)
@@ -173,6 +202,12 @@ function FrameLayout.Build(f, dismissPopup)
     closeBtn:SetScript("OnClick", dismissPopup)
     Look.Button(closeBtn)   -- after the script: the primitive HookScripts its hover pair
 
+    local marks = {}
+    if hb then
+        marks[#marks + 1] = hb.settings
+        marks[#marks + 1] = hb.close
+    end
+
     return titleBar, closeBtn, {
         group        = valGroup,
         instance     = valInst,
@@ -184,5 +219,5 @@ function FrameLayout.Build(f, dismissPopup)
         teleportIcon  = teleportIcon,
         teleportSwipe = teleportSwipe,
         teleportNote  = teleportNote,
-    }
+    }, marks
 end

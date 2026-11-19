@@ -198,6 +198,11 @@ Kit.run{
         -- The popup's look on the skin (modules/FrameSkin.lua, WG-02): tokens, live repaint, the
         -- secure button's re-anchor.
         "test_frame_skin",
+        -- The popup's title-bar marks (LibKa0s#86, AD-86-WG): W.HeaderButtons, settings and close.
+        "test_frame_header",
+        -- Where the popup's own tooltip opens (LibKa0s#92, AD-92-WG): the teleport button's,
+        -- beside the popup through LibKa0s-Tooltip-1.0's PlaceBeside, never the cursor.
+        "test_frame_tooltip",
         "test_panel",
         -- The skin seam (core/SkinSetup.lua, skinning-§1 to §3): the owner, its tokens, the skin
         -- rows, the Skin tab's place, the profile events and the degraded arm.

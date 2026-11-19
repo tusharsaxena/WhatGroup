@@ -39,7 +39,7 @@ end
 
 local function baseInfo(overrides)
     local i = {
-        name = "Keys", leaderName = "Testadin", numMembers = 3, voiceChat = "Discord",
+        name = "Keys", leaderName = "Mockshield", numMembers = 3, voiceChat = "Discord",
         generalPlaystyle = 0, playstyleString = "", age = 0, activityIDs = { 500 },
     }
     for k, v in pairs(overrides or {}) do i[k] = v end
@@ -145,12 +145,12 @@ end)
 
 test("diagnostics: pending info prints leader, voice chat and title, and the notify timer", function()
     local NS, _, mock = T.enableAddon()
-    NS.addon.pendingInfo = { title = "Keys", leaderName = "Testadin", voiceChat = "Discord",
+    NS.addon.pendingInfo = { title = "Keys", leaderName = "Mockshield", voiceChat = "Discord",
                              activityID = 500, mapID = POS_MAP, fullName = "Pit of Saron" }
     mock.inGroup = true
     NS.addon:_TryFireJoinNotify("test")
     local lines = report(NS)
-    assertTrue(has(lines, "pending: title=Keys leader=Testadin voiceChat=Discord"))
+    assertTrue(has(lines, "pending: title=Keys leader=Mockshield voiceChat=Discord"))
     assertTrue(has(lines, "notified=true"), "notify already fired for it")
     assertTrue(has(lines, "notify timer armed=true"), "and its timer is pending")
     assertTrue(has(lines, "group: inGroup=true"))

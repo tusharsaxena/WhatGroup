@@ -51,7 +51,7 @@ module refuse to register — so every seam falls back to its stub and the suite
 happily measures the stub, green. `tests/test_harness.lua` pins the derivation
 against a fresh read of the TOC and the XML.
 
-The factory takes three options. `skip` omits files, which is how the degraded
+The factory takes four options. `skip` omits files, which is how the degraded
 cases load with LibKa0s genuinely absent rather than by hand-stubbing the member
 under test; `mock` runs against the fresh environment before any source loads;
 and `addonName` changes the **first vararg** the addon's own files are handed —
@@ -61,6 +61,11 @@ vararg, as `settings/Panel.lua` passes it to `Helpers.MasterControls`) and a
 file that typed the same string out are indistinguishable while the folder is
 called what the literal says, and telling them apart is the only way to keep a
 label like **Enable WhatGroup** honest about which addon it is turning off.
+`skin = "<key>"` makes that skin the instance's client default (`Skin:DefaultSkin()`,
+replaced after the library loads and before the addon's first file), for the same
+reason: on Retail the library answers `"ka0s"`, the same string a literal would
+write, so only a case naming another skin proves `NS.DEFAULT_SKIN` and
+`skin.skin`'s default read the library (skinning-§2, AD-DS-WG).
 
 The suites, in run order: `test_harness`, `test_libka0s`,
 `test_surface_parity`, `test_mediasetup`, `test_envsetup`, `test_util`,

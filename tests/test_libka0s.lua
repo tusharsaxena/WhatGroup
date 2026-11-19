@@ -619,6 +619,49 @@ test("degraded: every DebugLog member the addon calls still answers", function()
     assertEqual(NS.Debug, NS.DebugLog.Debug, "the sink is still bound bare")
 end)
 
+test("degraded: a report goes to chat with no pointer, line for line (LibKa0s#79, D9)", function()
+    -- DebugLog version-23.11.1.5-docs.md, "What a host owes at its re-vendor" (D9): without the
+    -- library there is no console, and a report is the read-out the player asked for by name, so
+    -- the stub streams each line to chat, prints no pointer, and answers the line count.
+    -- red under: a stub Report that writes nothing and returns 0.
+    local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
+    NS.Print("prime")  -- spend the one library-absent notice before counting
+    local before = #mock.prints
+    local n = NS.DebugLog:Report("Report", "sample", function(out)
+        out("first line")
+        out(42)
+    end)
+    assertEqual(n, 2, "it answers the number of lines it wrote")
+    assertEqual(#mock.prints - before, 2, "one chat line per report line, and no pointer")
+    assertTrue(mock.prints[before + 1]:find("first line", 1, true) ~= nil, "the first line lands")
+    assertTrue(mock.prints[before + 2]:find("42", 1, true) ~= nil,
+        "a non-string line goes through the stringifier")
+    for i = before + 1, #mock.prints do
+        assertNil(mock.prints[i]:find("debug console", 1, true), "no console pointer is printed")
+    end
+end)
+
+test("degraded: a report body that writes nothing prints nothing (LibKa0s#79)", function()
+    -- A refusal or usage line inside a report verb is said by the verb itself; the seam adds nothing.
+    local NS, _, mock = T.newAddon{ skip = NO_LIBKA0S }
+    NS.Print("prime")
+    local before = #mock.prints
+    assertEqual(NS.DebugLog:Report("Report", "empty", function() end), 0)
+    assertEqual(NS.DebugLog:Report("Report", "no body"), 0, "a missing body is not an error")
+    assertEqual(#mock.prints, before, "and nothing reached chat")
+end)
+
+test("degraded: Serialize answers one line (LibKa0s#79, D9)", function()
+    local NS = T.newAddon{ skip = NO_LIBKA0S }
+    local lines = NS.DebugLog:Serialize({ a = 1 })
+    assertEqual(type(lines), "table")
+    assertEqual(#lines, 1, "a table serializes to one line")
+    assertEqual(lines[1], "<table>", "and that line says it was a table")
+    local scalar = NS.DebugLog:Serialize("word")
+    assertEqual(#scalar, 1)
+    assertEqual(scalar[1], "word", "a scalar serializes to itself")
+end)
+
 test("degraded: the console stub copies NO library formatter", function()
     -- debug-logging-§3: hand-copying the exact color codes whose seven-way drift the extraction
     -- exists to end is the one duplicate the standard most specifically forbids. The stub must not

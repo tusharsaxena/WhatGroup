@@ -20,9 +20,9 @@ number out of use rather than handing it to a new one.
 | PROFILE-1 – PROFILE-14 | [Profiles](#profiles) | The Profiles page, `/wg profile`, persistence, what a switch leaves alone, the page in combat |
 | STATE-1 – STATE-8 | [Enable and disable](#enable-and-disable) | The stand-down, refusals while disabled, the way back, the chat-link callback |
 | COMBAT-1 – COMBAT-14 | [Combat](#combat) | Reset popup and Settings registration in combat, Close and ESC in combat, the visibility gate on combat edges, a soft-hidden popup's mouse-dead controls and its residual |
-| POPUP-1 – POPUP-12 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome, the Role row at the minimum height, the popup's layering, the body-mouse probe |
-| TEST-1 – TEST-12 | [Test mode](#test-mode) | The sample popup, its checkbox and verb, every way it ends, the sample role |
-| TELE-1 – TELE-8 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker, the rows the 2026-11-15 seed validation moved |
+| POPUP-1 – POPUP-13 | [The popup](#the-popup) | `/wg test notify`, reopening, the chat link, ESC, drag, position, the window chrome, the Role row at the minimum height, the popup's layering, the body-mouse probe, the title bar's settings and close marks |
+| TEST-1 – TEST-13 | [Test mode](#test-mode) | The sample popup, its checkbox and verb, every way it ends, the sample role, the sample leader |
+| TELE-1 – TELE-9 | [The teleport button](#the-teleport-button) | Casting, not learned, the cooldown display and its ticker, the rows the 2026-11-15 seed validation moved, where the spell tooltip opens |
 | LFG-1 – LFG-8 | [Real Group Finder flow](#real-group-finder-flow) | A real application, its details link, concurrent applications, leaving, the signed-up role |
 | LAUNCH-1 – LAUNCH-20 | [The launcher](#the-launcher) | The AddOns icon, the minimap button, its menu and tooltip, broker displays, the Show window key binding |
 | DIAG-1 – DIAG-33 | [Debug console and diagnostics](#debug-console-and-diagnostics) | The console window, logging, the buffer, shared art, `/wg diagnostics` and the logging it turns on, resizing the console and its copy window, the console's Diagnostics link, the library's own lines in the console |
@@ -387,7 +387,7 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   [WG]   - Group: Test Group — Windrunner Spire +12
   [WG]   - Instance: Dungeons > Mythic+ > Windrunner Spire
   [WG]   - Type: Mythic+
-  [WG]   - Leader: Testadin-Silvermoon
+  [WG]   - Leader: Mockshield-Mockrealm
   [WG]   - Role: <damage icon>Damage
   [WG]   - Playstyle: Fun (Serious)
   [WG]   - Teleport: [Path of the Windrunners]
@@ -397,7 +397,9 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   The Teleport row adds `(not learned)` or `(on cooldown)` when either applies; in a group where the
   leader assigned you a role, Role shows that one instead. The popup shows all seven rows (Group,
   Instance, Type, Leader, Role, Playstyle, Teleport); the teleport icon is at full alpha
-  when the spell is learned and ready, desaturated at 50% otherwise. Result: pass (owner-marked 2026-10-10)
+  when the spell is learned and ready, desaturated at 50% otherwise. (Amended by AD-87-WG,
+  2026-11-18: the Leader row is the shared sample tank, `Mockshield-Mockrealm`, where it read
+  `Testadin-Silvermoon`; the 2026-10-10 pass mark came off.) Result:
 - **POPUP-2. `/wg show` reopens.** Close the popup, `/wg show` → the same popup with the same data.
   Result: pass (owner-marked 2026-10-10)
 - **POPUP-3. The test link.** Click `[Click here to view details]` in POPUP-1's summary → the popup
@@ -445,6 +447,20 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   another skin → the values take that skin's text color at once. Close it and `/wg test notify`
   again → still that skin's color. Fail: data in the placeholder's gray, or a value that keeps the
   old skin's color. Result:
+- **POPUP-13. The title bar's marks (AD-86-WG, LibKa0s#86).** `/wg test notify` → the title bar's
+  right end carries two small marks, a gear then an X in the corner, gray at rest. Hover the gear →
+  it lights in the skin's link color (orange under Ka0s Default) and "Open settings" shows above it;
+  hover the X → it turns red and "Close" shows above it. Click the gear → the **Ka0s WhatGroup**
+  settings open and the popup stays up over them. Click the X → the popup closes, as **Close** and
+  ESC do. Pick another skin with the popup open → both marks rest in that skin's icon color, still
+  vertically centered on the title band, and the title text does not overlap them. In combat, with
+  the popup up, click the X → the popup vanishes with no *Interface action failed* error, and
+  hovering where the marks were shows no tooltip. Fail: no marks, a mark off the band, settings
+  that open nothing or close the popup, or a Lua or blocked-action error. **Owner's call:** the popup
+  staying up over the top of the panel is by design (the Width/Height sliders and Test mode preview
+  it live there). If you would rather the gear close the popup first, say so here and it becomes a
+  `dismissPopup` before the opener. In combat, click the gear → the settings refuse to open (the
+  panel's own combat message) and the popup stays up, unchanged. Result:
 
 ## Test mode
 
@@ -478,6 +494,10 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
 - **TEST-12. The sample role.** Out of a group, `/wg test` → the popup's `Role:` row reads the
   damage icon and `Damage`, and `/wg test notify` prints `Role: Damage` in the summary. In a group
   where the leader assigned you a role, the assigned role shows instead. Result: pass (owner, 2026-10-02)
+- **TEST-13. The sample leader (AD-87-WG, LibKa0s#87).** Out of a group, `/wg test` → the popup's
+  `Leader:` row reads `Mockshield-Mockrealm`, and `/wg test notify` prints
+  `Leader: Mockshield-Mockrealm` in the summary. No real realm name (never `Silvermoon`) appears
+  anywhere on the popup or in the summary. Result:
 
 ## The teleport button
 
@@ -515,6 +535,15 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   `map=1001` and `Path of the Scarlet Blade`; then a Scarlet Monastery group → `map=1004` and
   `Path of the Scarlet Mitre`. On a character that owns either, click the icon → it lands at the
   entrance of the dungeon the group is for. Before 2026-11-15 the two were swapped. Result:
+- **TELE-9. Where the spell tooltip opens (AD-92-WG, LibKa0s#92).** `/wg test notify` with a teleport
+  you know, the popup in the middle of the screen. Hover the teleport icon → the spell tooltip (its
+  own text, unchanged) opens **right of the popup**, just outside its right edge with a small gap,
+  its top level with the icon's top; it covers no part of the popup and does not move when the
+  pointer moves over the icon. Drag the popup to the screen's right edge and hover again → it opens
+  **left of the popup**, just outside its left edge, top still level with the icon. Drag the popup to
+  the bottom of the screen → the tooltip stays on screen, sliding up only as far as it must. With
+  TELE-3's cooldown popup the tooltip opens in the same place. Never at the pointer and never off the
+  icon's top-right corner, where it opened before. Result:
 
 ## Real Group Finder flow
 
@@ -1141,6 +1170,12 @@ Default is SKIN-1's list and nothing else.
   mode off, the real popup lost after the close, the popup over the picker, or a Lua error.
   Result:
 
+- **SKIN-43. A new profile wears the client's default skin (AD-DS-WG, skinning-§2).** On Retail, in
+  `/wg config` → Profiles, create a new profile → `/wg get skin.skin` prints `ka0s` and the popup
+  (`/wg test`) wears Ka0s Default. Switch back to your own profile → its stored skin comes back
+  unchanged. Fail: a new profile on any other skin, a stored choice rewritten, or a Lua error.
+  Result:
+
 ## Library-absent install
 
 Quit the game and rename `Interface/AddOns/WhatGroup/libs/LibKa0s` to `libs/LibKa0s.off` first,
@@ -1295,3 +1330,19 @@ R6-RV2 (the same round, LibKa0s v1.85.0 re-cut at 550ef68, R6-SIM-L's Master con
 Owed from the first seed validation (`docs/seed-research/2026-11-15-retail/`, Retail build
 12.1.5.70783, Ka0sAddonsCommonTasks#1): the new TELE-7 (Brackenhide Hollow moved from `2080` to
 `2520`) and TELE-8 (Scarlet Halls and Scarlet Monastery swapped back). No other check changed.
+
+Owed from the LibKa0s v1.105.0 adoption (Ka0sAddonsCommonTasks `docs/2026-11-17-LIBKA0S_V1_105_ADOPTION/`,
+item AD-86-WG, LibKa0s#86): the new POPUP-13, the popup's title-bar settings and close marks. No other
+check changed: the footer Close, ESC and the drag keep their checks (POPUP-4, POPUP-5, POPUP-7).
+Its review amended POPUP-13: the owner's call on the gear leaving the popup up over the panel, and a
+combat click on the gear that leaves the popup unchanged.
+
+Owed from the same adoption (item AD-92-WG, LibKa0s#92, standalone-windows *Tooltip placement*): the
+new TELE-9, the teleport spell tooltip beside the popup. TELE-1 and TELE-3 keep their checks (the
+tooltip shows, on cooldown too) and only TELE-9 says where it opens. The title-bar marks' tooltips
+(POPUP-13) and the minimap button's (the launcher's) are the library's and did not change here.
+
+Owed from the same adoption (item AD-87-WG, LibKa0s#87, preview-mode *Sample characters*): the new
+TEST-13, the sample group's leader read from LibKa0s-Sim-1.0's shared set (`Mockshield-Mockrealm`,
+the set's tank), and POPUP-1 amended to that name, its pass mark off. No other check changed: the
+sample title, role and teleport are as they were.

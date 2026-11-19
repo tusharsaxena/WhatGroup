@@ -28,7 +28,7 @@ Total.
 - degraded: the Core stub's SafeRegisterEvent survives a bad name
 - events: a stand-up after a rejection records the name once
 
-### test_libka0s.lua (56)
+### test_libka0s.lua (59)
 
 - libka0s: every vendored major registers under LibStub
 - libka0s: MODULES names every file of every major, at a positive integer minor
@@ -67,6 +67,9 @@ Total.
 - degraded: the printer announces the absence exactly ONCE, then prints normally
 - degraded: the fallback printer still degrades a secret in place
 - degraded: every DebugLog member the addon calls still answers
+- degraded: a report goes to chat with no pointer, line for line (LibKa0s#79, D9)
+- degraded: a report body that writes nothing prints nothing (LibKa0s#79)
+- degraded: Serialize answers one line (LibKa0s#79, D9)
 - degraded: the console stub copies NO library formatter
 - degraded: every HAND-WRITTEN schema row survives the options library's absence (options-ui-§1)
 - degraded: the STORED profile is the same shape with the library absent
@@ -618,7 +621,7 @@ Total.
 - frame: a stand-down in combat drops a queued first show and a queued teleport configure
 - frame: reconfiguring the teleport button reuses the same three script handlers
 
-### test_frame_layers.lua (8)
+### test_frame_layers.lua (9)
 
 - layers: one table, the modal strata the popup reads (frame-layering-§5)
 - layers: the popup is DIALOG, not toplevel, clamped, and Raise()d on an explicit show
@@ -626,6 +629,7 @@ Total.
 - layers: the ESC proxy and the binding button set no strata and are never raised
 - layers: the popup body stays mouse-live at build; the title bar is the drag handle (WHA-Z01)
 - layers: a combat soft hide leaves no plain control mouse-live, and a reopen restores them
+- layers: the soft hide takes the title-bar marks' mouse too, and a reopen gives it back (AD-86-WG)
 - layers: the owed Hide at combat end leaves the controls ready for the next show
 - layers: no SetFrameStrata literal and no absolute SetFrameLevel in core, modules or settings
 
@@ -656,6 +660,29 @@ Total.
 - popup skin: the degraded S.HudFont clears the shadow on its off arm
 - popup skin: the degraded S.MarkText answers a string a caller can concatenate
 - popup skin: the degraded facade paints a token name with that token's color
+
+### test_frame_header.lua (10)
+
+- popup header: the title bar reads settings · close through W.HeaderButtons
+- popup header: the marks sit right-aligned at the strip's one pitch, close in the corner
+- popup header: S.Header lays the marks on the band at the strip's offsets
+- popup header: the settings mark's click opens WhatGroup's settings through the launcher
+- popup header: the settings mark in combat leaves the popup exactly as it was
+- popup header: every mark carries its tooltip, settings' own words and the close's Close
+- popup header: the settings mark is the owner's Mark, so it rests in icon.tint and lights text.link
+- popup header: the close mark runs dismissPopup, out of combat a real hide
+- popup header: the close mark in combat soft-hides and writes nothing protected
+- popup header: with LibKa0s absent the popup builds with no marks and still closes
+
+### test_frame_tooltip.lua (7)
+
+- teleport tooltip: a body element, it opens right of the popup, top level with the button
+- teleport tooltip: without room on the right it opens left of the popup
+- teleport tooltip: the placer is PlaceBeside, with the button and the popup as its group
+- teleport tooltip: unreadable geometry attaches it centered above the button, never the cursor
+- teleport tooltip: with the Tooltip major absent it is still attached above, never the cursor
+- teleport tooltip: the leave hides it
+- teleport tooltip: no cursor or corner anchor in the addon's own placing code
 
 ### test_panel.lua (63)
 
@@ -723,13 +750,14 @@ Total.
 - panel: the Test notification button names its run and its preview (WHA-L08)
 - panel: the header Defaults tooltip is the library's Reset all settings wording (WHA-L12)
 
-### test_skinsetup.lua (17)
+### test_skinsetup.lua (18)
 
 - skin seam: the owner is the folder name, registered at file load, and NS.Skin is its facade
 - skin seam: the read answers Ka0s Default before the profile store exists
 - skin seam: the owner tokens draw today's exact pixels under Ka0s Default
 - skin seam: each owner token follows its library role token under another skin
 - skin seam: the skin keys default to Ka0s Default, with the picker unseen
+- skin seam: the profile default and the pre-store read are the library's DefaultSkin()
 - skin seam: every skin key is a skip-render row on the Appearance tab
 - skin seam: the skin row's values are every registered skin, in the library's order
 - skin seam: /wg set refuses an unknown skin and applies a registered one live
@@ -832,7 +860,7 @@ Total.
 - profile verb: surrounding quotes are stripped, case and inner spaces kept
 - profile verb: a switch in combat is refused and nothing moves
 
-### test_testmode.lua (28)
+### test_testmode.lua (30)
 
 - testmode: bare /wg test toggles test mode, and the checkbox follows
 - testmode: /wg test on|off sets it, and repeating either changes nothing
@@ -862,6 +890,8 @@ Total.
 - testmode: /wg show ends it and shows the real capture
 - testmode: the join popup does NOT end it; the capture waits for the chat link
 - testmode: the sample capture is a fresh table each time
+- testmode: the sample leader is the shared set's tank, on a fictional realm (LibKa0s#87)
+- testmode: without the Sim major the sample leader is a copy of the library's row
 
 ### test_snapshot.lua (10)
 
@@ -1264,7 +1294,7 @@ Total.
 | Suite | Cases |
 |-------|------:|
 | test_harness.lua | 17 |
-| test_libka0s.lua | 56 |
+| test_libka0s.lua | 59 |
 | test_surface_parity.lua | 10 |
 | test_mediasetup.lua | 14 |
 | test_envsetup.lua | 10 |
@@ -1279,16 +1309,18 @@ Total.
 | test_frame.lua | 61 |
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
-| test_frame_layers.lua | 8 |
+| test_frame_layers.lua | 9 |
 | test_frame_skin.lua | 25 |
+| test_frame_header.lua | 10 |
+| test_frame_tooltip.lua | 7 |
 | test_panel.lua | 63 |
-| test_skinsetup.lua | 17 |
+| test_skinsetup.lua | 18 |
 | test_skin_outline.lua | 10 |
 | test_skin_picker.lua | 33 |
 | test_skin_verb.lua | 7 |
 | test_skin_tools.lua | 5 |
 | test_profiles.lua | 19 |
-| test_testmode.lua | 28 |
+| test_testmode.lua | 30 |
 | test_snapshot.lua | 10 |
 | test_diagnostics.lua | 20 |
 | test_launcher.lua | 41 |
@@ -1313,4 +1345,4 @@ Total.
 | test_skin_switch.lua | 25 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1103** |
+| **Total** | **1127** |

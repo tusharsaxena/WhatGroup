@@ -16,7 +16,7 @@ local test, assertEqual, assertTrue, assertFalse, assertNil =
 local function pending(overrides)
     local i = {
         title            = "Stonevault Speedrun",
-        leaderName       = "Testadin-Silvermoon",
+        leaderName       = "Mockshield-Mockrealm",
         numMembers       = 3,
         voiceChat        = "",
         age              = 0,

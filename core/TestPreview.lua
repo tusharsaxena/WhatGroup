@@ -16,6 +16,22 @@ local WhatGroup = NS.addon
 -- settings panel's Test notification button both need this body, and neither should go
 -- through the other's entry point.
 
+-- The sample group's leader (preview-mode, *Sample characters*; LibKa0s#87): one of the
+-- collection's shared sample characters, never a real-looking Name-Realm pair (the old
+-- `Testadin-Silvermoon` named a real realm). It is the set's tank, `Mockshield-Mockrealm`, from
+-- LibKa0s-Sim-1.0's retail set (this addon ships Retail only), read at call time and found by role
+-- rather than by row number. A load without the Sim major falls back to a copy of the library's row.
+local SAMPLE_LEADER_FALLBACK = "Mockshield-Mockrealm"
+
+local function sampleLeader()
+    local Sim = LibStub and LibStub("LibKa0s-Sim-1.0", true)
+    local rows = Sim and type(Sim.Sample) == "function" and Sim.Sample("retail")
+    for _, row in ipairs(rows or {}) do
+        if row.role == "TANK" and type(row.fullName) == "string" then return row.fullName end
+    end
+    return SAMPLE_LEADER_FALLBACK
+end
+
 -- The sample capture: a fresh table on every call, so no caller hands another one it then mutates.
 -- Neither `/wg test notify` (RunTest, below) nor test mode (modules/Frame.lua, bare `/wg test`)
 -- ever makes it the pending capture: both show it WITHOUT touching pendingInfo.
@@ -31,7 +47,7 @@ function WhatGroup:SampleInfo()
     -- named a real row would still pass with the mapID path broken.
     return {
         title             = "Test Group — Windrunner Spire +12",
-        leaderName        = "Testadin-Silvermoon",
+        leaderName        = sampleLeader(),
         numMembers        = 3,
         voiceChat         = "",
         age               = 127,

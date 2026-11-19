@@ -22,7 +22,7 @@ end
 
 local function pending(overrides)
     local i = {
-        title = "Stonevault Speedrun", leaderName = "Testadin", numMembers = 3,
+        title = "Stonevault Speedrun", leaderName = "Mockshield", numMembers = 3,
         voiceChat = "", age = 0, activityIDs = { 2516 }, activityID = 2516,
         fullName = "The Stonevault", activityName = "The Stonevault",
         maxNumPlayers = 5, isMythicPlus = true, isCurrentRaid = false,
@@ -517,4 +517,34 @@ test("testmode: the sample capture is a fresh table each time", function()
     assertTrue(a ~= b)
     assertEqual(a.mapID, 2805)
     assertEqual(a.title, b.title)
+end)
+
+-- The sample leader is one of the collection's shared sample characters (preview-mode, *Sample
+-- characters*; LibKa0s#87), read from LibKa0s-Sim-1.0's retail set, never a real-looking
+-- Name-Realm pair such as the old `Testadin-Silvermoon` (Silvermoon is a real realm).
+local SIM_FILES = {
+    "libs/LibKa0s/Sim.lua", "libs/LibKa0s/SimTimeline.lua",
+    "libs/LibKa0s/SimPanel.lua", "libs/LibKa0s/SimPanelRender.lua",
+}
+
+local function sharedTank(env)
+    for _, row in ipairs(env.LibStub("LibKa0s-Sim-1.0").Sample("retail")) do
+        if row.role == "TANK" then return row.fullName end
+    end
+end
+
+test("testmode: the sample leader is the shared set's tank, on a fictional realm (LibKa0s#87)", function()
+    local NS, env = T.newAddon()
+    local leader = NS.addon:SampleInfo().leaderName
+    assertEqual(leader, sharedTank(env), 'read from Sim.Sample("retail")')
+    assertEqual(leader, "Mockshield-Mockrealm")
+    assertFalse(leader:find("Silvermoon", 1, true) ~= nil, "no real realm")
+end)
+
+test("testmode: without the Sim major the sample leader is a copy of the library's row", function()
+    local _, env = T.newAddon()
+    local expected = sharedTank(env)
+    local without, bare = T.newAddon{ skip = SIM_FILES }
+    assertNil(bare.LibStub("LibKa0s-Sim-1.0", true), "the Sim major is absent")
+    assertEqual(without.addon:SampleInfo().leaderName, expected)
 end)

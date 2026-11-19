@@ -96,7 +96,8 @@ local LIBKA0S = {
     -- New in LibKa0s v1.78.0: the shared copy window (WidgetsCopyWindow minor 1). The debug console uses it.
     "libs/LibKa0s/WidgetsCopyWindow.lua",
     -- New in LibKa0s v1.105.0: the title-bar button strip and the data bar (WidgetsHeader minor 1,
-    -- W.HeaderButtons, LibKa0s#86; WidgetsBar minor 1, W.Bar, LibKa0s#80). Nothing here adopts them yet.
+    -- W.HeaderButtons, LibKa0s#86; WidgetsBar minor 1, W.Bar, LibKa0s#80). The popup's title-bar marks
+    -- are W.HeaderButtons' (modules/FrameLayout.lua, AD-86-WG); nothing here adopts W.Bar.
     "libs/LibKa0s/WidgetsHeader.lua",
     "libs/LibKa0s/WidgetsBar.lua",
     "libs/LibKa0s/DebugLog.lua",
@@ -213,6 +214,12 @@ return function(root, mockBuilder)
     --- in the client is the folder the addon was installed into. It defaults to "WhatGroup" because
     --- that is what the folder is called; a case overrides it to prove a file reads the vararg
     --- rather than a literal it typed out, which is the only way that distinction is observable.
+    ---
+    --- opts.skin = "<skin key>" makes that skin this instance's client default skin
+    --- (LibKa0s-Skin-1.0's DefaultSkin, so NS.DEFAULT_SKIN and skin.skin's default), set after the
+    --- library loads and before the addon's first file. A case proving the defaults READ
+    --- Skin:DefaultSkin() rather than a literal "ka0s" names a skin other than Ka0s Default
+    --- (AD-DS-WG, skinning-§2): on Retail the two answers are otherwise the same string.
     local function build(opts)
         opts = opts or {}
         local skipSet = {}
@@ -227,7 +234,16 @@ return function(root, mockBuilder)
         -- instance's saved table would otherwise be adopted by this one.
         _G.WhatGroupDB = nil
 
+        local skinChosen = opts.skin == nil
         for _, src in ipairs(sources) do
+            if not skinChosen and not src.lib then
+                skinChosen = true
+                local Skin = mock.LibStub and mock.LibStub("LibKa0s-Skin-1.0", true)
+                if Skin then
+                    local key = opts.skin
+                    Skin.DefaultSkin = function() return key end
+                end
+            end
             if not skipSet[src.path] then
                 local chunk = chunkFor(src.path)
                 setfenv(chunk, env)

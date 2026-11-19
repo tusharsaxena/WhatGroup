@@ -256,7 +256,7 @@ end
 --
 -- The player gets a popup that closes when they press Close, in combat or out, which is the
 -- requirement. What they do not get is the frame leaving the screen's hit-testing until the
--- lockdown lifts: alpha 0 is invisible, not absent. The title bar and the Close button go
+-- lockdown lifts: alpha 0 is invisible, not absent. The title bar, its marks and the Close button go
 -- mouse-dead with it (setControlsMouse, WHA-Z01), but the body and the teleport button still catch
 -- clicks, the body's and the button's EnableMouse being refused in combat (the residual; a teleport
 -- cannot be cast in combat anyway). That residue is why `pendingHide` exists and why the soft
@@ -318,9 +318,9 @@ end
 local escProxy
 
 -- NOTHING INVISIBLE STAYS MOUSE-LIVE (frame-layering-§4, WHA-Z01). The soft hide leaves f shown at
--- alpha 0, so its plain controls -- the title bar (the drag) and the Close button -- go mouse-dead
--- with it and come back on every show. Both are plain children with no secure descendant, so their
--- EnableMouse is legal in combat. The residual (docs/ARCHITECTURE.md's register): the body and the
+-- alpha 0, so its plain controls -- the title bar (the drag), its settings and close marks
+-- (AD-86-WG) and the Close button -- go mouse-dead with it and come back on every show. Each is a
+-- plain child with no secure descendant, so its EnableMouse is legal in combat. The residual (docs/ARCHITECTURE.md's register): the body and the
 -- secure teleport button still catch clicks at alpha 0, since f parents a secure button and both
 -- EnableMouse writes would be refused in combat; the trigger is a separate secure holder frame for
 -- the button, so f is not protected. Filled by buildFrame.
@@ -541,10 +541,30 @@ end
 -- The teleport button's three script handlers, defined once (WHATGROUP-R-16). Each configure
 -- writes the spell onto the button (`__wgSpellID`, `__wgSpellName`) and re-passes these same
 -- functions, so reopening the popup allocates no closures. They read the spell off `self`.
+--
+-- WHERE THE TOOLTIP OPENS (LibKa0s#92, AD-92-WG; standalone-windows, *Tooltip placement*). The
+-- button sits in the popup's content, so it is a body element: its tooltip opens beside the
+-- window group (the popup; nothing docks to it), outside its outer edge, right when it fits and
+-- otherwise left, its top level with the button's, through LibKa0s-Tooltip-1.0's PlaceBeside,
+-- after Show so the real size is measured. When the placer places nothing (geometry it cannot
+-- read, or the major absent) the tooltip is attached centered above the button, TIP_GAP up:
+-- never the cursor and never a corner offset (the retired owner anchor off the button's right
+-- was one). The major is read at call time, so a newer copy another addon loaded is the one used.
+local TIP_GAP = 2   -- LibKa0s-Tooltip-1.0's TIP_GAP, for the library-less attach
+
+local function placeTeleportTip(tip, btn)
+    local Tip = LibStub and LibStub("LibKa0s-Tooltip-1.0", true)
+    local lib = type(Tip) == "table" and type(Tip.PlaceBeside) == "function"
+    if lib and Tip.PlaceBeside(tip, btn, f) then return end
+    tip:ClearAllPoints()
+    tip:SetPoint("BOTTOM", btn, "TOP", 0, (lib and tonumber(Tip.TIP_GAP)) or TIP_GAP)
+end
+
 local function onTeleportEnter(self)
-    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetOwner(self, "ANCHOR_NONE")
     GameTooltip:SetSpellByID(self.__wgSpellID)
     GameTooltip:Show()
+    placeTeleportTip(GameTooltip, self)
 end
 
 local function onTeleportLeave() GameTooltip:Hide() end
@@ -823,11 +843,13 @@ local function buildFrame()
     end)
 
     -- Every region inside the window (modules/FrameLayout.lua).
-    local titleBar, closeBtn
-    titleBar, closeBtn, fields = Layout.Build(f, dismissPopup)
+    local titleBar, closeBtn, marks
+    titleBar, closeBtn, fields, marks = Layout.Build(f, dismissPopup)
 
-    -- The plain controls the combat soft hide makes mouse-dead (setControlsMouse, above).
+    -- The plain controls the combat soft hide makes mouse-dead (setControlsMouse, above): the title
+    -- bar, the Close button and the title bar's marks (settings, close; AD-86-WG).
     mouseControls[1], mouseControls[2] = titleBar, closeBtn
+    for i = 1, #marks do mouseControls[#mouseControls + 1] = marks[i] end
 
     -- ESC to close — register the PROXY with UISpecialFrames *now*, lazily (buildEscapeProxy says
     -- why it is a proxy and not "WhatGroupFrame"). Earlier versions registered at file-load and that

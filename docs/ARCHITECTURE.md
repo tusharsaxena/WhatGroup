@@ -278,10 +278,69 @@ its header comment holds the whole stack, library and Blizzard tiers included, a
   `WhatGroupTogglePopup`, with no visuals and no mouse.
 
 The popup body keeps the mouse, so a click on the visible popup stays on it. The combat soft hide
-makes the title bar and the Close button mouse-dead and every show restores them
+makes the title bar, its two marks and the Close button mouse-dead and every show restores them
 (frame-layering-§4); the body and the teleport button are the soft-hide residual (register row
 below). The addon sets no frame level, and
 `tests/test_frame_layers.lua` pins all of this. Popup detail: [docs/frame.md](./frame.md).
+
+**The popup's title-bar marks (LibKa0s#86, AD-86-WG; standalone-windows, *Title-bar controls*).**
+The popup is the one window the addon owns, and its title bar reads **settings · close**,
+right-aligned, built by `LibKa0s-Widgets-1.0`'s `W.HeaderButtons` in `modules/FrameLayout.lua`
+(`buildMarks`), so its marks share the size, pitch, paint path and tooltips of every Ka0s window:
+`icon.tint` at rest and `text.link` under the pointer, the close `close.hot`, settings saying
+"Open settings" and the close "Close". `owner` is the folder, which is the launcher descriptor's
+`name`, so the settings mark opens WhatGroup's settings through the opener
+`core/LauncherSetup.lua` registered (`Core.OpenSettings`). The close mark is built through
+`NS.MakeCloseButton`, the one close wrapper, and runs `dismissPopup`, the body the footer **Close**
+and Escape run: never the strip's default bare `f:Hide()`, which is refused in combat because `f`
+parents a secure button. No `hideOnSettings`, on purpose, though the popup does cover the top of the
+panel: it is the DIALOG-tier notice made to sit above the Settings panel it is previewed from, and the
+gear is the way to that panel's Width/Height sliders and Test mode, which preview the popup live and
+only work while it stays up. Combat does not enter into it: the opener refuses in combat on its own
+(`settings/Slash.lua`'s `OpenSettings`). The owner confirms or reverses this at POPUP-13; the reversal
+is a `settings` function that runs `dismissPopup` before the opener.
+`modules/FrameSkin.lua`'s `TitleBar` hands the strip's `right` to `S.Header`, which lays both marks
+on the skin's band at the offsets they were laid at. The footer **Close** stays (its register row
+below). A library-less install has no Widgets and draws no marks. The addon builds no LibKa0s
+`DragHandle`, so the drag strip's settings mark has nothing to reach. The library's windows the
+addon opens (debug console, copy window, skin picker) carry their own strips from the re-vendor.
+`tests/test_frame_header.lua` pins the strip.
+
+## Tooltip placement
+
+standalone-windows' *Tooltip placement* (v2.113.0; adopted by AD-92-WG, LibKa0s#92) binds every
+tooltip of the popup. The addon places **one tooltip of its own**, and no tooltip anywhere in
+`core/` or `modules/` is put on the cursor or at a corner offset; `tests/test_frame_tooltip.lua`
+pins both.
+
+- **The teleport button's spell tooltip: a body element, beside the popup.** The button sits in the
+  popup's content, so its tooltip (`GameTooltip:SetSpellByID`, the spell's own text, cooldown
+  included) opens beside the window group, outside the popup's outer edge: right when it fits,
+  otherwise left, its top level with the button's top, 2 px (`TIP_GAP`) off the edge.
+  `modules/Frame.lua`'s `onTeleportEnter` owns it at `ANCHOR_NONE`, fills and shows it, then places
+  it through `LibKa0s-Tooltip-1.0`'s `PlaceBeside` with the popup as the group (nothing docks to the
+  popup, so the group is the popup alone). When the placer places nothing (geometry it cannot read,
+  or the major absent) the tooltip is attached centered above the button, 2 px up: never the
+  cursor. Before AD-92-WG it was `SetOwner(self, "ANCHOR_RIGHT")`, the corner offset the rule names.
+- **Placed by the library, in scope and already compliant.** The title bar's settings and close
+  marks (`W.HeaderButtons` and `AttachTitleTip`, `PlaceAttached` above the mark; *The popup's
+  title-bar marks*, above); the minimap button's tooltip (`LibKa0s-Launcher-1.0` minor 11,
+  `PlaceLauncher`, toward the screen's center); and the library's own windows the addon opens (the
+  debug console and its copy window, the first-run skin picker's toolbar). The addon passes no
+  placement hook to any of them.
+
+**Left as they are, out of the rule's scope** (its *What it does not bind*):
+
+- **The settings panel's tooltips**: every row, button and tab under `settings/` (the Options
+  widgets' and AceGUI's, the Keybindings tab's `NS.BINDINGS` descriptions). They are pages inside
+  Blizzard's Settings canvas, which options-ui governs.
+- **The launcher's options menu**: the client's `MenuUtil.CreateContextMenu` menu (launcher-§2),
+  whose entries' tooltips the client's menu system places.
+- **A LibDataBroker display's bar** (Titan Panel and the like): the display places the tooltip, and
+  the launcher object only fills it (launcher-§1).
+- **The chat summary's spell link**: a click on the `Teleport:` row's spell link opens Blizzard's
+  `ItemRefTooltip`, which the client places. The details link (`addon:WhatGroup:show`) opens the
+  popup and shows no tooltip.
 
 ## Skins
 
@@ -303,7 +362,8 @@ surface carries a typed look value.
   which `tests/test_skinsetup.lua` holds to the library's values; `tests/test_surface_parity.lua`
   holds the degraded facade to the live one key for key.
 - **The stored choice.** Eight profile keys under `skin.*` ([schema.md](./schema.md)): `source`
-  (`ka0s` or `eui`) and `skin`, the Scope's `ignorePanel` (on in a new profile: the settings pages
+  (`ka0s` or `eui`) and `skin`, whose default is `NS.DEFAULT_SKIN`, `Skin:DefaultSkin()` read once
+  at file load (skinning-§2: Ka0s Default on Retail, `ka0s` without the library), the Scope's `ignorePanel` (on in a new profile: the settings pages
   stay the client's) and `ignoreFonts`, the two overrides `font` and `texture` (an LSM key each, `""`
   for the skin's own), the Font outline `outline` (`all`, `hud` or `off`; LibKa0s v1.82.0) and
   `pickerSeen`. All are `skipRender` schema rows on the **Appearance** group,
@@ -390,7 +450,7 @@ surface carries a typed look value.
 - **Private `NS` namespace, no public global.** Every source file starts with `local addonName, NS = ...` — or `local _, NS = ...` where the folder name is not read, which is every other source file, none of which hands the folder name to a vendored library (`M4c-04` renamed ten of them); the AceAddon object is `NS.addon` (mixed into `NS`, aliased downstream as `local WhatGroup = NS.addon`). There is **no `_G.WhatGroup`** (WG-01). New standalone data/logic hangs on `NS.*` (`NS.Compat`, `NS.L`, `NS.State`, `NS.TeleportSpells`, `NS.PREFIX`, …). If a public surface is ever needed, expose only a versioned `NS.API.v1` via `_G[addonName]` — never the whole table.
 - **Schema-first.** Adding a setting = one row in `Settings.Schema`. The panel widget, `/wg list/get/set`, AceDB defaults, and `/wg reset` all follow automatically. Don't reach into `db.profile` directly from new code; go through `Helpers.Get` / `Helpers.Set` so the panel refreshers and `/wg list/get/set` stay in sync.
 - **Slash-first.** Adding a command = one row in `COMMANDS` (`settings/Slash.lua`). The help index, the settings landing page and the dispatcher all iterate that one table. Rows are **positional triples** — `{ name, description, handler }` — and the handler takes `rest` alone, never `(self, rest)`: that is the shape `LibKa0s-Slash-1.0` reads, and a table of named fields is silently invisible to it.
-- **The library seams degrade, they never error.** All eleven wiring files — `core/CoreSetup.lua` (Core), `core/SkinSetup.lua` (Skin: a degraded facade that answers Ka0s Default), `core/DebugLogSetup.lua` (DebugLog), `core/EnvSetup.lua` (Env), `core/MediaSetup.lua` (Media), `core/Compat.lua` (Compat), `core/LauncherSetup.lua` (Launcher), `core/LifecycleSetup.lua` (Lifecycle), `settings/OptionsSetup.lua` (Options), `settings/Slash.lua` (Slash) and `settings/SchemaSetup.lua` (Schema) — resolve their major with `LibStub(major, true)` and fall back when it is absent: a stub, a nil answer, or the client's own API. `core/CoreSetup.lua` publishes the one shared cause clause, **`NS.LIBKA0S_MISSING`**, *outside* its own `if not lib` branch, because `core/DebugLogSetup.lua`, `core/LauncherSetup.lua`, `settings/OptionsSetup.lua` and `settings/Slash.lua` read it on both paths; each appends its own consequence (`", so the debug console window is unavailable."`, `", so the settings panel is unavailable."`, `", so the settings CLI is unavailable."`, `", so there is no minimap button and no broker plugin."`) and the Core fallback printer announces once with `"; running on reduced built-in fallbacks."`. A degraded install therefore says the same thing about **why** at every site and a different thing about **what** at each one. That is a cross-file contract, not an implementation detail of one file.
+- **The library seams degrade, they never error.** All eleven wiring files — `core/CoreSetup.lua` (Core), `core/SkinSetup.lua` (Skin: a degraded facade that answers Ka0s Default), `core/DebugLogSetup.lua` (DebugLog), `core/EnvSetup.lua` (Env), `core/MediaSetup.lua` (Media), `core/Compat.lua` (Compat), `core/LauncherSetup.lua` (Launcher), `core/LifecycleSetup.lua` (Lifecycle), `settings/OptionsSetup.lua` (Options), `settings/Slash.lua` (Slash) and `settings/SchemaSetup.lua` (Schema) — resolve their major with `LibStub(major, true)` and fall back when it is absent: a stub, a nil answer, or the client's own API. `core/CoreSetup.lua` publishes the one shared cause clause, **`NS.LIBKA0S_MISSING`**, *outside* its own `if not lib` branch, because `core/DebugLogSetup.lua`, `core/LauncherSetup.lua`, `settings/OptionsSetup.lua` and `settings/Slash.lua` read it on both paths; each appends its own consequence (`", so the debug console window is unavailable."`, `", so the settings panel is unavailable."`, `", so the settings CLI is unavailable."`, `", so there is no minimap button and no broker plugin."`) and the Core fallback printer announces once with `"; running on reduced built-in fallbacks."`. A degraded install therefore says the same thing about **why** at every site and a different thing about **what** at each one. That is a cross-file contract, not an implementation detail of one file. The DebugLog stub's report seam is the one arm that is louder, not quieter: `Report(tag, title, fn)` streams the body to chat line for line with no console pointer and answers the line count (a body that writes nothing prints nothing), and `Serialize` answers one line, the library-absent arm DebugLog 23.11.1.5's D9 prescribes; no `/wg` verb routes a report through it today. Pinned by `tests/test_libka0s.lua`'s three `degraded:` report cases.
 - **`settings/OptionsSetup.lua`'s stub is LOAD-COMPLETING, not member-answering** — the one documented exception (options-ui-§1). Its members are no-ops rather than honest-line printers because a page file that touched one *at file load* would raise and take a third of the schema with it. WhatGroup's measured load-time set is empty, and `tests/test_libka0s.lua` pins that by loading with the library absent and comparing the schema row count against a full load.
 - **AceDB profiles, shared by default.** `AceDB:New("WhatGroupDB", defaults, true)` — the third arg `true` puts every character on one `Default` profile until the player picks another on the **Profiles** page (`settings/Profiles.lua`, AceDBOptions, options-ui-§3). What a profile holds and what stays account-wide is [profiles.md](./profiles.md).
 - **`Settings.Register()` is idempotent.** The `WhatGroup._settingsRegistered` guard means it can be called multiple times without re-registering categories. It runs from `OnEnable` (PLAYER_LOGIN) so the panel is in the Settings → AddOns list at login — the same place every other Ka0s addon registers — and again, as a no-op, from `runConfig`. Registering a canvas category at login is taint-safe; WhatGroup's real boot-taint sources (the secure teleport button + `UISpecialFrames` insert) stay deferred in `modules/Frame.lua`. See [docs/settings-panel.md](./settings-panel.md#lazy-panel-build) and [docs/midnight-quirks.md](./midnight-quirks.md).
@@ -429,7 +489,7 @@ mandated timer lib, WG-17 — `AceDB-3.0`, `AceGUI-3.0` via its `.xml`, and `Ace
 `AceDBOptions-3.0` for the Profiles page alone), `LibSharedMedia-3.0`,
 the launcher's `LibDataBroker-1.1` and `LibDBIcon-1.0` (`OptionalDeps`, `launcher-§1`), `EllesmereUI` (`OptionalDeps` only, never vendored: the skin source it offers, skinning-§5), and:
 
-- `LibKa0s` (loaded **last**, via its own `LibKa0s.xml`) — the shared Ka0s addon library. WhatGroup takes eleven of its majors: **Core** (the prefixed secret-safe printer, `SafeToString`, the shared window skin, the close-button factory), **Skin** (the skin owner, its facade, the nine skins, the EllesmereUI provider and the AceGUI painters, wired in `core/SkinSetup.lua`; see `## Skins`), **Env** (the TOC-manifest reader behind `NS.Meta` / `NS.Version`), **Compat** (the spell name, icon and cooldown readers behind `NS.Compat`, since v1.55.0, and the `IsSecret` guard the cooldown reader tests before it compares), **Media** (the icon catalog and the monospace face), **DebugLog** (the on-screen console), **Options** (the settings-canvas shell, the widget makers and the two-column flow engine), **Schema** (the settings schema's runtime — the path walk, the row index, the single write seam, the bulk bracket and the reset count — as `NS.SchemaRuntime`, wired in `settings/SchemaSetup.lua` and `settings/Schema.lua`, [#22](https://github.com/tusharsaxena/WhatGroup/issues/22)), **Slash** (the dispatcher, the help renderer and the schema CLI), **Launcher** (the one LibDataBroker object, both registrations and the click dispatch) and **Lifecycle** (the stand-down latch and its two named holds). **Perf is declined** on structural grounds — no hot path, and `suspend` would stop a capture addon capturing ([`LIBKA0S-15`](https://github.com/tusharsaxena/WhatGroup/issues/7)) — and so is **Bus**, because there is no bus ([#21](https://github.com/tusharsaxena/WhatGroup/issues/21)). Schema's seam refuses a write to a path with no row, and on a library-absent load `enabled` and `state.testMode` have none; no `writeThrough` list is passed, so there `/wg enable`, `/wg disable` and `/wg test` print the library-absent line instead of writing (`/wg skin` prints the same line by another route: the Options stub's `SkinVerb` returns `nil, "absent"`, and `NS.RunSkinVerb` prints it, never through the Schema seam) — `options-ui-§1` route (b), the owner's ruling on #22, recorded in `## Documented deviations`. The folder is vendored whole regardless, because the other majors sit on `Core` and a hand-picked subset is anti-pattern #48.
+- `LibKa0s` (loaded **last**, via its own `LibKa0s.xml`) — the shared Ka0s addon library. WhatGroup takes thirteen of its majors: **Core** (the prefixed secret-safe printer, `SafeToString`, the shared window skin, the close-button factory), **Skin** (the skin owner, its facade, the nine skins, the EllesmereUI provider and the AceGUI painters, wired in `core/SkinSetup.lua`; see `## Skins`), **Env** (the TOC-manifest reader behind `NS.Meta` / `NS.Version`), **Compat** (the spell name, icon and cooldown readers behind `NS.Compat`, since v1.55.0, and the `IsSecret` guard the cooldown reader tests before it compares), **Media** (the icon catalog and the monospace face), **DebugLog** (the on-screen console), **Options** (the settings-canvas shell, the widget makers and the two-column flow engine), **Schema** (the settings schema's runtime — the path walk, the row index, the single write seam, the bulk bracket and the reset count — as `NS.SchemaRuntime`, wired in `settings/SchemaSetup.lua` and `settings/Schema.lua`, [#22](https://github.com/tusharsaxena/WhatGroup/issues/22)), **Slash** (the dispatcher, the help renderer and the schema CLI), **Launcher** (the one LibDataBroker object, both registrations and the click dispatch), **Lifecycle** (the stand-down latch and its two named holds), **Tooltip** (`PlaceBeside` for the teleport spell tooltip; see `## Tooltip placement`) and **Sim**, for its data alone: `Sim.Sample("retail")` names the sample group's leader (`core/TestPreview.lua`, preview-mode *Sample characters*, LibKa0s#87), and no Sim session, seam or panel is built. **Perf is declined** on structural grounds — no hot path, and `suspend` would stop a capture addon capturing ([`LIBKA0S-15`](https://github.com/tusharsaxena/WhatGroup/issues/7)) — and so is **Bus**, because there is no bus ([#21](https://github.com/tusharsaxena/WhatGroup/issues/21)). Schema's seam refuses a write to a path with no row, and on a library-absent load `enabled` and `state.testMode` have none; no `writeThrough` list is passed, so there `/wg enable`, `/wg disable` and `/wg test` print the library-absent line instead of writing (`/wg skin` prints the same line by another route: the Options stub's `SkinVerb` returns `nil, "absent"`, and `NS.RunSkinVerb` prints it, never through the Schema seam) — `options-ui-§1` route (b), the owner's ruling on #22, recorded in `## Documented deviations`. The folder is vendored whole regardless, because the other majors sit on `Core` and a hand-picked subset is anti-pattern #48.
 
 WoW retail APIs the addon depends on: `C_LFGList.ApplyToGroup` / `GetSearchResultInfo` / `GetApplicationInfo` / `GetActivityInfoTable`, `C_Spell.GetSpellName` / `GetSpellTexture` / `GetSpellLink` / `GetSpellCooldown` (the legacy `GetSpell*` globals are the fallback rung for all but `GetSpellLink`, which degrades straight to `nil` — `Compat.GetSpellLink` in `core/Compat.lua`; the name, texture and cooldown ladders are `LibKa0s-Compat-1.0`'s), `C_SpellBook.IsSpellKnown` (the `IsSpellKnown` global is its fallback rung), `C_Timer.After`, `GetTime`, `IsInGroup`, and, for the details chat link, `LinkTypes.AddOn` plus `EventRegistry:RegisterCallback("SetItemRef", …)` (both detected in `NS.Compat.AddOnLinkType`; `SetItemRef` is post-hooked only when either is missing). Teleport casting goes through a `SecureActionButtonTemplate` `macrotext` (`/cast <SpellName>`) — **not** `CastSpellByID`, which a non-secure addon click would trip `ADDON_ACTION_FORBIDDEN` on. Settings API: `Settings.RegisterCanvasLayoutCategory`, `Settings.RegisterCanvasLayoutSubcategory`, `Settings.RegisterAddOnCategory`, `Settings.OpenToCategory`. Frame chrome: `BackdropTemplate`, `SecureActionButtonTemplate`, `UISpecialFrames`.
 
