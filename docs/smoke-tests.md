@@ -1116,10 +1116,10 @@ Default is SKIN-1's list and nothing else.
   **High Contrast**, then **Ka0s Default** → the rows stay put under the band, and no line appears in
   either. Fail: a thin line or a gap of another color under the title, a row overlapping the band,
   or a Lua error. Result:
-- **SKIN-38. The teleport icon keeps the window outline (R4-RV3; LibKa0s R4-L4).** With DpsRace,
+- **SKIN-38. The teleport icon keeps the window outline (R4-RV3; LibKa0s R4-L4).** With CombatTrail,
   MultiMeters or PartyFrameEnhanced also loaded, on **Ka0s Default**, `/wg test` on a mapped dungeon →
   the teleport icon's 1px outline is the window's mid gray (#4D4D57), as in SKIN-36, while those
-  addons' HUD icons (DpsRace's race HUD spell rows, MultiMeters' meter row icons, the party cast bar's
+  addons' HUD icons (Combat Trail's race HUD spell rows, MultiMeters' meter row icons, the party cast bar's
   spell icon) keep a black edge. Pick **Obsidian**, then **Ka0s Default** → the teleport outline
   follows each skin and comes back gray. Fail: a black teleport outline under Ka0s Default, an
   outline that stays on Obsidian's color after the switch back, or a Lua error. Result:
