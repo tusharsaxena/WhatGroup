@@ -664,7 +664,7 @@ Total.
 - popup skin: the degraded S.MarkText answers a string a caller can concatenate
 - popup skin: the degraded facade paints a token name with that token's color
 
-### test_frame_header.lua (16)
+### test_frame_header.lua (17)
 
 - popup header: the title bar reads lock · settings · close through W.HeaderButtons
 - popup header: the marks sit right-aligned at the strip's one pitch, close in the corner
@@ -678,6 +678,7 @@ Total.
 - popup header: the lock mark draws unlock and offers to lock while the popup is unlocked
 - popup header: a popup first shown locked builds its lock mark locked
 - popup header: the lock mark's click runs SlashToggleLock and repaints from the profile
+- popup header: a click under the pointer re-shows the lock mark's tooltip with the new words
 - popup header: the lock mark follows the row whichever surface writes it
 - popup header: a profile switch repaints the lock mark from the incoming profile
 - popup header: the lock mark is the owner's Mark and carries a hover tooltip
@@ -1320,7 +1321,7 @@ Total.
 | test_frame_secure.lua | 7 |
 | test_frame_layers.lua | 9 |
 | test_frame_skin.lua | 25 |
-| test_frame_header.lua | 16 |
+| test_frame_header.lua | 17 |
 | test_frame_tooltip.lua | 7 |
 | test_panel.lua | 63 |
 | test_skinsetup.lua | 18 |
@@ -1354,4 +1355,4 @@ Total.
 | test_skin_switch.lua | 25 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1136** |
+| **Total** | **1137** |

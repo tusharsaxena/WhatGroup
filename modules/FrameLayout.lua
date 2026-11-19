@@ -83,6 +83,13 @@ function FrameLayout.PaintLock(f)
     b.__tip = tip
     local path = b.icon and NS.Icon(icon)
     if path then b.icon:SetTexture(path) end
+    -- The library's showTip reads `__tip` on OnEnter only, so a tip already up on the mark (the
+    -- pointer still on it after a click) is re-shown with the new words. Not protected: safe in combat.
+    local tipFrame = GameTooltip
+    if tipFrame and type(tipFrame.IsOwned) == "function" and tipFrame:IsOwned(b) then
+        local onEnter = b:GetScript("OnEnter")
+        if onEnter then onEnter(b) end
+    end
 end
 
 --- f is the popup, dismissPopup what the Close button runs.

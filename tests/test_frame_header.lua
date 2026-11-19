@@ -204,6 +204,38 @@ test("popup header: the lock mark's click runs SlashToggleLock and repaints from
     assertEqual(art(b), NS.Icon("unlock"))
 end)
 
+--- A tooltip stand-in that tracks its owner and its text, so a hovered mark's tip is assertable.
+local function recordingTip(mock)
+    local tip = { shown = false }
+    function tip:SetOwner(o) self.owner = o end
+    function tip:IsOwned(o) return self.shown and self.owner == o end
+    function tip:SetText(t) self.text = t end
+    function tip:Show() self.shown = true end
+    function tip:Hide() self.shown = false; self.owner = nil end
+    tip.ClearAllPoints = function() end
+    tip.SetPoint = function() end
+    mock.GameTooltip = tip
+    return tip
+end
+
+test("popup header: a click under the pointer re-shows the lock mark's tooltip with the new words", function()
+    -- red under: PaintLock swapping __tip only, so the open tooltip keeps the old words until the
+    -- next hover (POPUP-14 reads the new tip right after the click); or a repaint that shows a tip
+    -- the mark does not own.
+    local NS, _, mock = T.bootAddon()
+    shown(NS, mock)
+    local b = lockMark(mock)
+    local tip = recordingTip(mock)
+    b.__scripts.OnEnter(b)
+    assertEqual(tip.text, NS.L["Lock the popup in place"], "the hover shows what a click does")
+    b.__scripts.OnClick(b, "LeftButton")
+    assertTrue(tip:IsOwned(b), "the tip stays up on the mark")
+    assertEqual(tip.text, NS.L["Unlock the popup so it can be dragged"], "and now offers to unlock")
+    b.__scripts.OnLeave(b)
+    NS.addon:OnSlashCommand("unlock")
+    assertFalse(tip.shown, "a repaint with the pointer elsewhere shows no tip")
+end)
+
 test("popup header: the lock mark follows the row whichever surface writes it", function()
     -- red under: a repaint wired to the mark's click alone, so `/wg lock`, `/wg set locked`, the
     -- Lock frame checkbox and the launcher's Locked entry leave the mark showing the old state.
