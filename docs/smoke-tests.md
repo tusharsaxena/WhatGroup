@@ -1377,3 +1377,8 @@ header lock mark, and SLASH-13, the `/wg lock` and `/wg unlock` verbs. SLASH-1 i
 eighteen help rows, its pass mark off, and POPUP-13 to the three marks it now sees. The bottom Close
 keeps POPUP-4 and its new register row. The re-vendor of LibKa0s v1.107.0 (AF-RV-WG) moves only the
 drag strip, which this addon does not build, so it owes no check of its own.
+
+Owed from the skin-defaults run (Ka0sAddonsCommonTasks `docs/2026-11-20-LIBKA0S_94_97_99_100/`, item
+SD-RV-WG, LibKa0s v1.108.0): no check of its own. The release moves call-outs, arrows, charts, data
+bars, footers and option composers, and this addon builds none of them. The library-absent popup now
+takes its two edge colors from `NS.SKIN_FALLBACK`, which holds the same values, so it draws as before.

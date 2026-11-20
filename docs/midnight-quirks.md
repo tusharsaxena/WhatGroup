@@ -2,7 +2,7 @@
 
 The Blizzard-side gotchas WhatGroup specifically depends on, and the conventions that follow from them. If a future patch breaks the addon, this file is the first place to look. It has two parts. The first is the collection's client-quirks catalog, vendored whole from the Ka0s WoW Addon Standard and replaced wholesale on every re-vendor: never edit inside the markers. The second, below the end marker, is WhatGroup's own.
 
-<!-- BEGIN VENDORED: quirks catalog v2.115.0 (source: WowAddonStandards) -->
+<!-- BEGIN VENDORED: quirks catalog v2.116.0 (source: WowAddonStandards) -->
 > Part of the **[Ka0s WoW Addon Standard](https://github.com/tusharsaxena/WowAddonStandards/blob/master/standards/STANDARDS.md)** — the split standard. This section is vendored whole into every addon's `docs/midnight-quirks.md` (§1), so its links are absolute. Cross-references use the `filename-§N` form (see the index's section map).
 
 ## Client quirks

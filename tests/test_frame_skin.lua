@@ -507,6 +507,25 @@ test("popup skin: the degraded popup keeps its 30px bar and centered title, with
     assertEqual(colorOf(f.title), rgb(1, 0.82, 0), "title.text from the host copy")
 end)
 
+test("popup skin: the degraded popup's edge draws the host copy's win.bg and win.border", function()
+    -- core/CoreSetup.lua's degraded NS.ApplySkin reads NS.SKIN_FALLBACK, the one host copy of the Ka0s
+    -- Default tokens (core/SkinSetup.lua, held to the live library by tests/test_skinsetup.lua).
+    -- red under: a degraded arm that sets no color and leaves the backdrop white, or reads another
+    -- token. A second hand-typed { r, g, b, a } there is the kit's test_skin_values to catch (revision 58).
+    local NS = T.bootAddon{ skip = T.loadAddon.libFiles }
+    local got = {}
+    local f = { SetBackdrop = function(_, t) got.backdrop = t end,
+                SetBackdropColor = function(_, ...) got.bg = { ... } end,
+                SetBackdropBorderColor = function(_, ...) got.border = { ... } end }
+    NS.ApplySkin(f, nil, "WhatGroup")
+    assertTrue(got.backdrop ~= nil, "the degraded edge set no backdrop")
+    local want = { bg = NS.SKIN_FALLBACK["win.bg"], border = NS.SKIN_FALLBACK["win.border"] }
+    for part, c in pairs(want) do
+        assertTrue(got[part] ~= nil, part .. " was never set")
+        for i = 1, 4 do assertEqual(got[part][i], c[i], part .. " channel " .. i) end
+    end
+end)
+
 -- A string that records the three calls S.HudFont owes it.
 local function recordingString()
     local fs = {}

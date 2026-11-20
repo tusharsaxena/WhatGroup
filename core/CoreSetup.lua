@@ -93,16 +93,21 @@ if not lib then
     -- The window chrome, degraded to a plain dark panel. Deliberately NOT a hand-copy of Core's
     -- SKIN values: standalone-windows makes the Ka0s window edge normative and copying the hex
     -- codes into a fallback is exactly the drift the shared table exists to end (anti-patterns
-    -- #47). A degraded install gets a readable window, not a pixel-accurate one.
-    NS.SKIN = { bg = { 0.06, 0.06, 0.08, 0.92 }, border = { 0, 0, 0, 1 } }
+    -- #47). A degraded install gets a readable window, not a pixel-accurate one. Its two colors are
+    -- `win.bg` and `win.border` from NS.SKIN_FALLBACK, the one host copy of the Ka0s Default tokens
+    -- (core/SkinSetup.lua, held to the live library by tests/test_skinsetup.lua), read at call time
+    -- because SkinSetup loads after this file. No second copy lives here (SD-RV-WG: kit revision 58
+    -- reads the `{ r, g, b, a }` table this arm used to type).
+    NS.SKIN = {}
     function NS.ApplySkin(frame)
         if not (frame and frame.SetBackdrop) then return end
+        local fallback = NS.SKIN_FALLBACK or {}
         frame:SetBackdrop({
             bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8",
             edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 },
         })
-        frame:SetBackdropColor(unpack(NS.SKIN.bg))
-        frame:SetBackdropBorderColor(unpack(NS.SKIN.border))
+        if fallback["win.bg"] then frame:SetBackdropColor(unpack(fallback["win.bg"])) end
+        if fallback["win.border"] then frame:SetBackdropBorderColor(unpack(fallback["win.border"])) end
     end
     function NS.MakeCloseButton() return nil end
 

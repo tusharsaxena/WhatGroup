@@ -636,7 +636,7 @@ Total.
 - layers: the owed Hide at combat end leaves the controls ready for the next show
 - layers: no SetFrameStrata literal and no absolute SetFrameLevel in core, modules or settings
 
-### test_frame_skin.lua (25)
+### test_frame_skin.lua (26)
 
 - popup skin: the title's brand span reads wg.brand, FFD700 byte for byte on Ka0s Default
 - popup skin: every field label is painted in wg.label, with no inline color
@@ -658,6 +658,7 @@ Total.
 - popup skin: a switch while stood down queues no anchor; the stand-up re-anchors
 - popup skin: a switch before the popup exists builds nothing
 - popup skin: the degraded popup keeps its 30px bar and centered title, with no edge
+- popup skin: the degraded popup's edge draws the host copy's win.bg and win.border
 - popup skin: the degraded S.HudFont draws: a face, a size and the From skin flags
 - popup skin: the degraded S.BarBorder answers its stored three, and S.HoverArt draws nothing
 - popup skin: the degraded S.HudFont clears the shadow on its off arm
@@ -1261,13 +1262,14 @@ Total.
 
 ### test_skin_values.lua (3)
 
-- skin values: every host row carries its file, substring, why and cause id
+- skin values: every host row carries its file, substring, why and a cause id or kit row category
 - skin values: no typed value outside the kit's categories and the host's rows
 - skin values: the check is falsifiable, a planted value of each shape is reported
 
-### test_skin_switch.lua (25)
+### test_skin_switch.lua (26)
 
 - skin switch: the check is falsifiable, a surface that redraws a literal is reported
+- skin switch: the check is falsifiable, a bar whose texture never moves is reported
 - skin switch: the popup's window changes
 - skin switch: the popup's window changes with the Scope ignored
 - skin switch: the popup's title bar changes
@@ -1320,7 +1322,7 @@ Total.
 | test_frame_visibility.lua | 36 |
 | test_frame_secure.lua | 7 |
 | test_frame_layers.lua | 9 |
-| test_frame_skin.lua | 25 |
+| test_frame_skin.lua | 26 |
 | test_frame_header.lua | 17 |
 | test_frame_tooltip.lua | 7 |
 | test_panel.lua | 63 |
@@ -1352,7 +1354,7 @@ Total.
 | test_diagnostics_contract.lua | 8 |
 | test_lizard_sighted.lua | 8 |
 | test_skin_values.lua | 3 |
-| test_skin_switch.lua | 25 |
+| test_skin_switch.lua | 26 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1137** |
+| **Total** | **1139** |

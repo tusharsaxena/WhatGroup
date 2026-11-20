@@ -453,7 +453,8 @@ surface carries a typed look value.
 - **What stays Blizzard's** (skinning-§7): the secure teleport button and its spell icon (no edge is
   added to a protected frame, D5), the cooldown swipe, the spell tooltip, the StaticPopups, the
   launcher's menu and the LibDBIcon button, and the `SettingsPanel` chrome. The library-absent path
-  draws the popup in the pre-skin colors through `core/CoreSetup.lua`'s fallback.
+  draws the popup through `core/CoreSetup.lua`'s fallback, in the `win.bg` and `win.border` of
+  `NS.SKIN_FALLBACK` (`core/SkinSetup.lua`), the one host copy of Ka0s Default's tokens.
 
 ## Invariants worth not breaking
 
