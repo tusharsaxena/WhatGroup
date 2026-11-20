@@ -1,6 +1,6 @@
 -- tests/skin_surfaces.lua — this addon's painted surfaces, declared for the kit's skin-switch test
--- (tests/_kit/test_skin_switch.lua, kit revision 50, skinning-§1). tests/run.lua sets Kit.skinSwitch
--- from it. Loaded with dofile (it registers no case of its own).
+-- (tests/_kit/test_skin_switch.lua, kit revision 50, families since 58, skinning-§1). tests/run.lua
+-- sets Kit.skinSwitch from it. Loaded with dofile (it registers no case of its own).
 --
 -- WHAT IS HERE. Everything this addon's own code paints, one entry per painted object, because a
 -- surface passes on any change under it and the whole popup would pass on its first recolored
@@ -12,6 +12,15 @@
 -- the first-run picker and every row the Options instance draws are the library's, and its own suite
 -- holds them. No surface carries a companion: this addon has no `<key>FromSkin` row, no bar and no
 -- HUD string.
+--
+-- THE FAMILIES (kit revision 58, SD-SK-WG of Ka0sAddonsCommonTasks docs/2026-11-20-LIBKA0S_94_97_99_100).
+-- Each setter family a surface draws has to move on its own. Two surfaces draw skin art and say so
+-- with `expect = "texture"`, so art that stops following fails even while its tint still moves: the
+-- popup's window (S.Shell's edge style and its `win.bgTexture` background, WoW Default's dialog art)
+-- and the Close button (S.Button's edge from `btn.borderStyle`). The title bar's band and the icon's
+-- edge are flat color only and expect none. No surface holds a StatusBar, so none says `clear`, and
+-- no ruling keeps a family fixed, so none says `hold`: the looks the audit rules OVERRIDE (the spell
+-- and role icons, the cooldown swipe, the dimmed not-ready icon, the spell tooltip) are not surfaces.
 --
 -- THE INSTANCE. tests/run.lua builds a fresh addon per case, but the kit runs one owner on one
 -- library, so this file keeps one enabled instance of its own, built on the first question and
@@ -176,7 +185,7 @@ return function(enableAddon)
         skin = skinLib,
         reset = reset,
         surfaces = {
-            { name = "the popup's window",
+            { name = "the popup's window", expect = "texture",
               build = function() return withRegions((popup())) end },
 
             { name = "the popup's title bar",
@@ -223,7 +232,7 @@ return function(enableAddon)
                   return fs[14]
               end },
 
-            { name = "the Close button",
+            { name = "the Close button", expect = "texture",
               build = function() return withRegions(button("UIPanelButtonTemplate")) end },
 
             { name = "the teleport icon's edge",
