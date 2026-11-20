@@ -449,7 +449,9 @@ surface carries a typed look value.
   naming a cause. Those rows are **chat output** only (cause L13): chat is not a skinned surface, so
   the chat summary's spell-link fallback and teleport tag and the test-mode refusal stay as they are.
   Its `tests/_kit/test_skin_switch.lua` fails a surface `tests/skin_surfaces.lua` declares that does
-  not change under a probe skin.
+  not change under a probe skin, each setter family on its own since kit revision 58. The popup's
+  window and its Close button draw skin art, so they declare `expect = "texture"`; no surface holds
+  a StatusBar or a family a ruling keeps fixed.
 - **What stays Blizzard's** (skinning-§7): the secure teleport button and its spell icon (no edge is
   added to a protected frame, D5), the cooldown swipe, the spell tooltip, the StaticPopups, the
   launcher's menu and the LibDBIcon button, and the `SettingsPanel` chrome. The library-absent path
