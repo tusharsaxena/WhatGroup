@@ -103,5 +103,5 @@ Bugs, feature requests and outstanding work are all tracked at [https://github.c
 
 **Open Iconic** icons, by Waybury, MIT license (<https://github.com/iconic/open-iconic>): the debug
 console's copy, clear and close marks, the first-run skin picker's preview eye and settings gear,
-and the small marks LibKa0s draws beside skinned controls. Only the icons the addon draws are shipped. The icons are bundled inside the LibKa0s payload,
+the padlock in the popup's title bar, and the small marks LibKa0s draws beside skinned controls. Only the icons the addon draws are shipped. The icons are bundled inside the LibKa0s payload,
 with their license text beside them.
