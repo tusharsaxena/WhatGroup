@@ -1,0 +1,1 @@
+Independent review (rv-f, FU-RV): payload+kit match LibKa0s v1.109.0 (only pruned media differ), provenance v1.109.0, quirks blocks byte-match WowAddonStandards v2.117.0 catalogs, doc map rows and citations correct, gates green. No confirmed findings. Retail 1139/1139, luacheck 0/0; nit fixed in HEAD (SkinPaintNav in test_libka0s MODULES list).
