@@ -64,10 +64,11 @@ test("libka0s: MODULES names every file of every major, at a positive integer mi
                                      "OptionsSkinPicker", "OptionsSkinPickerRows" },
         ["LibKa0s-Perf-1.0"]     = { "Perf", "PerfPanel" },
         -- LibKa0s-Skin-1.0 (v1.78.0; key 11.1.19.1.13.7.11.2.5 at v1.84.0): its nine files, and
-        -- since v1.91.0 eleven (SkinPaintHud and SkinAceConfirm peeled out of SkinPaintExtras).
+        -- since v1.91.0 eleven (SkinPaintHud and SkinAceConfirm peeled out of SkinPaintExtras), and
+        -- since v1.109.0 twelve (SkinPaintNav peeled out of SkinPaintControls).
         ["LibKa0s-Skin-1.0"]     = { "Skin", "SkinOwnerTokens", "SkinDefs", "SkinDefsOthers",
                                      "SkinPaint", "SkinPaintExtras", "SkinPaintHud",
-                                     "SkinAceConfirm", "SkinPaintControls",
+                                     "SkinAceConfirm", "SkinPaintControls", "SkinPaintNav",
                                      "SkinEUI", "SkinAce" },
         -- LibKa0s-Charts-1.0 (v1.84.0): nothing here adopts it, and the client loads both files.
         ["LibKa0s-Charts-1.0"]   = { "Charts", "ChartsRender" },

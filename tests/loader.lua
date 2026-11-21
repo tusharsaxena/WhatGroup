@@ -49,6 +49,10 @@ local LIBKA0S = {
     -- v1.99.0 the WaypointArrow major and its rows (WaypointArrow, WaypointArrowSettings). Nothing here
     -- adopts either; the client loads every file of the XML.
     "libs/LibKa0s/Callout.lua",
+    -- New in LibKa0s v1.109.0: Callout's write route and its sound, peeled out of Callout.lua
+    -- (Callout minor 6). Internal; loaded in XML order.
+    "libs/LibKa0s/CalloutRoute.lua",
+    "libs/LibKa0s/CalloutSound.lua",
     "libs/LibKa0s/CalloutSettings.lua",
     "libs/LibKa0s/WaypointArrow.lua",
     "libs/LibKa0s/WaypointArrowSettings.lua",
@@ -74,6 +78,9 @@ local LIBKA0S = {
     "libs/LibKa0s/SkinPaintHud.lua",
     "libs/LibKa0s/SkinAceConfirm.lua",
     "libs/LibKa0s/SkinPaintControls.lua",
+    -- New in LibKa0s v1.109.0: the tab and navigation painters, peeled out of SkinPaintControls.lua (SkinPaintControls
+    -- minor 20). Internal.
+    "libs/LibKa0s/SkinPaintNav.lua",
     "libs/LibKa0s/SkinEUI.lua",
     "libs/LibKa0s/SkinAce.lua",
     "libs/LibKa0s/Widgets.lua",
@@ -133,6 +140,9 @@ local LIBKA0S = {
     "libs/LibKa0s/OptionsHeader.lua",
     "libs/LibKa0s/OptionsCombat.lua",
     "libs/LibKa0s/OptionsCompose.lua",
+    -- New in LibKa0s v1.109.0: the Master controls composer, peeled out of OptionsCompose.lua
+    -- (OptionsCompose minor 21). Internal.
+    "libs/LibKa0s/OptionsComposeMaster.lua",
     "libs/LibKa0s/OptionsScroll.lua",
     "libs/LibKa0s/OptionsNav.lua",
     -- New in LibKa0s v1.73.0: the slide-out drawer (OptionsDrawer minor 1, O.Drawer). Nothing here adopts it.
