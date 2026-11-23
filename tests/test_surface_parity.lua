@@ -264,5 +264,8 @@ test("parity: the Compat reader arm carries every library member the addon wires
         "GetSpellCooldown",
         -- LibKa0s v1.92.0 (Compat minor 2) added these four client helpers. No caller here until the Forever port.
         "IsForever", "IsRetail", "ClientKey", "ForClient",
+        -- LibKa0s v1.110.0 (Compat minor 6) added the bank and container helpers. This addon reads no bag or bank.
+        "BankerKind", "CONTAINER_PATTERNS_BY_CLIENT", "CanViewCharacterBank", "ContainerGroups",
+        "NumPurchasedBankTabs", "UnreadyBankContainers",
     })
 end)
