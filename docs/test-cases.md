@@ -665,11 +665,12 @@ Total.
 - popup skin: the degraded S.MarkText answers a string a caller can concatenate
 - popup skin: the degraded facade paints a token name with that token's color
 
-### test_frame_header.lua (17)
+### test_frame_header.lua (18)
 
 - popup header: the title bar reads lock · settings · close through W.HeaderButtons
 - popup header: the marks sit right-aligned at the strip's one pitch, close in the corner
 - popup header: S.Header lays the marks on the band at the strip's offsets
+- popup header: the popup is not a companion, so it keeps the gear (standalone-windows v2.119.0)
 - popup header: the settings mark's click opens WhatGroup's settings through the launcher
 - popup header: the settings mark in combat leaves the popup exactly as it was
 - popup header: every mark carries its tooltip, settings' own words and the close's Close
@@ -1323,7 +1324,7 @@ Total.
 | test_frame_secure.lua | 7 |
 | test_frame_layers.lua | 9 |
 | test_frame_skin.lua | 26 |
-| test_frame_header.lua | 17 |
+| test_frame_header.lua | 18 |
 | test_frame_tooltip.lua | 7 |
 | test_panel.lua | 63 |
 | test_skinsetup.lua | 18 |
@@ -1357,4 +1358,4 @@ Total.
 | test_skin_switch.lua | 26 |
 | test_client_globals.lua | 3 |
 | Skipped | 1 |
-| **Total** | **1139** |
+| **Total** | **1140** |

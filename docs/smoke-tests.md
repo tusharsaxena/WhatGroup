@@ -485,6 +485,12 @@ Setup: on the Profiles page create `Alt` (creating a profile switches to it) and
   (the owner's waiver, `docs/ARCHITECTURE.md` → Documented deviations) and still closes the popup.
   Fail: no padlock, a closed padlock on an unlocked popup or the reverse, a mark that lags a change
   made elsewhere, a drag that ignores the lock, or a Lua or blocked-action error. Result:
+- **POPUP-15. Every non-companion window carries the gear (FB-T-WG; standalone-windows,
+  *Title-bar controls*, v2.119.0).** `/wg test notify` → the popup, this addon's only window, shows the
+  gear between the padlock and the X, and clicking it opens the **Ka0s WhatGroup** settings. Then
+  `/wg resetall` → the confirm is a Blizzard StaticPopup, a
+  companion, and shows no gear: Accept and Cancel only. Cancel it. Fail: a popup with no gear, a gear
+  on the confirm, or a Lua error. Result:
 
 ## Test mode
 
@@ -1382,3 +1388,11 @@ Owed from the skin-defaults run (Ka0sAddonsCommonTasks `docs/2026-11-20-LIBKA0S_
 SD-RV-WG, LibKa0s v1.108.0): no check of its own. The release moves call-outs, arrows, charts, data
 bars, footers and option composers, and this addon builds none of them. The library-absent popup now
 takes its two edge colors from `NS.SKIN_FALLBACK`, which holds the same values, so it draws as before.
+
+Owed from the feedback batch (Ka0sAddonsCommonTasks `docs/2026-11-24-FEEDBACK_BATCH/`, items
+FB-RV-WG and FB-T-WG, LibKa0s v1.112.0, standard v2.119.0): the new POPUP-15, the gear on the
+non-companion popup. The re-vendor moves class-color resolution (Core minor 20), the disabled
+primary button (SkinPaintControls minor 21), the header's companion option (WidgetsHeader minor 2),
+the copy window (WidgetsCopyWindow minor 7) and High Contrast's HUD shadow (SkinDefsOthers minor 11).
+This addon resolves no class color, has no primary button and draws no HUD text, so no other check
+changed and no pass mark came off. The debug console's Copy window now shows the X alone.
