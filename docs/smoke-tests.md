@@ -1396,3 +1396,13 @@ primary button (SkinPaintControls minor 21), the header's companion option (Widg
 the copy window (WidgetsCopyWindow minor 7) and High Contrast's HUD shadow (SkinDefsOthers minor 11).
 This addon resolves no class color, has no primary button and draws no HUD text, so no other check
 changed and no pass mark came off. The debug console's Copy window now shows the X alone.
+
+Owed from round 2 of the feedback batch (Ka0sAddonsCommonTasks
+`docs/2026-11-24-FEEDBACK_BATCH/R2_SMOKE_FEEDBACK.md`, item FB2-WG-01, LibKa0s v1.113.0, standard
+v2.120.0): no check of its own. The re-vendor moves the simulator (Sim minor 5: every start shows the
+step panel, and the shared sample crowd) and the library's own dropdown menu (WidgetsDropdown minor
+4: a selected row stands off a plain one). This addon runs no simulator, and its only dropdowns are
+the settings page's AceGUI pullouts, which the standard's selected-row rule leaves out of scope. The
+sample leader's library-absent copy is gone, so a load without the Sim major shows `Unknown`; with
+the major loaded, as the TOC always does, TEST-13's `Mockshield-Mockrealm` is unchanged and no pass
+mark came off.
