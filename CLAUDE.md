@@ -39,10 +39,12 @@ Start here, then read the docs:
   `## Documentation map`.
 - **`DEPENDENCIES.md`** — the toolchain contract: what to install to build, run, test or release.
 
-Green gate before every commit: `lua tests/run.lua` and
+Green gate before every commit: `lua tests/run.lua`,
 `~/.claude/dev-copilot/bin/ka0s-bounded luacheck .` (0/0; the kit bounds the suite on load, and
 `luacheck` loads no kit, so it runs through the bounded runner, testing-§15); the suite includes
-the vendor gate against the tag below (`tests/test_vendor_sync.lua`). Never auto-stage/commit/push
+the vendor gate against the tag below (`tests/test_vendor_sync.lua`), and
+`python3 -m unittest discover -s tools/seeds -p 'test_*.py'` (the seed contract's own tests, as
+`docs/validate-seeds.md` -> `## Gate` writes them; no network). Never auto-stage/commit/push
 and never bump the version without an explicit instruction.
 
 Bundles [LibKa0s](https://github.com/tusharsaxena/LibKa0s) v1.113.0 (MIT).
