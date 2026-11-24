@@ -541,10 +541,70 @@ test("testmode: the sample leader is the shared set's tank, on a fictional realm
     assertFalse(leader:find("Silvermoon", 1, true) ~= nil, "no real realm")
 end)
 
-test("testmode: without the Sim major the sample leader is a copy of the library's row", function()
-    local _, env = T.newAddon()
-    local expected = sharedTank(env)
+-- No name list of this addon's own, a library-absent fallback included (preview-mode, *Sample
+-- characters*, *Every name comes from the library*, v2.120.0; LibKa0s#104): without the Sim major
+-- the leader reads "Unknown", what a live capture with no leader shows, never a copied name.
+test("testmode: without the Sim major the sample leader is Unknown, never a copied name (LibKa0s#104)", function()
+    -- red under: a hand-kept copy of the library's tank standing in when the Sim major is absent.
     local without, bare = T.newAddon{ skip = SIM_FILES }
     assertNil(bare.LibStub("LibKa0s-Sim-1.0", true), "the Sim major is absent")
-    assertEqual(without.addon:SampleInfo().leaderName, expected)
+    assertEqual(without.addon:SampleInfo().leaderName, without.L["Unknown"])
+end)
+
+-- Every sample person name the library can answer: the five protagonists and the whole crowd, on
+-- both clients, with the two fictional realms. Read from the library, so this list is never kept.
+local function libraryNames(env)
+    local Sim = env.LibStub("LibKa0s-Sim-1.0")
+    local names = { Mockrealm = true, Samplerealm = true }
+    for _, client in ipairs({ "retail", "forever" }) do
+        local rows = {}
+        for _, r in ipairs(Sim.Sample(client)) do rows[#rows + 1] = r end
+        for _, r in ipairs(Sim.SampleCrowd(client, Sim.CROWD_MAX)) do rows[#rows + 1] = r end
+        for _, r in ipairs(rows) do
+            for _, k in ipairs({ "name", "fullName", "pet", "petName", "surname" }) do
+                local v = r[k]
+                if type(v) == "string" then
+                    for word in v:gmatch("[%a]+") do
+                        if word:find("^Sample") or word:find("^Mock") then names[word] = true end
+                    end
+                end
+            end
+        end
+    end
+    return names
+end
+
+-- Every source file the client loads or a tool runs, outside tests/ and libs/ (the vendored
+-- payloads). Docs are prose describing what the player sees, so they may name a person.
+local function shippedSources()
+    assertTrue(io.popen ~= nil, "io.popen is needed to list the sources")
+    local cmd = "find . \\( -path ./tests -o -path ./libs -o -path ./.git -o -path ./docs \\) -prune"
+        .. " -o -type f \\( -name '*.lua' -o -name '*.xml' -o -name '*.toc' \\) -print"
+    local h = io.popen(cmd)
+    local out = {}
+    for line in h:lines() do out[#out + 1] = line end
+    h:close()
+    return out
+end
+
+test("testmode: no sample person name literal lives outside tests/ (LibKa0s#104)", function()
+    -- red under: a Sample*/Mock* name the library answers typed into addon code (a fallback
+    -- copy, a hand-kept pool), which drifts the day the library's set moves.
+    local _, env = T.newAddon()
+    local names = libraryNames(env)
+    assertTrue(names.Mockshield, "the scan knows the shared tank")
+    local files = shippedSources()
+    assertTrue(#files >= 10, "the sources were listed, got " .. #files)
+    local hits = {}
+    for _, path in ipairs(files) do
+        local body = readFile(path) or ""
+        local n = 0
+        for l in (body .. "\n"):gmatch("([^\n]*)\n") do
+            n = n + 1
+            for word in l:gmatch("[%a]+") do
+                if names[word] then hits[#hits + 1] = ("%s:%d %s"):format(path, n, word) end
+            end
+        end
+    end
+    assertEqual(table.concat(hits, "; "), "", "sample names typed outside tests/")
 end)
