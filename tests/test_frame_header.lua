@@ -72,6 +72,20 @@ test("popup header: S.Header lays the marks on the band at the strip's offsets",
     assertTrue(type(spec) == "table" and spec.right == hb.right, "S.Header takes HeaderButtons' `right`")
 end)
 
+test("popup header: the popup is not a companion, so it keeps the gear (standalone-windows v2.119.0)", function()
+    -- red under: the popup built with `companion = true`, or with the waiver (settings = false). The
+    -- popup is the addon's primary and only window: the launcher, /wg show and a real join open it,
+    -- it keeps a saved position and moves with Locked, so it fails all three companion tests
+    -- (Owned, Bound, Not a display) and owes the settings mark (FB-T-WG, the owner's ruling of
+    -- 2026-11-24: "window title bars should all have a gear icon (on non companion windows)").
+    local NS, _, mock = T.bootAddon()
+    shown(NS, mock)
+    local hb = strip(mock)
+    assertTrue(hb.companion ~= true, "the popup is not recorded as a companion")
+    assertTrue(hb.optOut == nil, "the popup takes no settings waiver")
+    assertTrue(hb.settings ~= nil, "the popup's title bar carries the gear")
+end)
+
 test("popup header: the settings mark's click opens WhatGroup's settings through the launcher", function()
     -- red under: settings = false, or a settings mark wired to anything but the registered opener.
     local NS, _, mock = T.enableAddon()

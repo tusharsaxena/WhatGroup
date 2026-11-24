@@ -18,18 +18,17 @@ local WhatGroup = NS.addon
 
 -- The sample group's leader (preview-mode, *Sample characters*; LibKa0s#87): one of the
 -- collection's shared sample characters, never a real-looking Name-Realm pair (the old
--- `Testadin-Silvermoon` named a real realm). It is the set's tank, `Mockshield-Mockrealm`, from
--- LibKa0s-Sim-1.0's retail set (this addon ships Retail only), read at call time and found by role
--- rather than by row number. A load without the Sim major falls back to a copy of the library's row.
-local SAMPLE_LEADER_FALLBACK = "Mockshield-Mockrealm"
-
+-- `Testadin-Silvermoon` named a real realm). It is the tank of LibKa0s-Sim-1.0's retail set (this
+-- addon ships Retail only), read at call time and found by role rather than by row number. Every
+-- name comes from the library (v2.120.0, LibKa0s#104): this file keeps no copy, so a load without
+-- the Sim major shows "Unknown", what a live capture with no leader shows.
 local function sampleLeader()
     local Sim = LibStub and LibStub("LibKa0s-Sim-1.0", true)
     local rows = Sim and type(Sim.Sample) == "function" and Sim.Sample("retail")
     for _, row in ipairs(rows or {}) do
         if row.role == "TANK" and type(row.fullName) == "string" then return row.fullName end
     end
-    return SAMPLE_LEADER_FALLBACK
+    return NS.L["Unknown"]
 end
 
 -- The sample capture: a fresh table on every call, so no caller hands another one it then mutates.
