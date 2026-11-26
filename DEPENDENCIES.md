@@ -37,7 +37,9 @@ ships the repo as-is.
 
 ## 2. Development — what a contributor installs
 
-Four things, and only the first two are strictly required to make the green gate run.
+Five things. Lua 5.1, luacheck and ka0s-bounded are required to run the green gate, git is required for
+the vendor gate, and lizard is optional per commit and required at release. The gate's seed tests also
+need Python 3 (section 3).
 
 ### 2.1 Lua 5.1 — **required, and the version is not negotiable**
 
@@ -177,10 +179,11 @@ Verify:
 
 Stated explicitly, because each of these is a reasonable guess that happens to be wrong here:
 
-- **No Python** for the addon, its tests or its gate. The test harness, the runner and the `--list`
+- **No Python** for the addon or its Lua tests. The test harness, the runner and the `--list`
   inventory generator are all Lua (`tests/run.lua`, `tests/loader.lua`, `tests/_kit/`). Python
   arrives only as `lizard`'s host (section 2.3), for the release-time logo recipe (section 3) and
-  for the seed validator under `tools/seeds/` (section 3).
+  for the seed validator under `tools/seeds/` (section 3), whose offline tests are part of the
+  commit gate.
 - **No Node.js, no npm.** There is no `package.json` anywhere outside `libs/`.
 - **No `Makefile`, no `scripts/` directory.** The repo's only `.py` files are the seed validator
   `tools/seeds/teleports.py` and its tests (section 3), dev-only and `.pkgmeta`-ignored. There is **one** shell script:
@@ -251,7 +254,8 @@ to fix a typo.
   `json`, `urllib`, …); `from __future__ import annotations` sets the 3.8 floor. Network only on a
   run that is not `--replay`; downloads (about 93 MB a build) are cached in the git-ignored
   `tools/seeds/.cache/`. Its tests are `python3 -m unittest discover -s tools/seeds -p 'test_*.py'`,
-  offline. Not part of the green gate, and not needed to build, run or test the addon.
+  offline, and part of the commit gate (the root `CLAUDE.md` gate line, `docs/testing.md` → *The green
+  gate*). The validator itself, and its network access, is not needed to build, run or test the addon.
 
 - **`lizard`** (section 2.3) is **required at release**: the complexity report is regenerated at
   release (performance-§10) and a skipped complexity suite is a release gate that did not pass
@@ -264,12 +268,13 @@ Nothing else: no vendored binaries, no linked system libraries, no signing tooli
 
 ## 4. Am I set up correctly?
 
-Run these from the repo root. All three are documented in
+Run these from the repo root. All four are documented in
 [`docs/testing.md`](docs/testing.md), which is where their meaning and their failure modes live.
 
 ```sh
 lua tests/run.lua                                        # headless suite — non-zero exit on any failure
 ~/.claude/dev-copilot/bin/ka0s-bounded luacheck .        # must report 0 warnings / 0 errors
+python3 -m unittest discover -s tools/seeds -p 'test_*.py'  # the seed tool's offline tests
 bash tests/_kit/run-automated-tests.sh --suite complexity   # sighted complexity (required at release)
 ```
 

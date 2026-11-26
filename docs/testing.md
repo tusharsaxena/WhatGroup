@@ -5,20 +5,21 @@ Root stub: [../CLAUDE.md](../CLAUDE.md).
 
 WhatGroup is validated on four levels — a headless harness, lint, a **vendor
 gate** over the two folders it copies from `../LibKa0s`, and an in-game
-smoke-test suite. The first three are the **commit gate**; the fourth is manual.
+smoke-test suite. The first three, with the seed tool's offline tests, are the **commit gate**; the
+fourth is manual.
 
 ## The green gate
 
-Both of these MUST be green before every commit (testing-§4):
+All three of these MUST be green before every commit (testing-§4; the root `CLAUDE.md` gate line):
 
 ```sh
 lua tests/run.lua      # headless suites: PASS/FAIL per case, non-zero exit on any failure
 ~/.claude/dev-copilot/bin/ka0s-bounded luacheck .  # must report 0 warnings / 0 errors (config in .luacheckrc)
+python3 -m unittest discover -s tools/seeds -p 'test_*.py'  # the seed tool's offline cases; no network
 ```
 
-A change under `tools/seeds/` also runs that tool's own offline cases,
-`python3 -m unittest discover -s tools/seeds -p 'test_*.py'`; the seed-validation contract
-([validate-seeds.md](./validate-seeds.md) → *Gate*) lists all three.
+The seed-validation contract ([validate-seeds.md](./validate-seeds.md) → *Gate*) lists the same
+three.
 
 ### The harness is the shared kit
 
